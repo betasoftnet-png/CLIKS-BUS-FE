@@ -3879,45 +3879,55 @@ export default function BusinessCA() {
                                                                                     transition={{ duration: 0.2 }}
                                                                                     style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '16px' }}
                                                                                 >
-                                                                                    {/* Tabs Selector for CA */}
-                                                                                    <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', borderBottom: '1px solid #E2E8F0', marginBottom: '4px' }}>
-                                                                                        {AUDIT_PORTALS.map(portal => (
-                                                                                            <button
-                                                                                                key={portal.id}
-                                                                                                type="button"
-                                                                                                onClick={() => setCaPortalTab(portal.id)}
-                                                                                                style={{
-                                                                                                    padding: '6px 10px',
-                                                                                                    borderRadius: '6px',
-                                                                                                    border: '1.5px solid',
-                                                                                                    borderColor: caPortalTab === portal.id ? '#1E3A8A' : '#CBD5E1',
-                                                                                                    background: caPortalTab === portal.id ? '#EFF6FF' : '#FFFFFF',
-                                                                                                    color: caPortalTab === portal.id ? '#1E3A8A' : '#475569',
-                                                                                                    fontWeight: caPortalTab === portal.id ? '800' : '600',
-                                                                                                    fontSize: '11.5px',
-                                                                                                    cursor: 'pointer',
-                                                                                                    whiteSpace: 'nowrap'
-                                                                                                }}
-                                                                                            >
-                                                                                                {portal.icon} {portal.shortName}
-                                                                                            </button>
-                                                                                        ))}
-                                                                                    </div>
-
                                                                                     {(() => {
-                                                                                        const curPortal = AUDIT_PORTALS.find(p => p.id === caPortalTab) || AUDIT_PORTALS[0];
-                                                                                        const pData = gstCredentials?.portals?.[caPortalTab] || (caPortalTab === 'gst' ? { username: gstCredentials?.gstUsername, password: gstCredentials?.gstPassword } : null);
+                                                                                        const sharedPortals = AUDIT_PORTALS.filter(portal => {
+                                                                                            const pData = gstCredentials?.portals?.[portal.id];
+                                                                                            if (pData) return pData.isShared;
+                                                                                            if (portal.id === 'gst' && gstCredentials?.gstUsername) return true;
+                                                                                            return false;
+                                                                                        });
 
-                                                                                        if (!pData || (!pData.username && !pData.password)) {
+                                                                                        if (sharedPortals.length === 0) {
                                                                                             return (
                                                                                                 <p style={{ fontSize: '12.5px', color: '#64748B', fontStyle: 'italic', margin: 0, padding: '8px 0' }}>
-                                                                                                    {curPortal.name} credentials have not been provided yet by the Business Owner.
+                                                                                                    No portal credentials have been shared yet by the Business Owner.
                                                                                                 </p>
                                                                                             );
                                                                                         }
 
+                                                                                        const activePortalId = sharedPortals.some(p => p.id === caPortalTab) ? caPortalTab : sharedPortals[0].id;
+                                                                                        const curPortal = sharedPortals.find(p => p.id === activePortalId) || sharedPortals[0];
+                                                                                        const pData = gstCredentials?.portals?.[curPortal.id] || (curPortal.id === 'gst' ? { username: gstCredentials?.gstUsername, password: gstCredentials?.gstPassword } : null);
+
                                                                                         return (
                                                                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                                                                                {/* Tabs Selector for CA showing ONLY shared portals */}
+                                                                                                {sharedPortals.length > 1 && (
+                                                                                                    <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', borderBottom: '1px solid #E2E8F0', marginBottom: '4px' }}>
+                                                                                                        {sharedPortals.map(portal => (
+                                                                                                            <button
+                                                                                                                key={portal.id}
+                                                                                                                type="button"
+                                                                                                                onClick={() => setCaPortalTab(portal.id)}
+                                                                                                                style={{
+                                                                                                                    padding: '6px 10px',
+                                                                                                                    borderRadius: '6px',
+                                                                                                                    border: '1.5px solid',
+                                                                                                                    borderColor: activePortalId === portal.id ? '#1E3A8A' : '#CBD5E1',
+                                                                                                                    background: activePortalId === portal.id ? '#EFF6FF' : '#FFFFFF',
+                                                                                                                    color: activePortalId === portal.id ? '#1E3A8A' : '#475569',
+                                                                                                                    fontWeight: activePortalId === portal.id ? '800' : '600',
+                                                                                                                    fontSize: '11.5px',
+                                                                                                                    cursor: 'pointer',
+                                                                                                                    whiteSpace: 'nowrap'
+                                                                                                                }}
+                                                                                                            >
+                                                                                                                {portal.icon} {portal.shortName}
+                                                                                                            </button>
+                                                                                                        ))}
+                                                                                                    </div>
+                                                                                                )}
+
                                                                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                                                                     <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{curPortal.name}</span>
                                                                                                     <a href={curPortal.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '13px', fontWeight: '700', color: '#1D4ED8', textDecoration: 'underline' }}>{curPortal.url}</a>
