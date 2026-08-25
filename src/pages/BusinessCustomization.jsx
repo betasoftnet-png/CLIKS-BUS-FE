@@ -249,6 +249,30 @@ const BusinessCustomization = () => {
             localStorage.setItem('cliks_language', val);
             document.documentElement.setAttribute('lang', val);
         }
+        if (key === 'printerType') {
+            const newPaperSize = val === 'thermal' ? '3 Inch (Thermal)' : 'A4 Size';
+            setConfig(prev => {
+                const updated = { ...prev, printerType: val, paperSize: newPaperSize };
+                localStorage.setItem('cliks_business_config', JSON.stringify(updated));
+                localStorage.setItem('cliks_active_config', JSON.stringify(updated));
+                window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+                settingsService.updateSettings(updated).catch(err => console.warn('[Settings Engine] Failed to save printer config:', err));
+                return updated;
+            });
+            return;
+        }
+        if (key === 'paperSize') {
+            const newPrinterType = val.includes('Thermal') ? 'thermal' : 'regular';
+            setConfig(prev => {
+                const updated = { ...prev, paperSize: val, printerType: newPrinterType };
+                localStorage.setItem('cliks_business_config', JSON.stringify(updated));
+                localStorage.setItem('cliks_active_config', JSON.stringify(updated));
+                window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+                settingsService.updateSettings(updated).catch(err => console.warn('[Settings Engine] Failed to save printer config:', err));
+                return updated;
+            });
+            return;
+        }
         setConfig(prev => {
             const updated = { ...prev, [key]: val };
             localStorage.setItem('cliks_business_config', JSON.stringify(updated));
@@ -256,6 +280,145 @@ const BusinessCustomization = () => {
             window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
             return updated;
         });
+    };
+
+    const handleTestPrint = () => {
+        const isThermal = config.printerType === 'thermal' || (config.paperSize && config.paperSize.includes('Thermal'));
+        const printWindow = window.open('', '_blank', 'width=800,height=900');
+        if (!printWindow) {
+            alert('Please allow popups to execute printer test.');
+            return;
+        }
+
+        const businessTitle = config.displayTitlePrint || config.companyName || 'CLIKS BUSINESS';
+        const paperLabel = config.paperSize || (isThermal ? '3 Inch (Thermal)' : 'A4 Size');
+
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Test Print Output - ${businessTitle}</title>
+                <style>
+                    @page {
+                        size: ${isThermal ? '80mm auto' : (paperLabel.includes('Letter') ? 'letter' : paperLabel.includes('Legal') ? 'legal' : 'A4')};
+                        margin: ${isThermal ? '2mm' : '10mm'};
+                    }
+                    body {
+                        font-family: ${isThermal ? "'Courier New', monospace" : "'Inter', system-ui, sans-serif"};
+                        margin: 0;
+                        padding: ${isThermal ? '8px' : '20px'};
+                        color: #000;
+                        background: #fff;
+                        font-size: ${isThermal ? '12px' : '14px'};
+                    }
+                    .ticket {
+                        max-width: ${isThermal ? '280px' : '100%'};
+                        margin: 0 auto;
+                    }
+                    .header {
+                        text-align: center;
+                        border-bottom: ${isThermal ? '1px dashed #000' : '2px solid #1B6B3A'};
+                        padding-bottom: 8px;
+                        margin-bottom: 10px;
+                    }
+                    .title {
+                        font-size: ${isThermal ? '16px' : '22px'};
+                        font-weight: bold;
+                        text-transform: uppercase;
+                    }
+                    .subtitle {
+                        font-size: 11px;
+                        color: #444;
+                        margin-top: 4px;
+                    }
+                    .table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 10px 0;
+                    }
+                    .table th, .table td {
+                        text-align: left;
+                        padding: 4px 0;
+                        font-size: ${isThermal ? '11px' : '13px'};
+                    }
+                    .table th {
+                        border-bottom: 1px solid #000;
+                    }
+                    .table td.right, .table th.right {
+                        text-align: right;
+                    }
+                    .total-row {
+                        border-top: ${isThermal ? '1px dashed #000' : '2px solid #000'};
+                        font-weight: bold;
+                        font-size: ${isThermal ? '13px' : '16px'};
+                    }
+                    .footer {
+                        margin-top: 15px;
+                        text-align: center;
+                        font-size: 10px;
+                        border-top: ${isThermal ? '1px dashed #000' : 'none'};
+                        padding-top: 8px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="ticket">
+                    <div class="header">
+                        <div class="title">${businessTitle}</div>
+                        <div class="subtitle">PRINTER MECHANISM TEST SHEET</div>
+                        <div class="subtitle">Mode: ${isThermal ? 'THERMAL RECEIPT (80mm / 3")' : 'STANDARD PAGE (' + paperLabel + ')'}</div>
+                        <div class="subtitle">Date: ${new Date().toLocaleString()}</div>
+                    </div>
+
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th class="right">Qty</th>
+                                <th class="right">Price</th>
+                                <th class="right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Test Sample A</td>
+                                <td class="right">1</td>
+                                <td class="right">₹500.00</td>
+                                <td class="right">₹500.00</td>
+                            </tr>
+                            <tr>
+                                <td>Test Sample B</td>
+                                <td class="right">2</td>
+                                <td class="right">₹250.00</td>
+                                <td class="right">₹500.00</td>
+                            </tr>
+                            <tr class="total-row">
+                                <td colspan="3" class="right">TOTAL:</td>
+                                <td class="right">₹1,000.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="footer">
+                        <div>✓ Printer Mechanism Operational</div>
+                        <div>Configuration: ${isThermal ? 'Thermal Slip Printer' : 'Standard Document Printer'}</div>
+                        <div style="margin-top: 4px;">CLIKS Business Printing Engine</div>
+                    </div>
+                </div>
+
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(function() { window.close(); }, 750);
+                    };
+                </script>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.open();
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
     };
 
     const handleSave = async () => {
@@ -1140,59 +1303,151 @@ const BusinessCustomization = () => {
         </div>
     );
 
-    const renderPrint = () => (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <CustomizationCard title="Printer Mechanism" icon={Printer}>
-                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <button onClick={() => handleTextChange('printerType', 'regular')} style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: 'none', background: config.printerType === 'regular' ? '#8B5CF6' : '#F1F5F9', color: config.printerType === 'regular' ? 'white' : '#64748B', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }}>REGULAR</button>
-                        <button onClick={() => handleTextChange('printerType', 'thermal')} style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: 'none', background: config.printerType === 'thermal' ? '#8B5CF6' : '#F1F5F9', color: config.printerType === 'thermal' ? 'white' : '#64748B', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }}>THERMAL</button>
-                    </div>
-                    <CheckboxWithLabel label="Repeat header on multi-sheet outputs" checked={config.repeatHeader} onChange={() => handleToggle('repeatHeader')} />
-                </CustomizationCard>
-                <CustomizationCard title="Info Overrides" icon={Edit}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <ProfileInputField 
-                            label="Display Title for Print" 
-                            icon={Briefcase} 
-                            value={config.displayTitlePrint} 
-                            onChange={(e) => handleTextChange('displayTitlePrint', e.target.value)} 
-                        />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>Page Dim:</span>
-                            <select 
-                                style={selectStyle} 
-                                value={config.paperSize} 
-                                onChange={(e) => handleTextChange('paperSize', e.target.value)}
+    const renderPrint = () => {
+        const isThermal = config.printerType === 'thermal' || (config.paperSize && config.paperSize.includes('Thermal'));
+
+        return (
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <CustomizationCard title="Printer Mechanism" icon={Printer}>
+                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                            <button 
+                                type="button"
+                                onClick={() => handleTextChange('printerType', 'regular')} 
+                                style={{ 
+                                    flex: 1, 
+                                    padding: '0.75rem', 
+                                    borderRadius: '10px', 
+                                    border: config.printerType === 'regular' ? '2px solid #8B5CF6' : '1px solid #CBD5E1', 
+                                    background: config.printerType === 'regular' ? '#8B5CF6' : '#FFFFFF', 
+                                    color: config.printerType === 'regular' ? '#FFFFFF' : '#475569', 
+                                    fontWeight: '800', 
+                                    cursor: 'pointer', 
+                                    boxShadow: config.printerType === 'regular' ? '0 4px 12px rgba(139, 92, 246, 0.3)' : 'none',
+                                    transition: 'all 0.2s' 
+                                }}
                             >
-                                <option>A4 Size</option>
-                                <option>Letter</option>
-                                <option>Legal</option>
-                                <option>3 Inch (Thermal)</option>
-                            </select>
+                                REGULAR
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => handleTextChange('printerType', 'thermal')} 
+                                style={{ 
+                                    flex: 1, 
+                                    padding: '0.75rem', 
+                                    borderRadius: '10px', 
+                                    border: config.printerType === 'thermal' ? '2px solid #8B5CF6' : '1px solid #CBD5E1', 
+                                    background: config.printerType === 'thermal' ? '#8B5CF6' : '#FFFFFF', 
+                                    color: config.printerType === 'thermal' ? '#FFFFFF' : '#475569', 
+                                    fontWeight: '800', 
+                                    cursor: 'pointer', 
+                                    boxShadow: config.printerType === 'thermal' ? '0 4px 12px rgba(139, 92, 246, 0.3)' : 'none',
+                                    transition: 'all 0.2s' 
+                                }}
+                            >
+                                THERMAL
+                            </button>
+                        </div>
+                        <CheckboxWithLabel label="Repeat header on multi-sheet outputs" checked={config.repeatHeader} onChange={() => handleToggle('repeatHeader')} />
+                        <button
+                            type="button"
+                            onClick={handleTestPrint}
+                            style={{
+                                marginTop: '1.25rem',
+                                width: '100%',
+                                padding: '0.7rem 1rem',
+                                borderRadius: '10px',
+                                background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                fontWeight: '800',
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem',
+                                boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <Printer size={16} /> Test Print Output ({isThermal ? '3" Thermal Receipt' : (config.paperSize || 'A4 Size')})
+                        </button>
+                    </CustomizationCard>
+                    <CustomizationCard title="Info Overrides" icon={Edit}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <ProfileInputField 
+                                label="Display Title for Print" 
+                                icon={Briefcase} 
+                                value={config.displayTitlePrint} 
+                                onChange={(e) => handleTextChange('displayTitlePrint', e.target.value)} 
+                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>Page Dim:</span>
+                                <select 
+                                    style={selectStyle} 
+                                    value={config.paperSize} 
+                                    onChange={(e) => handleTextChange('paperSize', e.target.value)}
+                                >
+                                    <option>A4 Size</option>
+                                    <option>Letter</option>
+                                    <option>Legal</option>
+                                    <option>3 Inch (Thermal)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </CustomizationCard>
+                </div>
+                <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '16px', overflow: 'hidden' }}>
+                    <div style={{ padding: '1rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '800' }}>
+                        <Eye size={16} color="#8B5CF6" /> VIEWPORT PREVIEW ({isThermal ? 'THERMAL RECEIPT' : 'REGULAR SHEET'})
+                    </div>
+                    <div style={{ padding: '2rem', minHeight: '320px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9' }}>
+                        {isThermal ? (
+                            <div style={{ width: '220px', background: 'white', border: '1px dashed #CBD5E1', borderRadius: '4px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontFamily: 'monospace' }}>
+                                <div style={{ textTransform: 'uppercase', textAlign: 'center', fontWeight: '900', fontSize: '0.8rem', color: '#0F172A' }}>
+                                    {config.displayTitlePrint || 'MY BUSINESS'}
+                                </div>
+                                <div style={{ textAlign: 'center', fontSize: '0.6rem', color: '#64748B', borderBottom: '1px dashed #CBD5E1', paddingBottom: '0.4rem' }}>
+                                    RECEIPT #{config.prefixSale || 'INV-'}001
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#334155', marginTop: '0.2rem' }}>
+                                    <span>Item Sample x1</span>
+                                    <span>₹500.00</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#334155' }}>
+                                    <span>Item Sample x2</span>
+                                    <span>₹500.00</span>
+                                </div>
+                                <div style={{ borderTop: '1px dashed #0F172A', paddingTop: '0.4rem', marginTop: '0.2rem', display: 'flex', justifyContent: 'space-between', fontWeight: '900', fontSize: '0.75rem', color: '#0F172A' }}>
+                                    <span>TOTAL:</span>
+                                    <span>₹1,000.00</span>
+                                </div>
+                                <div style={{ textAlign: 'center', fontSize: '0.55rem', color: '#94A3B8', marginTop: '0.4rem', borderTop: '1px dashed #E2E8F0', paddingTop: '0.3rem' }}>
+                                    *** THANK YOU ***
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{ width: '80%', background: 'white', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                                    <div style={{ fontWeight: '900', color: '#0F172A', fontSize: '0.85rem' }}>{config.displayTitlePrint || 'MY BUSINESS'}</div>
+                                    <div style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '700' }}>{config.prefixSale || 'INV-'}001</div>
+                                </div>
+                                <div style={{ height: '8px', background: '#F1F5F9', width: '100%', borderRadius: '4px' }}></div>
+                                <div style={{ height: '8px', background: '#F1F5F9', width: '80%', borderRadius: '4px' }}></div>
+                                <div style={{ borderTop: '1px solid #F1F5F9', marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                                    {config.signatureUrl && <div style={{ fontSize: '0.5rem', color: '#10B981', fontStyle: 'italic', border: '1px dashed #10B981', padding: '2px 4px', transform: 'rotate(-5deg)', fontWeight: '800' }}>SIGNED</div>}
+                                </div>
+                            </div>
+                        )}
+                        <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: '1rem', fontWeight: '750', textTransform: 'uppercase' }}>
+                            Active Dimension: {config.paperSize || (isThermal ? '3 Inch (Thermal)' : 'A4 Size')}
                         </div>
                     </div>
-                </CustomizationCard>
-            </div>
-            <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '16px', overflow: 'hidden' }}>
-                <div style={{ padding: '1rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '800' }}><Eye size={16} color="#8B5CF6" /> VIEWPORT PREVIEW</div>
-                <div style={{ padding: '2rem', height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9' }}>
-                    <div style={{ width: '75%', background: 'white', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <div style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                            <div style={{ fontWeight: '900', color: '#0F172A', fontSize: '0.85rem' }}>{config.displayTitlePrint}</div>
-                            <div style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '700' }}>{config.prefixSale}001</div>
-                        </div>
-                        <div style={{ height: '8px', background: '#F1F5F9', width: '100%', borderRadius: '4px' }}></div>
-                        <div style={{ height: '8px', background: '#F1F5F9', width: '80%', borderRadius: '4px' }}></div>
-                        <div style={{ borderTop: '1px solid #F1F5F9', marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-                            {config.signatureUrl && <div style={{ fontSize: '0.5rem', color: '#10B981', fontStyle: 'italic', border: '1px dashed #10B981', padding: '2px 4px', transform: 'rotate(-5deg)', fontWeight: '800' }}>SIGNED</div>}
-                        </div>
-                    </div>
-                    <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginTop: '1rem', fontWeight: '750', textTransform: 'uppercase' }}>Active Dimension: {config.paperSize}</div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     const renderGst = () => (
         <CustomizationCard title="GST Matrix" icon={ShieldCheck}>
