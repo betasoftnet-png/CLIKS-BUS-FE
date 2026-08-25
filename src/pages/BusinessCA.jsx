@@ -783,13 +783,8 @@ export default function BusinessCA() {
 
     const handleInviteCA = (e) => {
         e.preventDefault();
-        const email = inviteEmailInput.trim();
-        if (!email) return;
-        if (!email.toLowerCase().endsWith('@bnxmail.com')) {
-            alert('Please enter a valid email address ending with @bnxmail.com (e.g. finpro@bnxmail.com)');
-            return;
-        }
-        sendInviteMutation.mutate(email);
+        if (!inviteEmailInput.trim() || !inviteEmailInput.includes('@')) return;
+        sendInviteMutation.mutate(inviteEmailInput.trim());
     };
 
     const handleAcceptInvitation = (inviteId) => {
@@ -802,15 +797,10 @@ export default function BusinessCA() {
 
     const handleAddPracticeClient = (e) => {
         e.preventDefault();
-        const email = newClientEmail.trim();
-        if (!newClientName.trim() || !email) return;
-        if (!email.toLowerCase().endsWith('@bnxmail.com')) {
-            alert('Client email address must end with @bnxmail.com (e.g. client@bnxmail.com)');
-            return;
-        }
+        if (!newClientName.trim() || !newClientEmail.trim()) return;
         addClientMutation.mutate({
             name: newClientName.trim(),
-            email,
+            email: newClientEmail.trim(),
             status: newClientStatus,
             regime: newClientRegime,
             income: parseFloat(newClientIncome) || 0
