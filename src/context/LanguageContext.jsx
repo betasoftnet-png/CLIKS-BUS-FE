@@ -1,16 +1,71 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
+const normalizeKey = (k) => {
+    if (!k || typeof k !== 'string') return '';
+    const keyMap = {
+        'Dashboard': 'dashboard',
+        'Generate Invoice': 'generateInvoice',
+        '+ Generate Invoice': 'generateInvoice',
+        'Finance': 'finance',
+        'Accounting': 'accounting',
+        'Expenses': 'expenses',
+        'Tax': 'tax',
+        'Sales': 'sales',
+        'Sales Invoice': 'salesInvoice',
+        'Customers': 'customers',
+        'Purchases': 'purchases',
+        'Purchase Invoice': 'purchaseInvoice',
+        'Suppliers': 'suppliers',
+        'Inventory': 'inventory',
+        'Products': 'products',
+        'Stock': 'stockItems',
+        'Warehouse': 'warehouses',
+        'Warehouses / Godowns': 'warehouses',
+        'HR': 'hr',
+        'Staff': 'staff',
+        'Attendance': 'attendance',
+        'Payroll': 'payroll',
+        'POS Billing': 'posBilling',
+        'Reports': 'reports',
+        'Barcode Gen': 'barcodeGen',
+        'Marketing': 'marketing',
+        'Settings': 'settings',
+        'Help & Support': 'helpSupport',
+        'Storage': 'storage',
+        'Refer & Earn': 'referEarn',
+        'Manage Plan': 'managePlan',
+        'People': 'people',
+        'Wallet': 'wallet',
+        'Transaction': 'transaction',
+        'Segregation': 'segregation',
+        'Split & Collect': 'splitCollect',
+        'Planner': 'planner',
+        'Rewards & Offers': 'rewardsOffers',
+        'BETA Club': 'betaClub',
+        'Trading docs': 'tradingDocs',
+        'Add Money': 'addMoney',
+        'Books': 'books',
+        'Payments': 'payments',
+        'Social': 'social'
+    };
+    if (keyMap[k]) return keyMap[k];
+    return k.trim()
+        .replace(/[^a-zA-Z0-9 ]/g, '')
+        .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => index === 0 ? word.toLowerCase() : word.toUpperCase())
+        .replace(/\s+/g, '');
+};
+
 const translations = {
     'EN-US': {
-        // Topbar & Modules
         books: 'Books',
         payments: 'Payments',
         social: 'Social',
 
-        // Sidebar & Main Nav
         dashboard: 'Dashboard',
         generateInvoice: 'Generate Invoice',
         finance: 'Finance',
+        accounting: 'Accounting',
+        expenses: 'Expenses',
         tax: 'Tax',
         sales: 'Sales',
         salesInvoice: 'Sales Invoice',
@@ -19,9 +74,13 @@ const translations = {
         purchaseInvoice: 'Purchase Invoice',
         suppliers: 'Suppliers',
         inventory: 'Inventory',
-        warehouses: 'Warehouses / Godowns',
+        products: 'Products',
         stockItems: 'Stock Items',
-        hr: 'HR & Staffing',
+        warehouses: 'Warehouses',
+        hr: 'HR',
+        staff: 'Staff',
+        attendance: 'Attendance',
+        payroll: 'Payroll',
         posBilling: 'POS Billing',
         reports: 'Reports',
         barcodeGen: 'Barcode Gen',
@@ -32,8 +91,20 @@ const translations = {
         advancedEngineConfig: 'Advanced Engine Configuration',
         back: 'BACK',
         deployConfig: 'DEPLOY CONFIG',
+        storage: 'Storage',
+        referEarn: 'Refer & Earn',
+        managePlan: 'Manage Plan',
+        people: 'People',
+        wallet: 'Wallet',
+        transaction: 'Transaction',
+        segregation: 'Segregation',
+        splitCollect: 'Split & Collect',
+        planner: 'Planner',
+        rewardsOffers: 'Rewards & Offers',
+        addMoney: 'Add Money',
+        betaClub: 'BETA Club',
+        tradingDocs: 'Trading Docs',
 
-        // Tabs
         tabProfile: 'Org Profile',
         tabGeneral: 'General',
         tabTransaction: 'Transaction',
@@ -45,7 +116,6 @@ const translations = {
         tabFinPro: 'FIN-PRO',
         tabBetaClub: 'Beta Club',
 
-        // General Config Section Titles & Labels
         applicationCore: 'Application Core',
         securityPasscode: 'Security Passcode',
         securityPasscodeDesc: 'Validate auth tokens before destructive operations.',
@@ -80,23 +150,28 @@ const translations = {
         payments: 'भुगतान (Payments)',
         social: 'सोशल (Social)',
 
-        // Sidebar & Main Nav
         dashboard: 'डैशबोर्ड (Dashboard)',
         generateInvoice: '+ नया बिल बनाएं',
         finance: 'वित्त (Finance)',
+        accounting: 'लेखांकन (Accounting)',
+        expenses: 'खर्चे (Expenses)',
         tax: 'कर एवं टैक्स (Tax)',
         sales: 'बिक्री (Sales)',
-        salesInvoice: 'बिक्री बिल (Sales Invoice)',
+        salesInvoice: 'बिक्री बिल',
         customers: 'ग्राहक (Customers)',
         purchases: 'खरीद (Purchases)',
-        purchaseInvoice: 'खरीद बिल (Purchase Invoice)',
+        purchaseInvoice: 'खरीद बिल',
         suppliers: 'आपूर्तिकर्ता (Suppliers)',
         inventory: 'इन्वेंटरी और स्टॉक',
-        warehouses: 'गोदाम (Warehouses / Godowns)',
-        stockItems: 'स्टॉक आइटम सूची',
+        products: 'उत्पाद (Products)',
+        stockItems: 'स्टॉक आइटम',
+        warehouses: 'गोदाम (Godowns)',
         hr: 'एचआर और कर्मचारी',
+        staff: 'कर्मचारी (Staff)',
+        attendance: 'उपस्थिति (Attendance)',
+        payroll: 'वेतन (Payroll)',
         posBilling: 'पीओएस बिलिंग (POS)',
-        reports: 'रिपोर्ट और खाते',
+        reports: 'रिपोर्ट (Reports)',
         barcodeGen: 'बारकोड जनरेटर',
         marketing: 'मार्केटिंग एवं प्रचार',
         settings: 'सेटिंग्स (Settings)',
@@ -105,8 +180,20 @@ const translations = {
         advancedEngineConfig: 'उन्नत इंजन कॉन्फ़िगरेशन',
         back: 'वापस जाएं',
         deployConfig: 'कॉन्फ़िग सहेजें (DEPLOY)',
+        storage: 'स्टोरेज (Storage)',
+        referEarn: 'रेफर करें और कमाएं',
+        managePlan: 'प्लान प्रबंधित करें',
+        people: 'लोग (People)',
+        wallet: 'वॉलेट (Wallet)',
+        transaction: 'लेन-देन (Transaction)',
+        segregation: 'पृथक्करण (Segregation)',
+        splitCollect: 'स्प्लिट और कलेक्ट',
+        planner: 'प्लानर (Planner)',
+        rewardsOffers: 'पुरस्कार और ऑफ़र',
+        addMoney: '+ पैसे जोड़ें',
+        betaClub: 'बीटा क्लब',
+        tradingDocs: 'ट्रेडिंग दस्तावेज',
 
-        // Tabs
         tabProfile: 'फर्म प्रोफ़ाइल',
         tabGeneral: 'सामान्य सेटिंग्स',
         tabTransaction: 'लेन-देन नियम',
@@ -118,7 +205,6 @@ const translations = {
         tabFinPro: 'फिन-प्रो (FIN-PRO)',
         tabBetaClub: 'बीटा क्लब',
 
-        // General Config Section Titles & Labels
         applicationCore: 'एप्लिकेशन कोर (Core)',
         securityPasscode: 'सुरक्षा पासकोड',
         securityPasscodeDesc: 'हटाने या बदलाव से पहले सुरक्षा पासकोड मांगें।',
@@ -153,21 +239,26 @@ const translations = {
         payments: 'చెల్లింపులు (Payments)',
         social: 'సోషల్ (Social)',
 
-        // Sidebar & Main Nav
         dashboard: 'డాష్‌బోర్డ్ (Dashboard)',
-        generateInvoice: '+ కొత్త ఇన్వాయిస్ సృష్టించండి',
+        generateInvoice: '+ కొత్త ఇన్వాయిస్',
         finance: 'ఫైనాన్స్ (Finance)',
+        accounting: 'అకౌంటింగ్',
+        expenses: 'ఖర్చులు (Expenses)',
         tax: 'పన్ను & జిఎస్‌టి (Tax)',
         sales: 'సేల్స్ (Sales)',
-        salesInvoice: 'సేల్స్ ఇన్వాయిస్ (Sales Invoice)',
-        customers: 'వినియోగదారులు (Customers)',
+        salesInvoice: 'సేల్స్ ఇన్వాయిస్',
+        customers: 'వినియోగదారులు',
         purchases: 'కొనుగోళ్లు (Purchases)',
-        purchaseInvoice: 'కొనుగోలు బిల్లు (Purchase Invoice)',
-        suppliers: 'సరఫరాదారులు (Suppliers)',
-        inventory: 'ఇన్వెంటరీ & స్టాక్ (Inventory)',
-        warehouses: 'గోదాములు (Godowns)',
+        purchaseInvoice: 'కొనుగోలు బిల్లు',
+        suppliers: 'సరఫరాదారులు',
+        inventory: 'ఇన్వెంటరీ & స్టాక్',
+        products: 'ఉత్పత్తులు (Products)',
         stockItems: 'స్టాక్ ఐటమ్స్',
+        warehouses: 'గోదాములు (Godowns)',
         hr: 'హెచ్.ఆర్ & సిబ్బంది (HR)',
+        staff: 'సిబ్బంది (Staff)',
+        attendance: 'హాజరు (Attendance)',
+        payroll: 'పేరోల్ (Payroll)',
         posBilling: 'పిఒఎస్ బిల్లింగ్ (POS)',
         reports: 'నివేదికలు (Reports)',
         barcodeGen: 'బార్‌కోడ్ జనరేటర్',
@@ -178,8 +269,20 @@ const translations = {
         advancedEngineConfig: 'అడ్వాన్స్‌డ్ ఇంజిన్ కాన్ఫిగరేషన్',
         back: 'వెనుకకు (BACK)',
         deployConfig: 'కాన్ఫిగర్ వర్తింపజేయి (DEPLOY)',
+        storage: 'స్టోరేజ్ (Storage)',
+        referEarn: 'రెఫర్ & సంపాదించండి',
+        managePlan: 'ప్లాన్ నిర్వహించండి',
+        people: 'ప్రజలు (People)',
+        wallet: 'వాలెట్ (Wallet)',
+        transaction: 'లావాదేవీ (Transaction)',
+        segregation: 'పృథక్కరణ',
+        splitCollect: 'స్ప్లిట్ & కలెక్ట్',
+        planner: 'ప్లానర్ (Planner)',
+        rewardsOffers: 'రివార్డులు & ఆఫర్లు',
+        addMoney: '+ డబ్బు జోడించండి',
+        betaClub: 'బీటా క్లబ్',
+        tradingDocs: 'ట్రేడింగ్ పత్రాలు',
 
-        // Tabs
         tabProfile: 'సంస్థ ప్రొఫైల్',
         tabGeneral: 'సాధారణ సెట్టింగ్‌లు',
         tabTransaction: 'లావాదేవీల నియమాలు',
@@ -191,7 +294,6 @@ const translations = {
         tabFinPro: 'ఫిన్-ప్రో',
         tabBetaClub: 'బీటా క్లబ్',
 
-        // General Config Section Titles & Labels
         applicationCore: 'అప్లికేషన్ కోర్',
         securityPasscode: 'సెక్యూరిటీ పాస్‌కోడ్',
         securityPasscodeDesc: 'హానికరమైన ఆపరేషన్లకు ముందు ప్రామాణీకరించండి.',
@@ -222,9 +324,15 @@ const translations = {
         dataSharing: 'డేటా & విశ్లేషణలు'
     },
     'TA-IN': {
+        books: 'புத்தகங்கள் (Books)',
+        payments: 'செலுத்துதல்கள் (Payments)',
+        social: 'சமூக (Social)',
+
         dashboard: 'டேஷ்போர்டு (Dashboard)',
         generateInvoice: '+ புதிய இன்வாய்ஸ் உருவாக்கு',
         finance: 'நிதி (Finance)',
+        accounting: 'கணக்கியல் (Accounting)',
+        expenses: 'செலவுகள் (Expenses)',
         tax: 'வரி & ஜிஎஸ்டி (Tax)',
         sales: 'விற்பனை (Sales)',
         salesInvoice: 'விற்பனை பில்',
@@ -233,17 +341,36 @@ const translations = {
         purchaseInvoice: 'கொள்முதல் பில்',
         suppliers: 'விநியோகஸ்தர்கள்',
         inventory: 'சரக்கு & இருப்பு (Inventory)',
+        products: 'சரக்கு பொருட்கள்',
+        stockItems: 'இருப்பு பொருட்கள்',
         warehouses: 'கிடங்குகள் (Godowns)',
-        stockItems: 'சரக்கு பொருட்கள்',
-        hr: 'ஊழியர்கள் மேலாண்மை',
+        hr: 'ஊழியர்கள் மேலாண்மை (HR)',
+        staff: 'ஊழியர்கள்',
+        attendance: 'வருகை',
+        payroll: 'சம்பளம்',
         posBilling: 'POS பில்லிங்',
         reports: 'அறிக்கைகள் (Reports)',
+        barcodeGen: 'பார்கோடு ஜெனரேட்டர்',
+        marketing: 'சந்தைப்படுத்தல்',
         settings: 'அமைப்புகள் (Settings)',
         helpSupport: 'உதவி & ஆதரவு',
         customization: 'தனிப்பயனாக்கம்',
         advancedEngineConfig: 'மேம்பட்ட என்ஜின் அமைப்பு',
         back: 'பின்னால் (BACK)',
         deployConfig: 'சேமிக்க (DEPLOY)',
+        storage: 'சேமிப்பகம் (Storage)',
+        referEarn: 'பரிந்துரைத்து சம்பாதிக்கவும்',
+        managePlan: 'திட்டத்தை நிர்வகிக்கவும்',
+        people: 'மக்கள் (People)',
+        wallet: 'வாலட் (Wallet)',
+        transaction: 'பரிவர்த்தனை (Transaction)',
+        segregation: 'பிரிப்பு (Segregation)',
+        splitCollect: 'பிரித்து சேகரி',
+        planner: 'திட்டமிடுபவர் (Planner)',
+        rewardsOffers: 'பரிசுகள் & சலுகைகள்',
+        addMoney: '+ பணம் சேர்க்க',
+        betaClub: 'பீட்டா கிளப்',
+        tradingDocs: 'வர்த்தக ஆவணங்கள்',
 
         tabProfile: 'நிறுவன சுயவிவரம்',
         tabGeneral: 'பொது அமைப்புகள்',
@@ -285,28 +412,53 @@ const translations = {
         dataSharing: 'தரவு பகுப்பாய்வு'
     },
     'MR-IN': {
+        books: 'बुक्स (Books)',
+        payments: 'पेमेंट्स (Payments)',
+        social: 'सोशल (Social)',
+
         dashboard: 'डॅशबोर्ड (Dashboard)',
         generateInvoice: '+ नवीन बिल बनवा',
         finance: 'वित्त (Finance)',
+        accounting: 'अकाउंटिंग',
+        expenses: 'खर्च (Expenses)',
         tax: 'कर व जीएसटी (Tax)',
         sales: 'विक्री (Sales)',
-        salesInvoice: 'विक्री बिल (Sales Invoice)',
+        salesInvoice: 'विक्री बिल',
         customers: 'ग्राहक (Customers)',
         purchases: 'खरेदी (Purchases)',
-        purchaseInvoice: 'खरेदी बिल (Purchase Invoice)',
+        purchaseInvoice: 'खरेदी बिल',
         suppliers: 'पुरवठादार (Suppliers)',
         inventory: 'इन्व्हेंटरी व साठा',
-        warehouses: 'गोदाम (Godowns)',
+        products: 'उत्पादने (Products)',
         stockItems: 'स्टॉक आयटम्स',
+        warehouses: 'गोदाम (Godowns)',
         hr: 'एचआर व कर्मचारी',
+        staff: 'कर्मचारी (Staff)',
+        attendance: 'हजेरी (Attendance)',
+        payroll: 'पेरोल (Payroll)',
         posBilling: 'POS बिलिंग',
         reports: 'अहवाल (Reports)',
+        barcodeGen: 'बारकोड जनरेटर',
+        marketing: 'मार्केटिंग',
         settings: 'सेटिंग्ज (Settings)',
         helpSupport: 'मदत व पाठिंबा',
         customization: 'कस्टमायझेशन',
         advancedEngineConfig: 'प्रगत इंजिन कॉन्फिगरेशन',
         back: 'मागे (BACK)',
         deployConfig: 'कॉन्फिग लागू करा (DEPLOY)',
+        storage: 'स्टोरेज (Storage)',
+        referEarn: 'रेफर करा व कमवा',
+        managePlan: 'प्लॅन व्यवस्थापित करा',
+        people: 'लोक (People)',
+        wallet: 'वॉलेट (Wallet)',
+        transaction: 'व्यवहार (Transaction)',
+        segregation: 'विभक्तीकरण',
+        splitCollect: 'स्प्लिट आणि कलेक्ट',
+        planner: 'प्लॅनर (Planner)',
+        rewardsOffers: 'बक्षिसे व ऑफर्स',
+        addMoney: '+ पैसे जोडा',
+        betaClub: 'बीटा क्लब',
+        tradingDocs: 'ट्रेडिंग दस्तऐवज',
 
         tabProfile: 'संस्था प्रोफाइल',
         tabGeneral: 'सामान्य सेटिंग्स',
@@ -348,28 +500,53 @@ const translations = {
         dataSharing: 'डेटा ॲनालिटिक्स'
     },
     'GU-IN': {
+        books: 'બુક્સ (Books)',
+        payments: 'ચુકવણીઓ (Payments)',
+        social: 'સોશિયલ (Social)',
+
         dashboard: 'ડેશબોર્ડ (Dashboard)',
         generateInvoice: '+ નવું બિલ બનાવો',
         finance: 'નાણાકીય (Finance)',
+        accounting: 'એકાઉન્ટિંગ',
+        expenses: 'ખર્ચ (Expenses)',
         tax: 'ટેક્સ અને જીએસટી (Tax)',
         sales: 'વેચાણ (Sales)',
-        salesInvoice: 'વેચાણ બિલ (Sales Invoice)',
+        salesInvoice: 'વેચાણ બિલ',
         customers: 'ગ્રાહકો (Customers)',
         purchases: 'ખરીદી (Purchases)',
-        purchaseInvoice: 'ખરીદી બિલ (Purchase Invoice)',
+        purchaseInvoice: 'ખરીદી બિલ',
         suppliers: 'સપ્લાયર્સ (Suppliers)',
         inventory: 'ઇન્વેન્ટરી સ્ટોક',
-        warehouses: 'ગોડાઉન (Godowns)',
+        products: 'પ્રોડક્ટ્સ (Products)',
         stockItems: 'સ્ટોક વસ્તુઓ',
+        warehouses: 'ગોડાઉન (Godowns)',
         hr: 'એચઆર અને સ્ટાફ',
+        staff: 'સ્ટાફ (Staff)',
+        attendance: 'હાજરી (Attendance)',
+        payroll: 'પગાર (Payroll)',
         posBilling: 'POS બિલિંગ',
         reports: 'રિપોર્ટ્સ (Reports)',
+        barcodeGen: 'બારકોડ જનરેટર',
+        marketing: 'માર્કેટિંગ',
         settings: 'સેટિંગ્સ (Settings)',
         helpSupport: 'મદદ અને સપોર્ટ',
         customization: 'કસ્ટમાઇઝેશન',
         advancedEngineConfig: 'એડવાન્સ્ડ એન્જિન કન્ફિગરેશન',
         back: 'પાછા (BACK)',
         deployConfig: 'કન્ફિગ સેટ કરો (DEPLOY)',
+        storage: 'સ્ટોરેજ (Storage)',
+        referEarn: 'રેફર કરો અને કમાઓ',
+        managePlan: 'પ્લાન મેનેજ કરો',
+        people: 'લોકો (People)',
+        wallet: 'વોલેટ (Wallet)',
+        transaction: 'વ્યવહાર (Transaction)',
+        segregation: 'વર્ગીકરણ',
+        splitCollect: 'સ્પ્લિટ અને કલેક્ટ',
+        planner: 'પ્લાનર (Planner)',
+        rewardsOffers: 'રિવોર્ડ્સ અને ઑફર્સ',
+        addMoney: '+ પૈસા ઉમેરો',
+        betaClub: 'બીટા ક્લબ',
+        tradingDocs: 'ટ્રેડિંગ દસ્તાવેજો',
 
         tabProfile: 'સંસ્થા પ્રોફાઇલ',
         tabGeneral: 'સામાન્ય સેટિંગ્સ',
@@ -440,7 +617,6 @@ export const LanguageProvider = ({ children }) => {
             document.documentElement.setAttribute('lang', langCode);
         }
 
-        // Sync with cliks_business_config and cliks_active_config in localStorage
         try {
             const currentConfigRaw = localStorage.getItem('cliks_business_config') || '{}';
             const currentConfig = JSON.parse(currentConfigRaw);
@@ -449,13 +625,15 @@ export const LanguageProvider = ({ children }) => {
             localStorage.setItem('cliks_active_config', JSON.stringify(currentConfig));
         } catch (e) {}
 
-        // Broadcast global update event so all pages & components re-render immediately
         window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: { language: langCode } }));
     }, []);
 
     useEffect(() => {
-        const handleSync = () => {
-            const stored = localStorage.getItem('cliks_language');
+        const handleSync = (e) => {
+            let stored = localStorage.getItem('cliks_language');
+            if (e && e.detail && e.detail.language) {
+                stored = e.detail.language;
+            }
             if (stored && stored !== language) {
                 setLanguageState(stored);
             }
@@ -469,14 +647,24 @@ export const LanguageProvider = ({ children }) => {
     }, [language]);
 
     const t = useCallback((key, fallback) => {
+        const normKey = normalizeKey(key);
         const currentDict = translations[language] || translations['EN-US'];
+
+        if (currentDict && currentDict[normKey]) {
+            return currentDict[normKey];
+        }
         if (currentDict && currentDict[key]) {
             return currentDict[key];
         }
+
         const defaultDict = translations['EN-US'];
+        if (defaultDict && defaultDict[normKey]) {
+            return defaultDict[normKey];
+        }
         if (defaultDict && defaultDict[key]) {
             return defaultDict[key];
         }
+
         return fallback || key;
     }, [language]);
 
@@ -493,7 +681,11 @@ export const useLanguage = () => {
         return {
             language: 'EN-US',
             setLanguage: () => {},
-            t: (key, fallback) => fallback || key,
+            t: (key, fallback) => {
+                const normKey = normalizeKey(key);
+                const defaultDict = translations['EN-US'];
+                return defaultDict[normKey] || defaultDict[key] || fallback || key;
+            },
             translations
         };
     }

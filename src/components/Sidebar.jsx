@@ -194,6 +194,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { selectedPlan, planDaysRemaining, user } = useAuth();
+    const { t } = useLanguage();
 
     const getActiveItemFromPath = (path) => {
         if (path.includes('/admin/dashboard')) return 'Admin Console';
@@ -545,7 +546,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                 onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
                                 onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                             >
-                                <Plus size={15} strokeWidth={3} /> Add Money
+                                <Plus size={15} strokeWidth={3} /> {t('addMoney', 'Add Money')}
                             </button>
                             {navigationConfig.financeMode.map(item => (
                                 <React.Fragment key={item.label}>
@@ -572,7 +573,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                                     marginBottom: '8px',
                                                     marginTop: '2px'
                                                 }}>
-                                                <Plus size={16} strokeWidth={3} /> Generate Invoice
+                                                <Plus size={16} strokeWidth={3} /> {t('generateInvoice', 'Generate Invoice')}
                                             </button>
                                             <div style={{ height: '1px', backgroundColor: '#E2E8F0', margin: '4px 0.75rem 10px 0.75rem', opacity: 0.6 }} />
                                         </>
@@ -629,7 +630,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         }}
                     >
                         <Gift size={18} strokeWidth={2.5} style={{ color: '#8B5CF6', flexShrink: 0 }} />
-                        <span>Refer &amp; Earn</span>
+                        <span>{t('referEarn', 'Refer & Earn')}</span>
                     </button>
                 </div>
             )}
@@ -678,7 +679,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                                 <Cloud size={18} color="#2563EB" strokeWidth={2.2} />
                                 <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1E293B' }}>
-                                    Storage
+                                    {t('storage', 'Storage')}
                                 </span>
                             </div>
                             <div style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569' }}>
@@ -787,7 +788,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                         {displayPlan}
                                     </span>
                                     <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.62rem', fontWeight: '500' }}>
-                                        Manage Plan
+                                        {t('managePlan', 'Manage Plan')}
                                     </span>
                                 </div>
                             </div>
@@ -864,7 +865,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <SettingsIcon size={18} style={{ opacity: 0.8 }} />
-                        <span>Settings</span>
+                        <span>{t('settings', 'Settings')}</span>
                     </div>
                     <ChevronRight size={14} style={{ opacity: 0.5 }} />
                 </button>
@@ -894,7 +895,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <HelpCircle size={18} style={{ opacity: 0.8 }} />
-                        <span>Help & Support</span>
+                        <span>{t('helpSupport', 'Help & Support')}</span>
                     </div>
                     <ChevronRight size={14} style={{ opacity: 0.5 }} />
                 </button>
