@@ -986,22 +986,6 @@ const BusinessSuppliers = () => {
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                                    <button 
-                                                        onClick={() => handleOpenDocsModal(sup)} 
-                                                        title="Vendor Document Attachment Center"
-                                                        style={{ padding: '0.4rem 0.65rem', borderRadius: '8px', border: '1px solid #DBEAFE', background: '#EFF6FF', color: '#1D4ED8', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                                                    >
-                                                        <Paperclip size={14} />
-                                                        Vault
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleOpenChat(sup)} 
-                                                        title="Dealer-Supplier Chat"
-                                                        style={{ padding: '0.4rem 0.65rem', borderRadius: '8px', border: '1px solid #10B981', background: '#ECFDF5', color: '#047857', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                                                    >
-                                                        <MessageCircle size={14} />
-                                                        Chat
-                                                    </button>
                                                     {supBal > 0 && (
                                                         <>
                                                             <button 
