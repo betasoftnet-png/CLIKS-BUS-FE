@@ -235,24 +235,26 @@ const BusinessBilling = () => {
 
     const [moveWarehouseModalReturn, setMoveWarehouseModalReturn] = useState(null);
     const [selectedWarehouseForMove, setSelectedWarehouseForMove] = useState('');
+    const [gotItModalData, setGotItModalData] = useState(null);
 
     const assignWarehouseMutation = useMutation({
-        mutationFn: ({ returnId, warehouseName }) => returnsService.updateReturn(returnId, {
+        mutationFn: ({ returnId, warehouseName, status, targetClaim }) => returnsService.updateReturn(returnId, {
             warehouse_id: warehouseName,
             warehouse_name: warehouseName,
+            status: status || 'Done',
             inspection_status: 'Assigned to Warehouse',
-            items: moveWarehouseModalReturn?.items || [],
-            return_obj: moveWarehouseModalReturn,
-            product_name: moveWarehouseModalReturn?.product_name || moveWarehouseModalReturn?.name,
-            return_quantity: moveWarehouseModalReturn?.return_quantity || moveWarehouseModalReturn?.quantity
+            items: targetClaim?.items || moveWarehouseModalReturn?.items || [],
+            return_obj: targetClaim || moveWarehouseModalReturn,
+            product_name: targetClaim?.product_name || targetClaim?.item_name || targetClaim?.name || moveWarehouseModalReturn?.product_name || moveWarehouseModalReturn?.name,
+            return_quantity: targetClaim?.return_quantity || targetClaim?.quantity || moveWarehouseModalReturn?.return_quantity || moveWarehouseModalReturn?.quantity || 1
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['returns'] });
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory'] });
             queryClient.invalidateQueries({ queryKey: ['warehouses'] });
             queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
-            alert('Returned items successfully assigned & moved to warehouse stock!');
             setMoveWarehouseModalReturn(null);
             setSelectedWarehouseForMove('');
         },
@@ -272,8 +274,11 @@ const BusinessBilling = () => {
     }, [allReturns, searchTerm]);
 
     const warrantyClaimsList = React.useMemo(() => {
-        return (allReturns || []).filter(r => (r.return_type === 'warranty' || r.type === 'warranty' || r.claim_type === 'warranty') &&
-            ((r.product_name || r.item_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (r.client_name || '').toLowerCase().includes(searchTerm.toLowerCase())));
+        return (allReturns || []).filter(r => (r.return_type === 'warranty' || r.type === 'warranty' || r.claim_type === 'warranty' || 
+            (r.return_number && String(r.return_number).toUpperCase().startsWith('RET-')) || 
+            (r.claim_number && String(r.claim_number).toUpperCase().startsWith('RET-')) || 
+            (r.invoice_number && String(r.invoice_number).toUpperCase().startsWith('RET-'))) &&
+            ((r.product_name || r.item_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (r.client_name || r.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase())));
     }, [allReturns, searchTerm]);
 
     // Fetch actual business profile for production-grade invoices
@@ -1685,26 +1690,57 @@ const BusinessBilling = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    warrantyClaimsList.map((claim) => (
-                                        <tr key={claim.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '800', color: '#059669' }}>{claim.claim_number || `CLM-${claim.id}`}</td>
-                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#0F172A' }}>{claim.product_name || claim.item_name || 'Product'}</td>
-                                            <td style={{ padding: '0.75rem 1.25rem', color: '#64748B' }}>{claim.client_name || claim.customer_name || claim.supplier_name || 'Customer'}</td>
-                                            <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontFamily: 'monospace', fontSize: '0.8rem' }}>{claim.serial_number || claim.imei || 'N/A'}</td>
-                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#475569' }}>{claim.claim_type || 'Replacement'}</td>
-                                            <td style={{ padding: '0.75rem 1.25rem' }}>
-                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: '#D1FAE5', color: '#047857' }}>
-                                                    {(claim.status || 'Active').toUpperCase()}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#475569', fontSize: '0.82rem' }}>
-                                                {claim.warranty_period || claim.period || (claim.reason_code && claim.reason_code.includes('Warranty Period:') ? claim.reason_code.split('Warranty Period:')[1].split('(')[0].trim() : '1 Year')}
-                                            </td>
-                                            <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
-                                                <button onClick={() => alert(`Warranty Claim #${claim.claim_number || claim.id}\nProduct: ${claim.product_name}`)} style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>Manage Claim</button>
-                                            </td>
-                                        </tr>
-                                    ))
+                                    warrantyClaimsList.map((claim) => {
+                                        const claimRef = claim.claim_number || claim.return_number || claim.invoice_number || claim.invoice_id || `CLM-${claim.id}`;
+                                        const isRet = String(claimRef).trim().toUpperCase().startsWith('RET-');
+                                        const isDone = String(claim.status).toLowerCase() === 'done' || String(claim.status).toLowerCase() === 'completed';
+                                        const isPending = String(claim.status).toLowerCase() === 'pending';
+
+                                        let badgeBg = '#D1FAE5';
+                                        let badgeColor = '#047857';
+                                        let statusText = (claim.status || 'Active').toUpperCase();
+
+                                        if (isPending) {
+                                            badgeBg = '#FEF3C7';
+                                            badgeColor = '#92400E';
+                                            statusText = 'PENDING';
+                                        } else if (isDone) {
+                                            badgeBg = '#D1FAE5';
+                                            badgeColor = '#047857';
+                                            statusText = 'DONE';
+                                        }
+
+                                        return (
+                                            <tr key={claim.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                                <td style={{ padding: '0.75rem 1.25rem', fontWeight: '800', color: isRet ? '#BE185D' : '#059669' }}>{claimRef}</td>
+                                                <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#0F172A' }}>{claim.product_name || claim.item_name || 'Product'}</td>
+                                                <td style={{ padding: '0.75rem 1.25rem', color: '#64748B' }}>{claim.client_name || claim.customer_name || claim.supplier_name || 'Customer'}</td>
+                                                <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontFamily: 'monospace', fontSize: '0.8rem' }}>{claim.serial_number || claim.imei || 'N/A'}</td>
+                                                <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#475569' }}>{claim.claim_type || 'Warranty Tracking'}</td>
+                                                <td style={{ padding: '0.75rem 1.25rem' }}>
+                                                    <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: badgeBg, color: badgeColor }}>
+                                                        {statusText}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#475569', fontSize: '0.82rem' }}>
+                                                    {claim.warranty_period || claim.period || (claim.reason_code && claim.reason_code.includes('Warranty Period:') ? claim.reason_code.split('Warranty Period:')[1].split('(')[0].trim() : '3 Years')}
+                                                </td>
+                                                <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
+                                                    {isRet ? (
+                                                        <button 
+                                                            onClick={() => {
+                                                                setMoveWarehouseModalReturn(claim);
+                                                                setSelectedWarehouseForMove('');
+                                                            }} 
+                                                            style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}
+                                                        >
+                                                            Manage Claim
+                                                        </button>
+                                                    ) : null}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
@@ -3284,9 +3320,12 @@ const BusinessBilling = () => {
                                     alert('Please select a warehouse');
                                     return;
                                 }
-                                assignWarehouseMutation.mutate({
-                                    returnId: moveWarehouseModalReturn.id,
-                                    warehouseName: selectedWarehouseForMove
+                                const currentReturn = moveWarehouseModalReturn;
+                                const selectedWh = selectedWarehouseForMove;
+                                setMoveWarehouseModalReturn(null);
+                                setGotItModalData({
+                                    claim: currentReturn,
+                                    warehouseName: selectedWh
                                 });
                             }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <div>
@@ -3329,6 +3368,41 @@ const BusinessBilling = () => {
                     </div>
                 );
             })()}
+            {/* GOT IT CONFIRMATION MODAL */}
+            {gotItModalData && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, backdropFilter: 'blur(6px)', padding: '1rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '380px', borderRadius: '20px', padding: '2rem 1.5rem', border: '1px solid #E2E8F0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB', border: '1px solid #BFDBFE', margin: '0 auto' }}>
+                            <Info size={26} />
+                        </div>
+                        <div>
+                            <h3 style={{ margin: '0 0 0.4rem 0', fontSize: '1.05rem', fontWeight: '850', color: '#0F172A' }}>
+                                Warranty Claim #{gotItModalData.claim.claim_number || gotItModalData.claim.return_number || (gotItModalData.claim.id ? `RET-${gotItModalData.claim.id}` : '')}
+                            </h3>
+                            <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#334155' }}>
+                                Product: {gotItModalData.claim.product_name || gotItModalData.claim.item_name || 'Product'}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const targetClaim = gotItModalData.claim;
+                                const targetWh = gotItModalData.warehouseName;
+                                setGotItModalData(null);
+                                assignWarehouseMutation.mutate({
+                                    returnId: targetClaim.id,
+                                    warehouseName: targetWh,
+                                    status: 'Done',
+                                    targetClaim: targetClaim
+                                });
+                            }}
+                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: '#3B82F6', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)', transition: 'all 0.2s' }}
+                        >
+                            Got it
+                        </button>
+                    </div>
+                </div>
+            )}
             {/* Supplier Portal View (Confirm Order & Availability Response) Modal */}
             {isSupplierViewModalOpen && supplierViewPO && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, backdropFilter: 'blur(6px)', padding: '1.5rem' }}>
