@@ -267,8 +267,23 @@ const BusinessPurchases = () => {
     // Queries
     const { data: allPurchases = [] } = useQuery({
         queryKey: ['purchases'],
-        queryFn: purchasesService.getPurchases
+        queryFn: purchasesService.getPurchases,
+        refetchInterval: 3000,
+        refetchIntervalInBackground: true
     });
+
+    React.useEffect(() => {
+        if (isSupplierViewModalOpen && supplierViewPO && allPurchases && allPurchases.length > 0) {
+            const updated = allPurchases.find(p => (p.id && String(p.id) === String(supplierViewPO.id)) || (p.purchase_number && p.purchase_number === supplierViewPO.purchase_number));
+            if (updated) {
+                const curSt = supplierViewPO.supplier_confirmation_status || supplierViewPO.status;
+                const newSt = updated.supplier_confirmation_status || updated.status;
+                if (curSt !== newSt || updated.expected_available_date !== supplierViewPO.expected_available_date) {
+                    setSupplierViewPO(updated);
+                }
+            }
+        }
+    }, [allPurchases, isSupplierViewModalOpen, supplierViewPO]);
 
     // 🚀 Fetch live catalog items and active vendors
     const { data: catalogProducts = [] } = useQuery({
