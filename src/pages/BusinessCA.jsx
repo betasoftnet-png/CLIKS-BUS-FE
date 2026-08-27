@@ -1409,7 +1409,7 @@ export default function BusinessCA() {
                                                             <tbody>
                                                                 {myClientTasks.filter(item => applyTableFilters(item, colFiltersChecklist)).map(task => (
                                                                     <tr key={task.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13px' }}>
-                                                                        <td style={{ padding: '16px 20px', fontWeight: '800', color: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? '#94A3B8' : '#0F172A', textDecoration: (task.status === 'Completed' || task.status === 'Verified' || task.status === 'Approved') ? 'line-through' : 'none' }}>
+                                                                        <td style={{ padding: '16px 20px', fontWeight: '800', color: '#0F172A' }}>
                                                                             {task.title}
                                                                         </td>
                                                                         <td style={{ padding: '16px 20px', color: '#64748B', fontWeight: '500' }}>📅 {task.dueDate}</td>
@@ -2859,7 +2859,7 @@ export default function BusinessCA() {
                                             <tbody>
                                                 {practiceTasks.filter(item => applyTableFilters(item, colFiltersTasks)).map(task => (
                                                     <tr key={task.id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '13.5px' }}>
-                                                        <td style={{ padding: '16px 20px', fontWeight: '800', color: task.status === 'Completed' ? '#94A3B8' : '#0F172A', textDecoration: task.status === 'Completed' ? 'line-through' : 'none' }}>
+                                                        <td style={{ padding: '16px 20px', fontWeight: '800', color: '#0F172A' }}>
                                                             {task.title}
                                                         </td>
                                                         <td style={{ padding: '16px 20px', color: '#475569', fontWeight: '600' }}>{task.clientName}</td>
