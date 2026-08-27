@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { storageService } from '../services/storageService';
 import { Tooltip } from './common';
 import {
     LayoutDashboard,
@@ -283,6 +284,41 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
     const [activeItem, setActiveItem] = useState(getActiveItemFromPath(location.pathname));
     const [openMenus, setOpenMenus] = useState({});
     const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
+
+    const defaultStorageData = {
+        totalCapacityBytes: 1073741824,
+        totalCapacityFormatted: '1.00 GB',
+        usedBytes: 0,
+        usedFormatted: '0 KB',
+        usedPercent: 0,
+        freeBytes: 1073741824,
+        freeFormatted: '1.00 GB',
+        moduleBreakdown: [
+            { module: 'Audit & Tax (FIN-PRO)', share: '40%', sharePercent: 40, files: 'PDFs, XLS, Signed Certificates', color: '#2563EB', badgeBg: '#EFF6FF' },
+            { module: 'Sales & Purchases', share: '25%', sharePercent: 25, files: 'PDF Invoices, Vendor Bills', color: '#10B981', badgeBg: '#ECFDF5' },
+            { module: 'Expenses', share: '15%', sharePercent: 15, files: 'Receipt Scans, Images', color: '#8B5CF6', badgeBg: '#F5F3FF' },
+            { module: 'HR & Payroll', share: '10%', sharePercent: 10, files: 'ID Documents, Payslip PDFs', color: '#F59E0B', badgeBg: '#FFFBEB' },
+            { module: 'Inventory & Media', share: '10%', sharePercent: 10, files: 'Product Photos, Barcodes', color: '#06B6D4', badgeBg: '#ECFEFF' }
+        ]
+    };
+
+    const [storageData, setStorageData] = useState(defaultStorageData);
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchStorage = async () => {
+            try {
+                const data = await storageService.getStorageUsage();
+                if (data && isMounted) {
+                    setStorageData(data);
+                }
+            } catch (e) {
+                // keep default if offline or error
+            }
+        };
+        fetchStorage();
+        return () => { isMounted = false; };
+    }, [isStorageModalOpen]);
 
     const navigationConfig = {
         admin: [
@@ -683,13 +719,13 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                 </span>
                             </div>
                             <div style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569' }}>
-                                0 KB of 1 GB used
+                                {`${storageData.usedFormatted} of ${storageData.totalCapacityFormatted} used`}
                             </div>
                         </div>
 
                         {/* Right Neat Circular Progress Ring with % Inside */}
                         {(() => {
-                            const storagePercent = 0;
+                            const storagePercent = storageData.usedPercent || 0;
                             const radius = 15;
                             const circ = 2 * Math.PI * radius;
                             const strokeDashoffset = circ * (1 - storagePercent / 100);
@@ -966,7 +1002,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                             Storage Allocation & Content
                                         </h3>
                                         <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748B', fontWeight: '500' }}>
-                                            Workspace Storage Breakdown (0 KB of 1 GB used)
+                                            Workspace Storage Breakdown ({`${storageData.usedFormatted} of ${storageData.totalCapacityFormatted} used`})
                                         </p>
                                     </div>
                                 </div>
@@ -999,15 +1035,15 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                                     <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '0.85rem 1rem' }}>
                                         <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>Total Capacity</span>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>1.00 GB</div>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>{storageData.totalCapacityFormatted}</div>
                                     </div>
                                     <div style={{ backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '12px', padding: '0.85rem 1rem' }}>
                                         <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#2563EB', textTransform: 'uppercase' }}>Used Storage</span>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#1E40AF', marginTop: '2px' }}>0 KB (0%)</div>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#1E40AF', marginTop: '2px' }}>{`${storageData.usedFormatted} (${storageData.usedPercent}%)`}</div>
                                     </div>
                                     <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '0.85rem 1rem' }}>
                                         <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#16A34A', textTransform: 'uppercase' }}>Free Available</span>
-                                        <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#15803D', marginTop: '2px' }}>1.00 GB</div>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#15803D', marginTop: '2px' }}>{storageData.freeFormatted}</div>
                                     </div>
                                 </div>
 
@@ -1018,11 +1054,9 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                         <span>100% Allocated</span>
                                     </div>
                                     <div style={{ display: 'flex', height: '10px', width: '100%', borderRadius: '999px', overflow: 'hidden', backgroundColor: '#E2E8F0' }}>
-                                        <div style={{ width: '40%', backgroundColor: '#2563EB' }} title="Audit & Tax (FIN-PRO): 40%" />
-                                        <div style={{ width: '25%', backgroundColor: '#10B981' }} title="Sales & Purchases: 25%" />
-                                        <div style={{ width: '15%', backgroundColor: '#8B5CF6' }} title="Expenses: 15%" />
-                                        <div style={{ width: '10%', backgroundColor: '#F59E0B' }} title="HR & Payroll: 10%" />
-                                        <div style={{ width: '10%', backgroundColor: '#06B6D4' }} title="Inventory & Media: 10%" />
+                                        {storageData.moduleBreakdown.map((item, idx) => (
+                                            <div key={idx} style={{ width: `${item.sharePercent}%`, backgroundColor: item.color }} title={`${item.module}: ${item.share}`} />
+                                        ))}
                                     </div>
                                 </div>
 
@@ -1037,14 +1071,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {[
-                                                { module: 'Audit & Tax (FIN-PRO)', share: '40%', files: 'PDFs, XLS, Signed Certificates', color: '#2563EB', badgeBg: '#EFF6FF' },
-                                                { module: 'Sales & Purchases', share: '25%', files: 'PDF Invoices, Vendor Bills', color: '#10B981', badgeBg: '#ECFDF5' },
-                                                { module: 'Expenses', share: '15%', files: 'Receipt Scans, Images', color: '#8B5CF6', badgeBg: '#F5F3FF' },
-                                                { module: 'HR & Payroll', share: '10%', files: 'ID Documents, Payslip PDFs', color: '#F59E0B', badgeBg: '#FFFBEB' },
-                                                { module: 'Inventory & Media', share: '10%', files: 'Product Photos, Barcodes', color: '#06B6D4', badgeBg: '#ECFEFF' }
-                                            ].map((item, idx) => (
-                                                <tr key={idx} style={{ borderBottom: idx < 4 ? '1px solid #F1F5F9' : 'none' }}>
+                                            {storageData.moduleBreakdown.map((item, idx) => (
+                                                <tr key={idx} style={{ borderBottom: idx < storageData.moduleBreakdown.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
                                                     <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.color, display: 'inline-block' }} />
                                                         {item.module}

@@ -382,10 +382,8 @@ const ProductLauncher = ({ onClose }) => {
 
                 {/* Coming Soon Section - Beta Labs Showcase */}
                 <div className="launcher-labs-container">
-                    <div className="launcher-labs-glow" />
-
                     <div className="launcher-labs-icon-wrapper">
-                        <Sparkles size={22} className="launcher-labs-sparkles-icon" />
+                        <Sparkles size={16} className="launcher-labs-sparkles-icon" />
                     </div>
 
                     <div className="launcher-labs-badge">
@@ -399,21 +397,14 @@ const ProductLauncher = ({ onClose }) => {
                     <p className="launcher-labs-description">
                         Building the next generation of Beta applications.
                     </p>
-
-                    <div className="launcher-labs-divider" />
-
-                    <div className="launcher-labs-status">
-                        <span className="launcher-labs-status-icon">🚀</span>
-                        <span>New innovations arriving soon</span>
-                    </div>
                 </div>
             </div>
 
             {/* Footer */}
             <div className="launcher-footer">
-                <span>Beta Ecosystem</span>
-                <span className="launcher-footer-divider">•</span>
-                <span>Future Ready</span>
+                <span>BETA ECOSYSTEM</span>
+                <span className="launcher-footer-divider">·</span>
+                <span>FUTURE READY</span>
             </div>
 
             {/* Premium Styles */}
@@ -859,7 +850,7 @@ const ProductLauncher = ({ onClose }) => {
                     border-color: #f1f5f9;
                 }
 
-                /* Beta Labs Showcase Styling */
+                /* Beta Labs Showcase Styling - Matched to Image 2 */
                 .launcher-labs-container {
                     position: relative;
                     display: flex;
@@ -867,108 +858,62 @@ const ProductLauncher = ({ onClose }) => {
                     align-items: center;
                     justify-content: center;
                     text-align: center;
-                    padding: 0.55rem;
-                    background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(248, 250, 252, 0.85) 100%);
-                    border: 1px solid rgba(226, 232, 240, 0.8);
+                    padding: 1.4rem 1rem 1.1rem 1rem;
+                    background: #ffffff;
+                    border: 1px solid #e2e8f0;
                     border-radius: 20px;
-                    overflow: hidden;
-                    box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.05),
-                                inset 0 1px 0 rgba(255, 255, 255, 0.6);
-                    backdrop-filter: blur(12px);
                     width: 100%;
-                    gap: 0.25rem;
-                    margin-top: -0.1rem;
-                }
-                .launcher-labs-glow {
-                    position: absolute;
-                    top: -20%;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    width: 140px;
-                    height: 140px;
-                    background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 70%);
-                    pointer-events: none;
-                    z-index: 0;
-                    animation: labs-pulse 4s ease-in-out infinite alternate;
-                }
-                @keyframes labs-pulse {
-                    0% { transform: translateX(-50%) scale(1); opacity: 0.8; }
-                    100% { transform: translateX(-50%) scale(1.2); opacity: 1; }
+                    margin-top: 1.1rem;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
                 }
                 .launcher-labs-icon-wrapper {
-                    position: relative;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 30px;
-                    height: 30px;
+                    position: absolute;
+                    top: 0;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 36px;
+                    height: 36px;
                     background: #ffffff;
                     border: 1px solid #e2e8f0;
                     border-radius: 50%;
-                    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
-                    z-index: 1;
-                    animation: labs-float 3s ease-in-out infinite alternate;
-                }
-                @keyframes labs-float {
-                    0% { transform: translateY(0); }
-                    100% { transform: translateY(-4px); }
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                    z-index: 5;
                 }
                 .launcher-labs-sparkles-icon {
                     color: #6366f1;
-                    animation: labs-rotate 6s linear infinite;
-                }
-                @keyframes labs-rotate {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
                 }
                 .launcher-labs-badge {
                     display: inline-flex;
                     align-items: center;
-                    padding: 0.12rem 0.45rem;
-                    background: linear-gradient(90deg, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.08) 100%);
-                    border: 1px solid rgba(99, 102, 241, 0.15);
-                    border-radius: 100px;
-                    font-size: 0.56rem;
+                    justify-content: center;
+                    padding: 0.22rem 0.85rem;
+                    background: #f3e8ff;
+                    border-radius: 9999px;
+                    font-size: 0.65rem;
                     font-weight: 850;
-                    color: #4f46e5;
+                    color: #6d28d9;
                     letter-spacing: 0.75px;
-                    z-index: 1;
-                    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.02);
+                    text-transform: uppercase;
                 }
                 .launcher-labs-title {
-                    font-size: 0.92rem;
+                    font-size: 1.05rem;
                     font-weight: 900;
-                    margin: 0;
-                    letter-spacing: 1.5px;
-                    background: linear-gradient(135deg, #1e1b4b 0%, #4f46e5 50%, #db2777 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    z-index: 1;
+                    color: #9333ea;
+                    letter-spacing: 0.75px;
+                    margin: 0.4rem 0 0 0;
+                    text-transform: uppercase;
                 }
                 .launcher-labs-description {
-                    font-size: 0.7rem;
+                    font-size: 0.76rem;
+                    font-weight: 600;
                     color: #475569;
-                    line-height: 1.4;
-                    margin: 0;
-                    font-weight: 550;
-                    max-width: 220px;
-                    z-index: 1;
-                }
-                .launcher-labs-divider {
-                    height: 1px;
-                    background: linear-gradient(90deg, rgba(226, 232, 240, 0) 0%, rgba(226, 232, 240, 0.8) 50%, rgba(226, 232, 240, 0) 100%);
-                    width: 80%;
-                    margin: 0.15rem 0;
-                    z-index: 1;
-                }
-                .launcher-labs-status {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    font-size: 0.68rem;
-                    color: #64748b;
-                    font-weight: 700;
-                    z-index: 1;
+                    line-height: 1.35;
+                    margin: 0.3rem 0 0 0;
+                    text-align: center;
+                    max-width: 240px;
                 }
 
                 [data-tooltip] {
