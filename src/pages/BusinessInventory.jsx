@@ -598,6 +598,38 @@ const BusinessInventory = () => {
         }
     };
 
+    const handleNumFieldChange = (field, rawValue, allowDecimal = true) => {
+        let cleaned = String(rawValue || '').replace(allowDecimal ? /[^\d.]/g : /[^\d]/g, '');
+
+        if (allowDecimal) {
+            const parts = cleaned.split('.');
+            if (parts.length > 2) {
+                cleaned = parts[0] + '.' + parts.slice(1).join('');
+            }
+        }
+
+        if (cleaned.length > 1 && cleaned.startsWith('0') && !cleaned.startsWith('0.')) {
+            cleaned = cleaned.replace(/^0+/, '');
+            if (cleaned === '' || cleaned.startsWith('.')) {
+                cleaned = '0' + cleaned;
+            }
+        }
+
+        const parts = cleaned.split('.');
+        if (parts[0].length > 12) {
+            parts[0] = parts[0].slice(0, 12);
+            cleaned = parts.join('.');
+        }
+
+        setFormData(prev => {
+            const nextState = { ...prev, [field]: cleaned };
+            if (field === 'opening_stock') {
+                nextState.quantity = cleaned;
+            }
+            return nextState;
+        });
+    };
+
     const handleAdjust = (item, type) => {
         setSelectedItem(item);
         setAdjustType(type);
@@ -1258,19 +1290,51 @@ const BusinessInventory = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Purchase Cost ({currency.symbol})</label>
-                                    <input type="number" value={formData.purchase_price} onChange={(e) => setFormData({...formData, purchase_price: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                    <input 
+                                        type="text" 
+                                        inputMode="decimal"
+                                        maxLength={14}
+                                        value={formData.purchase_price === 0 || formData.purchase_price === '0' || formData.purchase_price === '' ? '' : formData.purchase_price} 
+                                        placeholder="0"
+                                        onChange={(e) => handleNumFieldChange('purchase_price', e.target.value)} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Retail Selling ({currency.symbol})</label>
-                                    <input type="number" value={formData.selling_price} onChange={(e) => setFormData({...formData, selling_price: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                    <input 
+                                        type="text" 
+                                        inputMode="decimal"
+                                        maxLength={14}
+                                        value={formData.selling_price === 0 || formData.selling_price === '0' || formData.selling_price === '' ? '' : formData.selling_price} 
+                                        placeholder="0"
+                                        onChange={(e) => handleNumFieldChange('selling_price', e.target.value)} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Wholesale Price ({currency.symbol})</label>
-                                    <input type="number" value={formData.wholesale_price} onChange={(e) => setFormData({...formData, wholesale_price: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                    <input 
+                                        type="text" 
+                                        inputMode="decimal"
+                                        maxLength={14}
+                                        value={formData.wholesale_price === 0 || formData.wholesale_price === '0' || formData.wholesale_price === '' ? '' : formData.wholesale_price} 
+                                        placeholder="0"
+                                        onChange={(e) => handleNumFieldChange('wholesale_price', e.target.value)} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Dealer Price ({currency.symbol})</label>
-                                    <input type="number" value={formData.dealer_price} onChange={(e) => setFormData({...formData, dealer_price: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                    <input 
+                                        type="text" 
+                                        inputMode="decimal"
+                                        maxLength={14}
+                                        value={formData.dealer_price === 0 || formData.dealer_price === '0' || formData.dealer_price === '' ? '' : formData.dealer_price} 
+                                        placeholder="0"
+                                        onChange={(e) => handleNumFieldChange('dealer_price', e.target.value)} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                    />
                                 </div>
                             </div>
 
@@ -1278,11 +1342,27 @@ const BusinessInventory = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Max Retail Price (MRP)</label>
-                                    <input type="number" value={formData.mrp} onChange={(e) => setFormData({...formData, mrp: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                    <input 
+                                        type="text" 
+                                        inputMode="decimal"
+                                        maxLength={14}
+                                        value={formData.mrp === 0 || formData.mrp === '0' || formData.mrp === '' ? '' : formData.mrp} 
+                                        placeholder="0"
+                                        onChange={(e) => handleNumFieldChange('mrp', e.target.value)} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Discount %</label>
-                                    <input type="number" value={formData.discount_percentage} onChange={(e) => setFormData({...formData, discount_percentage: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} />
+                                    <input 
+                                        type="text" 
+                                        inputMode="decimal"
+                                        maxLength={14}
+                                        value={formData.discount_percentage === 0 || formData.discount_percentage === '0' || formData.discount_percentage === '' ? '' : formData.discount_percentage} 
+                                        placeholder="0"
+                                        onChange={(e) => handleNumFieldChange('discount_percentage', e.target.value)} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>GST Rate (%)</label>
@@ -1310,15 +1390,39 @@ const BusinessInventory = () => {
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Opening Qty</label>
-                                            <input type="number" value={formData.opening_stock} onChange={(e) => setFormData({...formData, opening_stock: parseInt(e.target.value) || 0, quantity: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                            <input 
+                                                type="text" 
+                                                inputMode="decimal"
+                                                maxLength={14}
+                                                value={formData.opening_stock === 0 || formData.opening_stock === '0' || formData.opening_stock === '' ? '' : formData.opening_stock} 
+                                                placeholder="0"
+                                                onChange={(e) => handleNumFieldChange('opening_stock', e.target.value)} 
+                                                style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} 
+                                            />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Minimum Qty Alert</label>
-                                            <input type="number" value={formData.min_stock} onChange={(e) => setFormData({...formData, min_stock: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                            <input 
+                                                type="text" 
+                                                inputMode="decimal"
+                                                maxLength={14}
+                                                value={formData.min_stock === 0 || formData.min_stock === '0' || formData.min_stock === '' ? '' : formData.min_stock} 
+                                                placeholder="5"
+                                                onChange={(e) => handleNumFieldChange('min_stock', e.target.value)} 
+                                                style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} 
+                                            />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Reorder Level</label>
-                                            <input type="number" value={formData.reorder_level} onChange={(e) => setFormData({...formData, reorder_level: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                            <input 
+                                                type="text" 
+                                                inputMode="decimal"
+                                                maxLength={14}
+                                                value={formData.reorder_level === 0 || formData.reorder_level === '0' || formData.reorder_level === '' ? '' : formData.reorder_level} 
+                                                placeholder="8"
+                                                onChange={(e) => handleNumFieldChange('reorder_level', e.target.value)} 
+                                                style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} 
+                                            />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Primary Unit</label>
