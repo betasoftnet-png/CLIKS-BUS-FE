@@ -1220,12 +1220,14 @@ const BusinessSuppliers = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Mobile Number <span style={{ color: '#EF4444' }}>*</span></label>
-                                    <input required type="text" maxLength={10} value={formData.phone_number} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData({ ...formData, phone_number: val }); if (formErrors.phone_number) setFormErrors({ ...formErrors, phone_number: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.phone_number ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 9876543210" />
+                                    <input required type="text" maxLength={10} value={formData.phone_number} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData({ ...formData, phone_number: val }); if (formErrors.phone_number) setFormErrors({ ...formErrors, phone_number: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formErrors.phone_number || (formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < 10)) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 9876543210" />
                                     {formErrors.phone_number && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.phone_number}</span>}
+                                    {formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < 10 && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>Mobile Number: 10 digits required</span>}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Alternate Phone</label>
-                                    <input type="text" maxLength={10} value={formData.alternate_phone} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData({ ...formData, alternate_phone: val }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 9876543210" />
+                                    <input type="text" maxLength={10} value={formData.alternate_phone} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData({ ...formData, alternate_phone: val }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formData.alternate_phone && formData.alternate_phone.length > 0 && formData.alternate_phone.length < 10) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 9123456780" />
+                                    {formData.alternate_phone && formData.alternate_phone.length > 0 && formData.alternate_phone.length < 10 && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>Alternate Phone: 10 digits required</span>}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Email Address <span style={{ color: '#EF4444' }}>*</span></label>
@@ -1242,13 +1244,15 @@ const BusinessSuppliers = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>GSTIN ID</label>
-                                    <input type="text" maxLength={15} value={formData.gstin} onChange={(e) => { const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15); setFormData({ ...formData, gstin: val }); if (formErrors.gstin) setFormErrors({ ...formErrors, gstin: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.gstin ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 27AAAAA0000A1Z5" />
+                                    <input type="text" maxLength={15} value={formData.gstin} onChange={(e) => { const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15); setFormData({ ...formData, gstin: val }); if (formErrors.gstin) setFormErrors({ ...formErrors, gstin: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formErrors.gstin || (formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15)) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 27AAAAA0000A1Z5" />
                                     {formErrors.gstin && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.gstin}</span>}
+                                    {formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15 && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>GSTIN: 15 characters required</span>}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>PAN Number</label>
-                                    <input type="text" maxLength={10} value={formData.pan_number} onChange={(e) => { const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 10); setFormData({ ...formData, pan_number: val }); if (formErrors.pan_number) setFormErrors({ ...formErrors, pan_number: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.pan_number ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : ABCDE1234F" />
+                                    <input type="text" maxLength={10} value={formData.pan_number} onChange={(e) => { const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 10); setFormData({ ...formData, pan_number: val }); if (formErrors.pan_number) setFormErrors({ ...formErrors, pan_number: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formErrors.pan_number || (formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10)) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : ABCDE1234F" />
                                     {formErrors.pan_number && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.pan_number}</span>}
+                                    {formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10 && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>PAN: 10 characters required</span>}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Tax Registration</label>
@@ -1259,7 +1263,7 @@ const BusinessSuppliers = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>State of Supply</label>
-                                    <input type="text" value={formData.place_of_supply} onChange={(e) => setFormData({ ...formData, place_of_supply: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Maharashtra" />
+                                    <input type="text" value={formData.place_of_supply} onChange={(e) => setFormData({ ...formData, place_of_supply: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Tamil Nadu" />
                                 </div>
                             </div>
 
@@ -1267,19 +1271,20 @@ const BusinessSuppliers = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Billing Headquarters Address</label>
-                                    <input type="text" value={formData.billing_address} onChange={(e) => setFormData({ ...formData, billing_address: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 101 Corporate Park" />
+                                    <input type="text" value={formData.billing_address} onChange={(e) => setFormData({ ...formData, billing_address: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : No:3663 TNHB Kakkalur" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Shipping Warehouse Address</label>
-                                    <input type="text" value={formData.shipping_address} onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Plot 45 Godown Hub" />
+                                    <input type="text" value={formData.shipping_address} onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : TNHB Industrial Estate" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>City</label>
-                                    <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Mumbai" />
+                                    <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Chennai" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Postal Code (Pincode)</label>
-                                    <input type="text" value={formData.pincode} onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 400013" />
+                                    <input type="text" maxLength={6} value={formData.pincode} onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formData.pincode && formData.pincode.length > 0 && formData.pincode.length < 6) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 602001" />
+                                    {formData.pincode && formData.pincode.length > 0 && formData.pincode.length < 6 && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>Pincode: 6 digits required</span>}
                                 </div>
                             </div>
 
@@ -1291,7 +1296,8 @@ const BusinessSuppliers = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase' }}>IFSC Code</label>
-                                    <input type="text" maxLength={11} value={formData.ifsc_code || ''} onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : SBIN0001234" />
+                                    <input type="text" maxLength={11} value={formData.ifsc_code || ''} onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formData.ifsc_code && formData.ifsc_code.length > 0 && formData.ifsc_code.length < 11) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : SBIN0001234" />
+                                    {formData.ifsc_code && formData.ifsc_code.length > 0 && formData.ifsc_code.length < 11 && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>IFSC: 11 characters required</span>}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase' }}>UPI ID</label>
@@ -1303,20 +1309,20 @@ const BusinessSuppliers = () => {
                             <div style={{ background: '#F0F9F4', padding: '1.5rem', borderRadius: '20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', border: '1px solid #DCF2E4' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Opening Payable Balance ({currency.symbol})</label>
-                                    <input type="number" disabled={!!editingSupplier} value={formData.opening_balance} onChange={(e) => {
-                                        let val = e.target.value;
-                                        if (/^0\d+/.test(val)) val = val.replace(/^0+/, '');
-                                        setFormData({ ...formData, opening_balance: parseFloat(val) || 0 });
-                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                    <input type="text" disabled={!!editingSupplier} value={formData.opening_balance === 0 ? '' : formData.opening_balance} onChange={(e) => {
+                                        let val = e.target.value.replace(/\D/g, '');
+                                        if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
+                                        setFormData({ ...formData, opening_balance: val === '' ? 0 : parseFloat(val) });
+                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Example : 0" />
                                     <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Keep positive if you owe them, negative for advance payment.</span>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Credit limit allowance ({currency.symbol})</label>
-                                    <input type="number" value={formData.credit_limit} onChange={(e) => {
-                                        let val = e.target.value;
-                                        if (/^0\d+/.test(val)) val = val.replace(/^0+/, '');
-                                        setFormData({ ...formData, credit_limit: parseFloat(val) || 0 });
-                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                    <input type="text" value={formData.credit_limit === 0 ? '' : formData.credit_limit} onChange={(e) => {
+                                        let val = e.target.value.replace(/\D/g, '');
+                                        if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
+                                        setFormData({ ...formData, credit_limit: val === '' ? 0 : parseFloat(val) });
+                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Example : 50000" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Payment Terms (Days)</label>

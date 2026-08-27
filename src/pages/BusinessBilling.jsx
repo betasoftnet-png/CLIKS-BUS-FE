@@ -2097,12 +2097,12 @@ const BusinessBilling = () => {
                                             )}
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>QTY</label>
-                                                <input required type="number" value={item.quantity} onChange={(e) => handleItemChange(idx, 'quantity', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                                <input required type="number" value={item.quantity} onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'quantity', parseFloat(raw) || 0); }} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                             </div>
                                             {activeConfig.freeQty === true && (
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>FREE</label>
-                                                    <input type="number" placeholder="0" value={item.free_quantity || ''} onChange={(e) => handleItemChange(idx, 'free_quantity', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                                    <input type="number" placeholder="0" value={item.free_quantity || ''} onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'free_quantity', parseFloat(raw) || 0); }} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                                 </div>
                                             )}
                                             <div>
@@ -2115,7 +2115,7 @@ const BusinessBilling = () => {
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>PRICE ({currency.symbol})</label>
-                                                <input required type="number" value={item.price} onChange={(e) => handleItemChange(idx, 'price', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                                <input required type="number" value={item.price} onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'price', parseFloat(raw) || 0); }} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                             </div>
                                             {activeConfig.txnDiscount !== false && (
                                                 <div>
@@ -2214,11 +2214,12 @@ const BusinessBilling = () => {
                                                 type="number" 
                                                 value={formData.paid_amount || 0} 
                                                 onChange={(e) => {
-                                                    const paid = parseFloat(e.target.value) || 0;
+                                                    const raw = e.target.value.slice(0, 14);
+                                                    const paid = parseFloat(raw) || 0;
                                                     setFormData({
                                                         ...formData,
                                                         paid_amount: paid,
-                                                        due_amount: formData.total_amount - paid
+                                                        due_amount: (parseFloat(formData.total_amount) || 0) - paid
                                                     });
                                                 }}
                                                 style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem' }} 
@@ -2311,9 +2312,9 @@ const BusinessBilling = () => {
                                     )}
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', justifyContent: 'center' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem', gap: '0.5rem' }}>
                                         <span>Subtotal:</span>
-                                        <span>{formatCurrency(formData.amount)}</span>
+                                        <span style={{ maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(formData.amount)}</span>
                                     </div>
                                     {activeConfig.countItems === true && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
@@ -2321,13 +2322,13 @@ const BusinessBilling = () => {
                                             <span>{formData.items.length} items ({formData.items.reduce((sum, i) => sum + (parseInt(i.quantity) || 0), 0)} Qty)</span>
                                         </div>
                                     )}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem', gap: '0.5rem' }}>
                                         <span>Total Discount:</span>
-                                        <span style={{ color: '#EF4444' }}>- {formatCurrency(formData.discount_amount)}</span>
+                                        <span style={{ color: '#EF4444', maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>- {formatCurrency(formData.discount_amount)}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem', gap: '0.5rem' }}>
                                         <span>GST Amount:</span>
-                                        <span>{formatCurrency(formData.tax_amount)}</span>
+                                        <span style={{ maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(formData.tax_amount)}</span>
                                     </div>
                                     {formData.redeemed_points > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '700', fontSize: '0.8rem' }}>
@@ -2339,9 +2340,9 @@ const BusinessBilling = () => {
                                         <span>Round Off:</span>
                                         <span>{currency.symbol} {(parseFloat(formData.round_off) || 0).toFixed(2)}</span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E3A8A', fontWeight: '900', fontSize: '1.25rem', marginTop: '0.3rem', borderTop: '1px dashed #DBEAFE', paddingTop: '0.4rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E3A8A', fontWeight: '900', fontSize: String(formData.total_amount || '').length > 10 ? '0.95rem' : '1.25rem', marginTop: '0.3rem', borderTop: '1px dashed #DBEAFE', paddingTop: '0.4rem', gap: '0.5rem', alignItems: 'center' }}>
                                         <span>Total:</span>
-                                        <span>{formatCurrency(formData.total_amount)}</span>
+                                        <span style={{ maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(formData.total_amount)}</span>
                                     </div>
                                     {activeConfig.showProfitSale === true && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '700', fontSize: '0.8rem', background: '#F0FDF4', border: '1px dashed #BBF7D0', padding: '0.35rem 0.5rem', borderRadius: '6px', marginTop: '0.2rem' }}>

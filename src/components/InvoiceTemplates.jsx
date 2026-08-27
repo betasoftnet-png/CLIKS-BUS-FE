@@ -1971,23 +1971,23 @@ export const InvoiceTemplates = {
                     </div>
                     <div>
                         <div className="inv-premium-corporate-totals-card" style={{ display: 'flex', flexDirection: 'column', gap: '15px', padding: '10px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748B' }}>Amount (Tax Excl.)</span>
-                                <span style={{ fontSize: '15px', fontWeight: '800', color: '#1E293B' }}>{formatCurrency(data.amount)}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                                <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748B', whiteSpace: 'nowrap' }}>Amount (Tax Excl.)</span>
+                                <span style={{ fontSize: String(data.amount || '').length > 10 ? '12px' : '15px', fontWeight: '800', color: '#1E293B', maxWidth: '60%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(data.amount)}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748B' }}>Calculated GST</span>
-                                <span style={{ fontSize: '15px', fontWeight: '800', color: '#1E293B' }}>{formatCurrency(data.tax_amount)}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                                <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748B', whiteSpace: 'nowrap' }}>Calculated GST</span>
+                                <span style={{ fontSize: String(data.tax_amount || '').length > 10 ? '12px' : '15px', fontWeight: '800', color: '#1E293B', maxWidth: '60%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(data.tax_amount)}</span>
                             </div>
                             <div style={{ margin: '15px 0', height: '2px', background: '#F1F5F9' }} />
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '16px', fontWeight: '950', color: '#0F172A' }}>Total Balance</span>
-                                <span className="inv-premium-corporate-total-amount" style={{ fontSize: '32px', fontWeight: '1000', color: corporateBlue, letterSpacing: '-0.02em' }}>{formatCurrency(data.total_amount)}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                                <span style={{ fontSize: '16px', fontWeight: '950', color: '#0F172A', whiteSpace: 'nowrap' }}>Total Balance</span>
+                                <span className="inv-premium-corporate-total-amount" style={{ fontSize: String(data.total_amount || '').length > 12 ? '16px' : (String(data.total_amount || '').length > 8 ? '20px' : '32px'), fontWeight: '1000', color: corporateBlue, letterSpacing: '-0.02em', maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(data.total_amount)}</span>
                             </div>
                         </div>
-                        <div className="inv-premium-corporate-words-card" style={{ background: corporateBlue, color: 'white', padding: '15px', borderRadius: '12px', marginTop: '30px', textAlign: 'center' }}>
+                        <div className="inv-premium-corporate-words-card" style={{ background: corporateBlue, color: 'white', padding: '15px', borderRadius: '12px', marginTop: '30px', textAlign: 'center', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                             <div style={{ fontSize: '10px', fontWeight: '900', opacity: 0.8, textTransform: 'uppercase', marginBottom: '5px', letterSpacing: '0.05em' }}>Amount in Words</div>
-                            <div style={{ fontSize: '12px', fontWeight: '800', lineHeight: '1.4' }}>{numberToWords(data.total_amount).toUpperCase()}</div>
+                            <div style={{ fontSize: String(data.total_amount || '').length > 12 ? '10px' : '12px', fontWeight: '800', lineHeight: '1.4', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{numberToWords(data.total_amount).toUpperCase()}</div>
                         </div>
                         <div className="inv-premium-corporate-signature-area" style={{ marginTop: '50px', textAlign: 'center' }}>
                             <div style={{ height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

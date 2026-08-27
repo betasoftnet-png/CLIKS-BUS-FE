@@ -80,6 +80,18 @@ export const AuthProvider = ({ children }) => {
     }, [logout]);
 
     useEffect(() => {
+        const handleStorageChange = (e) => {
+            if (!e.key || e.key === 'books_auth_token' || e.key === 'bnx_auth_token') {
+                console.warn('[AuthContext] Auth session changed or switched in another tab. Logging out this tab.');
+                logout();
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, [logout]);
+
+    useEffect(() => {
         if (user) {
             let totalDays = getPlanDuration(user.tier || 'Elite Suite');
             let remaining = totalDays;

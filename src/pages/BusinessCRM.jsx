@@ -1453,11 +1453,11 @@ const BusinessCRM = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', background: '#F8FAFC', padding: '1.5rem', borderRadius: '20px' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Customer Name</label>
-                                    <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Rajesh Gupta" />
+                                    <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Rajesh Gupta" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Shop / Business Name</label>
-                                    <input type="text" value={formData.business_name} onChange={(e) => setFormData({...formData, business_name: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Gupta Groceries Wholesale" />
+                                    <input type="text" value={formData.business_name} onChange={(e) => setFormData({...formData, business_name: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Gupta Groceries Wholesale" />
                                 </div>
                                 {activeConfig.partyGroup !== false && (
                                     <div>
@@ -1502,7 +1502,7 @@ const BusinessCRM = () => {
                                                 outline: 'none', 
                                                 background: 'white' 
                                             }} 
-                                            placeholder="9876543210" 
+                                            placeholder="Example : 9876543210" 
                                         />
                                     </div>
                                     {(() => {
@@ -1547,7 +1547,7 @@ const BusinessCRM = () => {
                                                 outline: 'none', 
                                                 background: 'white' 
                                             }} 
-                                            placeholder="9123456780" 
+                                            placeholder="Example : 9123456780" 
                                         />
                                     </div>
                                     {(() => {
@@ -1581,7 +1581,7 @@ const BusinessCRM = () => {
                                             }
                                         }} 
                                         style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
-                                        placeholder="name@domain.com" 
+                                        placeholder="Example : customer@bnxmail.com" 
                                     />
                                     {(() => {
                                         const val = (formData.email || '').trim().toLowerCase();
@@ -1601,7 +1601,7 @@ const BusinessCRM = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Website</label>
-                                    <input type="text" value={formData.website} onChange={(e) => setFormData({...formData, website: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="www.website.com" />
+                                    <input type="text" value={formData.website} onChange={(e) => setFormData({...formData, website: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : www.brand.com" />
                                 </div>
                             </div>
 
@@ -1617,8 +1617,8 @@ const BusinessCRM = () => {
                                             const val = e.target.value.toUpperCase().slice(0, 15);
                                             setFormData({...formData, gstin: val});
                                         }} 
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
-                                        placeholder="07AAAAA1111A1Z1" 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        placeholder="Example : 07AAAAA1111A1Z1" 
                                     />
                                     {formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15 && (
                                         <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
@@ -1636,8 +1636,8 @@ const BusinessCRM = () => {
                                             const val = e.target.value.toUpperCase().slice(0, 10);
                                             setFormData({...formData, pan_number: val, pan: val});
                                         }} 
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
-                                        placeholder="ABCDE1234F" 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (((formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10) || (formData.pan && formData.pan.length > 0 && formData.pan.length < 10))) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        placeholder="Example : ABCDE1234F" 
                                     />
                                     {((formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10) || (formData.pan && formData.pan.length > 0 && formData.pan.length < 10)) && (
                                         <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
@@ -1654,7 +1654,7 @@ const BusinessCRM = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Place of Supply</label>
-                                    <input type="text" value={formData.place_of_supply} onChange={(e) => setFormData({...formData, place_of_supply: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="State" />
+                                    <input type="text" value={formData.place_of_supply} onChange={(e) => setFormData({...formData, place_of_supply: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Tamil Nadu" />
                                 </div>
                             </div>
 
@@ -1663,14 +1663,14 @@ const BusinessCRM = () => {
                                 {editingCustomer ? (
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Billing Address</label>
-                                        <textarea value={formData.billing_address} onChange={(e) => setFormData({...formData, billing_address: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', minHeight: '60px' }} />
+                                        <textarea value={formData.billing_address} onChange={(e) => setFormData({...formData, billing_address: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', minHeight: '60px' }} placeholder="Example : 101 Corporate Park" />
                                     </div>
                                 ) : (
                                     <div />
                                 )}
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Shipping Address</label>
-                                    <textarea value={formData.shipping_address} onChange={(e) => setFormData({...formData, shipping_address: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', minHeight: '60px' }} />
+                                    <textarea value={formData.shipping_address} onChange={(e) => setFormData({...formData, shipping_address: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', minHeight: '60px' }} placeholder="Example : Plot 45 Godown Hub" />
                                 </div>
                             </div>
 
@@ -1678,15 +1678,27 @@ const BusinessCRM = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', background: '#F0F9F4', padding: '1.5rem', borderRadius: '20px' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Opening Balance ({currency.symbol})</label>
-                                    <input type="number" value={formData.opening_balance === 0 ? '' : formData.opening_balance} placeholder="0" onChange={(e) => setFormData({...formData, opening_balance: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                    <input type="text" value={formData.opening_balance === 0 ? '' : formData.opening_balance} placeholder="Example : 0" onChange={(e) => {
+                                        let val = e.target.value.replace(/\D/g, '');
+                                        if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
+                                        setFormData({...formData, opening_balance: val === '' ? 0 : parseFloat(val)});
+                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Credit Limit ({currency.symbol})</label>
-                                    <input type="number" value={formData.credit_limit === 0 ? '' : formData.credit_limit} placeholder="50000" onChange={(e) => setFormData({...formData, credit_limit: parseFloat(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                    <input type="text" value={formData.credit_limit === 0 ? '' : formData.credit_limit} placeholder="Example : 50000" onChange={(e) => {
+                                        let val = e.target.value.replace(/\D/g, '');
+                                        if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
+                                        setFormData({...formData, credit_limit: val === '' ? 0 : parseFloat(val)});
+                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Due Days (Terms)</label>
-                                    <input type="number" value={formData.due_days === 0 ? '' : formData.due_days} placeholder="30" onChange={(e) => setFormData({...formData, due_days: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
+                                    <input type="text" value={formData.due_days === 0 ? '' : formData.due_days} placeholder="Example : 30" onChange={(e) => {
+                                        let val = e.target.value.replace(/\D/g, '');
+                                        if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
+                                        setFormData({...formData, due_days: val === '' ? 0 : parseInt(val)});
+                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Preferred Reminder</label>

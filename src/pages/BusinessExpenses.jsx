@@ -1294,16 +1294,23 @@ const BusinessExpenses = () => {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Subcategory / Spares description</label>
-                                <input required type="text" value={newExpense.subcategory} onChange={(e) => setNewExpense({ ...newExpense, subcategory: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Office space rent" />
+                                <input required type="text" maxLength={100} value={newExpense.subcategory} onChange={(e) => setNewExpense({ ...newExpense, subcategory: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Example : Office space rent" />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payee / Merchant Merchant Profile</label>
-                                <input required type="text" value={newExpense.payee_name} onChange={(e) => setNewExpense({ ...newExpense, payee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payee / Merchant Profile</label>
+                                <input required type="text" spellCheck="false" maxLength={50} value={newExpense.payee_name} onChange={(e) => setNewExpense({ ...newExpense, payee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Example : Jino Merchant" />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Expense Amount ({currency.code})</label>
-                                    <input required type="number" value={newExpense.expense_amount} onChange={(e) => setNewExpense({ ...newExpense, expense_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input required type="text" maxLength={14} value={newExpense.expense_amount} onChange={(e) => {
+                                        let val = e.target.value.replace(/\D/g, '').slice(0, 14);
+                                        if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
+                                        setNewExpense({ ...newExpense, expense_amount: val });
+                                    }} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: (newExpense.expense_amount && newExpense.expense_amount.length >= 14) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="Example : 5000" />
+                                    {newExpense.expense_amount && newExpense.expense_amount.length >= 14 && (
+                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>Maximum 14 digits limit reached</span>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>GST % Percentage</label>
@@ -1328,7 +1335,7 @@ const BusinessExpenses = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Ref / UPI reference</label>
-                                    <input required type="text" value={newExpense.transaction_reference} onChange={(e) => setNewExpense({ ...newExpense, transaction_reference: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input required type="text" maxLength={30} value={newExpense.transaction_reference} onChange={(e) => setNewExpense({ ...newExpense, transaction_reference: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Example : UPI/1234567890" />
                                 </div>
                             </div>
 

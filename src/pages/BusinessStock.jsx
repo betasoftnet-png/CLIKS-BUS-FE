@@ -327,18 +327,21 @@ const BusinessStock = () => {
     });
 
     const transferMutation = useMutation({
-        mutationFn: ({ from_warehouse_id, to_warehouse_id, stock_id, qty }) => 
+        mutationFn: ({ from_warehouse_id, to_warehouse_id, stock_id, qty, reference }) => 
             warehouseService.transferStock(from_warehouse_id, {
                 from_warehouse_id,
                 to_warehouse_id,
                 stock_id,
-                quantity: qty
+                quantity: qty,
+                reference
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
             queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
             queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouseProducts'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouseTransfers'] });
             alert('Stock successfully moved between warehouse logs!');
             setIsTransferModalOpen(false);
         }
@@ -389,7 +392,7 @@ const BusinessStock = () => {
         }
 
         // 1. Warehouse Validation: From Warehouse != To Warehouse
-        if (fromWhId && toWhId && fromWhId === toWhId) {
+        if (fromWhId && toWhId && fromWhId.trim().toLowerCase() === toWhId.trim().toLowerCase()) {
             alert('Source (From) and Destination (To) warehouses must be different. Please select a different destination warehouse.');
             return;
         }
@@ -410,10 +413,11 @@ const BusinessStock = () => {
 
         if (fromWhId && toWhId && productIdStr) {
             transferMutation.mutate({
-                from_warehouse_id: parseInt(fromWhId),
-                to_warehouse_id: parseInt(toWhId),
-                stock_id: parseInt(productIdStr),
-                qty: transQty
+                from_warehouse_id: fromWhId,
+                to_warehouse_id: toWhId,
+                stock_id: productIdStr,
+                qty: transQty,
+                reference: transferForm.reference || 'MIG-TRF-12'
             });
         }
     };
