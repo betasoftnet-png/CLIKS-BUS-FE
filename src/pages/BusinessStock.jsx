@@ -501,15 +501,6 @@ const BusinessStock = () => {
                         example: '50 units × ₹100 cost = ₹5,000 stock value.'
                     },
                     { 
-                        id: 'movement', 
-                        label: 'Inward & Outward Logs', 
-                        icon: Activity, 
-                        gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', 
-                        shadowColor: 'rgba(59, 130, 246, 0.15)',
-                        description: 'Shows the history of stock coming in and going out. Inward = stock added/purchased. Outward = stock sold/removed.',
-                        example: 'Purchase +20 units, Sale −5 units.'
-                    },
-                    { 
                         id: 'warehouse', 
                         label: 'Warehouse Transfers', 
                         icon: Warehouse, 
