@@ -735,6 +735,14 @@ const BusinessCRM = () => {
                 return;
             }
 
+            if (formData.email && formData.email.trim().length > 0) {
+                const cleanEmail = formData.email.trim().toLowerCase();
+                if (!cleanEmail.endsWith('@bnxmail.com')) {
+                    alert('Please use a @bnxmail.com email address.');
+                    return;
+                }
+            }
+
             const phoneVal = `${formData.phone_country_code || '+91'} ${rawPhoneDigits}`;
             const altPhoneVal = rawAltDigits ? `${formData.alt_phone_country_code || '+91'} ${rawAltDigits}` : '';
             const panVal = formData.pan_number || formData.pan || '';
@@ -1557,7 +1565,39 @@ const BusinessCRM = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Email Address</label>
-                                    <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="name@domain.com" />
+                                    <input 
+                                        type="email" 
+                                        value={formData.email || ''} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setFormData({...formData, email: val});
+                                            if (val && val.includes('@')) {
+                                                const parts = val.split('@');
+                                                const domain = (parts[1] || '').toLowerCase();
+                                                const expectedDomain = 'bnxmail.com';
+                                                if (domain.length > 0 && !expectedDomain.startsWith(domain)) {
+                                                    alert('Please use a @bnxmail.com email address.');
+                                                }
+                                            }
+                                        }} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        placeholder="name@domain.com" 
+                                    />
+                                    {(() => {
+                                        const val = (formData.email || '').trim().toLowerCase();
+                                        if (val && val.includes('@')) {
+                                            const parts = val.split('@');
+                                            const domain = parts[1] || '';
+                                            if (domain.length > 0 && domain !== 'bnxmail.com' && !'bnxmail.com'.startsWith(domain)) {
+                                                return (
+                                                    <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
+                                                        Please use a @bnxmail.com email address.
+                                                    </span>
+                                                );
+                                            }
+                                        }
+                                        return null;
+                                    })()}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Website</label>
