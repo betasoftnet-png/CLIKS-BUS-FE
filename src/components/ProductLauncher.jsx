@@ -884,6 +884,11 @@ const ProductLauncher = ({ onClose }) => {
                 }
                 .launcher-labs-sparkles-icon {
                     color: #6366f1;
+                    animation: labs-rotate 8s linear infinite;
+                }
+                @keyframes labs-rotate {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
                 }
                 .launcher-labs-badge {
                     display: inline-flex;
@@ -955,16 +960,19 @@ const ProductLauncher = ({ onClose }) => {
                     padding: 0.4rem 1rem;
                     background: #f8fafc;
                     border-top: 1px solid #f1f5f9;
-                    display: flex;
-                    justifyContent: center;
-                    align-items: center;
+                    display: flex !important;
+                    justify-content: center !important;
+                    align-items: center !important;
+                    text-align: center !important;
                     gap: 6px;
                     font-size: 0.68rem;
                     color: #94a3b8;
                     font-weight: 700;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
-                    width: 100%;
+                    width: 100% !important;
+                    box-sizing: border-box !important;
+                    margin: 0 auto !important;
                     flex-shrink: 0;
                     height: 40px;
                 }
