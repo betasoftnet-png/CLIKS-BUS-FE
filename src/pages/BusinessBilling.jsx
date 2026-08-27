@@ -2977,15 +2977,54 @@ const BusinessBilling = () => {
                         </div>
                         <form onSubmit={(e) => {
                             e.preventDefault();
-                            const itemsToReturn = (selectedReturnItems || []).filter(it => it.selected).map(it => ({
+                            const customerName = (newReturnData.client_name || '').trim();
+                            let itemsToReturn = (selectedReturnItems || []).filter(it => it.selected).map(it => ({
                                 product_id: it.product_id,
-                                product_name: it.product_name,
+                                product_name: it.product_name || it.name,
                                 return_quantity: parseFloat(it.return_quantity) || 1,
                                 quantity: parseFloat(it.return_quantity) || 1,
                                 price: parseFloat(it.price) || 0,
                                 unit: it.unit,
                                 total: (parseFloat(it.price) || 0) * (parseFloat(it.return_quantity) || 1)
                             }));
+
+                            if (itemsToReturn.length === 0 && newReturnData.product_name) {
+                                itemsToReturn = [{
+                                    product_name: newReturnData.product_name,
+                                    return_quantity: 1,
+                                    price: 0
+                                }];
+                            }
+
+                            if (customerName && returnFormType !== 'purchase') {
+                                for (const item of itemsToReturn) {
+                                    const prodName = (item.product_name || newReturnData.product_name || '').trim();
+                                    if (!prodName) continue;
+
+                                    const alreadyReturned = (allReturns || []).find(r => {
+                                        const rCust = (r.client_name || r.customer_name || '').trim();
+                                        const rStatus = String(r.status || '').trim().toLowerCase();
+                                        const isDone = rStatus === 'done' || rStatus === 'completed';
+
+                                        if (!isDone) return false;
+                                        if (rCust.toLowerCase() !== customerName.toLowerCase()) return false;
+
+                                        const rProd = (r.product_name || r.item_name || '').trim();
+                                        if (rProd.toLowerCase() === prodName.toLowerCase()) return true;
+
+                                        if (Array.isArray(r.items)) {
+                                            return r.items.some(it => String(it.product_name || it.name || '').trim().toLowerCase() === prodName.toLowerCase());
+                                        }
+
+                                        return false;
+                                    });
+
+                                    if (alreadyReturned) {
+                                        alert(`This product has already been returned by ${customerName}.\n\nCustomer: ${customerName}\nProduct: ${prodName}\nStatus: Already Returned`);
+                                        return;
+                                    }
+                                }
+                            }
 
                             createReturnMutation.mutate({
                                 ...newReturnData,

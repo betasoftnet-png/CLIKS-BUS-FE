@@ -308,6 +308,37 @@ const BusinessReturns = () => {
     const handleCreateReturn = (e) => {
         e.preventDefault();
         const totals = calculateTotals(formItems);
+        const custName = (createReturnType === 'sales' ? formHeader.customer_name : formHeader.supplier_name || '').trim();
+
+        if (custName && createReturnType === 'sales') {
+            for (const item of formItems) {
+                const prodName = (item.product_name || '').trim();
+                if (!prodName) continue;
+
+                const alreadyReturned = (allReturns || []).find(r => {
+                    const rCust = (r.client_name || r.customer_name || '').trim();
+                    const rStatus = String(r.status || '').trim().toLowerCase();
+                    const isDone = rStatus === 'done' || rStatus === 'completed';
+
+                    if (!isDone) return false;
+                    if (rCust.toLowerCase() !== custName.toLowerCase()) return false;
+
+                    const rProd = (r.product_name || r.item_name || '').trim();
+                    if (rProd.toLowerCase() === prodName.toLowerCase()) return true;
+
+                    if (Array.isArray(r.items)) {
+                        return r.items.some(it => String(it.product_name || it.name || '').trim().toLowerCase() === prodName.toLowerCase());
+                    }
+
+                    return false;
+                });
+
+                if (alreadyReturned) {
+                    alert(`This product has already been returned by ${custName}.\n\nCustomer: ${custName}\nProduct: ${prodName}\nStatus: Already Returned`);
+                    return;
+                }
+            }
+        }
 
         const payload = {
             return_number: formHeader.return_number,
