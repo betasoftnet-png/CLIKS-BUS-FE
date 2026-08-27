@@ -37,7 +37,7 @@ const staticPages = [
     { name: 'Finance', path: '/finance/accounting', module: 'Books', desc: 'Financial Management', icon: 'Calculator', rank: 2, synonyms: ['finance', 'money', 'capital', 'fin'] },
     { name: 'Sales', path: '/sales/invoice', module: 'Books', desc: 'Sales & Customer Management', icon: 'Receipt', rank: 2, synonyms: ['sales', 'sell', 'orders', 'sa'] },
     { name: 'Purchases', path: '/purchases/purchases', module: 'Books', desc: 'Vendor purchases & bills', icon: 'ShoppingCart', rank: 2, synonyms: ['purchases', 'buy', 'suppliers', 'pur'] },
-    { name: 'Inventory', path: '/inventory/stock', module: 'Books', desc: 'Manage Products & Stock', icon: 'Layers', rank: 2, synonyms: ['inventory', 'stock', 'warehouse', 'godown', 'inv'] },
+    { name: 'Inventory', path: '/inventory/products', module: 'Books', desc: 'Manage Products & Stock', icon: 'Layers', rank: 2, synonyms: ['inventory', 'stock', 'warehouse', 'godown', 'inv'] },
     { name: 'HR', path: '/hr/staff', module: 'Books', desc: 'Human Resource Management', icon: 'UsersRound', rank: 2, synonyms: ['hr', 'staff', 'payroll', 'salary', 'attendance'] },
 
     { name: 'Accounting', path: '/finance/accounting', module: 'Finance', desc: 'P&L, Balance Sheet, Ledger', icon: 'Calculator', rank: 3, synonyms: ['accounting', 'acct', 'p&l', 'ledger', 'profit', 'loss', 'balance sheet', 'acc', 'fin'] },
@@ -495,20 +495,23 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                         }}
                                     />
                                     {searchQuery && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: '36px',
-                                            right: '0',
-                                            width: '280px',
-                                            backgroundColor: '#FFFFFF',
-                                            border: '1px solid #E2E8F0',
-                                            borderRadius: '12px',
-                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                                            zIndex: 9999,
-                                            maxHeight: '300px',
-                                            overflowY: 'auto',
-                                            padding: '4px 0'
-                                        }}>
+                                        <div 
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '36px',
+                                                right: '0',
+                                                width: '280px',
+                                                backgroundColor: '#FFFFFF',
+                                                border: '1px solid #E2E8F0',
+                                                borderRadius: '12px',
+                                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                                                zIndex: 9999,
+                                                maxHeight: '300px',
+                                                overflowY: 'auto',
+                                                padding: '4px 0'
+                                            }}
+                                        >
                                             {isSearching ? (
                                                 <div style={{ padding: '12px', textAlign: 'center', fontSize: '12px', color: '#64748B', fontWeight: '500' }}>
                                                     Searching...
@@ -519,6 +522,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                                     return (
                                                         <div 
                                                             key={index}
+                                                            onMouseDown={(e) => e.preventDefault()}
                                                             onClick={() => {
                                                                 let pathWithQuery = item.path;
                                                                 if (item.state?.invoiceNumber) {
@@ -527,6 +531,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                                                     pathWithQuery += `?q=${encodeURIComponent(item.state.customerName)}`;
                                                                 } else if (item.state?.productName) {
                                                                     pathWithQuery += `?q=${encodeURIComponent(item.state.productName)}`;
+                                                                } else if (item.state?.warehouseName) {
+                                                                    pathWithQuery += `?q=${encodeURIComponent(item.state.warehouseName)}`;
                                                                 }
                                                                 
                                                                 if (item.path.startsWith('/social/')) {

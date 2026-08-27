@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { warehouseService, stockService, settingsService, productsService } from '../services';
@@ -33,6 +34,8 @@ import { useCurrency } from '../context';
 const BusinessWarehouse = () => {
     const { formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
+    const [searchParams] = useSearchParams();
+
     // Fetch customization settings dynamically to enforce master configurations
     const { data: userSettings, isLoading: isLoadingSettings } = useQuery({
         queryKey: ['settings'],
@@ -43,6 +46,14 @@ const BusinessWarehouse = () => {
 
     const [activeTab, setActiveTab] = useState('profiles');
     const [colFilters, setColFilters] = React.useState({}); // 'profiles', 'stock', 'operations', 'transfers'
+
+    useEffect(() => {
+        const q = searchParams.get('q') || searchParams.get('warehouseName');
+        if (q) {
+            setActiveTab('profiles');
+            setColFilters(prev => ({ ...prev, name: q }));
+        }
+    }, [searchParams]);
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isInwardModalOpen, setIsInwardModalOpen] = useState(false);
