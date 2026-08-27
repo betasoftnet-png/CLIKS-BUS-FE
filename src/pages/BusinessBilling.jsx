@@ -3520,7 +3520,41 @@ const BusinessBilling = () => {
 
                             {(() => {
                                 const st = supplierViewPO.supplier_confirmation_status || supplierViewPO.supplier_response_type || supplierViewPO.status;
-                                const isResponded = st === 'CONFIRMED' || st === 'PARTIALLY_AVAILABLE' || st === 'NOT_AVAILABLE' || st === 'AVAILABLE_LATER' || st === 'PARTIAL_ACCEPTED' || st === 'PARTIAL_REJECTED';
+
+                                if (st === 'DATE_ACCEPTED_BY_CUSTOMER' || st === 'DATE_ACCEPTED') {
+                                    return (
+                                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                            <button
+                                                type="button"
+                                                disabled={isConfirmingPO}
+                                                onClick={() => handleConfirmPOBySupplier(supplierViewPO.id, 'SUPPLIER_DECLINED')}
+                                                style={{
+                                                    padding: '0.75rem 1.25rem', borderRadius: '12px',
+                                                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                                                    color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer',
+                                                    boxShadow: '0 4px 12px rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', gap: '0.4rem'
+                                                }}
+                                            >
+                                                <X size={16} /> Say No to Him
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={isConfirmingPO}
+                                                onClick={() => handleConfirmPOBySupplier(supplierViewPO.id, 'PRODUCT_SENT')}
+                                                style={{
+                                                    padding: '0.75rem 1.75rem', borderRadius: '12px',
+                                                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                                    color: 'white', border: 'none', fontWeight: '800', fontSize: '0.92rem', cursor: 'pointer',
+                                                    boxShadow: '0 8px 16px rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                                                }}
+                                            >
+                                                <CheckCircle2 size={18} /> {isConfirmingPO ? 'SUBMITTING...' : 'Sent'}
+                                            </button>
+                                        </div>
+                                    );
+                                }
+
+                                const isResponded = st === 'CONFIRMED' || st === 'PARTIALLY_AVAILABLE' || st === 'NOT_AVAILABLE' || st === 'AVAILABLE_LATER' || st === 'PARTIAL_ACCEPTED' || st === 'PARTIAL_REJECTED' || st === 'DATE_DECLINED_BY_CUSTOMER' || st === 'PRODUCT_SENT' || st === 'SUPPLIER_DECLINED';
 
                                 if (isResponded) {
                                     let respLabel = 'Response Submitted';
@@ -3535,7 +3569,13 @@ const BusinessBilling = () => {
                                     } else if (st === 'NOT_AVAILABLE') {
                                         respBg = '#FEF2F2'; respClr = '#DC2626'; respLabel = 'Not Available Submitted';
                                     } else if (st === 'AVAILABLE_LATER') {
-                                        respBg = '#EFF6FF'; respClr = '#1D4ED8'; respLabel = 'Available Later Submitted';
+                                        respBg = '#EFF6FF'; respClr = '#1D4ED8'; respLabel = 'Available Later Submitted — Waiting for Buyer Approval';
+                                    } else if (st === 'DATE_DECLINED_BY_CUSTOMER') {
+                                        respBg = '#FEF2F2'; respClr = '#DC2626'; respLabel = 'Buyer Declined Proposed Available Date';
+                                    } else if (st === 'PRODUCT_SENT') {
+                                        respBg = '#F0FDF4'; respClr = '#15803D'; respLabel = 'Product Sent Successfully';
+                                    } else if (st === 'SUPPLIER_DECLINED') {
+                                        respBg = '#FEF2F2'; respClr = '#DC2626'; respLabel = 'Supplier Declined Order';
                                     }
                                     return (
                                         <span style={{ padding: '0.6rem 1.25rem', borderRadius: '12px', background: respBg, color: respClr, fontWeight: '800', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>

@@ -182,6 +182,18 @@ const BusinessPurchases = () => {
         }
     };
 
+    const handleBuyerRespondDate = async (po, action) => {
+        try {
+            const targetId = po.id || po.purchase_id || po.purchase_number;
+            await purchasesService.respondBuyerPurchase(targetId, { action });
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['invoices'] });
+            alert(action === 'ACCEPT_DATE' ? 'You accepted the proposed available date.' : 'You declined the proposed available date.');
+        } catch(err) {
+            alert(err.response?.data?.message || err.message || 'Failed to update response');
+        }
+    };
+
     const handleOpenChat = async (po) => {
         const foundSup = (suppliersList || []).find(s => (s.name || s.supplier_name || '').toLowerCase() === (po.supplier_name || '').toLowerCase()) || { id: po.supplier_id || 1, name: po.supplier_name };
         setChatSupplier(foundSup);
@@ -777,6 +789,10 @@ const BusinessPurchases = () => {
                                                 const isPartiallyRejected = statusType === 'PARTIAL_REJECTED';
                                                 const isNotAvailable = statusType === 'NOT_AVAILABLE';
                                                 const isAvailableLater = statusType === 'AVAILABLE_LATER';
+                                                const isDateAccepted = statusType === 'DATE_ACCEPTED_BY_CUSTOMER' || statusType === 'DATE_ACCEPTED';
+                                                const isDateDeclined = statusType === 'DATE_DECLINED_BY_CUSTOMER' || statusType === 'DATE_DECLINED';
+                                                const isProductSent = statusType === 'PRODUCT_SENT' || statusType === 'SENT' || statusType === 'SUPPLIER_SENT';
+                                                const isSupplierDeclined = statusType === 'SUPPLIER_DECLINED' || statusType === 'SUPPLIER_DECLINED_AFTER_ACCEPT';
 
                                                 let badgeBg = '#FFFBEB';
                                                 let badgeColor = '#B45309';
@@ -790,6 +806,30 @@ const BusinessPurchases = () => {
                                                     badgeIcon = <CheckCircle2 size={13} />;
                                                     badgeText = 'CONFIRMED BY SUPPLIER';
                                                     statusMessage = 'Supplier has confirmed your order.';
+                                                } else if (isProductSent) {
+                                                    badgeBg = '#F0FDF4';
+                                                    badgeColor = '#15803D';
+                                                    badgeIcon = <CheckCircle2 size={13} />;
+                                                    badgeText = 'SUPPLIER SENT PRODUCT SUCCESSFULLY';
+                                                    statusMessage = 'Supplier sent the product successfully.';
+                                                } else if (isSupplierDeclined) {
+                                                    badgeBg = '#FEF2F2';
+                                                    badgeColor = '#DC2626';
+                                                    badgeIcon = <X size={13} />;
+                                                    badgeText = 'SUPPLIER DECLINED ORDER';
+                                                    statusMessage = 'Supplier declined the order.';
+                                                } else if (isDateDeclined) {
+                                                    badgeBg = '#FEF2F2';
+                                                    badgeColor = '#DC2626';
+                                                    badgeIcon = <X size={13} />;
+                                                    badgeText = 'DATE DECLINED BY CUSTOMER';
+                                                    statusMessage = 'You did not accept the proposed available date. Process stopped.';
+                                                } else if (isDateAccepted) {
+                                                    badgeBg = '#EFF6FF';
+                                                    badgeColor = '#1D4ED8';
+                                                    badgeIcon = <CheckCircle2 size={13} />;
+                                                    badgeText = 'DATE ACCEPTED — WAITING FOR SUPPLIER DISPATCH';
+                                                    statusMessage = 'You accepted the proposed available date. Awaiting supplier action.';
                                                 } else if (isPartiallyAccepted) {
                                                     badgeBg = '#F0FDF4';
                                                     badgeColor = '#15803D';
@@ -861,6 +901,34 @@ const BusinessPurchases = () => {
                                                     );
                                                 }
 
+                                                let datePrompt = null;
+                                                if (isAvailableLater) {
+                                                    const expDateStr = po.expected_available_date || '28-08-2026';
+                                                    datePrompt = (
+                                                        <div style={{ marginTop: '0.4rem', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '0.65rem 0.85rem', borderRadius: '10px' }}>
+                                                            <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.8rem', fontWeight: '800', color: '#1E40AF' }}>
+                                                                Are you okay with the supplier being available on {expDateStr}?
+                                                            </p>
+                                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); handleBuyerRespondDate(po, 'ACCEPT_DATE'); }}
+                                                                    style={{ padding: '0.35rem 0.85rem', borderRadius: '8px', border: 'none', background: '#10B981', color: 'white', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                                                >
+                                                                    <CheckCircle2 size={13} /> Yes
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => { e.stopPropagation(); handleBuyerRespondDate(po, 'REJECT_DATE'); }}
+                                                                    style={{ padding: '0.35rem 0.85rem', borderRadius: '8px', border: '1px solid #EF4444', background: '#FEF2F2', color: '#DC2626', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                                                >
+                                                                    <X size={13} /> No
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+
                                                 return (
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                                                         <div style={{ 
@@ -877,6 +945,7 @@ const BusinessPurchases = () => {
                                                             {statusMessage}
                                                         </span>
                                                         {itemsBreakdown}
+                                                        {datePrompt}
                                                     </div>
                                                 );
                                             })()}
@@ -1712,7 +1781,41 @@ const BusinessPurchases = () => {
 
                             {(() => {
                                 const st = supplierViewPO.supplier_confirmation_status || supplierViewPO.supplier_response_type || supplierViewPO.status;
-                                const isResponded = st === 'CONFIRMED' || st === 'PARTIALLY_AVAILABLE' || st === 'NOT_AVAILABLE' || st === 'AVAILABLE_LATER' || st === 'PARTIAL_ACCEPTED' || st === 'PARTIAL_REJECTED';
+                                
+                                if (st === 'DATE_ACCEPTED_BY_CUSTOMER' || st === 'DATE_ACCEPTED') {
+                                    return (
+                                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                            <button
+                                                type="button"
+                                                disabled={isConfirmingPO}
+                                                onClick={() => handleConfirmPOBySupplier(supplierViewPO.id, 'SUPPLIER_DECLINED')}
+                                                style={{
+                                                    padding: '0.75rem 1.25rem', borderRadius: '12px',
+                                                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                                                    color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer',
+                                                    boxShadow: '0 4px 12px rgba(239,68,68,0.25)', display: 'flex', alignItems: 'center', gap: '0.4rem'
+                                                }}
+                                            >
+                                                <X size={16} /> Say No to Him
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={isConfirmingPO}
+                                                onClick={() => handleConfirmPOBySupplier(supplierViewPO.id, 'PRODUCT_SENT')}
+                                                style={{
+                                                    padding: '0.75rem 1.75rem', borderRadius: '12px',
+                                                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                                    color: 'white', border: 'none', fontWeight: '800', fontSize: '0.92rem', cursor: 'pointer',
+                                                    boxShadow: '0 8px 16px rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                                                }}
+                                            >
+                                                <CheckCircle2 size={18} /> {isConfirmingPO ? 'SUBMITTING...' : 'Sent'}
+                                            </button>
+                                        </div>
+                                    );
+                                }
+
+                                const isResponded = st === 'CONFIRMED' || st === 'PARTIALLY_AVAILABLE' || st === 'NOT_AVAILABLE' || st === 'AVAILABLE_LATER' || st === 'PARTIAL_ACCEPTED' || st === 'PARTIAL_REJECTED' || st === 'DATE_DECLINED_BY_CUSTOMER' || st === 'PRODUCT_SENT' || st === 'SUPPLIER_DECLINED';
 
                                 if (isResponded) {
                                     let respLabel = 'Response Submitted';
@@ -1727,7 +1830,13 @@ const BusinessPurchases = () => {
                                     } else if (st === 'NOT_AVAILABLE') {
                                         respBg = '#FEF2F2'; respClr = '#DC2626'; respLabel = 'Not Available Submitted';
                                     } else if (st === 'AVAILABLE_LATER') {
-                                        respBg = '#EFF6FF'; respClr = '#1D4ED8'; respLabel = 'Available Later Submitted';
+                                        respBg = '#EFF6FF'; respClr = '#1D4ED8'; respLabel = 'Available Later Submitted — Waiting for Buyer Approval';
+                                    } else if (st === 'DATE_DECLINED_BY_CUSTOMER') {
+                                        respBg = '#FEF2F2'; respClr = '#DC2626'; respLabel = 'Buyer Declined Proposed Available Date';
+                                    } else if (st === 'PRODUCT_SENT') {
+                                        respBg = '#F0FDF4'; respClr = '#15803D'; respLabel = 'Product Sent Successfully';
+                                    } else if (st === 'SUPPLIER_DECLINED') {
+                                        respBg = '#FEF2F2'; respClr = '#DC2626'; respLabel = 'Supplier Declined Order';
                                     }
                                     return (
                                         <span style={{ padding: '0.6rem 1.25rem', borderRadius: '12px', background: respBg, color: respClr, fontWeight: '800', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
