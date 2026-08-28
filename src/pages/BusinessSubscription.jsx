@@ -445,7 +445,7 @@ const BusinessSubscription = () => {
                     {[
                         { id: 'business', label: 'Business', icon: ShieldCheck, color: '#1B6B3A' },
                         { id: 'ca', label: 'FIN-PRO', icon: Award, color: '#1E3A8A' },
-                        { id: 'betaclub', label: 'Beta Club', icon: Crown, color: '#7C3AED' }
+                        { id: 'betaclub', label: 'Capital Matrix', icon: Crown, color: '#7C3AED' }
                     ].map((tab) => {
                         const isTabActive = activeCategory === tab.id;
                         return (
