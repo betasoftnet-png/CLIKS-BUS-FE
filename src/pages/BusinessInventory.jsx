@@ -252,18 +252,20 @@ const BusinessInventory = () => {
         onSuccess: (_, variables) => {
             // Also create a stock entry for the selected warehouse
             if (variables && variables.name) {
-                const whName = variables.warehouse_id || 'Main Godown';
-                stockService.createStock({
-                    name: variables.name,
-                    sku: variables.sku,
-                    category: variables.category || 'General',
-                    quantity: parseFloat(variables.quantity) || 0,
-                    unit_price: parseFloat(variables.purchase_price) || 0,
-                    cost_price: parseFloat(variables.purchase_price) || 0,
-                    location: whName,
-                    warehouse: whName,
-                    supplier_name: 'Direct Inward'
-                }).catch(err => console.warn('[Stock Sync Warning]', err));
+                const whName = variables.warehouse_id;
+                if (whName) {
+                    stockService.createStock({
+                        name: variables.name,
+                        sku: variables.sku,
+                        category: variables.category || 'General',
+                        quantity: parseFloat(variables.quantity) || 0,
+                        unit_price: parseFloat(variables.purchase_price) || 0,
+                        cost_price: parseFloat(variables.purchase_price) || 0,
+                        location: whName,
+                        warehouse: whName,
+                        supplier_name: 'Direct Inward'
+                    }).catch(err => console.warn('[Stock Sync Warning]', err));
+                }
             }
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
@@ -555,8 +557,8 @@ const BusinessInventory = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        if (!formData.warehouse || !String(formData.warehouse).trim()) {
-            alert("Please select a warehouse storage facility.");
+        if (formData.product_type === 'product' && (!formData.warehouse || !String(formData.warehouse).trim())) {
+            alert("Create warehouse first");
             return;
         }
 
@@ -1463,12 +1465,7 @@ const BusinessInventory = () => {
                                                         );
                                                     })
                                                 ) : (
-                                                    <>
-                                                        <option value="Main Godown" style={{ color: '#0F172A' }}>Main Godown (Bulk Storage)</option>
-                                                        <option value="Chennai godown" style={{ color: '#0F172A' }}>Chennai godown</option>
-                                                        <option value="Tiruvallur godown" style={{ color: '#0F172A' }}>Tiruvallur godown</option>
-                                                        <option value="Damaged products godown" style={{ color: '#0F172A' }}>⚠️ Damaged products godown (Non-Sellable)</option>
-                                                    </>
+                                                    <option value="" disabled style={{ color: '#94A3B8' }}>No warehouse created — Create warehouse first</option>
                                                 )}
                                             </select>
                                         </div>

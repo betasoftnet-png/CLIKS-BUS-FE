@@ -176,9 +176,9 @@ const BusinessWarehouse = () => {
 
     // Stateful Warehouse Stock Database mapped from live DB Stocks
     const whStocks = dbStocks.map(s => {
-        let warehouseName = 'General';
+        let warehouseName = s.location || s.warehouse || 'Unassigned';
         let rackNumber = 'N/A';
-        let zoneName = 'General';
+        let zoneName = 'Standard Zone';
 
         if (s.location) {
             if (s.location.includes('(')) {
