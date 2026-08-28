@@ -514,7 +514,7 @@ const BusinessPurchases = () => {
             const whCode = (wh.code || wh.warehouse_code || '').toLowerCase().trim();
             const whIdStr = String(wh.id || '');
 
-            let availQty = 0;
+            let availableQty = 0;
 
             (dbStocks || []).forEach(st => {
                 const stLoc = (st.location || st.warehouse || '').toLowerCase().trim();
@@ -527,7 +527,7 @@ const BusinessPurchases = () => {
                         (targetSku && stSku && stSku === targetSku) ||
                         (targetName && stName && stName === targetName)
                     ) {
-                        availQty += parseFloat(st.quantity || 0);
+                        availableQty += parseFloat(st.quantity || 0);
                     }
                 }
             });
@@ -543,7 +543,7 @@ const BusinessPurchases = () => {
                         (targetSku && cpSku && cpSku === targetSku) ||
                         (targetName && cpName && cpName === targetName)
                     ) {
-                        availQty = Math.max(availQty, parseFloat(cp.quantity || 0));
+                        availableQty = Math.max(availableQty, parseFloat(cp.quantity || 0));
                     }
                 }
             });
