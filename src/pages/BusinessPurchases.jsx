@@ -36,7 +36,7 @@ import { paymentsStore } from '../lib/paymentsStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { purchasesService, productsService, suppliersService, settingsService, returnsService, warehouseService } from '../services';
+import { purchasesService, productsService, suppliersService, settingsService, returnsService, warehouseService, stockService } from '../services';
 import '../App.css';
 import { useCurrency } from '../context';
 
@@ -291,6 +291,11 @@ const BusinessPurchases = () => {
         queryFn: () => productsService.getProducts()
     });
 
+    const { data: dbStocks = [] } = useQuery({
+        queryKey: ['stocks'],
+        queryFn: () => stockService.getStocks()
+    });
+
     const { data: suppliersList = [] } = useQuery({
         queryKey: ['suppliers'],
         queryFn: () => suppliersService.getSuppliers()
@@ -300,6 +305,118 @@ const BusinessPurchases = () => {
         queryKey: ['returns'],
         queryFn: returnsService.getReturns
     });
+
+    // 📦 Supplier-filtered products for Purchase Return
+    const supplierProducts = React.useMemo(() => {
+        if (createDocType !== 'RETURN' || (!formHeader.supplier_id && !formHeader.supplier_name)) {
+            return createDocType === 'RETURN' ? [] : catalogProducts;
+        }
+
+        const selectedId = String(formHeader.supplier_id || '');
+        const selectedName = (formHeader.supplier_name || '').toLowerCase().trim();
+
+        const purchasedMap = new Map();
+        (allPurchases || []).forEach(p => {
+            const matchId = selectedId && String(p.supplier_id) === selectedId;
+            const matchName = selectedName && (p.supplier_name || '').toLowerCase().trim() === selectedName;
+            if (matchId || matchName) {
+                const items = Array.isArray(p.items) ? p.items : (typeof p.items === 'string' ? JSON.parse(p.items || '[]') : []);
+                items.forEach(it => {
+                    const pName = it.product_name || it.name || it.description;
+                    if (pName) {
+                        const key = pName.toLowerCase().trim();
+                        if (!purchasedMap.has(key)) {
+                            purchasedMap.set(key, {
+                                id: it.product_id || it.id || key,
+                                product_id: it.product_id || it.id || key,
+                                name: pName,
+                                product_name: pName,
+                                sku: it.sku || '',
+                                purchase_price: parseFloat(it.purchase_price || it.price || 0),
+                                primary_unit: it.primary_unit || 'pcs'
+                            });
+                        }
+                    }
+                });
+            }
+        });
+
+        const filteredCatalog = (catalogProducts || []).filter(p => {
+            const pSuppId = String(p.supplier_id || p.vendor_id || '');
+            const pSuppName = (p.supplier_name || p.vendor_name || '').toLowerCase().trim();
+            const matchSupp = (selectedId && pSuppId === selectedId) || (selectedName && pSuppName === selectedName);
+            const pNameKey = (p.name || p.product_name || '').toLowerCase().trim();
+            const matchPurchased = purchasedMap.has(pNameKey);
+            return matchSupp || matchPurchased;
+        });
+
+        const result = [...filteredCatalog];
+        purchasedMap.forEach((itemObj, key) => {
+            if (!result.some(p => (p.name || p.product_name || '').toLowerCase().trim() === key)) {
+                result.push(itemObj);
+            }
+        });
+
+        return result;
+    }, [createDocType, formHeader.supplier_id, formHeader.supplier_name, allPurchases, catalogProducts]);
+
+    // 🏬 Product-filtered warehouses for Purchase Return
+    const availableWarehouses = React.useMemo(() => {
+        if (createDocType !== 'RETURN') return warehousesList;
+        const selectedProd = formItems[0];
+        if (!selectedProd || (!selectedProd.product_id && !selectedProd.product_name && !selectedProd.sku)) {
+            return [];
+        }
+
+        const targetName = (selectedProd.product_name || '').toLowerCase().trim();
+        const targetSku = (selectedProd.sku || '').toLowerCase().trim();
+        const targetId = String(selectedProd.product_id || '');
+
+        return warehousesList.map(wh => {
+            const whName = (wh.name || wh.warehouse_name || '').toLowerCase().trim();
+            const whCode = (wh.code || wh.warehouse_code || '').toLowerCase().trim();
+            const whIdStr = String(wh.id || '');
+
+            let availQty = 0;
+
+            (dbStocks || []).forEach(st => {
+                const stLoc = (st.location || st.warehouse || '').toLowerCase().trim();
+                if (stLoc === whName || stLoc === whCode || stLoc === whIdStr) {
+                    const stName = (st.name || '').toLowerCase().trim();
+                    const stSku = (st.sku || '').toLowerCase().trim();
+                    const stId = String(st.id || '');
+                    if (
+                        (targetId && stId === targetId) ||
+                        (targetSku && stSku && stSku === targetSku) ||
+                        (targetName && stName && stName === targetName)
+                    ) {
+                        availQty += parseFloat(st.quantity || 0);
+                    }
+                }
+            });
+
+            (catalogProducts || []).forEach(cp => {
+                const cpWh = (cp.warehouse_id || '').toLowerCase().trim();
+                if (cpWh === whName || cpWh === whCode || cpWh === whIdStr) {
+                    const cpName = (cp.name || cp.product_name || '').toLowerCase().trim();
+                    const cpSku = (cp.sku || '').toLowerCase().trim();
+                    const cpId = String(cp.id || cp.product_id || '');
+                    if (
+                        (targetId && cpId === targetId) ||
+                        (targetSku && cpSku && cpSku === targetSku) ||
+                        (targetName && cpName && cpName === targetName)
+                    ) {
+                        availQty = Math.max(availQty, parseFloat(cp.quantity || 0));
+                    }
+                }
+            });
+
+            return {
+                ...wh,
+                availableQty
+            };
+        }).filter(wh => wh.availableQty > 0);
+    }, [createDocType, formItems, warehousesList, dbStocks, catalogProducts]);
 
     const supplierReturnsList = allReturns.filter(r => r.return_type === 'purchase');
 
@@ -323,6 +440,9 @@ const BusinessPurchases = () => {
         mutationFn: purchasesService.createPurchase,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
             setIsCreateModalOpen(false);
             setFormItems([{
                 product_id: '',
@@ -492,6 +612,40 @@ const BusinessPurchases = () => {
 
     const handleCreateDocument = (e) => {
         e.preventDefault();
+
+        if (createDocType === 'RETURN') {
+            if (!formHeader.supplier_id && !formHeader.supplier_name) {
+                alert('Please select a supplier first.');
+                return;
+            }
+
+            const item = formItems[0];
+            if (!item || (!item.product_id && !item.product_name)) {
+                alert('Please select a product to return.');
+                return;
+            }
+
+            if (!formHeader.warehouse_id) {
+                alert('Please select a warehouse.');
+                return;
+            }
+
+            const selectedWhName = formHeader.warehouse_id;
+            const targetWh = availableWarehouses.find(w => 
+                String(w.id) === String(selectedWhName) || 
+                (w.name || '').toLowerCase() === String(selectedWhName).toLowerCase() || 
+                (w.code || '').toLowerCase() === String(selectedWhName).toLowerCase()
+            );
+
+            const availQty = targetWh ? targetWh.availableQty : 0;
+            const returnQty = parseFloat(item.quantity) || 1;
+
+            if (returnQty > availQty) {
+                alert(`Return quantity (${returnQty}) exceeds available stock (${availQty} PCS) in warehouse '${formHeader.warehouse_id}'.`);
+                return;
+            }
+        }
+
         const totals = computeDocTotals(formItems, formHeader.shipping_charge);
 
         const docPayload = {
@@ -1340,6 +1494,21 @@ const BusinessPurchases = () => {
                                                         billing_address: supp.address || supp.billing_address || '',
                                                         contact_number: supp.phone || supp.mobile || ''
                                                     });
+                                                    if (createDocType === 'RETURN') {
+                                                        setFormItems([{
+                                                            product_id: '',
+                                                            product_name: '',
+                                                            sku: '',
+                                                            batch_number: '',
+                                                            expiry_date: '',
+                                                            quantity: 1,
+                                                            free_quantity: 0,
+                                                            primary_unit: 'pcs',
+                                                            purchase_price: 0,
+                                                            discount: 0,
+                                                            gst_percentage: 18
+                                                        }]);
+                                                    }
                                                 }
                                             }} 
                                             style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}
@@ -1404,7 +1573,8 @@ const BusinessPurchases = () => {
                                                 value={item.product_id || ''} 
                                                 onChange={(e) => {
                                                     const selectedId = e.target.value;
-                                                    const prod = catalogProducts.find(p => String(p.id || p.product_id) === String(selectedId));
+                                                    const prodList = createDocType === 'RETURN' ? supplierProducts : catalogProducts;
+                                                    const prod = prodList.find(p => String(p.id || p.product_id) === String(selectedId));
                                                     if (prod) {
                                                         // Atomic Batch State Update to prevent React async clobbering
                                                         setFormItems(prev => prev.map((formItem, itemIdx) => 
@@ -1421,8 +1591,8 @@ const BusinessPurchases = () => {
                                                 }} 
                                                 style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#1B6B3A' }}
                                             >
-                                                <option value="">-- Select Product --</option>
-                                                {catalogProducts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(p => (
+                                                <option value="">{createDocType === 'RETURN' ? ((!formHeader.supplier_id && !formHeader.supplier_name) ? '-- Select Supplier First --' : '-- Select Product --') : '-- Select Product --'}</option>
+                                                {(createDocType === 'RETURN' ? supplierProducts : catalogProducts).filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(p => (
                                                     <option key={p.id || p.product_id} value={p.id || p.product_id}>{p.name || p.product_name} {p.sku ? `[${p.sku}]` : ''}</option>
                                                 ))}
                                             </select>
@@ -1471,10 +1641,10 @@ const BusinessPurchases = () => {
                                             onChange={(e) => setFormHeader({ ...formHeader, warehouse_id: e.target.value })}
                                             style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}
                                         >
-                                            <option value="">-- Select Warehouse --</option>
-                                            {warehousesList.map((wh, idx) => (
+                                            <option value="">{(!formItems[0]?.product_id && !formItems[0]?.product_name) ? '-- Select Product First --' : '-- Select Warehouse --'}</option>
+                                            {availableWarehouses.map((wh, idx) => (
                                                 <option key={idx} value={wh.name || wh.id}>
-                                                    {wh.name || wh.warehouse_name} {wh.code ? `(${wh.code})` : ''}
+                                                    {wh.name || wh.warehouse_name} {wh.code ? `(${wh.code})` : ''} {wh.availableQty !== undefined ? `- ${wh.availableQty} PCS available` : ''}
                                                 </option>
                                             ))}
                                         </select>
