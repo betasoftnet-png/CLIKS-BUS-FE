@@ -306,118 +306,6 @@ const BusinessPurchases = () => {
         queryFn: returnsService.getReturns
     });
 
-    // 📦 Supplier-filtered products for Purchase Return
-    const supplierProducts = React.useMemo(() => {
-        if (createDocType !== 'RETURN' || (!formHeader.supplier_id && !formHeader.supplier_name)) {
-            return createDocType === 'RETURN' ? [] : catalogProducts;
-        }
-
-        const selectedId = String(formHeader.supplier_id || '');
-        const selectedName = (formHeader.supplier_name || '').toLowerCase().trim();
-
-        const purchasedMap = new Map();
-        (allPurchases || []).forEach(p => {
-            const matchId = selectedId && String(p.supplier_id) === selectedId;
-            const matchName = selectedName && (p.supplier_name || '').toLowerCase().trim() === selectedName;
-            if (matchId || matchName) {
-                const items = Array.isArray(p.items) ? p.items : (typeof p.items === 'string' ? JSON.parse(p.items || '[]') : []);
-                items.forEach(it => {
-                    const pName = it.product_name || it.name || it.description;
-                    if (pName) {
-                        const key = pName.toLowerCase().trim();
-                        if (!purchasedMap.has(key)) {
-                            purchasedMap.set(key, {
-                                id: it.product_id || it.id || key,
-                                product_id: it.product_id || it.id || key,
-                                name: pName,
-                                product_name: pName,
-                                sku: it.sku || '',
-                                purchase_price: parseFloat(it.purchase_price || it.price || 0),
-                                primary_unit: it.primary_unit || 'pcs'
-                            });
-                        }
-                    }
-                });
-            }
-        });
-
-        const filteredCatalog = (catalogProducts || []).filter(p => {
-            const pSuppId = String(p.supplier_id || p.vendor_id || '');
-            const pSuppName = (p.supplier_name || p.vendor_name || '').toLowerCase().trim();
-            const matchSupp = (selectedId && pSuppId === selectedId) || (selectedName && pSuppName === selectedName);
-            const pNameKey = (p.name || p.product_name || '').toLowerCase().trim();
-            const matchPurchased = purchasedMap.has(pNameKey);
-            return matchSupp || matchPurchased;
-        });
-
-        const result = [...filteredCatalog];
-        purchasedMap.forEach((itemObj, key) => {
-            if (!result.some(p => (p.name || p.product_name || '').toLowerCase().trim() === key)) {
-                result.push(itemObj);
-            }
-        });
-
-        return result;
-    }, [createDocType, formHeader.supplier_id, formHeader.supplier_name, allPurchases, catalogProducts]);
-
-    // 🏬 Product-filtered warehouses for Purchase Return
-    const availableWarehouses = React.useMemo(() => {
-        if (createDocType !== 'RETURN') return warehousesList;
-        const selectedProd = formItems[0];
-        if (!selectedProd || (!selectedProd.product_id && !selectedProd.product_name && !selectedProd.sku)) {
-            return [];
-        }
-
-        const targetName = (selectedProd.product_name || '').toLowerCase().trim();
-        const targetSku = (selectedProd.sku || '').toLowerCase().trim();
-        const targetId = String(selectedProd.product_id || '');
-
-        return warehousesList.map(wh => {
-            const whName = (wh.name || wh.warehouse_name || '').toLowerCase().trim();
-            const whCode = (wh.code || wh.warehouse_code || '').toLowerCase().trim();
-            const whIdStr = String(wh.id || '');
-
-            let availQty = 0;
-
-            (dbStocks || []).forEach(st => {
-                const stLoc = (st.location || st.warehouse || '').toLowerCase().trim();
-                if (stLoc === whName || stLoc === whCode || stLoc === whIdStr) {
-                    const stName = (st.name || '').toLowerCase().trim();
-                    const stSku = (st.sku || '').toLowerCase().trim();
-                    const stId = String(st.id || '');
-                    if (
-                        (targetId && stId === targetId) ||
-                        (targetSku && stSku && stSku === targetSku) ||
-                        (targetName && stName && stName === targetName)
-                    ) {
-                        availQty += parseFloat(st.quantity || 0);
-                    }
-                }
-            });
-
-            (catalogProducts || []).forEach(cp => {
-                const cpWh = (cp.warehouse_id || '').toLowerCase().trim();
-                if (cpWh === whName || cpWh === whCode || cpWh === whIdStr) {
-                    const cpName = (cp.name || cp.product_name || '').toLowerCase().trim();
-                    const cpSku = (cp.sku || '').toLowerCase().trim();
-                    const cpId = String(cp.id || cp.product_id || '');
-                    if (
-                        (targetId && cpId === targetId) ||
-                        (targetSku && cpSku && cpSku === targetSku) ||
-                        (targetName && cpName && cpName === targetName)
-                    ) {
-                        availQty = Math.max(availQty, parseFloat(cp.quantity || 0));
-                    }
-                }
-            });
-
-            return {
-                ...wh,
-                availableQty
-            };
-        }).filter(wh => wh.availableQty > 0);
-    }, [createDocType, formItems, warehousesList, dbStocks, catalogProducts]);
-
     const supplierReturnsList = allReturns.filter(r => r.return_type === 'purchase');
 
     const applyFilters = (docs) => docs.filter(p => {
@@ -554,6 +442,118 @@ const BusinessPurchases = () => {
             gst_percentage: 18
         }
     ]);
+
+    // 📦 Supplier-filtered products for Purchase Return
+    const supplierProducts = React.useMemo(() => {
+        if (createDocType !== 'RETURN' || (!formHeader.supplier_id && !formHeader.supplier_name)) {
+            return createDocType === 'RETURN' ? [] : catalogProducts;
+        }
+
+        const selectedId = String(formHeader.supplier_id || '');
+        const selectedName = (formHeader.supplier_name || '').toLowerCase().trim();
+
+        const purchasedMap = new Map();
+        (allPurchases || []).forEach(p => {
+            const matchId = selectedId && String(p.supplier_id) === selectedId;
+            const matchName = selectedName && (p.supplier_name || '').toLowerCase().trim() === selectedName;
+            if (matchId || matchName) {
+                const items = Array.isArray(p.items) ? p.items : (typeof p.items === 'string' ? JSON.parse(p.items || '[]') : []);
+                items.forEach(it => {
+                    const pName = it.product_name || it.name || it.description;
+                    if (pName) {
+                        const key = pName.toLowerCase().trim();
+                        if (!purchasedMap.has(key)) {
+                            purchasedMap.set(key, {
+                                id: it.product_id || it.id || key,
+                                product_id: it.product_id || it.id || key,
+                                name: pName,
+                                product_name: pName,
+                                sku: it.sku || '',
+                                purchase_price: parseFloat(it.purchase_price || it.price || 0),
+                                primary_unit: it.primary_unit || 'pcs'
+                            });
+                        }
+                    }
+                });
+            }
+        });
+
+        const filteredCatalog = (catalogProducts || []).filter(p => {
+            const pSuppId = String(p.supplier_id || p.vendor_id || '');
+            const pSuppName = (p.supplier_name || p.vendor_name || '').toLowerCase().trim();
+            const matchSupp = (selectedId && pSuppId === selectedId) || (selectedName && pSuppName === selectedName);
+            const pNameKey = (p.name || p.product_name || '').toLowerCase().trim();
+            const matchPurchased = purchasedMap.has(pNameKey);
+            return matchSupp || matchPurchased;
+        });
+
+        const result = [...filteredCatalog];
+        purchasedMap.forEach((itemObj, key) => {
+            if (!result.some(p => (p.name || p.product_name || '').toLowerCase().trim() === key)) {
+                result.push(itemObj);
+            }
+        });
+
+        return result;
+    }, [createDocType, formHeader.supplier_id, formHeader.supplier_name, allPurchases, catalogProducts]);
+
+    // 🏬 Product-filtered warehouses for Purchase Return
+    const availableWarehouses = React.useMemo(() => {
+        if (createDocType !== 'RETURN') return warehousesList;
+        const selectedProd = formItems[0];
+        if (!selectedProd || (!selectedProd.product_id && !selectedProd.product_name && !selectedProd.sku)) {
+            return [];
+        }
+
+        const targetName = (selectedProd.product_name || '').toLowerCase().trim();
+        const targetSku = (selectedProd.sku || '').toLowerCase().trim();
+        const targetId = String(selectedProd.product_id || '');
+
+        return warehousesList.map(wh => {
+            const whName = (wh.name || wh.warehouse_name || '').toLowerCase().trim();
+            const whCode = (wh.code || wh.warehouse_code || '').toLowerCase().trim();
+            const whIdStr = String(wh.id || '');
+
+            let availQty = 0;
+
+            (dbStocks || []).forEach(st => {
+                const stLoc = (st.location || st.warehouse || '').toLowerCase().trim();
+                if (stLoc === whName || stLoc === whCode || stLoc === whIdStr) {
+                    const stName = (st.name || '').toLowerCase().trim();
+                    const stSku = (st.sku || '').toLowerCase().trim();
+                    const stId = String(st.id || '');
+                    if (
+                        (targetId && stId === targetId) ||
+                        (targetSku && stSku && stSku === targetSku) ||
+                        (targetName && stName && stName === targetName)
+                    ) {
+                        availQty += parseFloat(st.quantity || 0);
+                    }
+                }
+            });
+
+            (catalogProducts || []).forEach(cp => {
+                const cpWh = (cp.warehouse_id || '').toLowerCase().trim();
+                if (cpWh === whName || cpWh === whCode || cpWh === whIdStr) {
+                    const cpName = (cp.name || cp.product_name || '').toLowerCase().trim();
+                    const cpSku = (cp.sku || '').toLowerCase().trim();
+                    const cpId = String(cp.id || cp.product_id || '');
+                    if (
+                        (targetId && cpId === targetId) ||
+                        (targetSku && cpSku && cpSku === targetSku) ||
+                        (targetName && cpName && cpName === targetName)
+                    ) {
+                        availQty = Math.max(availQty, parseFloat(cp.quantity || 0));
+                    }
+                }
+            });
+
+            return {
+                ...wh,
+                availableQty
+            };
+        }).filter(wh => wh.availableQty > 0);
+    }, [createDocType, formItems, warehousesList, dbStocks, catalogProducts]);
 
     const handleAddItemField = () => {
         setFormItems([...formItems, {
