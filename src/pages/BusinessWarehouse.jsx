@@ -84,12 +84,29 @@ const BusinessWarehouse = () => {
     const [viewListSearch, setViewListSearch] = useState('');
 
     // Live Warehouses database via useQuery
-    const { data: dbWarehouses = [] } = useQuery({
+    const { data: dbWarehouses = [], isLoading: isLoadingWarehouses } = useQuery({
         queryKey: ['warehouses'],
-        queryFn: () => warehouseService.getWarehouses(),
-        staleTime: 5 * 60 * 1000,
-        refetchOnWindowFocus: false
+        queryFn: () => warehouseService.getWarehouses()
     });
+
+    const autoProvisionedRef = React.useRef(false);
+    useEffect(() => {
+        if (!isLoadingWarehouses && Array.isArray(dbWarehouses) && dbWarehouses.length === 0 && !autoProvisionedRef.current) {
+            autoProvisionedRef.current = true;
+            warehouseService.createWarehouse({
+                name: 'GENERAL',
+                code: 'WH-GEN-01',
+                location: 'Main Storage Facility',
+                type: 'godown',
+                status: 'active'
+            }).then(() => {
+                queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            }).catch(err => {
+                console.warn('[Auto-provision GENERAL client error]', err);
+                autoProvisionedRef.current = false;
+            });
+        }
+    }, [dbWarehouses, isLoadingWarehouses, queryClient]);
 
     // Live Stocks database via useQuery
     const { data: dbStocks = [] } = useQuery({
