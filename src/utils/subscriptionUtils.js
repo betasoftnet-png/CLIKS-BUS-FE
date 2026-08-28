@@ -5,7 +5,9 @@
 
 export const PLAN_FEATURES = {
     // Business Category Tiers
-    'Free Plan': [],
+    'Free Plan': [
+        'basic-warehousing'
+    ],
     'Starter Plan': [
         'accounting',
         'gst-filings',
