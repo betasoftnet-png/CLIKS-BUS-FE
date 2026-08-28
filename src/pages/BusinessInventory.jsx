@@ -1109,7 +1109,29 @@ const BusinessInventory = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Category</label>
-                                    <input type="text" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Electronics" />
+                                    <select 
+                                        value={['Electronics', 'Clothes', 'Food', 'Footwear'].includes(formData.category) ? formData.category : (formData.category ? formData.category : 'Electronics')} 
+                                        onChange={(e) => {
+                                            if (e.target.value === '+ Custom') {
+                                                const customVal = prompt("Enter custom category:");
+                                                if (customVal && customVal.trim()) {
+                                                    setFormData(prev => ({ ...prev, category: customVal.trim() }));
+                                                }
+                                            } else {
+                                                setFormData(prev => ({ ...prev, category: e.target.value }));
+                                            }
+                                        }} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}
+                                    >
+                                        <option value="Electronics">Electronics</option>
+                                        <option value="Clothes">Clothes</option>
+                                        <option value="Food">Food</option>
+                                        <option value="Footwear">Footwear</option>
+                                        {formData.category && !['Electronics', 'Clothes', 'Food', 'Footwear', '+ Custom'].includes(formData.category) && (
+                                            <option value={formData.category}>{formData.category}</option>
+                                        )}
+                                        <option value="+ Custom">+ Custom</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Brand</label>
