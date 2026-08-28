@@ -326,63 +326,93 @@ const BusinessWarehouse = () => {
 
     const warehouseAssignedProducts = React.useMemo(() => {
         if (!targetWarehouseForList) return [];
-        const targetId = String(targetWarehouseForList.id);
-        const targetCode = (targetWarehouseForList.warehouse_code || '').toLowerCase();
-        const targetName = (targetWarehouseForList.warehouse_name || '').toLowerCase();
+
+        const targetId = String(targetWarehouseForList.id || '').toLowerCase().trim();
+        const targetCode = String(targetWarehouseForList.warehouse_code || targetWarehouseForList.code || '').toLowerCase().trim();
+        const targetName = String(targetWarehouseForList.warehouse_name || targetWarehouseForList.name || '').toLowerCase().trim();
+
+        const isMatchWh = (val) => {
+            if (!val) return false;
+            const str = String(val).toLowerCase().trim();
+            if (!str) return false;
+            if (targetId && (str === targetId || str === `wh-0${targetId}` || str === `wh-${targetId}`)) return true;
+            if (targetCode && (str === targetCode || targetCode.includes(str) || str.includes(targetCode))) return true;
+            if (targetName && (str === targetName || targetName.includes(str) || str.includes(targetName))) return true;
+            return false;
+        };
 
         const resultList = [];
-        const seenSkus = new Set();
+        const processedKeys = new Set();
 
+        const safeStocks = Array.isArray(dbStocks) ? dbStocks : [];
         const safeProds = Array.isArray(dbProducts) ? dbProducts : [];
-        safeProds.forEach(p => {
-            if (!p) return;
-            const pWhId = String(p.warehouse_id || '').toLowerCase();
-            if (pWhId === targetId.toLowerCase() || pWhId === targetCode || pWhId === targetName || pWhId === `wh-0${targetId.toLowerCase()}` || (targetName && pWhId.includes(targetName))) {
-                const key = (p.sku || p.name || '').toLowerCase();
-                seenSkus.add(key);
-                resultList.push({
-                    id: p.id,
-                    name: p.name || 'Unnamed Product',
-                    sku: p.sku || `PROD-${p.id}`,
-                    category: p.category || 'General',
-                    quantity: p.quantity || 0,
-                    unit: p.unit || 'PCS',
-                    purchase_price: p.purchase_price || 0,
-                    selling_price: p.selling_price || 0,
-                    barcode: p.barcode || 'N/A',
-                    hsn_code: p.hsn_code || 'N/A'
-                });
+
+        // 1. Build a map of live stocks for target warehouse from dbStocks
+        const stockMap = new Map();
+        safeStocks.forEach(s => {
+            if (!s) return;
+            const loc = s.location || s.warehouse || s.warehouse_name || s.warehouse_id || '';
+            if (isMatchWh(loc)) {
+                const key = String(s.sku || s.name || '').toLowerCase().trim();
+                if (key) {
+                    const qty = parseFloat(s.quantity) || 0;
+                    const price = parseFloat(s.unit_price || s.cost_price || 0);
+                    const existing = stockMap.get(key);
+                    if (existing) {
+                        existing.quantity += qty;
+                    } else {
+                        stockMap.set(key, {
+                            id: `stk-${s.id}`,
+                            name: s.name || 'Unnamed Stock Item',
+                            sku: s.sku || `STK-${s.id}`,
+                            category: s.category || 'Stock Item',
+                            quantity: qty,
+                            unit: s.unit || 'PCS',
+                            purchase_price: price,
+                            selling_price: price,
+                            barcode: s.barcode || 'N/A',
+                            hsn_code: s.hsn_code || 'N/A'
+                        });
+                    }
+                }
             }
         });
 
-        const safeStocks = Array.isArray(dbStocks) ? dbStocks : [];
-        safeStocks.forEach(s => {
-            if (!s) return;
-            const loc = (s.location || '').toLowerCase();
-            const wh = (s.warehouse || s.warehouse_name || s.warehouse_id || '').toLowerCase();
-            const sWhId = String(s.warehouse_id || '').toLowerCase();
-            const sWhName = (s.warehouse_name || '').toLowerCase();
-            if (
-                loc === targetName || (targetName && loc.includes(targetName)) ||
-                wh === targetCode || wh === targetId.toLowerCase() || wh === targetName ||
-                sWhId === targetId.toLowerCase() || (targetName && sWhName.includes(targetName))
-            ) {
-                const key = (s.sku || s.name || '').toLowerCase();
-                if (!seenSkus.has(key)) {
-                    seenSkus.add(key);
+        // 2. Process catalog products from dbProducts
+        safeProds.forEach(p => {
+            if (!p) return;
+            const pWh = p.warehouse_id || p.warehouse || p.location || '';
+            const key = String(p.sku || p.name || '').toLowerCase().trim();
+            const stockEntry = stockMap.get(key);
+            const matchesWarehouse = isMatchWh(pWh);
+
+            if (matchesWarehouse || stockEntry) {
+                if (key && !processedKeys.has(key)) {
+                    processedKeys.add(key);
+                    // Live quantity from stock table takes priority if a stock record exists for this warehouse
+                    const finalQty = stockEntry ? stockEntry.quantity : (matchesWarehouse ? (parseFloat(p.quantity) || 0) : 0);
+
                     resultList.push({
-                        id: `stk-${s.id}`,
-                        name: s.name || 'Unnamed Stock Item',
-                        sku: s.sku || `STK-${s.id}`,
-                        category: s.category || 'Stock Item',
-                        quantity: s.quantity || 0,
-                        unit: s.unit || 'PCS',
-                        purchase_price: s.unit_price || 0,
-                        selling_price: s.unit_price || 0,
-                        barcode: s.barcode || 'N/A',
-                        hsn_code: s.hsn_code || 'N/A'
+                        id: p.id,
+                        name: p.name || 'Unnamed Product',
+                        sku: p.sku || `PROD-${p.id}`,
+                        category: p.category || 'General',
+                        quantity: finalQty,
+                        unit: p.unit || 'PCS',
+                        purchase_price: parseFloat(p.purchase_price) || 0,
+                        selling_price: parseFloat(p.selling_price) || 0,
+                        barcode: p.barcode || 'N/A',
+                        hsn_code: p.hsn_code || 'N/A'
                     });
                 }
+            }
+        });
+
+        // 3. Add any warehouse stock items that were not in catalog products
+        stockMap.forEach((stockObj, key) => {
+            if (!processedKeys.has(key)) {
+                processedKeys.add(key);
+                resultList.push(stockObj);
             }
         });
 
