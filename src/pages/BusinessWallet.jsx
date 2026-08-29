@@ -126,9 +126,8 @@ const BusinessWallet = () => {
             }
 
             // Step 2: Initialize Native Cashfree SDK for React Client
-            const cashfree = await load({
-                mode: "sandbox"
-            });
+            const mode = backendData?.data?.mode || backendData?.data?.cf_environment || (window.location.hostname.includes('cliksbusiness.com') || window.location.hostname.includes('cliks.beta-softnet.com') ? 'production' : 'sandbox');
+            const cashfree = await load({ mode });
 
             // Step 3: Launch the Native IFrame Checkout Modal inside Cliks UI
             const checkoutOptions = {
