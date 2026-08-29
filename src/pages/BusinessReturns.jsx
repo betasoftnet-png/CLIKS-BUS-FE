@@ -33,10 +33,12 @@ import { returnsService } from '../services/returnsService';
 import { billingService } from '../services/billingService';
 import { purchasesService } from '../services/purchasesService';
 import '../App.css';
-import { useCurrency } from '../context';
+import { useCurrency, useAuth } from '../context';
 
 const BusinessReturns = () => {
     const { currency, formatCurrency } = useCurrency();
+    const { selectedPlan, user } = useAuth();
+    const isStarterPlan = (selectedPlan || user?.tier) === 'Starter Plan';
     const [activeTab, setActiveTab] = useState('sales');
     const [colFilters, setColFilters] = React.useState({}); // 'sales', 'purchase', 'warranty', 'stock'
     const [searchTerm, setSearchTerm] = useState('');
@@ -308,6 +310,7 @@ const BusinessReturns = () => {
     const handleCreateReturn = (e) => {
         e.preventDefault();
         const totals = calculateTotals(formItems);
+        const effectiveWarehouse = isStarterPlan ? 'GENERAL' : (formHeader.warehouse_id || 'GENERAL');
         const custName = (createReturnType === 'sales' ? formHeader.customer_name : formHeader.supplier_name || '').trim();
 
         if (custName && createReturnType === 'sales') {
@@ -356,7 +359,7 @@ const BusinessReturns = () => {
             refund_status: createReturnType === 'sales' ? 'pending' : 'completed',
             reason_code: formHeader.reason_code,
             inspection_status: createReturnType === 'sales' ? 'Pending Check' : 'Damaged Segregation',
-            warehouse_id: formHeader.warehouse_id,
+            warehouse_id: effectiveWarehouse,
             items: formItems.map(i => ({
                 product_name: i.product_name,
                 batch_number: i.batch_number,
@@ -920,10 +923,12 @@ const BusinessReturns = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reason for Return</label>
                                     <input type="text" value={formHeader.reason_code} onChange={(e) => setFormHeader({ ...formHeader, reason_code: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Defective Screen / Damage" />
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Return Warehouse</label>
-                                    <input type="text" value={formHeader.warehouse_id} onChange={(e) => setFormHeader({ ...formHeader, warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Main Godown" />
-                                </div>
+                                {!isStarterPlan && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Return Warehouse</label>
+                                        <input type="text" value={formHeader.warehouse_id} onChange={(e) => setFormHeader({ ...formHeader, warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Main Godown" />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Item Rows */}

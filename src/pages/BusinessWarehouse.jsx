@@ -29,10 +29,12 @@ import {
     Trash2
 } from 'lucide-react';
 import '../App.css';
-import { useCurrency } from '../context';
+import { useCurrency, useAuth } from '../context';
 
 const BusinessWarehouse = () => {
     const { formatCurrency } = useCurrency();
+    const { selectedPlan, user } = useAuth();
+    const isStarterPlan = (selectedPlan || user?.tier) === 'Starter Plan';
     const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
 
@@ -174,6 +176,14 @@ const BusinessWarehouse = () => {
 
     const warehouses = dbWarehouses
         .filter(w => !locallyDeletedIds.includes(String(w.id)))
+        .filter(w => {
+            if (isStarterPlan) {
+                const wName = (w.name || w.warehouse_name || '').toUpperCase().trim();
+                const wCode = (w.code || w.warehouse_code || '').toUpperCase().trim();
+                return wName !== 'GENERAL' && wCode !== 'WH-GEN-01';
+            }
+            return true;
+        })
         .map(w => ({
             warehouse_id: `WH-0${w.id}`,
             id: w.id,

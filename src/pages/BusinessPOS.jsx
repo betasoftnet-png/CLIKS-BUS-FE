@@ -47,6 +47,8 @@ import FilterableTableHead from '../components/FilterableTableHead';
 
 const BusinessPOS = () => {
     const { currency, formatCurrency } = useCurrency();
+    const { selectedPlan, user } = useAuth();
+    const isStarterPlan = (selectedPlan || user?.tier) === 'Starter Plan';
     const queryClient = useQueryClient();
     const [cart, setCart] = useState([]);
     const [colFilters, setColFilters] = React.useState({});
@@ -1449,111 +1451,113 @@ const BusinessPOS = () => {
                     </div>
 
                     {/* Warehouse Filter Dropdown (With Multi-Select Checkboxes) */}
-                    <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', position: 'relative' }} ref={warehouseDropdownRef}>
-                        <button
-                            type="button"
-                            onClick={() => setIsWarehouseDropdownOpen(!isWarehouseDropdownOpen)}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.4rem',
-                                padding: '0.45rem 0.9rem',
-                                borderRadius: '12px',
-                                border: '1.5px solid #000000',
-                                background: '#FFFFFF',
-                                color: '#0F172A',
-                                fontSize: '0.82rem',
-                                fontWeight: '700',
-                                cursor: 'pointer',
-                                outline: 'none',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                                minWidth: '130px'
-                            }}
-                        >
-                            <span>
-                                {selectedWarehouseIds.length === 0
-                                    ? 'Warehouse'
-                                    : selectedWarehouseIds.length === 1
-                                        ? (dbWarehouses.find(w => String(w.id) === selectedWarehouseIds[0])?.name || dbWarehouses.find(w => String(w.id) === selectedWarehouseIds[0])?.warehouse_name || '1 Selected')
-                                        : `Warehouse (${selectedWarehouseIds.length})`}
-                            </span>
-                            <ChevronDown size={14} style={{ color: '#0F172A', transition: 'transform 0.2s', transform: isWarehouseDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
-                        </button>
+                    {!isStarterPlan && (
+                        <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', position: 'relative' }} ref={warehouseDropdownRef}>
+                            <button
+                                type="button"
+                                onClick={() => setIsWarehouseDropdownOpen(!isWarehouseDropdownOpen)}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    padding: '0.45rem 0.9rem',
+                                    borderRadius: '12px',
+                                    border: '1.5px solid #000000',
+                                    background: '#FFFFFF',
+                                    color: '#0F172A',
+                                    fontSize: '0.82rem',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    outline: 'none',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                    minWidth: '130px'
+                                }}
+                            >
+                                <span>
+                                    {selectedWarehouseIds.length === 0
+                                        ? 'Warehouse'
+                                        : selectedWarehouseIds.length === 1
+                                            ? (dbWarehouses.find(w => String(w.id) === selectedWarehouseIds[0])?.name || dbWarehouses.find(w => String(w.id) === selectedWarehouseIds[0])?.warehouse_name || '1 Selected')
+                                            : `Warehouse (${selectedWarehouseIds.length})`}
+                                </span>
+                                <ChevronDown size={14} style={{ color: '#0F172A', transition: 'transform 0.2s', transform: isWarehouseDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                            </button>
 
-                        {/* Dropdown Popover List */}
-                        {isWarehouseDropdownOpen && (
-                            <div style={{
-                                position: 'absolute',
-                                top: '100%',
-                                left: 0,
-                                marginTop: '6px',
-                                background: '#FFFFFF',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '14px',
-                                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)',
-                                zIndex: 50,
-                                minWidth: '200px',
-                                maxWidth: '280px',
-                                padding: '0.5rem',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '0.25rem'
-                            }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.25rem 0.4rem 0.4rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.2rem' }}>
-                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Select Warehouses</span>
-                                    {selectedWarehouseIds.length > 0 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setSelectedWarehouseIds([])}
-                                            style={{ border: 'none', background: 'transparent', color: '#EF4444', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer', padding: 0 }}
-                                        >
-                                            Clear All
-                                        </button>
+                            {/* Dropdown Popover List */}
+                            {isWarehouseDropdownOpen && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    left: 0,
+                                    marginTop: '6px',
+                                    background: '#FFFFFF',
+                                    border: '1px solid #E2E8F0',
+                                    borderRadius: '14px',
+                                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)',
+                                    zIndex: 50,
+                                    minWidth: '200px',
+                                    maxWidth: '280px',
+                                    padding: '0.5rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.25rem'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.25rem 0.4rem 0.4rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.2rem' }}>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Select Warehouses</span>
+                                        {selectedWarehouseIds.length > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedWarehouseIds([])}
+                                                style={{ border: 'none', background: 'transparent', color: '#EF4444', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                Clear All
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {dbWarehouses.length > 0 ? (
+                                        dbWarehouses.map(wh => {
+                                            const idStr = String(wh.id);
+                                            const isChecked = selectedWarehouseIds.includes(idStr);
+                                            const whName = wh.name || wh.warehouse_name || `Warehouse ${wh.code || wh.id}`;
+                                            return (
+                                                <div
+                                                    key={wh.id}
+                                                    onClick={() => toggleWarehouseSelection(wh.id)}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.5rem',
+                                                        padding: '0.4rem 0.6rem',
+                                                        borderRadius: '8px',
+                                                        background: isChecked ? '#ECFDF5' : 'transparent',
+                                                        cursor: 'pointer',
+                                                        transition: 'background 0.15s'
+                                                    }}
+                                                    onMouseEnter={(e) => { if (!isChecked) e.currentTarget.style.background = '#F8FAFC'; }}
+                                                    onMouseLeave={(e) => { if (!isChecked) e.currentTarget.style.background = 'transparent'; }}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isChecked}
+                                                        onChange={() => {}} // Handled by container div click
+                                                        style={{ width: '13px', height: '13px', accentColor: '#10B981', cursor: 'pointer', margin: 0 }}
+                                                    />
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: isChecked ? '800' : '600', color: isChecked ? '#047857' : '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                        {whName}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <div style={{ padding: '0.5rem', fontSize: '0.78rem', color: '#94A3B8', textAlign: 'center' }}>
+                                            No registered warehouses found
+                                        </div>
                                     )}
                                 </div>
-
-                                {dbWarehouses.length > 0 ? (
-                                    dbWarehouses.map(wh => {
-                                        const idStr = String(wh.id);
-                                        const isChecked = selectedWarehouseIds.includes(idStr);
-                                        const whName = wh.name || wh.warehouse_name || `Warehouse ${wh.code || wh.id}`;
-                                        return (
-                                            <div
-                                                key={wh.id}
-                                                onClick={() => toggleWarehouseSelection(wh.id)}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '0.5rem',
-                                                    padding: '0.4rem 0.6rem',
-                                                    borderRadius: '8px',
-                                                    background: isChecked ? '#ECFDF5' : 'transparent',
-                                                    cursor: 'pointer',
-                                                    transition: 'background 0.15s'
-                                                }}
-                                                onMouseEnter={(e) => { if (!isChecked) e.currentTarget.style.background = '#F8FAFC'; }}
-                                                onMouseLeave={(e) => { if (!isChecked) e.currentTarget.style.background = 'transparent'; }}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isChecked}
-                                                    onChange={() => {}} // Handled by container div click
-                                                    style={{ width: '13px', height: '13px', accentColor: '#10B981', cursor: 'pointer', margin: 0 }}
-                                                />
-                                                <span style={{ fontSize: '0.8rem', fontWeight: isChecked ? '800' : '600', color: isChecked ? '#047857' : '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                    {whName}
-                                                </span>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div style={{ padding: '0.5rem', fontSize: '0.78rem', color: '#94A3B8', textAlign: 'center' }}>
-                                        No registered warehouses found
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Products Grid scroll area */}

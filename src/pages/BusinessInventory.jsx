@@ -36,10 +36,12 @@ import {
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { useCurrency } from '../context';
+import { useCurrency, useAuth } from '../context';
 
 const BusinessInventory = () => {
     const { currency, formatCurrency } = useCurrency();
+    const { selectedPlan, user } = useAuth();
+    const isStarterPlan = (selectedPlan || user?.tier) === 'Starter Plan';
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [colFilters, setColFilters] = React.useState({});
@@ -557,7 +559,9 @@ const BusinessInventory = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        if (formData.product_type === 'product' && (!formData.warehouse || !String(formData.warehouse).trim())) {
+        if (isStarterPlan) {
+            formData.warehouse = formData.warehouse || 'GENERAL';
+        } else if (formData.product_type === 'product' && (!formData.warehouse || !String(formData.warehouse).trim())) {
             alert("Create warehouse first");
             return;
         }
@@ -1468,29 +1472,31 @@ const BusinessInventory = () => {
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Expiry Date</label>
                                             <input type="date" value={formData.expiry_date} onChange={(e) => setFormData({...formData, expiry_date: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                         </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warehouse Storage Facility</label>
-                                            <select 
-                                                required
-                                                value={formData.warehouse} 
-                                                onChange={(e) => setFormData({...formData, warehouse: e.target.value})} 
-                                                style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: formData.warehouse ? '#0F172A' : '#94A3B8' }}
-                                            >
-                                                <option value="" disabled hidden>Select your warehouse</option>
-                                                {dbWarehouses.length > 0 ? (
-                                                    dbWarehouses.map(w => {
-                                                        const wName = w.name || w.warehouse_name;
-                                                        return (
-                                                            <option key={w.id} value={wName} style={{ color: '#0F172A' }}>
-                                                                {wName}
-                                                            </option>
-                                                        );
-                                                    })
-                                                ) : (
-                                                    <option value="" disabled style={{ color: '#94A3B8' }}>No warehouse created — Create warehouse first</option>
-                                                )}
-                                            </select>
-                                        </div>
+                                        {!isStarterPlan && (
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warehouse Storage Facility</label>
+                                                <select 
+                                                    required
+                                                    value={formData.warehouse} 
+                                                    onChange={(e) => setFormData({...formData, warehouse: e.target.value})} 
+                                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: formData.warehouse ? '#0F172A' : '#94A3B8' }}
+                                                >
+                                                    <option value="" disabled hidden>Select your warehouse</option>
+                                                    {dbWarehouses.length > 0 ? (
+                                                        dbWarehouses.map(w => {
+                                                            const wName = w.name || w.warehouse_name;
+                                                            return (
+                                                                <option key={w.id} value={wName} style={{ color: '#0F172A' }}>
+                                                                    {wName}
+                                                                </option>
+                                                            );
+                                                        })
+                                                    ) : (
+                                                        <option value="" disabled style={{ color: '#94A3B8' }}>No warehouse created — Create warehouse first</option>
+                                                    )}
+                                                </select>
+                                            </div>
+                                        )}
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Rack Location</label>
                                             <input type="text" value={formData.rack_number} onChange={(e) => setFormData({...formData, rack_number: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Rack 4" />

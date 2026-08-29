@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { useCurrency } from '../context';
+import { useCurrency, useAuth } from '../context';
 import { 
     FileText, 
     Plus, 
@@ -79,6 +79,8 @@ const getDaysFromTerms = (termText) => {
 
 const BusinessBilling = () => {
     const { currency, formatCurrency } = useCurrency();
+    const { selectedPlan, user } = useAuth();
+    const isStarterPlan = (selectedPlan || user?.tier) === 'Starter Plan';
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [colFilters, setColFilters] = React.useState({});
@@ -1699,6 +1701,11 @@ const BusinessBilling = () => {
                                                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', color: '#047857', fontWeight: '750', background: '#ECFDF5', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #A7F3D0' }}>
                                                             <Warehouse size={11} />
                                                             <span>Assigned: {ret.warehouse_name || ret.warehouse_id}</span>
+                                                        </div>
+                                                    ) : isStarterPlan ? (
+                                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#16A34A', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                            <Warehouse size={11} />
+                                                            <span>Assigned: GENERAL</span>
                                                         </div>
                                                     ) : (
                                                         <button
