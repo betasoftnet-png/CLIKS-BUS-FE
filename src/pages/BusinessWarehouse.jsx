@@ -686,8 +686,7 @@ const BusinessWarehouse = () => {
                 {[
                     { id: 'profiles', label: 'Registered Godowns & Locations', icon: WarehouseIcon, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadowColor: 'rgba(236, 72, 153, 0.15)' },
                     { id: 'stock', label: 'Warehouse Stock Registry', icon: Layers, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadowColor: 'rgba(59, 130, 246, 0.15)' },
-                    { id: 'operations', label: 'Goods Inward Historical logs', icon: FileText, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' },
-                    { id: 'transfers', label: 'Inter-Warehouse Transfers', icon: ArrowRightLeft, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' }
+                    { id: 'operations', label: 'Goods Inward Historical logs', icon: FileText, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' }
                 ].map(tab => (
                     <button
                         key={tab.id}
