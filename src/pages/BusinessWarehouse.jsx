@@ -515,6 +515,11 @@ const BusinessWarehouse = () => {
     const handleCreateWarehouse = (e) => {
         e.preventDefault();
 
+        if (isStarterPlan) {
+            alert("You are currently on the Starter Plan. Upgrade your plan to add more warehouses.");
+            return;
+        }
+
         // Enforce 10-digit mobile number formatting rule
         const cleanPhone = (newWarehouse.phone_number || '').trim();
         if (cleanPhone && !/^\d{10}$/.test(cleanPhone)) {
