@@ -1697,15 +1697,10 @@ const BusinessBilling = () => {
                                                     <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: ret.status === 'Approved' ? '#D1FAE5' : '#FEF3C7', color: ret.status === 'Approved' ? '#065F46' : '#92400E' }}>
                                                         {(ret.status || 'Processed').toUpperCase()}
                                                     </span>
-                                                    {ret.warehouse_id || ret.warehouse_name ? (
+                                                    {!isStarterPlan && (ret.warehouse_id || ret.warehouse_name ? (
                                                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', color: '#047857', fontWeight: '750', background: '#ECFDF5', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #A7F3D0' }}>
                                                             <Warehouse size={11} />
                                                             <span>Assigned: {ret.warehouse_name || ret.warehouse_id}</span>
-                                                        </div>
-                                                    ) : isStarterPlan ? (
-                                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#16A34A', fontSize: '0.72rem', fontWeight: '800' }}>
-                                                            <Warehouse size={11} />
-                                                            <span>Assigned: GENERAL</span>
                                                         </div>
                                                     ) : (
                                                         <button
@@ -1730,7 +1725,7 @@ const BusinessBilling = () => {
                                                         >
                                                             <Warehouse size={11} /> Move to Warehouse
                                                         </button>
-                                                    )}
+                                                    ))}
                                                 </div>
                                             </td>
                                             <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
