@@ -137,8 +137,8 @@ const BusinessDashboard = () => {
         retry: false
     });
 
-    const { data: purchasesList } = useQuery({
-        queryKey: ['purchasesListDashboard'],
+    const { data: purchasesData } = useQuery({
+        queryKey: ['purchases'],
         queryFn: () => purchasesService.getPurchases(),
         retry: false
     });
@@ -152,9 +152,12 @@ const BusinessDashboard = () => {
     // Real dynamic financial calculations
     const totalSalesAmount = salesOverview?.total_sales || salesOverview?.data?.total_sales || 441092;
     
-    const totalPurchasesAmount = (purchasesList && purchasesList.length > 0)
-        ? purchasesList.reduce((acc, p) => acc + (parseFloat(p.total_amount || p.total || 0)), 0)
-        : 343787;
+    const rawPurchases = Array.isArray(purchasesData) 
+        ? purchasesData 
+        : (purchasesData?.data || purchasesData?.purchases || []);
+
+    const totalPurchasesAmount = rawPurchases.reduce((acc, p) => 
+        acc + (parseFloat(p.total_amount || p.total || p.grand_total || p.amount || 0)), 0);
 
     const totalExpensesAmount = (trialBalanceData?.totalExpenses || trialBalanceData?.data?.totalExpenses)
         ? (trialBalanceData.totalExpenses || trialBalanceData.data.totalExpenses)

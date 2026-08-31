@@ -700,7 +700,11 @@ const BusinessBilling = () => {
                 }
             }
         } else {
-            newItems[index][field] = value;
+            let processedValue = value;
+            if (field === 'quantity' || field === 'free_quantity') {
+                processedValue = Math.max(0, parseFloat(value) || 0);
+            }
+            newItems[index][field] = processedValue;
         }
         
         const totals = calculateTotals(newItems, formData.tax_type, formData);
@@ -2099,12 +2103,28 @@ const BusinessBilling = () => {
                                             )}
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>QTY</label>
-                                                <input required type="number" value={item.quantity} onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'quantity', parseFloat(raw) || 0); }} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                                <input 
+                                                    required 
+                                                    type="number" 
+                                                    min="0"
+                                                    value={item.quantity} 
+                                                    onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'quantity', Math.max(0, parseFloat(raw) || 0)); }} 
+                                                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
+                                                    style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
+                                                />
                                             </div>
                                             {activeConfig.freeQty === true && (
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>FREE</label>
-                                                    <input type="number" placeholder="0" value={item.free_quantity || ''} onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'free_quantity', parseFloat(raw) || 0); }} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                                    <input 
+                                                        type="number" 
+                                                        min="0"
+                                                        placeholder="0" 
+                                                        value={item.free_quantity || ''} 
+                                                        onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'free_quantity', Math.max(0, parseFloat(raw) || 0)); }} 
+                                                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
+                                                        style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
+                                                    />
                                                 </div>
                                             )}
                                             <div>
