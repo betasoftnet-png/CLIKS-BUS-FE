@@ -248,6 +248,16 @@ const BusinessSuppliers = () => {
             alert(`Validation failed: Row(s) ${invalidRows.map(r => r.rowNumber).join(', ')} are missing supplier names.`);
             return;
         }
+
+        const invalidEmailRows = parsedSuppliers.filter(s => {
+            const cleanEmail = (s.email || '').trim().toLowerCase();
+            return !cleanEmail || !cleanEmail.endsWith('@bnxmail.com') || !/^[^\s@]+@bnxmail\.com$/.test(cleanEmail);
+        });
+        if (invalidEmailRows.length > 0) {
+            alert(`Validation failed: Row(s) ${invalidEmailRows.map(r => r.rowNumber).join(', ')} must have a valid @bnxmail.com email address.`);
+            return;
+        }
+
         importMutation.mutate({ suppliers: parsedSuppliers });
     };
 
@@ -285,10 +295,109 @@ const BusinessSuppliers = () => {
     }));
 
     // Live supplier Master Base React Query integration
-    const { data: suppliers = [] } = useQuery({
-        queryKey: ['suppliers'],
-        queryFn: () => suppliersService.getSuppliers()
+    const activeSupplierId = selectedSupplier?.id || selectedSupplier?.supplier_id;
+    const { data: supplierLedgerData = [] } = useQuery({
+        queryKey: ['supplierLedger', activeSupplierId],
+        queryFn: () => suppliersService.getLedger(activeSupplierId),
+        enabled: Boolean(activeSupplierId)
     });
+
+    const handleExportStatementPDF = (supplier, ledgerData) => {
+        if (!supplier) return;
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            alert('Please allow popups to export the statement PDF.');
+            return;
+        }
+
+        const supName = supplier.name || supplier.supplier_name || 'Supplier';
+        const gstin = supplier.gstin || 'N/A';
+        const phone = supplier.phone || supplier.phone_number || 'N/A';
+        const email = supplier.email || 'N/A';
+        const symbol = (currency && currency.symbol) ? currency.symbol : '₹';
+
+        const rowsHtml = (ledgerData || []).map((row) => {
+            const deb = parseFloat(row.debit) || 0;
+            const cred = parseFloat(row.credit) || 0;
+            const bal = parseFloat(row.running_balance || row.balance || 0);
+            return `
+                <tr style="border-bottom: 1px solid #E2E8F0;">
+                    <td style="padding: 10px; font-size: 13px;">${row.date || ''}</td>
+                    <td style="padding: 10px; font-size: 13px; font-weight: 600;">${row.description || row.reference_id || ''}</td>
+                    <td style="padding: 10px; font-size: 13px; color: #DC2626;">${deb > 0 ? symbol + deb.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-'}</td>
+                    <td style="padding: 10px; font-size: 13px; color: #16A34A;">${cred > 0 ? symbol + cred.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-'}</td>
+                    <td style="padding: 10px; font-size: 13px; font-weight: 700; text-align: right;">${symbol}${bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Statement of Account - ${supName}</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; color: #0F172A; }
+                    .header { border-bottom: 2px solid #064E3B; padding-bottom: 15px; margin-bottom: 25px; }
+                    .title { font-size: 24px; font-weight: bold; color: #064E3B; margin: 0 0 5px 0; }
+                    .subtitle { font-size: 14px; color: #64748B; margin: 0; }
+                    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #F8FAFC; padding: 15px; border-radius: 8px; margin-bottom: 25px; font-size: 13px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                    th { background: #064E3B; color: white; padding: 12px 10px; text-align: left; font-size: 13px; font-weight: 600; }
+                    td { padding: 10px; font-size: 13px; }
+                    .footer { margin-top: 40px; font-size: 11px; color: #94A3B8; text-align: center; border-top: 1px solid #E2E8F0; padding-top: 15px; }
+                    @media print {
+                        body { margin: 20px; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div class="title">Statement of Account</div>
+                    <div class="subtitle">Running Payable & Supplier Ledger Statement</div>
+                </div>
+                <div class="info-grid">
+                    <div>
+                        <strong>Supplier Name:</strong> ${supName}<br/>
+                        <strong>GSTIN:</strong> ${gstin}<br/>
+                    </div>
+                    <div>
+                        <strong>Contact Phone:</strong> ${phone}<br/>
+                        <strong>Email:</strong> ${email}<br/>
+                        <strong>Generated Date:</strong> ${new Date().toLocaleDateString('en-IN')}
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description / Ref No.</th>
+                            <th>Debit (${symbol})</th>
+                            <th>Credit (${symbol})</th>
+                            <th style="text-align: right;">Running Balance (${symbol})</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml || '<tr><td colspan="5" style="text-align:center; padding: 20px; color:#94A3B8;">No transaction records found</td></tr>'}
+                    </tbody>
+                </table>
+                <div class="footer">
+                    This statement was digitally generated by CLIKS Business.
+                </div>
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(function() { window.close(); }, 800);
+                    };
+                </script>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.open();
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+    };
 
     const createMutation = useMutation({
         mutationFn: (data) => suppliersService.createSupplier(data),
@@ -508,8 +617,10 @@ const BusinessSuppliers = () => {
         const phoneErr = validatePhone(formData.phone_number, true);
         if (phoneErr) errors.phone_number = phoneErr;
 
-        const emailErr = validateEmail(formData.email, true);
-        if (emailErr) errors.email = emailErr;
+        const cleanEmail = (formData.email || '').trim().toLowerCase();
+        if (!cleanEmail || !cleanEmail.endsWith('@bnxmail.com') || !/^[^\s@]+@bnxmail\.com$/.test(cleanEmail)) {
+            errors.email = 'Please enter a valid @bnxmail.com email address.';
+        }
 
         const gstinErr = validateGstin(formData.gstin, false);
         if (gstinErr) errors.gstin = gstinErr;
@@ -1046,53 +1157,68 @@ const BusinessSuppliers = () => {
 
                     {/* Right side ledger details */}
                     <div className="lg:col-span-5" style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0' }}>
-                        {selectedSupplier ? (
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
-                                    <div>
-                                        <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#064E3B' }}>Statement of Account: {selectedSupplier.name || selectedSupplier.supplier_name}</h3>
-                                        <p style={{ color: '#64748B', fontSize: '0.85rem' }}>GSTIN: {selectedSupplier.gstin || 'N/A'} | Contact: {selectedSupplier.phone || selectedSupplier.phone_number}</p>
+                        {selectedSupplier ? (() => {
+                            const displayLedger = (Array.isArray(supplierLedgerData) && supplierLedgerData.length > 0) ? supplierLedgerData : (selectedSupplier.ledger || []);
+                            return (
+                                <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+                                        <div>
+                                            <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#064E3B' }}>Statement of Account: {selectedSupplier.name || selectedSupplier.supplier_name}</h3>
+                                            <p style={{ color: '#64748B', fontSize: '0.85rem' }}>GSTIN: {selectedSupplier.gstin || 'N/A'} | Contact: {selectedSupplier.phone || selectedSupplier.phone_number || 'N/A'}</p>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button onClick={() => handleShareLedgerWhatsApp(selectedSupplier)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#15803D', fontWeight: '700', cursor: 'pointer' }}>
+                                                <Share2 size={16} /> WhatsApp Remind
+                                            </button>
+                                            <button onClick={() => handleExportStatementPDF(selectedSupplier, displayLedger)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#475569', fontWeight: '700', cursor: 'pointer' }}>
+                                                <Download size={16} /> Export Statement PDF
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button onClick={() => handleShareLedgerWhatsApp(selectedSupplier)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid #DCF2E4', background: '#F0FDF4', color: '#15803D', fontWeight: '700', cursor: 'pointer' }}>
-                                            <Share2 size={16} /> WhatsApp Remind
-                                        </button>
-                                        <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#475569', fontWeight: '700', cursor: 'pointer' }}>
-                                            <Download size={16} /> Export Statement PDF
-                                        </button>
-                                    </div>
-                                </div>
 
-                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                    <thead style={{ background: '#F8FAFC', borderBottom: '2px solid #E2E8F0' }}>
-                                        <tr>
-                                            <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Date</th>
-                                            <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Description / Ref No.</th>
-                                            <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Debit ({currency.symbol})</th>
-                                            <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Credit ({currency.symbol})</th>
-                                            <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem', textAlign: 'right' }}>Running Balance ({currency.symbol})</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {(selectedSupplier.ledger || []).map((row, idx) => (
-                                            <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                <td style={{ padding: '1rem 1.25rem', fontSize: '0.9rem', fontWeight: '600' }}>{row.date}</td>
-                                                <td style={{ padding: '1rem 1.25rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{row.reference_id || row.description}</td>
-                                                <td style={{ padding: '1rem 1.25rem', color: '#EF4444', fontWeight: '700' }}>
-                                                    {row.debit > 0 ? formatCurrency(row.debit) : '-'}
-                                                </td>
-                                                <td style={{ padding: '1rem 1.25rem', color: '#15803D', fontWeight: '700' }}>
-                                                    {row.credit > 0 ? formatCurrency(row.credit) : '-'}
-                                                </td>
-                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#1E293B' }}>
-                                                    {formatCurrency(row.running_balance || row.balance || 0)}
-                                                </td>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                        <thead style={{ background: '#F8FAFC', borderBottom: '2px solid #E2E8F0' }}>
+                                            <tr>
+                                                <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Date</th>
+                                                <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Description / Ref No.</th>
+                                                <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Debit ({currency.symbol})</th>
+                                                <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Credit ({currency.symbol})</th>
+                                                <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem', textAlign: 'right' }}>Running Balance ({currency.symbol})</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
+                                        </thead>
+                                        <tbody>
+                                            {displayLedger.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.88rem', fontWeight: '600' }}>
+                                                        No transaction history recorded for this supplier.
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                displayLedger.map((row, idx) => {
+                                                    const deb = parseFloat(row.debit) || 0;
+                                                    const cred = parseFloat(row.credit) || 0;
+                                                    return (
+                                                        <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                            <td style={{ padding: '1rem 1.25rem', fontSize: '0.9rem', fontWeight: '600' }}>{row.date}</td>
+                                                            <td style={{ padding: '1rem 1.25rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{row.description || row.reference_id}</td>
+                                                            <td style={{ padding: '1rem 1.25rem', color: '#EF4444', fontWeight: '700' }}>
+                                                                {deb > 0 ? formatCurrency(deb) : '-'}
+                                                            </td>
+                                                            <td style={{ padding: '1rem 1.25rem', color: '#15803D', fontWeight: '700' }}>
+                                                                {cred > 0 ? formatCurrency(cred) : '-'}
+                                                            </td>
+                                                            <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#1E293B' }}>
+                                                                {formatCurrency(row.running_balance || row.balance || 0)}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            );
+                        })() : (
                             <div style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>
                                 <FileText size={48} style={{ opacity: 0.5, marginBottom: '1rem' }} />
                                 <p>Select a supplier from the left sidebar to view their full statement ledger.</p>
