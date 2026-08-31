@@ -1951,9 +1951,58 @@ const BusinessAccounting = () => {
                             {/* Transaction Ledger Table */}
                             {selectedAccount && (
                                 <div style={{ marginTop: '1.5rem', background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                                    <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: '850', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <Layers size={18} color="#1D4ED8" /> Transaction Ledger: {selectedAccount.account_name}
-                                    </h3>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '850', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <Layers size={18} color="#1D4ED8" /> Transaction Ledger: {selectedAccount.account_name}
+                                        </h3>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                            <button
+                                                type="button"
+                                                style={{
+                                                    padding: '0.4rem 0.85rem',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid #3B82F6',
+                                                    background: 'white',
+                                                    color: '#2563EB',
+                                                    fontWeight: '800',
+                                                    fontSize: '0.7rem',
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.03em',
+                                                    cursor: 'pointer',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.4rem',
+                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {(selectedAccount?.account_name || 'HDFC BANK').toUpperCase()} TEMPLATE VISIBILITY
+                                            </button>
+                                            <button
+                                                type="button"
+                                                style={{
+                                                    padding: '0.4rem 0.85rem',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid #3B82F6',
+                                                    background: 'white',
+                                                    color: '#2563EB',
+                                                    fontWeight: '700',
+                                                    fontSize: '0.75rem',
+                                                    cursor: 'pointer',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.45rem',
+                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                <span style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#EFF6FF', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <Eye size={12} color="#2563EB" />
+                                                </span>
+                                                attach your transaction detail
+                                            </button>
+                                        </div>
+                                    </div>
                                     <div style={{ overflowX: 'auto' }}>
                                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                                             <thead>
