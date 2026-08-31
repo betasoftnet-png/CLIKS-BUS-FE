@@ -41,6 +41,7 @@ const normalizeKey = (k) => {
         'Split & Collect': 'splitCollect',
         'Planner': 'planner',
         'Rewards & Offers': 'rewardsOffers',
+        'CAPITAL MATRIX': 'betaClub',
         'BETA Club': 'betaClub',
         'Trading docs': 'tradingDocs',
         'Add Money': 'addMoney',
@@ -202,7 +203,7 @@ const translations = {
         salesPerformance: 'Sales Performance',
         financeDistribution: 'Finance Distribution',
         addMoney: 'Add Money',
-        betaClub: 'BETA Club',
+        betaClub: 'CAPITAL MATRIX',
         tradingDocs: 'Trading Docs',
 
         tabProfile: 'Org Profile',

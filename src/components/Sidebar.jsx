@@ -71,7 +71,7 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     const isOpen = !!openMenus[item.label];
     const isChildActive = hasChildren && item.children.some(child => activeItem === child.label);
 
-    const isBetaClub = item.label === 'BETA Club';
+    const isBetaClub = item.label === 'CAPITAL MATRIX' || item.label === 'BETA Club';
     const isCa = item.label === 'FIN-PRO';
 
     // Dynamic styling variables mapping User Green vs Admin Indigo vs Sales Orange vs Support Blue
@@ -249,8 +249,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/hr/payroll')) return 'Payroll';
         if (path.includes('/marketing')) return 'Marketing';
         if (path.includes('/ca')) return 'FIN-PRO';
-        if (path.includes('/social/betaclub')) return 'BETA Club';
-        if (path.includes('/social/meetup')) return 'BETA Club';
+        if (path.includes('/social/betaclub')) return 'CAPITAL MATRIX';
+        if (path.includes('/social/meetup')) return 'CAPITAL MATRIX';
         if (path.includes('/social/trading')) return 'Trading docs';
         if (path.includes('/subscription')) return 'Subscription';
         if (path.includes('/settings')) return 'Business Settings';
@@ -408,7 +408,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             { label: 'Marketing', icon: Megaphone, path: '/marketing', permission: PERMISSIONS.MARKETING }
         ],
         social: [
-            { label: 'BETA Club', icon: UsersRound, path: '/social/betaclub', color: '#FFD700' },
+            { label: 'CAPITAL MATRIX', icon: UsersRound, path: '/social/betaclub', color: '#FFD700' },
             { label: 'Trading docs', icon: LineChart, path: '/social/trading' }
         ],
         financeMode: [
