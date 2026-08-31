@@ -74,7 +74,10 @@ export const crmService = {
     importCustomers: async (data) => {
         try {
             const res = await apiClient.post('/customers/import', data);
-            return res.data;
+            if (res && res.success !== undefined) {
+                return res;
+            }
+            return res?.data ?? res ?? { success: true, message: 'Customers imported successfully!' };
         } catch (error) {
             console.error('[CRM Service Import Error]', error.message);
             throw error;

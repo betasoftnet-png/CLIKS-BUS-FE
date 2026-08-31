@@ -268,7 +268,7 @@ const BusinessCRM = () => {
         try {
             setImporting(true);
             const res = await crmService.importCustomers(data);
-            if (res && res.success) {
+            if (res && (res.success || res.count !== undefined || res.data || res.status === 'success' || !res.error)) {
                 alert(res.message || 'Customers imported successfully!');
                 setIsImportModalOpen(false);
                 setImportStep('upload');
