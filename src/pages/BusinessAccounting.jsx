@@ -338,6 +338,10 @@ const BusinessAccounting = () => {
         queryFn: () => accountingService.getBankAccounts()
     });
 
+    const cashAndBankAccounts = dbBankAccounts.length > 0 ? dbBankAccounts : mockBankAccounts;
+    const activeAccIndex = cashAndBankAccounts.findIndex(a => a.id === selectedAccId);
+    const currentSelectedAccount = cashAndBankAccounts[activeAccIndex !== -1 ? activeAccIndex : 0] || null;
+
     const { data: dbPurchases = [] } = useQuery({
         queryKey: ['purchases'],
         queryFn: () => accountingService.getPurchases(),
@@ -5006,7 +5010,7 @@ const BusinessAccounting = () => {
             <BankStatementReconciliationModal
                 isOpen={isReconciliationModalOpen}
                 onClose={() => setIsReconciliationModalOpen(false)}
-                bankAccount={selectedAccount}
+                bankAccount={currentSelectedAccount}
                 bankAccounts={cashAndBankAccounts}
                 systemContext={{
                     customers: crmCustomers || [],
@@ -5014,14 +5018,14 @@ const BusinessAccounting = () => {
                     invoices: invoicesList || [],
                     purchases: purchasesList || [],
                     expenses: expensesList || [],
-                    ledgerEntries: selectedTransactions || []
+                    ledgerEntries: dbLedger || []
                 }}
                 onSyncComplete={() => {
-                    queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
-                    queryClient.invalidateQueries({ queryKey: ['accounting-ledger'] });
+                    queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+                    queryClient.invalidateQueries({ queryKey: ['ledger'] });
                     queryClient.invalidateQueries({ queryKey: ['expenses'] });
-                    queryClient.invalidateQueries({ queryKey: ['profit-loss'] });
-                    queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+                    queryClient.invalidateQueries({ queryKey: ['profitLoss'] });
+                    queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
                 }}
             />
         </div>
