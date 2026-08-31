@@ -45,16 +45,33 @@ import '../App.css';
 import { customConfirm, customPrompt } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
 
+const POS_SESSION_STORAGE_KEY = 'cliks_pos_billing_session';
+
+const getInitialPosSession = () => {
+    try {
+        const saved = sessionStorage.getItem(POS_SESSION_STORAGE_KEY);
+        if (saved) {
+            return JSON.parse(saved);
+        }
+    } catch (e) {
+        console.error('[POS Session Restore Error]:', e);
+    }
+    return null;
+};
+
 const BusinessPOS = () => {
     const { currency, formatCurrency } = useCurrency();
     const { selectedPlan, user } = useAuth();
     const isStarterPlan = (selectedPlan || user?.tier) === 'Starter Plan';
     const queryClient = useQueryClient();
-    const [cart, setCart] = useState([]);
+
+    const initialPosSession = React.useMemo(() => getInitialPosSession(), []);
+
+    const [cart, setCart] = useState(() => initialPosSession?.cart || []);
     const [colFilters, setColFilters] = React.useState({});
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('All');
-    const [selectedWarehouseIds, setSelectedWarehouseIds] = useState([]);
+    const [selectedCategory, setSelectedCategory] = useState(() => initialPosSession?.selectedCategory || 'All');
+    const [selectedWarehouseIds, setSelectedWarehouseIds] = useState(() => initialPosSession?.selectedWarehouseIds || []);
     const [isWarehouseDropdownOpen, setIsWarehouseDropdownOpen] = useState(false);
     const warehouseDropdownRef = React.useRef(null);
 
@@ -77,27 +94,82 @@ const BusinessPOS = () => {
         );
     };
     
-    const [customerName, setCustomerName] = useState('');
-    const [customerEmail, setCustomerEmail] = useState('');
+    const [customerName, setCustomerName] = useState(() => initialPosSession?.customerName || '');
+    const [customerEmail, setCustomerEmail] = useState(() => initialPosSession?.customerEmail || '');
     const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
-    const [selectedCustomerObj, setSelectedCustomerObj] = useState(null);
+    const [selectedCustomerObj, setSelectedCustomerObj] = useState(() => initialPosSession?.selectedCustomerObj || null);
     
     // Panel Expand/Collapse State
     const [isCustomerSectionExpanded, setIsCustomerSectionExpanded] = useState(true);
     const [isTotalsSectionExpanded, setIsTotalsSectionExpanded] = useState(true);
     
     // Hold Cart State
-    const [heldCarts, setHeldCarts] = useState([]);
-    const [holdCounter, setHoldCounter] = useState(1);
-    const [activeHeldCartInfo, setActiveHeldCartInfo] = useState(null);
+    const [heldCarts, setHeldCarts] = useState(() => initialPosSession?.heldCarts || []);
+    const [holdCounter, setHoldCounter] = useState(() => initialPosSession?.holdCounter || 1);
+    const [activeHeldCartInfo, setActiveHeldCartInfo] = useState(() => initialPosSession?.activeHeldCartInfo || null);
     
-    const [discountType, setDiscountType] = useState('percentage'); // 'percentage' | 'flat'
-    const [discountVal, setDiscountVal] = useState(0);
-    const [taxRate, setTaxRate] = useState(18); // Default GST
+    const [discountType, setDiscountType] = useState(() => initialPosSession?.discountType || 'percentage'); // 'percentage' | 'flat'
+    const [discountVal, setDiscountVal] = useState(() => initialPosSession?.discountVal !== undefined ? initialPosSession.discountVal : 0);
+    const [taxRate, setTaxRate] = useState(() => initialPosSession?.taxRate !== undefined ? initialPosSession.taxRate : 18); // Default GST
     const [paymentMode] = useState('Cash');
-    const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(0);
-    const [loyaltyPointsRedeemed, setLoyaltyPointsRedeemed] = useState(0);
-    const [isPtsEarnedManuallyEdited, setIsPtsEarnedManuallyEdited] = useState(false);
+    const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(() => initialPosSession?.loyaltyPointsEarned || 0);
+    const [loyaltyPointsRedeemed, setLoyaltyPointsRedeemed] = useState(() => initialPosSession?.loyaltyPointsRedeemed || 0);
+    const [isPtsEarnedManuallyEdited, setIsPtsEarnedManuallyEdited] = useState(() => initialPosSession?.isPtsEarnedManuallyEdited || false);
+
+    // Auto-save in-progress POS billing session to sessionStorage when navigating between modules
+    React.useEffect(() => {
+        try {
+            const hasData = (cart && cart.length > 0) || 
+                            Boolean(customerName) || 
+                            Boolean(customerEmail) || 
+                            Boolean(selectedCustomerObj) || 
+                            (heldCarts && heldCarts.length > 0) || 
+                            discountVal > 0 || 
+                            loyaltyPointsEarned > 0 || 
+                            loyaltyPointsRedeemed > 0;
+
+            if (hasData) {
+                const sessionData = {
+                    cart,
+                    customerName,
+                    customerEmail,
+                    selectedCustomerObj,
+                    heldCarts,
+                    holdCounter,
+                    activeHeldCartInfo,
+                    discountType,
+                    discountVal,
+                    taxRate,
+                    loyaltyPointsEarned,
+                    loyaltyPointsRedeemed,
+                    isPtsEarnedManuallyEdited,
+                    selectedCategory,
+                    selectedWarehouseIds
+                };
+                sessionStorage.setItem(POS_SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+            } else {
+                sessionStorage.removeItem(POS_SESSION_STORAGE_KEY);
+            }
+        } catch (e) {
+            console.error('[POS Session Save Error]:', e);
+        }
+    }, [
+        cart,
+        customerName,
+        customerEmail,
+        selectedCustomerObj,
+        heldCarts,
+        holdCounter,
+        activeHeldCartInfo,
+        discountType,
+        discountVal,
+        taxRate,
+        loyaltyPointsEarned,
+        loyaltyPointsRedeemed,
+        isPtsEarnedManuallyEdited,
+        selectedCategory,
+        selectedWarehouseIds
+    ]);
     
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -586,9 +658,13 @@ const BusinessPOS = () => {
             }
 
             // Reset Cart
+            try {
+                sessionStorage.removeItem(POS_SESSION_STORAGE_KEY);
+            } catch (e) {}
             setCart([]);
             setCustomerName('');
             setCustomerEmail('');
+            setSelectedCustomerObj(null);
             setLoyaltyPointsEarned(0);
             setLoyaltyPointsRedeemed(0);
             setIsPtsEarnedManuallyEdited(false);
@@ -1157,6 +1233,9 @@ const BusinessPOS = () => {
             if (activeHeldCartInfo) {
                 setHeldCarts(prev => prev.filter(h => h.id !== activeHeldCartInfo.id));
             }
+            try {
+                sessionStorage.removeItem(POS_SESSION_STORAGE_KEY);
+            } catch (e) {}
             setCart([]);
             setCustomerName('');
             setCustomerEmail('');
