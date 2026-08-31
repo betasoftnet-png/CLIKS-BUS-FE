@@ -79,7 +79,7 @@ export const MonthlySalesBarChart = ({ reportData, title = 'Monthly Sales Perfor
             </div>
 
             <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
-                <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} style={{ width: '100%', height: 'auto', minWidth: '500px' }}>
+                <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} style={{ width: '100%', height: 'auto', minWidth: '280px' }}>
                     <defs>
                         <linearGradient id="salesBarGradient" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#EC4899" stopOpacity="0.95" />

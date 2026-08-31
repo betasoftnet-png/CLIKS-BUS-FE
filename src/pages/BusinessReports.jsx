@@ -782,7 +782,7 @@ const BusinessReports = () => {
             {/* Dynamic Report Details Modal */}
             {selectedReport && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)' }}>
-                    <div style={{ background: 'white', width: viewMode === 'both' ? '880px' : '740px', maxWidth: '95vw', maxHeight: '85vh', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', transition: 'width 0.3s ease' }}>
+                    <div style={{ background: 'white', width: viewMode === 'both' ? '1120px' : '780px', maxWidth: '96vw', maxHeight: '90vh', borderRadius: '16px', padding: '1.25rem 1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden', transition: 'all 0.3s ease' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <div>
                                 <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.15rem', margin: 0 }}>{selectedReport.title}</h2>
@@ -859,25 +859,25 @@ const BusinessReports = () => {
                             </div>
                         </div>
 
-                        {/* Integrated Visual Business Graph */}
-                        {(viewMode === 'graph' || viewMode === 'both') && selectedReport && (
-                            <div style={{ flexShrink: 0, marginBottom: '1rem' }}>
+                        {/* Shared Responsive Dual Split View & Single View Layout Container */}
+                        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', marginBottom: '1.25rem', display: viewMode === 'both' ? 'grid' : 'block', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'stretch' }}>
+                            {/* Left Column: Visual Graph (Visible in 'graph' or 'both' mode) */}
+                            <div style={{ height: '100%', minHeight: 0, overflowY: 'auto', display: (viewMode === 'graph' || viewMode === 'both') ? 'block' : 'none', paddingRight: '0.25rem' }}>
                                 {['inventory', 'parties'].includes(selectedReport.category) || [4, 5, 15, 16, 38].includes(selectedReport.id) ? (
                                     <StockPieChart reportData={reportDetails} title={`${selectedReport.title} Accordance & Stock Metrics`} />
                                 ) : (
                                     <MonthlySalesBarChart reportData={reportDetails} title={`${selectedReport.title} Monthly Trend`} />
                                 )}
                             </div>
-                        )}
 
-                        <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1.5rem', display: viewMode === 'graph' ? 'none' : 'block' }}>
-
-                            {isReportLoading ? (
-                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '160px', color: '#BE185D', fontWeight: '700' }}>
-                                    Loading dynamic report data...
-                                </div>
-                            ) : (
-                                <div style={{ border: '1px solid #E2E8F0', borderRadius: '10px', overflow: 'hidden' }}>
+                            {/* Right Column: Tabular View Table (Visible in 'table' or 'both' mode) */}
+                            <div style={{ height: '100%', minHeight: 0, overflowY: 'auto', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', display: (viewMode === 'table' || viewMode === 'both') ? 'block' : 'none' }}>
+                                {isReportLoading ? (
+                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '160px', color: '#BE185D', fontWeight: '700' }}>
+                                        Loading dynamic report data...
+                                    </div>
+                                ) : (
+                                    <div style={{ border: 'none', borderRadius: 0 }}>
                                     {selectedReport.id === 1 && (
                                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                             <thead style={{ background: '#F8FAFC' }}>
@@ -1738,6 +1738,7 @@ const BusinessReports = () => {
                                 </div>
                             )}
                         </div>
+                    </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ fontSize: '0.8rem', fontWeight: '750', color: '#16A34A' }}>
