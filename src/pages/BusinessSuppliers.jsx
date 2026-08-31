@@ -254,7 +254,7 @@ const BusinessSuppliers = () => {
             return !cleanEmail || !cleanEmail.endsWith('@bnxmail.com') || !/^[^\s@]+@bnxmail\.com$/.test(cleanEmail);
         });
         if (invalidEmailRows.length > 0) {
-            alert(`Validation failed: Row(s) ${invalidEmailRows.map(r => r.rowNumber).join(', ')} must have a valid @bnxmail.com email address.`);
+            alert('Use a bnxmail.com email address to continue.');
             return;
         }
 
@@ -619,7 +619,7 @@ const BusinessSuppliers = () => {
 
         const cleanEmail = (formData.email || '').trim().toLowerCase();
         if (!cleanEmail || !cleanEmail.endsWith('@bnxmail.com') || !/^[^\s@]+@bnxmail\.com$/.test(cleanEmail)) {
-            errors.email = 'Please enter a valid @bnxmail.com email address.';
+            errors.email = 'Use a bnxmail.com email address to continue.';
         }
 
         const gstinErr = validateGstin(formData.gstin, false);

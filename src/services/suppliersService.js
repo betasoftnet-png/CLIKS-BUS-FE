@@ -17,8 +17,14 @@ export const suppliersService = {
 
     searchSuppliers: (query) => apiClient.get(`/suppliers/search?q=${query}`).then(res => res.data.data || res.data),
 
-    // Sub-items Ledger & Balance
-    getLedger: (id) => apiClient.get(`/suppliers/${id}/ledger`).then(res => res.data.data || res.data),
+    getLedger: (id) => apiClient.get(`/suppliers/${id}/ledger`).then(res => {
+        const raw = res?.data ?? res;
+        if (Array.isArray(raw)) return raw;
+        if (Array.isArray(raw?.data)) return raw.data;
+        if (Array.isArray(res?.data?.data)) return res.data.data;
+        if (Array.isArray(res)) return res;
+        return [];
+    }),
     getOutstanding: (id) => apiClient.get(`/suppliers/${id}/outstanding`).then(res => res.data.data || res.data),
     getOutstandingList: () => apiClient.get('/suppliers/outstanding/list').then(res => res.data.data || res.data),
 
