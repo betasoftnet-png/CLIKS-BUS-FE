@@ -5013,12 +5013,12 @@ const BusinessAccounting = () => {
                 bankAccount={currentSelectedAccount}
                 bankAccounts={cashAndBankAccounts}
                 systemContext={{
-                    customers: crmCustomers || [],
-                    suppliers: suppliersList || [],
-                    invoices: invoicesList || [],
-                    purchases: purchasesList || [],
-                    expenses: expensesList || [],
-                    ledgerEntries: dbLedger || []
+                    customers: (typeof crmCustomers !== 'undefined' && crmCustomers) || [],
+                    suppliers: (typeof suppliersList !== 'undefined' && suppliersList) || [],
+                    invoices: (typeof invoicesList !== 'undefined' && invoicesList) || (typeof dbInvoices !== 'undefined' ? dbInvoices : []),
+                    purchases: (typeof purchasesList !== 'undefined' && purchasesList) || (typeof dbPurchases !== 'undefined' ? dbPurchases : []),
+                    expenses: (typeof expensesList !== 'undefined' && expensesList) || (typeof dbExpenses !== 'undefined' ? dbExpenses : []),
+                    ledgerEntries: (typeof dbLedger !== 'undefined' && dbLedger) || []
                 }}
                 onSyncComplete={() => {
                     queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
