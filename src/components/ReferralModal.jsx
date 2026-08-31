@@ -11,14 +11,22 @@ import {
     Linkedin,
     Coins,
     Users,
-    CheckCircle2
+    CheckCircle2,
+    MessageSquare,
+    ExternalLink,
+    Sparkles,
+    ShieldCheck
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import referralService from '../services/referralService';
 import '../App.css';
 
 const ReferralModal = ({ isOpen, onClose }) => {
+    const navigate = useNavigate();
     const [copied, setCopied] = useState(false);
-    const [referralCode] = useState('CLIK-BIZ-8391X');
-    const referralLink = `https://cliksbusiness.com/join?ref=${referralCode}`;
+    const referralCode = referralService.getUserReferralCode();
+    const referralLink = referralService.getReferralLink();
+    const wallet = referralService.getWallet();
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(referralLink);
@@ -27,14 +35,16 @@ const ReferralModal = ({ isOpen, onClose }) => {
     };
 
     const shareUrl = (platform) => {
-        const text = `Join Cliks Business and supercharge your ledger today! Use my invite: ${referralLink}`;
+        const text = `Join Cliks Business and supercharge your ledger today! Use my invite link: ${referralLink}`;
         let url = '';
-        if (platform === 'twitter') {
-            url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+        if (platform === 'whatsapp') {
+            url = `https://wa.me/?text=${encodeURIComponent(text)}`;
         } else if (platform === 'facebook') {
             url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}`;
         } else if (platform === 'linkedin') {
             url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(referralLink)}`;
+        } else if (platform === 'twitter') {
+            url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
         }
         
         if (url) window.open(url, '_blank');
@@ -69,7 +79,7 @@ const ReferralModal = ({ isOpen, onClose }) => {
                         style={{
                             background: '#FFFFFF',
                             width: '100%',
-                            maxWidth: '500px',
+                            maxWidth: '520px',
                             borderRadius: '32px',
                             overflow: 'hidden',
                             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
@@ -105,64 +115,67 @@ const ReferralModal = ({ isOpen, onClose }) => {
                             <X size={18} />
                         </button>
 
-                        {/* Top Banner with Gradient */}
+                        {/* Top Header Banner */}
                         <div style={{
                             background: 'linear-gradient(135deg, #064E3B 0%, #0F766E 100%)',
-                            padding: '3rem 2.5rem 2.5rem 2.5rem',
+                            padding: '2.5rem 2rem 2rem 2rem',
                             textAlign: 'center',
                             position: 'relative',
                             color: '#FFFFFF'
                         }}>
-                            {/* Background decorative blur */}
                             <div style={{
-                                position: 'absolute',
-                                top: '-20%',
-                                right: '-20%',
-                                width: '180px',
-                                height: '180px',
-                                background: 'rgba(20, 184, 166, 0.3)',
-                                borderRadius: '50%',
-                                filter: 'blur(30px)'
-                            }} />
-
-                            <div style={{
-                                width: '64px',
-                                height: '64px',
+                                width: '60px',
+                                height: '60px',
                                 borderRadius: '20px',
                                 background: 'linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%)',
                                 color: '#78350F',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                margin: '0 auto 1.25rem auto',
+                                margin: '0 auto 1rem auto',
                                 boxShadow: '0 12px 24px rgba(245, 158, 11, 0.3)',
                             }}>
                                 <Gift size={30} />
                             </div>
-                            <h2 style={{ fontSize: '1.75rem', fontWeight: '900', margin: '0 0 0.5rem 0', letterSpacing: '-0.02em' }}>Refer & Earn Premium</h2>
-                            <p style={{ opacity: 0.9, fontSize: '0.95rem', fontWeight: '450', lineHeight: '1.5', margin: 0 }}>
-                                Introduce associates to CLIKS. For every active initialization, collect <span style={{ color: '#FCD34D', fontWeight: '800' }}>500 Points</span> instantly!
+                            <h2 style={{ fontSize: '1.75rem', fontWeight: '900', margin: '0 0 0.4rem 0', letterSpacing: '-0.02em' }}>Refer. Grow. Earn Premium.</h2>
+                            <p style={{ opacity: 0.95, fontSize: '0.9rem', fontWeight: '500', lineHeight: '1.5', margin: 0 }}>
+                                Refer a business owner → They join Cliks → They become active → You both earn rewards.
                             </p>
+                            
+                            {/* Live Wallet Chip */}
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.15)', padding: '0.4rem 0.85rem', borderRadius: '99px', marginTop: '1rem', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.78rem', fontWeight: '800' }}>
+                                <Coins size={14} color="#FCD34D" />
+                                <span>Wallet: <strong style={{ color: '#FCD34D' }}>{wallet.available_points} Points</strong> Available</span>
+                            </div>
                         </div>
 
-                        {/* Body Section */}
-                        <div style={{ padding: '2.25rem 2.5rem' }}>
+                        {/* Modal Body */}
+                        <div style={{ padding: '1.75rem 2rem' }}>
                             
-                            {/* Link sharing interface */}
-                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
-                                Your Unique Referral Link
+                            {/* Key Incentives Box */}
+                            <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '16px', padding: '0.85rem 1.1rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: '800', color: '#065F46' }}>
+                                    <span>🎁 You earn <strong>500 Points</strong> when your referral becomes active.</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: '800', color: '#047857' }}>
+                                    <span>🚀 Earn <strong>1,000 Bonus Points</strong> if they upgrade to Premium.</span>
+                                </div>
+                            </div>
+
+                            {/* Link Input Section */}
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                                YOUR UNIQUE REFERRAL LINK
                             </label>
 
                             <div style={{ 
                                 background: '#F8FAFC', 
                                 borderRadius: '16px', 
                                 border: '1.5px dashed #CBD5E1', 
-                                padding: '1rem 1.25rem', 
+                                padding: '0.85rem 1rem', 
                                 display: 'flex', 
                                 alignItems: 'center', 
                                 gap: '0.75rem', 
-                                marginBottom: '1.75rem',
-                                transition: 'border-color 0.2s'
+                                marginBottom: '1.5rem'
                             }}>
                                 <input 
                                     readOnly
@@ -171,7 +184,7 @@ const ReferralModal = ({ isOpen, onClose }) => {
                                         flex: 1, 
                                         background: 'transparent', 
                                         border: 'none', 
-                                        fontSize: '0.9rem', 
+                                        fontSize: '0.85rem', 
                                         fontWeight: '700', 
                                         color: '#064E3B', 
                                         outline: 'none',
@@ -187,7 +200,7 @@ const ReferralModal = ({ isOpen, onClose }) => {
                                         display: 'flex', 
                                         alignItems: 'center', 
                                         gap: '0.4rem', 
-                                        padding: '0.65rem 1rem', 
+                                        padding: '0.6rem 0.9rem', 
                                         borderRadius: '12px', 
                                         border: 'none', 
                                         cursor: 'pointer',
@@ -195,70 +208,79 @@ const ReferralModal = ({ isOpen, onClose }) => {
                                         color: 'white',
                                         fontWeight: '800', 
                                         fontSize: '0.8rem', 
-                                        whiteSpace: 'nowrap',
-                                        transition: 'background-color 0.2s'
+                                        whiteSpace: 'nowrap'
                                     }}
                                 >
-                                    {copied ? <><Check size={15} /> Copied</> : <><Copy size={15} /> Copy URL</>}
+                                    {copied ? <><Check size={15} /> Copied!</> : <><Copy size={15} /> Copy URL</>}
                                 </Motion.button>
                             </div>
 
-                            {/* Visual Quick Steps */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
-                                        <Users size={15} />
-                                    </div>
-                                    <span style={{ fontSize: '0.88rem', color: '#475569', fontWeight: '550' }}>Friends join using your exclusive gateway link</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706' }}>
-                                        <Coins size={15} />
-                                    </div>
-                                    <span style={{ fontSize: '0.88rem', color: '#475569', fontWeight: '550' }}>Earn 500 points credited directly to wallet</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3B82F6' }}>
-                                        <CheckCircle2 size={15} />
-                                    </div>
-                                    <span style={{ fontSize: '0.88rem', color: '#475569', fontWeight: '550' }}>Redeem points for premium subscription cycles</span>
+                            {/* Share Buttons */}
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.6rem' }}>
+                                    SHARE INSTANTLY
+                                </span>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.6rem' }}>
+                                    {[
+                                        { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, bg: '#25D366', color: 'white' },
+                                        { key: 'facebook', label: 'Facebook', icon: Facebook, bg: '#1877F2', color: 'white' },
+                                        { key: 'linkedin', label: 'LinkedIn', icon: Linkedin, bg: '#0A66C2', color: 'white' },
+                                        { key: 'twitter', label: 'Twitter', icon: Twitter, bg: '#1DA1F2', color: 'white' }
+                                    ].map((sns) => (
+                                        <button 
+                                            key={sns.key}
+                                            onClick={() => shareUrl(sns.key)}
+                                            style={{ 
+                                                display: 'flex', 
+                                                flexDirection: 'column',
+                                                alignItems: 'center', 
+                                                justifyContent: 'center',
+                                                gap: '4px',
+                                                padding: '0.6rem 0.4rem', 
+                                                borderRadius: '12px', 
+                                                border: 'none', 
+                                                background: sns.bg, 
+                                                color: sns.color, 
+                                                cursor: 'pointer',
+                                                fontWeight: '800',
+                                                fontSize: '0.72rem'
+                                            }}
+                                        >
+                                            <sns.icon size={16} />
+                                            <span>{sns.label}</span>
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
 
-                            {/* Share channels */}
-                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.75rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span style={{ fontSize: '0.85rem', fontWeight: '750', color: '#64748B' }}>Share Instantly:</span>
-                                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                        {[
-                                            { key: 'share', icon: Share2, bg: '#F1F5F9', color: '#334155' },
-                                            { key: 'twitter', icon: Twitter, bg: '#E0F2FE', color: '#0EA5E9' },
-                                            { key: 'facebook', icon: Facebook, bg: '#EEF2FF', color: '#4F46E5' },
-                                            { key: 'linkedin', icon: Linkedin, bg: '#E0F2FE', color: '#0284C7' }
-                                        ].map((sns) => (
-                                            <Motion.button 
-                                                key={sns.key}
-                                                whileHover={{ scale: 1.1, y: -2 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={() => sns.key === 'share' ? copyToClipboard() : shareUrl(sns.key)}
-                                                style={{ 
-                                                    width: '42px', 
-                                                    height: '42px', 
-                                                    borderRadius: '14px', 
-                                                    border: 'none', 
-                                                    background: sns.bg, 
-                                                    color: sns.color, 
-                                                    display: 'flex', 
-                                                    alignItems: 'center', 
-                                                    justifyContent: 'center', 
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                <sns.icon size={18} />
-                                            </Motion.button>
-                                        ))}
-                                    </div>
-                                </div>
+                            {/* Dashboard Navigation CTA */}
+                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', display: 'flex', gap: '0.75rem' }}>
+                                <button 
+                                    onClick={() => {
+                                        onClose();
+                                        navigate('/referral');
+                                    }}
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.85rem',
+                                        borderRadius: '14px',
+                                        border: 'none',
+                                        background: 'linear-gradient(135deg, #064E3B 0%, #047857 100%)',
+                                        color: 'white',
+                                        fontWeight: '850',
+                                        fontSize: '0.9rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        boxShadow: '0 8px 16px rgba(6, 78, 59, 0.15)'
+                                    }}
+                                >
+                                    <Sparkles size={16} color="#FCD34D" />
+                                    <span>View Referral Dashboard</span>
+                                    <ExternalLink size={14} />
+                                </button>
                             </div>
 
                         </div>
