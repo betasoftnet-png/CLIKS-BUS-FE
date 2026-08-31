@@ -411,6 +411,19 @@ const BusinessExpenses = () => {
 
     const handleSaveBudget = (e) => {
         e.preventDefault();
+
+        // Case-insensitive duplicate check when creating a new Department Budget / Category Group
+        if (!editingBudget) {
+            const enteredName = (newBudget.category_name || '').trim().toLowerCase();
+            const exists = (budgets || []).some(b => (b.category_name || '').trim().toLowerCase() === enteredName) ||
+                (dbBudgets || []).some(b => (b.category_name || '').trim().toLowerCase() === enteredName);
+
+            if (exists) {
+                alert("This name is already added. Please enter a new name.");
+                return;
+            }
+        }
+
         const budgetData = {
             ...newBudget,
             team_members: newBudgetMembers
