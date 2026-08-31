@@ -53,8 +53,24 @@ export const returnsService = {
     },
 
     updateReturn: async (id, data) => {
-        const res = await apiClient.put(`/returns/${id}`, data);
-        return res.data?.data || res.data;
+        let updated = null;
+        try {
+            const res = await apiClient.put(`/returns/${id}`, data);
+            updated = res.data?.data || res.data;
+        } catch (e) {
+            updated = { id, ...data };
+        }
+        try {
+            const local = getLocalReturns();
+            if (Array.isArray(local)) {
+                const idx = local.findIndex(r => r.id === id || r.id?.toString() === id?.toString());
+                if (idx !== -1) {
+                    local[idx] = { ...local[idx], ...data, ...(updated || {}) };
+                    saveLocalReturns(local);
+                }
+            }
+        } catch (e) {}
+        return updated || { success: true };
     },
 
     deleteReturn: (id) => apiClient.delete(`/returns/${id}`).then(res => res.data.data || res.data),

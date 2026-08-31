@@ -1795,9 +1795,17 @@ const BusinessBilling = () => {
                                                 <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontFamily: 'monospace', fontSize: '0.8rem' }}>{claim.serial_number || claim.imei || 'N/A'}</td>
                                                 <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#475569' }}>{claim.claim_type || 'Warranty Tracking'}</td>
                                                 <td style={{ padding: '0.75rem 1.25rem' }}>
-                                                    <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: badgeBg, color: badgeColor }}>
-                                                        {statusText}
-                                                    </span>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                                                        <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: badgeBg, color: badgeColor }}>
+                                                            {statusText}
+                                                        </span>
+                                                        {(claim.warehouse_name || claim.warehouse_id) && (
+                                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.68rem', color: '#047857', fontWeight: '750', background: '#ECFDF5', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #A7F3D0' }}>
+                                                                <Warehouse size={11} />
+                                                                <span>Assigned: {claim.warehouse_name || claim.warehouse_id}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#475569', fontSize: '0.82rem' }}>
                                                     {claim.warranty_period || claim.period || (claim.reason_code && claim.reason_code.includes('Warranty Period:') ? claim.reason_code.split('Warranty Period:')[1].split('(')[0].trim() : '3 Years')}
@@ -3424,6 +3432,65 @@ const BusinessBilling = () => {
                 const items = Array.isArray(moveWarehouseModalReturn.items) ? moveWarehouseModalReturn.items : [];
                 const prodName = items.length > 0 ? (items[0].product_name || items[0].name) : (moveWarehouseModalReturn.product_name || 'Returned Item');
                 const retQty = items.length > 0 ? (items[0].return_quantity || items[0].quantity || 1) : (moveWarehouseModalReturn.return_quantity || 1);
+
+                const rawWh = moveWarehouseModalReturn.warehouse_name || moveWarehouseModalReturn.warehouse_id;
+                const assignedWhName = (rawWh && String(rawWh).trim() !== '' && String(rawWh).trim() !== 'null' && String(rawWh).trim() !== 'undefined') ? String(rawWh).trim() : '';
+                const isAlreadyAssigned = Boolean(assignedWhName) || moveWarehouseModalReturn.inspection_status === 'Assigned to Warehouse';
+
+                if (isAlreadyAssigned) {
+                    const finalWhName = assignedWhName || 'Warehouse';
+                    return (
+                        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(6px)', padding: '1rem' }}>
+                            <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '20px', padding: '1.5rem', border: '1px solid #E2E8F0', boxShadow: '0 20px 45px -10px rgba(0,0,0,0.2)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#047857' }}>
+                                            <CheckCircle2 size={20} />
+                                        </div>
+                                        <div>
+                                            <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '850', color: '#0F172A' }}>Claim Already Completed</h4>
+                                            <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 800, fontFamily: 'monospace' }}>
+                                                Return Ref: {moveWarehouseModalReturn.return_number || moveWarehouseModalReturn.claim_number || `RET-${moveWarehouseModalReturn.id}`}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setMoveWarehouseModalReturn(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', color: '#64748B' }}><X size={16} /></button>
+                                </div>
+
+                                <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', padding: '1.25rem', marginBottom: '1.25rem', textAlign: 'center' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.4rem' }}>
+                                        <Warehouse size={24} color="#047857" />
+                                    </div>
+                                    <p style={{ margin: '0 0 0.4rem 0', fontSize: '1rem', fontWeight: '850', color: '#065F46' }}>
+                                        Already assigned to: <span style={{ color: '#047857', fontWeight: '950' }}>{finalWhName}</span>
+                                    </p>
+                                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#047857', fontWeight: '600', lineHeight: 1.4 }}>
+                                        This returned product has already been moved to {finalWhName}.
+                                    </p>
+                                </div>
+
+                                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1.25rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                                        <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '700' }}>Product:</span>
+                                        <span style={{ fontSize: '0.82rem', color: '#0F172A', fontWeight: '800' }}>{prodName}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '700' }}>Quantity Returned:</span>
+                                        <span style={{ fontSize: '0.82rem', color: '#047857', fontWeight: '850' }}>{retQty}</span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setMoveWarehouseModalReturn(null)}
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: 'none', background: '#0F172A', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    );
+                }
 
                 return (
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(6px)', padding: '1rem' }}>
