@@ -295,6 +295,11 @@ const BusinessSuppliers = () => {
     }));
 
     // Live supplier Master Base React Query integration
+    const { data: suppliers = [] } = useQuery({
+        queryKey: ['suppliers'],
+        queryFn: () => suppliersService.getSuppliers()
+    });
+
     const activeSupplierId = selectedSupplier?.id || selectedSupplier?.supplier_id;
     const { data: supplierLedgerData = [] } = useQuery({
         queryKey: ['supplierLedger', activeSupplierId],

@@ -371,6 +371,16 @@ const BusinessBarcode = () => {
 
     const addCustomField = (presetKey = '', presetValue = '') => {
         if (customFields.length >= 25) return;
+
+        const cleanPresetKey = presetKey ? presetKey.trim() : '';
+        if (cleanPresetKey) {
+            const exists = customFields.some(f => f.key && f.key.trim().toLowerCase() === cleanPresetKey.toLowerCase());
+            if (exists) {
+                alert('This custom key has already been added.');
+                return;
+            }
+        }
+
         setCustomFields(prev => {
             if (prev.length >= 25) return prev;
             return [...prev, { 
@@ -391,6 +401,14 @@ const BusinessBarcode = () => {
     };
 
     const updateCustomField = (id, prop, val) => {
+        if (prop === 'key' && val && val.trim()) {
+            const cleanKey = val.trim().toLowerCase();
+            const exists = customFields.some(f => f.id !== id && f.key && f.key.trim().toLowerCase() === cleanKey);
+            if (exists) {
+                alert('This custom key has already been added.');
+                return;
+            }
+        }
         setCustomFields(prev => prev.map(f => f.id === id ? { ...f, [prop]: val } : f));
     };
 
