@@ -823,6 +823,9 @@ const BusinessBarcode = () => {
                                         onChange={handleLogoUpload}
                                         style={{ fontSize: '0.78rem', width: '100%' }}
                                     />
+                                    <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', fontWeight: '600', marginTop: '0.35rem' }}>
+                                        Recommended image size: 200 × 200 px
+                                    </span>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '0.4rem' }}>Tag Badge Icon</label>
