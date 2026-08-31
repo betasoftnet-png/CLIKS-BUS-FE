@@ -69,6 +69,16 @@ export const crmService = {
             console.error('[CRM B2B Respond Error]', error.message);
             throw error;
         }
+    },
+
+    importCustomers: async (data) => {
+        try {
+            const res = await apiClient.post('/customers/import', data);
+            return res.data;
+        } catch (error) {
+            console.error('[CRM Service Import Error]', error.message);
+            throw error;
+        }
     }
 };
 

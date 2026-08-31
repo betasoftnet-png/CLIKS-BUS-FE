@@ -26,6 +26,10 @@ export const customerService = {
     deleteCustomer: async (id) => {
         const response = await api.delete(`/customers/${id}`);
         return response.data;
+    },
+    importCustomers: async (data) => {
+        const response = await api.post('/customers/import', data);
+        return response.data;
     }
 };
 
