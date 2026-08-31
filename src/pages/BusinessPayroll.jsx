@@ -528,7 +528,6 @@ const BusinessPayroll = () => {
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                         <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Active Loans & Salary Advance Balances</h3>
-                        <button onClick={() => { setLoanForm({ employee_name: '', loan_amount: '', emi_amount: '', salary_advance: '' }); setIsLoanModalOpen(true); }} style={{ padding: '0.5rem 1rem', borderRadius: '10px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}>+ Grant Employee Loan</button>
                     </div>
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
