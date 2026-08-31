@@ -12,55 +12,40 @@ export const MonthlySalesBarChart = ({ reportData, title = 'Monthly Sales Perfor
 
     // Process data to derive monthly or aggregated buckets
     const processSalesData = () => {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
         if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
-            // Default baseline monthly distribution for visualization
-            return [
-                { label: 'Jan', value: 125000, count: 18 },
-                { label: 'Feb', value: 185000, count: 24 },
-                { label: 'Mar', value: 240000, count: 32 },
-                { label: 'Apr', value: 195000, count: 26 },
-                { label: 'May', value: 310000, count: 41 },
-                { label: 'Jun', value: 280000, count: 37 },
-                { label: 'Jul', value: 350000, count: 48 },
-                { label: 'Aug', value: 410000, count: 52 },
-                { label: 'Sep', value: 380000, count: 45 },
-                { label: 'Oct', value: 460000, count: 58 },
-                { label: 'Nov', value: 520000, count: 64 },
-                { label: 'Dec', value: 590000, count: 72 }
-            ];
+            return months.map(m => ({ label: m, value: 0, count: 0 }));
         }
 
-        // Aggregate actual sales data if available
         const monthlyMap = {};
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        months.forEach(m => { monthlyMap[m] = { label: m, value: 0, count: 0 }; });
 
+        let hasValidDate = false;
         reportData.forEach(item => {
-            const dateStr = item.date || item.created_at || item.invoice_date || item.bill_date;
-            let monthName = 'General';
+            const dateStr = item.date || item.created_at || item.invoice_date || item.bill_date || item.bill_date;
+            const val = parseFloat(item.grand_total || item.total_sales || item.revenue || item.amount || item.total || item.total_amount || item.value || 0);
+
             if (dateStr) {
                 const d = new Date(dateStr);
                 if (!isNaN(d.getTime())) {
-                    monthName = months[d.getMonth()];
+                    const monthName = months[d.getMonth()];
+                    monthlyMap[monthName].value += val;
+                    monthlyMap[monthName].count += 1;
+                    hasValidDate = true;
                 }
-            } else if (item.name || item.billNo || item.order_number) {
-                monthName = (item.name || item.billNo || item.order_number).slice(0, 8);
             }
-
-            const val = parseFloat(item.grand_total || item.total_sales || item.revenue || item.amount || item.total || 0);
-            if (!monthlyMap[monthName]) {
-                monthlyMap[monthName] = { label: monthName, value: 0, count: 0 };
-            }
-            monthlyMap[monthName].value += val;
-            monthlyMap[monthName].count += 1;
         });
 
-        const list = Object.values(monthlyMap);
-        return list.length > 0 ? list : [
-            { label: 'Q1', value: 450000, count: 50 },
-            { label: 'Q2', value: 680000, count: 75 },
-            { label: 'Q3', value: 920000, count: 110 },
-            { label: 'Q4', value: 1150000, count: 140 }
-        ];
+        if (!hasValidDate) {
+            return reportData.slice(0, 12).map((item, idx) => ({
+                label: String(item.name || item.product_name || item.customer || item.billNo || item.order_number || item.ledger || item.hsn || item.category || `Item ${idx + 1}`).slice(0, 8),
+                value: parseFloat(item.grand_total || item.total_sales || item.revenue || item.amount || item.total || item.total_amount || item.value || item.stockVal || 0),
+                count: 1
+            }));
+        }
+
+        return Object.values(monthlyMap);
     };
 
     const chartData = processSalesData();
@@ -182,25 +167,25 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
 
     // Process data into categorical slices
     const processStockData = () => {
+        const colors = ['#EC4899', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#6366F1', '#14B8A6', '#F43F5E'];
+
         if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
             return [
-                { label: 'Electronics & Tech', value: 350000, count: 42, color: '#EC4899' },
-                { label: 'Apparel & Garments', value: 220000, count: 68, color: '#3B82F6' },
-                { label: 'General Grocery', value: 180000, count: 120, color: '#10B981' },
-                { label: 'Pharma & Medical', value: 145000, count: 35, color: '#F59E0B' },
-                { label: 'Hardware & Tools', value: 95000, count: 28, color: '#8B5CF6' }
+                { label: 'In Stock', value: 0, count: 0, color: '#10B981', displayVal: '0 units' },
+                { label: 'Low Stock', value: 0, count: 0, color: '#F59E0B', displayVal: '0 units' },
+                { label: 'Out of Stock', value: 0, count: 0, color: '#EF4444', displayVal: '0 units' }
             ];
         }
 
         // Check if report is warehouse capacity (id 15)
-        const isWarehouse = reportData.some(item => item.warehouse_name || item.name?.includes('Warehouse') || item.code);
+        const isWarehouse = reportData.some(item => item.warehouse_name || item.warehouse_code || item.capacity_utilization !== undefined || (item.name && item.location));
         if (isWarehouse) {
-            const colors = ['#EC4899', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#6366F1'];
             return reportData.map((w, idx) => {
-                const util = parseFloat(w.capacity_utilization || w.utilization || 50);
+                const utilStr = String(w.capacity_utilization || w.utilization || '0%').replace('%', '');
+                const util = parseFloat(utilStr) || 0;
                 return {
                     label: w.warehouse_name || w.name || `Warehouse ${idx + 1}`,
-                    value: util,
+                    value: util > 0 ? util : 1,
                     displayVal: `${util}% Capacity`,
                     color: colors[idx % colors.length]
                 };
@@ -209,13 +194,12 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
 
         // Group by category or stock status
         const catMap = {};
-        const colors = ['#EC4899', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#6366F1', '#14B8A6'];
 
         reportData.forEach(item => {
-            const cat = item.category || item.stock_status || item.location || 'General';
-            const qty = parseFloat(item.quantity || item.items || 1);
-            const price = parseFloat(item.unit_price || item.selling_price || item.purchase_price || item.stockVal || 100);
-            const val = qty * price;
+            const cat = item.category || item.product_name || item.name || item.stock_status || item.location || 'General';
+            const qty = parseFloat(item.quantity || item.stock_quantity || item.items || 1);
+            const price = parseFloat(item.unit_price || item.selling_price || item.purchase_price || item.stockVal || 0);
+            const val = qty * (price > 0 ? price : 1);
 
             if (!catMap[cat]) {
                 catMap[cat] = { label: cat, value: 0, count: 0 };
@@ -229,10 +213,10 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
             color: colors[i % colors.length]
         }));
 
-        return list.length > 0 ? list.slice(0, 6) : [
-            { label: 'In Stock', value: 75, color: '#10B981' },
-            { label: 'Low Stock', value: 15, color: '#F59E0B' },
-            { label: 'Out of Stock', value: 10, color: '#EF4444' }
+        return list.length > 0 ? list.slice(0, 8) : [
+            { label: 'In Stock', value: 0, count: 0, color: '#10B981', displayVal: '0 units' },
+            { label: 'Low Stock', value: 0, count: 0, color: '#F59E0B', displayVal: '0 units' },
+            { label: 'Out of Stock', value: 0, count: 0, color: '#EF4444', displayVal: '0 units' }
         ];
     };
 

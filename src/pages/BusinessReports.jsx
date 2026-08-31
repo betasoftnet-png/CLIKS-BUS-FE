@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { MonthlySalesBarChart, StockPieChart } from '../components/ReportCharts';
 import {
     reportsService,
+    productsService,
     stockService,
     warehouseService,
     crmService,
@@ -65,18 +66,54 @@ const BusinessReports = () => {
             try {
                 // Core Reports
                 if (id === 1) return await reportsService.getSales();
-                if (id === 2) return await reportsService.getSalesByProduct();
+                if (id === 2) {
+                    const [salesByProduct, allProducts] = await Promise.all([
+                        reportsService.getSalesByProduct().catch(() => []),
+                        productsService.getProducts().catch(() => [])
+                    ]);
+                    const salesList = salesByProduct?.data || salesByProduct || [];
+                    const productsList = Array.isArray(allProducts) ? allProducts : (allProducts?.data || allProducts?.products || []);
+
+                    if (salesList && salesList.length > 0) {
+                        return salesList.map(s => ({
+                            name: s.name || 'Unnamed Product',
+                            total_quantity: parseFloat(s.total_quantity || s.quantity || 0),
+                            total_sales: parseFloat(s.total_sales || s.total || 0)
+                        }));
+                    }
+                    return productsList.map(p => ({
+                        name: p.name || p.product_name || 'Unnamed Product',
+                        total_quantity: parseFloat(p.stock_quantity || p.quantity || 0),
+                        total_sales: (parseFloat(p.selling_price || p.price || 0)) * (parseFloat(p.stock_quantity || p.quantity || 0))
+                    }));
+                }
                 if (id === 3) return await reportsService.getSalesByCustomer();
                 if (id === 10) return await reportsService.getProfitLoss();
                 if (id === 11) return await reportsService.getBalanceSheet();
 
                 // Stock & Inventory Module
-                if ([4, 5, 6, 16].includes(id)) {
-                    const stocks = await stockService.getStocks();
-                    const rawList = stocks?.data || stocks || [];
-                    if (id === 5) return rawList.filter(s => (s.quantity || 0) <= (s.min_stock || 10));
-                    if (id === 16) return rawList.filter(s => (s.quantity || 0) > 0);
-                    return rawList;
+                if ([4, 5, 6, 16, 38].includes(id)) {
+                    const [stocksRes, productsRes] = await Promise.all([
+                        stockService.getStocks().catch(() => []),
+                        productsService.getProducts().catch(() => [])
+                    ]);
+                    const rawStocks = stocksRes?.data || stocksRes || [];
+                    const rawProducts = Array.isArray(productsRes) ? productsRes : (productsRes?.data || productsRes?.products || []);
+
+                    let combinedList = rawStocks.length > 0 ? rawStocks : rawProducts.map(p => ({
+                        product_name: p.name || p.product_name,
+                        name: p.name || p.product_name,
+                        sku: p.sku || `SKU-${p.id || 100}`,
+                        quantity: parseFloat(p.stock_quantity || p.quantity || 0),
+                        min_stock: parseFloat(p.min_stock || 10),
+                        selling_price: parseFloat(p.selling_price || p.price || 0),
+                        purchase_price: parseFloat(p.cost_price || p.purchase_price || 0),
+                        category: p.category || 'General'
+                    }));
+
+                    if (id === 5) return combinedList.filter(s => (parseFloat(s.quantity || s.stock_quantity || 0)) <= (parseFloat(s.min_stock || 10)));
+                    if (id === 16) return combinedList.filter(s => (parseFloat(s.quantity || s.stock_quantity || 0)) === 0);
+                    return combinedList;
                 }
 
                 // Warehouse Module
@@ -246,14 +283,33 @@ const BusinessReports = () => {
 
                 // ── Trial Balance Statement
                 if (id === 32) {
+                    const [sales, purchases, expenses, stocks, customers, suppliers] = await Promise.all([
+                        reportsService.getSales().catch(() => []),
+                        purchasesService.getPurchases().catch(() => []),
+                        expensesService.getExpenses().catch(() => []),
+                        stockService.getStocks().catch(() => []),
+                        crmService.getCustomers().catch(() => []),
+                        suppliersService.getSuppliers().catch(() => [])
+                    ]);
+
+                    const totalSales = (sales?.data || sales || []).reduce((sum, s) => sum + parseFloat(s.grand_total || 0), 0);
+                    const totalPurchases = (purchases?.data || purchases || []).reduce((sum, p) => sum + parseFloat(p.total_amount || 0), 0);
+                    const totalExpenses = (expenses?.data || expenses || []).reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+                    const totalStockVal = (stocks?.data || stocks || []).reduce((sum, k) => sum + (parseFloat(k.quantity || 0) * parseFloat(k.selling_price || k.price || 0)), 0);
+                    const totalReceivables = (customers?.data || customers || []).reduce((sum, c) => sum + parseFloat(c.outstanding_balance || 0), 0);
+                    const totalPayables = (suppliers?.data || suppliers || []).reduce((sum, s) => sum + parseFloat(s.outstanding_balance || 0), 0);
+
+                    const cashBank = Math.max(0, totalSales - totalExpenses - totalPurchases);
+                    const capital = Math.max(0, cashBank + totalReceivables + totalStockVal - totalPayables);
+
                     return [
-                        { ledger: 'Cash & Bank Balances', debit: 450000, credit: 0 },
-                        { ledger: 'Accounts Receivable', debit: 225000, credit: 0 },
-                        { ledger: 'Stock in Hand (Valuation)', debit: 890000, credit: 0 },
-                        { ledger: 'Accounts Payable', debit: 0, credit: 175000 },
-                        { ledger: 'Capital Account', debit: 0, credit: 1200000 },
-                        { ledger: 'Sales Income', debit: 0, credit: 350000 },
-                        { ledger: 'Purchases & Expense Acct', debit: 160000, credit: 0 }
+                        { ledger: 'Cash & Bank Balances', debit: cashBank, credit: 0 },
+                        { ledger: 'Accounts Receivable', debit: totalReceivables, credit: 0 },
+                        { ledger: 'Stock in Hand (Valuation)', debit: totalStockVal, credit: 0 },
+                        { ledger: 'Accounts Payable', debit: 0, credit: totalPayables },
+                        { ledger: 'Capital Account', debit: 0, credit: capital },
+                        { ledger: 'Sales Income', debit: 0, credit: totalSales },
+                        { ledger: 'Purchases & Expense Acct', debit: totalPurchases + totalExpenses, credit: 0 }
                     ];
                 }
 
@@ -272,13 +328,13 @@ const BusinessReports = () => {
 
                 // ── Sales Summary by HSN/SAC
                 if (id === 34) {
-                    const prods = await stockService.getStocks().catch(() => []);
-                    const list = prods?.data || prods || [];
+                    const prods = await productsService.getProducts().catch(() => []);
+                    const list = Array.isArray(prods) ? prods : (prods?.data || prods?.products || []);
                     return list.map((p, idx) => ({
-                        hsn: p.sku || `HSN-00${idx + 1}`,
-                        item: p.name,
-                        value: (parseFloat(p.selling_price || p.price || 0) * 15),
-                        taxRate: '18%'
+                        hsn: p.hsn_code || p.sku || `HSN-00${idx + 1}`,
+                        item: p.name || p.product_name,
+                        value: parseFloat(p.selling_price || p.price || 0) * parseFloat(p.stock_quantity || p.quantity || 1),
+                        taxRate: p.tax_rate ? `${p.tax_rate}%` : '18%'
                     }));
                 }
 
@@ -289,7 +345,7 @@ const BusinessReports = () => {
                         bill: s.order_number,
                         date: s.date || s.created_at,
                         amount: parseFloat(s.grand_total || 0),
-                        disc: parseFloat(s.discount_amount || 0) || (parseFloat(s.grand_total || 0) * 0.05)
+                        disc: parseFloat(s.discount_amount || 0)
                     }));
                 }
 
@@ -300,69 +356,124 @@ const BusinessReports = () => {
                         product: s.name,
                         sold: s.total_quantity,
                         salesVal: parseFloat(s.total_sales || 0),
-                        discVal: parseFloat(s.total_sales || 0) * 0.08
+                        discVal: parseFloat(s.discount_amount || 0)
                     }));
                 }
 
                 // ── Sales/Purchases by Category groups
                 if (id === 37) {
-                    return [
-                        { category: 'Electronics', sales: 185000, purchases: 95000 },
-                        { category: 'Apparel & Garment', sales: 65000, purchases: 22000 },
-                        { category: 'General Grocery', sales: 124000, purchases: 68000 },
-                        { category: 'Pharma Products', sales: 45000, purchases: 19000 }
-                    ];
+                    const [prods, sales, purchases] = await Promise.all([
+                        productsService.getProducts().catch(() => []),
+                        reportsService.getSales().catch(() => []),
+                        purchasesService.getPurchases().catch(() => [])
+                    ]);
+                    const prodList = Array.isArray(prods) ? prods : (prods?.data || []);
+                    const salesList = sales?.data || sales || [];
+                    const purList = purchases?.data || purchases || [];
+
+                    const catMap = {};
+                    prodList.forEach(p => {
+                        const cat = p.category || 'General';
+                        if (!catMap[cat]) catMap[cat] = { category: cat, sales: 0, purchases: 0 };
+                    });
+
+                    salesList.forEach(s => {
+                        const cat = s.category || 'General';
+                        if (!catMap[cat]) catMap[cat] = { category: cat, sales: 0, purchases: 0 };
+                        catMap[cat].sales += parseFloat(s.grand_total || 0);
+                    });
+
+                    purList.forEach(p => {
+                        const cat = p.category || 'General';
+                        if (!catMap[cat]) catMap[cat] = { category: cat, sales: 0, purchases: 0 };
+                        catMap[cat].purchases += parseFloat(p.total_amount || 0);
+                    });
+
+                    return Object.values(catMap);
                 }
 
                 // ── Stock Val by Category
                 if (id === 38) {
-                    return [
-                        { category: 'Electronics', stockVal: 350000, items: 12 },
-                        { category: 'Apparel & Garment', stockVal: 120000, items: 45 },
-                        { category: 'General Grocery', stockVal: 89000, items: 98 },
-                        { category: 'Pharma Products', stockVal: 145000, items: 34 }
-                    ];
+                    const prods = await productsService.getProducts().catch(() => []);
+                    const prodList = Array.isArray(prods) ? prods : (prods?.data || []);
+
+                    const catMap = {};
+                    prodList.forEach(p => {
+                        const cat = p.category || 'General';
+                        if (!catMap[cat]) catMap[cat] = { category: cat, stockVal: 0, items: 0 };
+                        const qty = parseFloat(p.stock_quantity || p.quantity || 0);
+                        const price = parseFloat(p.selling_price || p.price || 0);
+                        catMap[cat].stockVal += (qty * price);
+                        catMap[cat].items += 1;
+                    });
+
+                    return Object.values(catMap);
                 }
 
                 // ── GST Rate Wise Report
                 if (id === 39) {
-                    return [
-                        { slab: '5% Slab', taxable: 120000, tax: 6000 },
-                        { slab: '12% Slab', taxable: 45000, tax: 5400 },
-                        { slab: '18% Slab', taxable: 850000, tax: 153000 },
-                        { slab: '28% Slab', taxable: 95000, tax: 26600 }
-                    ];
+                    const sales = await reportsService.getSales().catch(() => []);
+                    const rawSales = sales?.data || sales || [];
+
+                    const slabMap = {
+                        '5% Slab': { slab: '5% Slab', taxable: 0, tax: 0 },
+                        '12% Slab': { slab: '12% Slab', taxable: 0, tax: 0 },
+                        '18% Slab': { slab: '18% Slab', taxable: 0, tax: 0 },
+                        '28% Slab': { slab: '28% Slab', taxable: 0, tax: 0 }
+                    };
+
+                    rawSales.forEach(s => {
+                        const total = parseFloat(s.grand_total || 0);
+                        const taxRate = parseFloat(s.tax_rate || 18);
+                        const slabKey = `${taxRate}% Slab`;
+                        const taxable = total / (1 + (taxRate / 100));
+                        const tax = total - taxable;
+
+                        if (slabMap[slabKey]) {
+                            slabMap[slabKey].taxable += taxable;
+                            slabMap[slabKey].tax += tax;
+                        } else {
+                            slabMap['18% Slab'].taxable += taxable;
+                            slabMap['18% Slab'].tax += tax;
+                        }
+                    });
+
+                    return Object.values(slabMap);
                 }
 
                 // ── Form 27EQ Compliance
                 if (id === 40) {
+                    const sales = await reportsService.getSales().catch(() => []);
+                    const totalSales = (sales?.data || sales || []).reduce((sum, s) => sum + parseFloat(s.grand_total || 0), 0);
                     return [
-                        { quarter: 'Q1 FY 2025-26', turnover: 1800000, tcsCollection: 18000 },
-                        { quarter: 'Q2 FY 2025-26', turnover: 2400000, tcsCollection: 24000 },
-                        { quarter: 'Q3 FY 2025-26', turnover: 1950000, tcsCollection: 19500 },
-                        { quarter: 'Q4 FY 2025-26', turnover: 2850000, tcsCollection: 28500 }
+                        { quarter: 'Q1 FY 2025-26', turnover: totalSales * 0.25, tcsCollection: totalSales * 0.0025 },
+                        { quarter: 'Q2 FY 2025-26', turnover: totalSales * 0.25, tcsCollection: totalSales * 0.0025 },
+                        { quarter: 'Q3 FY 2025-26', turnover: totalSales * 0.25, tcsCollection: totalSales * 0.0025 },
+                        { quarter: 'Q4 FY 2025-26', turnover: totalSales * 0.25, tcsCollection: totalSales * 0.0025 }
                     ];
                 }
 
                 // ── TCS Receivable Audit
                 if (id === 41) {
-                    const cust = await crmService.getCustomers();
-                    return (cust?.data || cust || []).slice(0, 5).map(c => ({
-                        party: c.name,
-                        taxableVal: 150000,
-                        tcsVal: 1500,
-                        status: 'Collected'
+                    const cust = await crmService.getCustomers().catch(() => []);
+                    const list = cust?.data || cust || [];
+                    return list.map(c => ({
+                        party: c.name || c.first_name,
+                        taxableVal: parseFloat(c.outstanding_balance || 0),
+                        tcsVal: parseFloat(c.outstanding_balance || 0) * 0.01,
+                        status: 'Compiled'
                     }));
                 }
 
                 // ── TDS Receivables & Payables Matrix
                 if ([42, 43].includes(id)) {
-                    const supp = await suppliersService.getSuppliers();
-                    return (supp?.data || supp || []).slice(0, 5).map(s => ({
-                        party: s.supplier_name || s.name || 'Trade Vendor',
+                    const supp = await suppliersService.getSuppliers().catch(() => []);
+                    const list = supp?.data || supp || [];
+                    return list.map(s => ({
+                        party: s.supplier_name || s.name || s.company_name || 'Trade Vendor',
                         section: 'Sec 194Q',
-                        baseAmt: 250000,
-                        tdsVal: 2500,
+                        baseAmt: parseFloat(s.outstanding_balance || 0),
+                        tdsVal: parseFloat(s.outstanding_balance || 0) * 0.01,
                         status: id === 42 ? 'Pending Return' : 'Due for Deposit'
                     }));
                 }
@@ -671,7 +782,7 @@ const BusinessReports = () => {
             {/* Dynamic Report Details Modal */}
             {selectedReport && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)' }}>
-                    <div style={{ background: 'white', width: '720px', maxHeight: '80vh', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ background: 'white', width: viewMode === 'both' ? '880px' : '740px', maxWidth: '95vw', maxHeight: '85vh', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', transition: 'width 0.3s ease' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <div>
                                 <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.15rem', margin: 0 }}>{selectedReport.title}</h2>
@@ -718,11 +829,11 @@ const BusinessReports = () => {
                             </div>
 
                             {/* Integrated View Controls: Tabular View vs Interactive Graphs */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F1F5F9', padding: '0.3rem', borderRadius: '10px' }}>
-                                <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', paddingLeft: '0.5rem', textTransform: 'uppercase' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F1F5F9', padding: '0.35rem 0.6rem', borderRadius: '10px', flexWrap: 'wrap', gap: '0.4rem', boxSizing: 'border-box' }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', paddingLeft: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
                                     Visualization View:
                                 </span>
-                                <div style={{ display: 'flex', gap: '0.3rem' }}>
+                                <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center' }}>
                                     {[
                                         { mode: 'table', label: '📋 Tabular View' },
                                         { mode: 'graph', label: '📊 Integrated Graph' },
@@ -732,11 +843,12 @@ const BusinessReports = () => {
                                             key={btn.mode}
                                             onClick={() => setViewMode(btn.mode)}
                                             style={{
-                                                padding: '0.4rem 0.75rem', borderRadius: '8px', border: 'none',
+                                                padding: '0.35rem 0.65rem', borderRadius: '8px', border: 'none',
                                                 background: viewMode === btn.mode ? 'white' : 'transparent',
                                                 color: viewMode === btn.mode ? '#BE185D' : '#64748B',
-                                                fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer',
-                                                boxShadow: viewMode === btn.mode ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                                                fontWeight: '800', fontSize: '0.72rem', cursor: 'pointer',
+                                                whiteSpace: 'nowrap',
+                                                boxShadow: viewMode === btn.mode ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
                                                 transition: 'all 0.2s ease'
                                             }}
                                         >
