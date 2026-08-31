@@ -45,6 +45,7 @@ import { billingService } from '../services/billingService';
 import { gstService, settingsService } from '../services';
 import * as XLSX from 'xlsx';
 import { useCurrency, useAuth } from '../context';
+import BankStatementReconciliationModal from '../components/BankStatementReconciliationModal';
 
 const BusinessAccounting = () => {
     const { currency, formatCurrency } = useCurrency();
@@ -244,6 +245,7 @@ const BusinessAccounting = () => {
     const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
+    const [isReconciliationModalOpen, setIsReconciliationModalOpen] = useState(false);
     const [selectedAccountForAction, setSelectedAccountForAction] = useState(null);
 
     // Form inputs states
@@ -1958,6 +1960,7 @@ const BusinessAccounting = () => {
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                                             <button
                                                 type="button"
+                                                onClick={() => setIsReconciliationModalOpen(true)}
                                                 style={{
                                                     padding: '0.4rem 0.85rem',
                                                     borderRadius: '8px',
@@ -1980,6 +1983,7 @@ const BusinessAccounting = () => {
                                             </button>
                                             <button
                                                 type="button"
+                                                onClick={() => setIsReconciliationModalOpen(true)}
                                                 style={{
                                                     padding: '0.4rem 0.85rem',
                                                     borderRadius: '8px',
@@ -4997,6 +5001,29 @@ const BusinessAccounting = () => {
                     </div>
                 );
             })()}
+
+            {/* Bank Statement Reconciliation Modal */}
+            <BankStatementReconciliationModal
+                isOpen={isReconciliationModalOpen}
+                onClose={() => setIsReconciliationModalOpen(false)}
+                bankAccount={selectedAccount}
+                bankAccounts={cashAndBankAccounts}
+                systemContext={{
+                    customers: crmCustomers || [],
+                    suppliers: suppliersList || [],
+                    invoices: invoicesList || [],
+                    purchases: purchasesList || [],
+                    expenses: expensesList || [],
+                    ledgerEntries: selectedTransactions || []
+                }}
+                onSyncComplete={() => {
+                    queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
+                    queryClient.invalidateQueries({ queryKey: ['accounting-ledger'] });
+                    queryClient.invalidateQueries({ queryKey: ['expenses'] });
+                    queryClient.invalidateQueries({ queryKey: ['profit-loss'] });
+                    queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+                }}
+            />
         </div>
     );
 };
