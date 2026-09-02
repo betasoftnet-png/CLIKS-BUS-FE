@@ -150,7 +150,7 @@ const BusinessDashboard = () => {
     });
 
     // Real dynamic financial calculations
-    const totalSalesAmount = salesOverview?.total_sales || salesOverview?.data?.total_sales || 441092;
+    const totalSalesAmount = salesOverview?.total_sales ?? salesOverview?.data?.total_sales ?? 0;
     
     const rawPurchases = Array.isArray(purchasesData) 
         ? purchasesData 
@@ -159,22 +159,16 @@ const BusinessDashboard = () => {
     const totalPurchasesAmount = rawPurchases.reduce((acc, p) => 
         acc + (parseFloat(p.total_amount || p.total || p.grand_total || p.amount || 0)), 0);
 
-    const totalExpensesAmount = (trialBalanceData?.totalExpenses || trialBalanceData?.data?.totalExpenses)
-        ? (trialBalanceData.totalExpenses || trialBalanceData.data.totalExpenses)
-        : ((expensesCategoryReport && expensesCategoryReport.length > 0)
+    const totalExpensesAmount = (trialBalanceData?.totalExpenses ?? trialBalanceData?.data?.totalExpenses)
+        ?? ((expensesCategoryReport && expensesCategoryReport.length > 0)
             ? expensesCategoryReport.reduce((acc, e) => acc + (parseFloat(e.total_amount || e.total || 0)), 0)
-            : 8061134.47);
+            : 0);
 
     const estimatedNetProfit = totalSalesAmount - totalExpensesAmount;
 
     const DONUT_COLORS = ['#1B6B3A', '#10B981', '#059669', '#34D399', '#6EE7B7', '#A7F3D0'];
 
-    const rawExpenses = (expensesCategoryReport?.data || expensesCategoryReport || [
-        { category_name: 'Vendor Procurement', total_amount: 145000 },
-        { category_name: 'Logistics & Shipping', total_amount: 68000 },
-        { category_name: 'Operational Expenses', total_amount: 45000 },
-        { category_name: 'Staff Payroll', total_amount: 85000 },
-    ]);
+    const rawExpenses = (expensesCategoryReport?.data || expensesCategoryReport || []);
     const totalExpCategorySum = rawExpenses.reduce((acc, cat) => acc + (parseFloat(cat.total_amount || cat.amount || cat.total || 0)), 0);
 
     const finalExpenseCategories = rawExpenses.map(cat => ({
@@ -192,12 +186,12 @@ const BusinessDashboard = () => {
 
     // Data formatters for Custom SVG Sales Graph
     const rawSalesArray = salesOverview?.monthly_sales || salesOverview?.data?.monthly_sales || [
-        12000, 19000, 15000, 28000, 32000, 45000, 38000, 52000, 61000, 75000, 89000, totalSalesAmount / 4
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     ];
     
     // Fill to 12 months if short
     const salesData = [...rawSalesArray];
-    while(salesData.length < 12) salesData.push(10000 + (salesData.length * 4000));
+    while(salesData.length < 12) salesData.push(0);
     
     const monthsLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const maxSales = Math.max(...salesData, 100000);
