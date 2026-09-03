@@ -1,28 +1,28 @@
-name: Deploy to Server
+# name: Deploy to Server
 
-on:
-  push:
-    branches:
-      - main   # change to master if needed
+# on:
+#   push:
+#     branches:
+#       - main   # change to master if needed
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.0
+#     steps:
+#       - name: Deploy via SSH
+#         uses: appleboy/ssh-action@v1.0.0
 
-        with:
-          host: 204.168.244.118
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /var/www/CLIKS-BUS-FE
-            git fetch origin
-            git reset --hard origin/main
-            npm install
-            npm run build
-            rm -rf /var/www/cliks-business/*
-            cp -r dist/* /var/www/cliks-business/
-            systemctl restart nginx
+#         with:
+#           host: 204.168.244.118
+#           username: root
+#           key: ${{ secrets.SSH_PRIVATE_KEY }}
+#           script: |
+#             cd /var/www/CLIKS-BUS-FE
+#             git fetch origin
+#             git reset --hard origin/main
+#             npm install
+#             npm run build
+#             rm -rf /var/www/cliks-business/*
+#             cp -r dist/* /var/www/cliks-business/
+#             systemctl restart nginx
