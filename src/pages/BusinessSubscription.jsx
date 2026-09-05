@@ -10,7 +10,25 @@ import {
     ArrowUpRight, 
     Download, 
     Calendar,
-    Sparkles
+    Sparkles,
+    Globe,
+    User,
+    Home,
+    FileText,
+    Receipt,
+    Package,
+    Users,
+    UserCheck,
+    UserPlus,
+    BookOpen,
+    FileCheck,
+    Layers,
+    Settings,
+    Code,
+    Link,
+    Smartphone,
+    Headphones,
+    CheckCircle2
 } from 'lucide-react';
 import { load } from '@cashfreepayments/cashfree-js';
 import { apiClient } from '../api/client';
@@ -63,7 +81,6 @@ const BusinessSubscription = () => {
                 alert("Gateway Interrupted: " + result.error.message);
             } else {
                 await changePlan(tier.name);
-                // Removed the blocking alert so the UI instantly and seamlessly updates to show the active plan.
             }
 
         } catch (err) {
@@ -94,11 +111,14 @@ const BusinessSubscription = () => {
                 color: '#1B6B3A',
                 badge: 'Basic',
                 features: [
-                    'Unlimited Accounting & Day Book Logs',
-                    'Live GST Filings & ITC Auto-Matching',
-                    'Basic Warehousing (1 site)',
-                    'Automated Payroll & Attendance Systems',
-                    'Email Support'
+                    '3 Website Users',
+                    '5,000 Invoices & Bills / year',
+                    '5,000 Products & 2,000 Customers',
+                    '500 Vendors & 5 Staff (HR) profiles',
+                    'Full Accounting & GST (Reports, Filing, ITC)',
+                    'Basic Inventory & Limited E-Way Bill',
+                    'Mobile App Access',
+                    'VIP 24/7 Email Chat'
                 ]
             },
             {
@@ -111,11 +131,14 @@ const BusinessSubscription = () => {
                 badge: 'Most Popular',
                 features: [
                     'All features in Starter Plan',
-                    'Multi-warehouse Routing (up to 3 sites)',
-                    'Dedicated Bill of Materials (BOM)',
-                    'API Webhook Access & ERP Syncing',
-                    'Daily FIN-PRO Data Exporting (CSV/Excel)',
-                    'Priority Email & Live Chat Support'
+                    'Up to 10 Users & 3 Warehouses',
+                    '25,000 Invoices & Bills / year',
+                    '25,000 Products, 10,000 Customers, 2,500 Vendors',
+                    'Up to 25 Staff (HR) profiles',
+                    'Advanced Inventory & Full E-Invoice/E-Way Bill',
+                    'API & Webhooks Access',
+                    'Advanced FIN-PRO Data Exporting (CSV/Excel)',
+                    'VIP 24/7 Email Chat'
                 ]
             },
             {
@@ -128,12 +151,12 @@ const BusinessSubscription = () => {
                 badge: 'Ultimate Value',
                 features: [
                     'All features in Growth Plan',
-                    'Uncapped active staff profiles',
+                    'Up to 25 Users & 10 Warehouses',
+                    '100,000 Invoices & Bills / year',
+                    'Unlimited Products, Customers, Vendors & Staff',
                     'Custom White-Label Invoicing Layouts',
-                    'Unlimited manufacturing batches & QC logs',
                     'Guaranteed 99.99% uptime SLA service',
-                    'Dedicated FIN-PRO Account Manager assistance',
-                    'Priority 24/7/365 Direct VIP Phone Support'
+                    'VIP 24/7 Email Chat'
                 ]
             }
         ],
@@ -284,7 +307,7 @@ const BusinessSubscription = () => {
         if (!foundTier) {
             return {
                 price: 6999,
-                desc: 'Your workspace is configured with high-performance ERP pipelines. All accounting, manufacturing, and HR modules are fully active.',
+                desc: 'Your workspace is configured with high-performance ERP pipelines. All accounting, inventory, and HR modules are fully active.',
                 gradient: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)',
                 color: '#1B6B3A'
             };
@@ -321,6 +344,63 @@ const BusinessSubscription = () => {
 
     const renewal = getRenewalDetails();
 
+    const comparisonRows = [
+        { feature: 'Website Users', icon: User, starter: '3', growth: '10', elite: '25' },
+        { feature: 'Warehouses', icon: Home, starter: '❌', growth: '3', elite: '10' },
+        { feature: 'Invoices per year', icon: FileText, starter: '5,000', growth: '25,000', elite: '100,000' },
+        { feature: 'Bills / Expenses per year', icon: Receipt, starter: '5,000', growth: '25,000', elite: '100,000' },
+        { feature: 'Products / Items', icon: Package, starter: '5,000', growth: '25,000', elite: 'Unlimited' },
+        { feature: 'Customers', icon: Users, starter: '2,000', growth: '10,000', elite: 'Unlimited' },
+        { feature: 'Vendors / Suppliers', icon: UserCheck, starter: '500', growth: '2,500', elite: 'Unlimited' },
+        { feature: 'Staff (HR)', icon: UserPlus, starter: '5', growth: '25', elite: 'Unlimited' },
+        { feature: 'Accounting', icon: BookOpen, starter: '✅', growth: '✅', elite: '✅' },
+        { feature: 'GST (Reports, Filing, ITC)', icon: FileCheck, starter: '✅', growth: '✅', elite: '✅' },
+        { feature: 'Inventory', icon: Layers, starter: 'Basic', growth: 'Advanced', elite: 'Advanced' },
+        { feature: 'E-Invoice / E-Way Bill', icon: Settings, starter: 'Limited', growth: '✅', elite: '✅' },
+        { feature: 'API / Webhooks', icon: Code, starter: '❌', growth: '✅', elite: '✅' },
+        { feature: 'White-label Invoices', icon: Link, starter: '❌', growth: '❌', elite: '✅' },
+        { feature: 'Data Export', icon: Download, starter: 'Basic', growth: 'Advanced', elite: 'Advanced' },
+        { feature: 'Mobile App', icon: Smartphone, starter: '✅', growth: '✅', elite: '✅' },
+        { feature: 'Support', icon: Headphones, starter: 'VIP 24/7 Email Chat', growth: 'VIP 24/7 Email Chat', elite: 'VIP 24/7 Email Chat' }
+    ];
+
+    const renderCellValue = (val) => {
+        if (val === '✅') {
+            return (
+                <span style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    width: '26px', 
+                    height: '26px', 
+                    borderRadius: '50%', 
+                    background: '#16A34A', 
+                    color: 'white',
+                    boxShadow: '0 2px 4px rgba(22, 163, 74, 0.2)'
+                }}>
+                    <Check size={16} strokeWidth={3} />
+                </span>
+            );
+        }
+        if (val === '❌') {
+            return (
+                <span style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    width: '24px', 
+                    height: '24px', 
+                    color: '#EF4444', 
+                    fontSize: '1.1rem',
+                    fontWeight: '800'
+                }}>
+                    ✕
+                </span>
+            );
+        }
+        return <span style={{ fontWeight: val === 'Unlimited' ? '800' : '600', color: val === 'Unlimited' ? '#16A34A' : '#1E293B', fontSize: '0.88rem' }}>{val}</span>;
+    };
+
     return (
         <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             <style>{`
@@ -344,6 +424,9 @@ const BusinessSubscription = () => {
                 .upgrade-btn:hover {
                     opacity: 0.95;
                     transform: scale(1.02);
+                }
+                .cmp-table tr:hover {
+                    background-color: #F8FAFC !important;
                 }
             `}</style>
 
@@ -699,6 +782,101 @@ const BusinessSubscription = () => {
                 })}
             </div>
 
+            {/* Plan Comparison Table Section (Business Category) */}
+            {activeCategory === 'business' && (
+                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2rem 2.5rem', marginBottom: '3rem', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.04)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '12px', background: '#DCF2E4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A' }}>
+                            <ShieldCheck size={20} />
+                        </div>
+                        <div>
+                            <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Plan Features Comparison</h3>
+                            <p style={{ fontSize: '0.85rem', color: '#64748B', margin: 0, fontWeight: '500' }}>Compare exact features, usage quotas, and capabilities across all subscription tiers.</p>
+                        </div>
+                    </div>
+
+                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '20px', overflow: 'hidden' }}>
+                        <table className="cmp-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontFamily: "'Inter', sans-serif" }}>
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '31%', padding: '1.25rem 1.5rem', textAlign: 'left', fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', background: '#F8FAFC', borderBottom: '2px solid #E2E8F0' }}>
+                                        Platform / Feature
+                                    </th>
+                                    
+                                    {/* Starter Plan Header Column */}
+                                    <th style={{ width: '23%', padding: '1.25rem 1rem', background: '#16A34A', color: 'white', borderBottom: '2px solid #E2E8F0', verticalAlign: 'top' }}>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Starter</div>
+                                        <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹2,999 / year</div>
+                                        <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹250/month)</div>
+                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
+                                            Best for Small business
+                                        </div>
+                                    </th>
+
+                                    {/* Growth Plan Header Column */}
+                                    <th style={{ width: '23%', padding: '1.25rem 1rem', background: '#2563EB', color: 'white', borderBottom: '2px solid #E2E8F0', verticalAlign: 'top' }}>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Growth</div>
+                                        <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹6,999 / year</div>
+                                        <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹583/month)</div>
+                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
+                                            Best for Growing business
+                                        </div>
+                                    </th>
+
+                                    {/* Elite Plan Header Column */}
+                                    <th style={{ width: '23%', padding: '1.25rem 1rem', background: '#7C3AED', color: 'white', borderBottom: '2px solid #E2E8F0', verticalAlign: 'top' }}>
+                                        <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Elite</div>
+                                        <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹8,999 / year</div>
+                                        <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹750/month)</div>
+                                        <div style={{ background: 'rgba(255, 255, 255, 0.2)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'inline-block' }}>
+                                            Best for Large / advanced business
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {/* Row 1: Website Banner */}
+                                <tr style={{ borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
+                                    <td style={{ padding: '0.9rem 1.5rem', textAlign: 'left', fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                            <Globe size={18} color="#2563EB" />
+                                            <span>Website</span>
+                                        </div>
+                                    </td>
+                                    <td colSpan={3} style={{ padding: '0.9rem 1rem', color: '#2563EB', fontWeight: '700', fontSize: '0.92rem' }}>
+                                        <a href="https://www.cliks.in" target="_blank" rel="noopener noreferrer" style={{ color: '#2563EB', textDecoration: 'none' }}>www.cliks.in</a>
+                                    </td>
+                                </tr>
+
+                                {/* Standard Feature Rows */}
+                                {comparisonRows.map((row, rIdx) => {
+                                    const RowIcon = row.icon;
+                                    return (
+                                        <tr key={rIdx} style={{ borderBottom: rIdx === comparisonRows.length - 1 ? 'none' : '1px solid #E2E8F0', background: rIdx % 2 === 0 ? 'white' : '#FAFAFA' }}>
+                                            <td style={{ padding: '0.85rem 1.5rem', textAlign: 'left', fontWeight: '700', color: '#334155', fontSize: '0.88rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                                    <RowIcon size={17} color="#2563EB" />
+                                                    <span>{row.feature}</span>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '0.85rem 1rem', background: 'rgba(22, 163, 74, 0.02)' }}>
+                                                {renderCellValue(row.starter)}
+                                            </td>
+                                            <td style={{ padding: '0.85rem 1rem', background: 'rgba(37, 99, 235, 0.02)' }}>
+                                                {renderCellValue(row.growth)}
+                                            </td>
+                                            <td style={{ padding: '0.85rem 1rem', background: 'rgba(124, 58, 237, 0.02)' }}>
+                                                {renderCellValue(row.elite)}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
             {/* Invoices History list */}
             <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
@@ -738,3 +916,4 @@ const BusinessSubscription = () => {
 };
 
 export default BusinessSubscription;
+

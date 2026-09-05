@@ -40,7 +40,7 @@ import { expensesService } from '../services/expensesService';
 import { splitExpenseService } from '../services/splitExpenseService';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { useCurrency } from '../context';
+import { useCurrency, useAuth } from '../context';
 import { config } from '../lib/config';
 
 const INITIAL_EMPLOYEES = [
@@ -122,6 +122,7 @@ const INITIAL_EMPLOYEES = [
 
 const BusinessStaffing = () => {
     const { currency, formatCurrency } = useCurrency();
+    const { selectedPlan, user } = useAuth();
     const [activeTab, setActiveTab] = useState('profiles');
     const [colFilters, setColFilters] = React.useState({}); // 'profiles', 'employment', 'payroll', 'leaves', 'performance'
     const [searchTerm, setSearchTerm] = useState('');
@@ -595,6 +596,13 @@ const BusinessStaffing = () => {
     // Handle employee onboarding submit
     const handleOnboardSubmit = (e) => {
         e.preventDefault();
+
+        const activePlan = selectedPlan || user?.tier || 'Starter Plan';
+        const maxStaff = activePlan === 'Elite Suite' ? Infinity : (activePlan === 'Growth Plan' ? 25 : 5);
+        if (employees.length >= maxStaff) {
+            alert(`You have reached the maximum limit of ${maxStaff} staff profiles for your ${activePlan}. Upgrade your subscription plan for additional staff capacity.`);
+            return;
+        }
         const finalDesignation = newEmp.designation_name || 'Sales Executive';
         const finalSalary = parseFloat(newEmp.basic_salary) || 35000;
         const finalBankName = newEmp.bank_name || 'HDFC Bank';

@@ -515,8 +515,16 @@ const BusinessWarehouse = () => {
     const handleCreateWarehouse = (e) => {
         e.preventDefault();
 
-        if (isStarterPlan) {
-            alert("You are currently on the Starter Plan. Upgrade your plan to add more warehouses.");
+        const activePlan = selectedPlan || user?.tier || 'Starter Plan';
+        const maxWarehouses = (activePlan === 'Elite Suite') ? 10 : (activePlan === 'Growth Plan' ? 3 : 0);
+
+        if (maxWarehouses === 0) {
+            alert("Starter Plan does not include warehouse access (0 Warehouses). Upgrade to Growth Plan for up to 3 warehouses.");
+            return;
+        }
+
+        if (warehouses.length >= maxWarehouses) {
+            alert(`You have reached the maximum limit of ${maxWarehouses} warehouses for ${activePlan}. Upgrade your subscription plan for additional warehouse capacity.`);
             return;
         }
 

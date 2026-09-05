@@ -559,6 +559,13 @@ const BusinessInventory = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
 
+        const activePlan = selectedPlan || user?.tier || 'Starter Plan';
+        const maxProducts = activePlan === 'Elite Suite' ? Infinity : (activePlan === 'Growth Plan' ? 25000 : 5000);
+        if (!editingItem && items.length >= maxProducts) {
+            alert(`You have reached the maximum limit of ${maxProducts.toLocaleString()} products for your ${activePlan}. Upgrade your subscription plan for additional product capacity.`);
+            return;
+        }
+
         if (isStarterPlan) {
             formData.warehouse = formData.warehouse || 'GENERAL';
         } else if (formData.product_type === 'product' && (!formData.warehouse || !String(formData.warehouse).trim())) {
