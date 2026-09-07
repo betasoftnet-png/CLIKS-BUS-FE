@@ -836,19 +836,6 @@ const BusinessSubscription = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {/* Row 1: Website Banner */}
-                                <tr style={{ borderBottom: '1px solid #E2E8F0', background: '#F8FAFC' }}>
-                                    <td style={{ padding: '0.9rem 1.5rem', textAlign: 'left', fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                            <Globe size={18} color="#2563EB" />
-                                            <span>Website</span>
-                                        </div>
-                                    </td>
-                                    <td colSpan={3} style={{ padding: '0.9rem 1rem', color: '#2563EB', fontWeight: '700', fontSize: '0.92rem' }}>
-                                        <a href="https://www.cliks.in" target="_blank" rel="noopener noreferrer" style={{ color: '#2563EB', textDecoration: 'none' }}>www.cliks.in</a>
-                                    </td>
-                                </tr>
-
                                 {/* Standard Feature Rows */}
                                 {comparisonRows.map((row, rIdx) => {
                                     const RowIcon = row.icon;
