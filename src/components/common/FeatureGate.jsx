@@ -1,28 +1,24 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/auth-context';
-import { Crown, Lock } from 'lucide-react';
+import { isFeatureAllowed, getRequiredPlanForFeature } from '../../utils/subscriptionUtils';
 
 /**
  * FeatureGate component to restrict UI elements or entire panels based on active subscription tier.
- * 
- * @param {Object} props
- * @param {string} props.feature - The feature code to check (e.g. 'multi-warehouse')
- * @param {string} [props.requiredPlanName='Growth Plan'] - Human-readable name of plan required for overlay display
- * @param {React.ReactNode} [props.fallback] - Custom fallback component to render if feature is locked
- * @param {boolean} [props.hideCompletely=false] - If true, renders null instead of the premium upgrade card overlay
- * @param {React.ReactNode} props.children - Locked content to render if active plan contains the feature
  */
 export const FeatureGate = ({ 
     feature, 
-    requiredPlanName = 'Growth Plan', 
+    requiredPlanName, 
     fallback, 
     hideCompletely = false, 
     children 
 }) => {
-    const { hasFeature } = useAuth();
+    const { selectedPlan, user } = useAuth();
     const navigate = useNavigate();
-    const isAllowed = hasFeature(feature);
+
+    const activePlan = selectedPlan || user?.tier || 'Free Plan';
+    const isAllowed = isFeatureAllowed(activePlan, feature);
+    const targetPlan = requiredPlanName || getRequiredPlanForFeature(feature);
 
     if (isAllowed) {
         return <>{children}</>;
@@ -42,6 +38,7 @@ export const FeatureGate = ({
             onClickCapture={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                alert(`Your current plan (${activePlan}) does not include access to this feature. Please upgrade to ${targetPlan} or higher to unlock full access.`);
                 navigate('/subscription');
             }}
             style={{ position: 'relative', width: '100%', height: '100%' }}
@@ -64,7 +61,7 @@ export const FeatureGate = ({
                     zIndex: 10,
                     cursor: 'pointer'
                 }}
-                title={`Upgrade to ${requiredPlanName} to unlock`}
+                title={`Upgrade to ${targetPlan} to unlock`}
             />
         </div>
     );

@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { Tooltip } from './common';
+import { isFeatureAllowed, getRequiredPlanForFeature } from '../utils/subscriptionUtils';
+
+const ROUTE_FEATURE_MAP = {
+    '/inventory/warehouse': 'multi-warehouse',
+    '/hr/staff': 'payroll-attendance',
+    '/hr/attendance': 'payroll-attendance',
+    '/hr/payroll': 'payroll-attendance',
+    '/finance/accounting': 'accounting',
+    '/finance/gst': 'gst-filings'
+};
 import {
     LayoutDashboard,
     Plus,
@@ -457,15 +467,25 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         setActiveItem(label);
         
         if (path) {
+            const activePlan = selectedPlan || user?.tier || 'Free Plan';
             // Intercept clicks if the user is on the Free Plan (allow essential pages)
             const allowedFreePlanPages = ['Dashboard', 'Settings', 'Subscription', 'Help & Support', 'Business Settings', 'Profile'];
             
             if (selectedPlan === 'Free Plan' && !allowedFreePlanPages.includes(label)) {
                 alert('You are on the Free Plan! Please subscribe to unlock full access to this feature.');
                 navigate('/subscription');
-            } else {
-                navigate(path);
+                return;
             }
+
+            const featureCode = ROUTE_FEATURE_MAP[path];
+            if (featureCode && !isFeatureAllowed(activePlan, featureCode)) {
+                const requiredPlan = getRequiredPlanForFeature(featureCode);
+                alert(`Your current plan (${activePlan}) does not include access to this feature. Please upgrade to ${requiredPlan} or higher to unlock access.`);
+                navigate('/subscription');
+                return;
+            }
+
+            navigate(path);
         }
 
         if (onClose && typeof window !== 'undefined' && window.innerWidth <= 768) {

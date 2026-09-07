@@ -168,6 +168,68 @@ export const PLAN_LIMITS = {
     }
 };
 
+export const PLAN_RANKS = {
+    'Free Plan': 0,
+    'Starter Plan': 1,
+    'Starter': 1,
+    'Growth Plan': 2,
+    'Growth': 2,
+    'Elite Suite': 3,
+    'Elite Plan': 3,
+    'Elite': 3,
+    'Yearly Founder': 3,
+    'Fin-Pro Solo': 1,
+    'Fin-Pro Firm': 2,
+    'Basic Investor': 1,
+    'Pro Investor': 2,
+    'Monthly Innovator': 1
+};
+
+export const FEATURE_REQUIRED_PLAN = {
+    // Starter Plan Features (Rank 1)
+    'accounting': 'Starter Plan',
+    'gst-filings': 'Starter Plan',
+    'payroll-attendance': 'Starter Plan',
+    'email-support': 'Starter Plan',
+    'inventory-basic': 'Starter Plan',
+    'mobile-app': 'Starter Plan',
+
+    // Growth Plan Features (Rank 2)
+    'multi-warehouse': 'Growth Plan',
+    'warehouses': 'Growth Plan',
+    'api-webhooks': 'Growth Plan',
+    'e-invoice': 'Growth Plan',
+    'e-way-bill': 'Growth Plan',
+    'advanced-inventory': 'Growth Plan',
+    'fin-pro-export': 'Growth Plan',
+    'advanced-export': 'Growth Plan',
+    'priority-support': 'Growth Plan',
+
+    // Elite Suite Features (Rank 3)
+    'white-label-invoice': 'Elite Suite',
+    'white-label': 'Elite Suite',
+    'unlimited-staff': 'Elite Suite',
+    'unlimited-products': 'Elite Suite',
+    'unlimited-customers': 'Elite Suite',
+    'unlimited-vendors': 'Elite Suite',
+    'dedicated-manager': 'Elite Suite',
+    'vip-phone-support': 'Elite Suite'
+};
+
+export const getPlanRank = (planName) => {
+    if (!planName) return 0;
+    if (PLAN_RANKS[planName] !== undefined) return PLAN_RANKS[planName];
+    const norm = String(planName).trim().toLowerCase();
+    if (norm.includes('elite') || norm.includes('founder')) return 3;
+    if (norm.includes('growth') || norm.includes('firm') || norm.includes('pro investor')) return 2;
+    if (norm.includes('starter') || norm.includes('solo') || norm.includes('basic investor') || norm.includes('monthly innovator')) return 1;
+    return 0;
+};
+
+export const getRequiredPlanForFeature = (featureId) => {
+    return FEATURE_REQUIRED_PLAN[featureId] || 'Starter Plan';
+};
+
 /**
  * Get specific numeric or feature limit for a given plan.
  */
@@ -205,9 +267,25 @@ export const getPlanDuration = (planName) => {
  * @returns {boolean} True if the feature is unlocked, false otherwise
  */
 export const isFeatureAllowed = (planName, featureId) => {
-    const activePlan = planName || 'Free Plan';
-    const features = PLAN_FEATURES[activePlan];
-    if (!features) return false;
-    return features.includes(featureId);
+    const userRank = getPlanRank(planName);
+    const requiredPlan = getRequiredPlanForFeature(featureId);
+    const requiredRank = getPlanRank(requiredPlan);
+    return userRank >= requiredRank;
 };
+
+/**
+ * Helper to check whether user's plan meets or exceeds a required plan or feature.
+ * 
+ * @param {string} userPlan - Logged-in user's subscription plan/tier
+ * @param {string} requiredPlanOrFeature - Plan name (e.g. 'Growth Plan') or feature ID (e.g. 'multi-warehouse')
+ * @returns {boolean} True if user has access, false otherwise
+ */
+export const hasPlanAccess = (userPlan, requiredPlanOrFeature) => {
+    const userRank = getPlanRank(userPlan);
+    const targetRank = PLAN_RANKS[requiredPlanOrFeature] !== undefined 
+        ? PLAN_RANKS[requiredPlanOrFeature] 
+        : getPlanRank(getRequiredPlanForFeature(requiredPlanOrFeature));
+    return userRank >= targetRank;
+};
+
 
