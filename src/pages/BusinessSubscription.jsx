@@ -112,12 +112,12 @@ const BusinessSubscription = () => {
                 badge: 'Basic',
                 features: [
                     '3 Website Users',
-                    '5,000 Invoices & Bills / year',
+                    '5,000 Invoices & 5,000 Bills / year',
                     '5,000 Products & 2,000 Customers',
-                    '500 Vendors & 5 Staff (HR) profiles',
-                    'Full Accounting & GST (Reports, Filing, ITC)',
+                    '500 Vendors & 5 Staff (HR)',
+                    'Accounting & GST (Reports, Filing, ITC)',
                     'Basic Inventory & Limited E-Way Bill',
-                    'Mobile App Access',
+                    'Basic Data Export & Mobile App',
                     'VIP 24/7 Email Chat'
                 ]
             },
@@ -131,13 +131,13 @@ const BusinessSubscription = () => {
                 badge: 'Most Popular',
                 features: [
                     'All features in Starter Plan',
-                    'Up to 10 Users & 3 Warehouses',
-                    '25,000 Invoices & Bills / year',
-                    '25,000 Products, 10,000 Customers, 2,500 Vendors',
-                    'Up to 25 Staff (HR) profiles',
+                    '10 Website Users & 3 Warehouses',
+                    '25,000 Invoices & 25,000 Bills / year',
+                    '25,000 Products & 10,000 Customers',
+                    '2,500 Vendors & 25 Staff (HR)',
                     'Advanced Inventory & Full E-Invoice/E-Way Bill',
                     'API & Webhooks Access',
-                    'Advanced FIN-PRO Data Exporting (CSV/Excel)',
+                    'Advanced Data Export & Mobile App',
                     'VIP 24/7 Email Chat'
                 ]
             },
@@ -151,11 +151,12 @@ const BusinessSubscription = () => {
                 badge: 'Ultimate Value',
                 features: [
                     'All features in Growth Plan',
-                    'Up to 25 Users & 10 Warehouses',
-                    '100,000 Invoices & Bills / year',
-                    'Unlimited Products, Customers, Vendors & Staff',
-                    'Custom White-Label Invoicing Layouts',
-                    'Guaranteed 99.99% uptime SLA service',
+                    '25 Website Users & 10 Warehouses',
+                    '100,000 Invoices & 100,000 Bills / year',
+                    'Unlimited Products, Customers & Vendors',
+                    'Unlimited Staff (HR) profiles',
+                    'White-label Invoices',
+                    'Advanced Data Export & Mobile App',
                     'VIP 24/7 Email Chat'
                 ]
             }
