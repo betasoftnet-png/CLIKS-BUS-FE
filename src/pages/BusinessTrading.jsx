@@ -128,6 +128,7 @@ const BusinessTrading = () => {
     const [activeModule, setActiveModule] = useState(null);
     const [activeTopicIdx, setActiveTopicIdx] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
+    const [sidebarTab, setSidebarTab] = useState('syllabus'); // 'syllabus' | 'bookmarked'
     const [bookmarkList, setBookmarkList] = useState(() => {
         const local = localStorage.getItem('cliks_reading_bookmarks');
         return local ? JSON.parse(local) : [];
@@ -143,6 +144,7 @@ const BusinessTrading = () => {
         setActiveModule(firstMod);
         setActiveTopicIdx(0);
         setSearchQuery('');
+        setSidebarTab('syllabus');
         // Start with all phases expanded by default for visibility
         setOpenPhases(academy.curriculum.map((_, idx) => idx));
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -153,6 +155,7 @@ const BusinessTrading = () => {
         setActiveModule(null);
         setActiveTopicIdx(0);
         setSearchQuery('');
+        setSidebarTab('syllabus');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -190,6 +193,40 @@ const BusinessTrading = () => {
         );
         return found ? found.name : '';
     }, [activeModule, CURRICULUM_DATA]);
+
+    // Bookmarked Modules extraction across all course phases in syllabus order
+    const bookmarkedModules = useMemo(() => {
+        if (!CURRICULUM_DATA) return [];
+        const list = [];
+        CURRICULUM_DATA.forEach(phase => {
+            phase.modules.forEach(module => {
+                const isBookmarked = bookmarkList.includes(module.title) || 
+                    (module.topics && module.topics.some(t => bookmarkList.includes(t.title)));
+                if (isBookmarked) {
+                    let topicIdx = 0;
+                    if (module.topics) {
+                        const idx = module.topics.findIndex(t => bookmarkList.includes(t.title));
+                        if (idx > -1) topicIdx = idx;
+                    }
+                    list.push({
+                        ...module,
+                        phaseName: phase.name,
+                        bookmarkedTopicIdx: topicIdx
+                    });
+                }
+            });
+        });
+        return list;
+    }, [CURRICULUM_DATA, bookmarkList]);
+
+    const filteredBookmarkedModules = useMemo(() => {
+        if (!searchQuery) return bookmarkedModules;
+        const query = searchQuery.toLowerCase();
+        return bookmarkedModules.filter(m => 
+            m.title.toLowerCase().includes(query) ||
+            m.phaseName.toLowerCase().includes(query)
+        );
+    }, [bookmarkedModules, searchQuery]);
 
     // Filtering logic spanning current track
     const filteredPhases = useMemo(() => {
@@ -574,79 +611,204 @@ Embracing these hardened financial laws converts wealth creation from an emotion
                         overflow: 'hidden', boxShadow: '0 4px 20px -4px rgba(0,0,0,0.03)', 
                         maxHeight: '70vh', display: 'flex', flexDirection: 'column' 
                     }}>
-                        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0', background: '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.78rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748B' }}>Course Syllabus</span>
-                            <span style={{ fontSize: '0.7rem', fontWeight: '850', color: '#1B6B3A', background: '#DCF2E4', padding: '3px 8px', borderRadius: '6px' }}>{trackModulesFlat.length} Modules</span>
+                        <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #E2E8F0', background: '#F8FAFC', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <button
+                                onClick={() => setSidebarTab('syllabus')}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.5rem 0.65rem',
+                                    borderRadius: '10px',
+                                    border: 'none',
+                                    background: sidebarTab === 'syllabus' ? '#1B6B3A' : 'transparent',
+                                    color: sidebarTab === 'syllabus' ? 'white' : '#64748B',
+                                    fontWeight: '900',
+                                    fontSize: '0.75rem',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.03em',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justify: 'center',
+                                    gap: '0.4rem',
+                                    transition: 'all 0.15s'
+                                }}
+                            >
+                                <span>Course Syllabus</span>
+                                <span style={{ 
+                                    fontSize: '0.68rem', 
+                                    fontWeight: '850', 
+                                    color: sidebarTab === 'syllabus' ? '#1B6B3A' : '#64748B', 
+                                    background: sidebarTab === 'syllabus' ? '#DCF2E4' : '#E2E8F0', 
+                                    padding: '2px 6px', 
+                                    borderRadius: '6px' 
+                                }}>
+                                    {trackModulesFlat.length}
+                                </span>
+                            </button>
+
+                            <button
+                                onClick={() => setSidebarTab('bookmarked')}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.5rem 0.65rem',
+                                    borderRadius: '10px',
+                                    border: 'none',
+                                    background: sidebarTab === 'bookmarked' ? '#1B6B3A' : 'transparent',
+                                    color: sidebarTab === 'bookmarked' ? 'white' : '#64748B',
+                                    fontWeight: '900',
+                                    fontSize: '0.75rem',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.03em',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justify: 'center',
+                                    gap: '0.4rem',
+                                    transition: 'all 0.15s'
+                                }}
+                            >
+                                <span>Bookmarked</span>
+                                <span style={{ 
+                                    fontSize: '0.68rem', 
+                                    fontWeight: '850', 
+                                    color: sidebarTab === 'bookmarked' ? '#1B6B3A' : '#64748B', 
+                                    background: sidebarTab === 'bookmarked' ? '#DCF2E4' : '#E2E8F0', 
+                                    padding: '2px 6px', 
+                                    borderRadius: '6px' 
+                                }}>
+                                    {bookmarkedModules.length}
+                                </span>
+                            </button>
                         </div>
 
                         <div style={{ overflowY: 'auto', flex: 1 }}>
-                            {filteredPhases.map((phase, phaseIdx) => {
-                                const PhaseIcon = phase.icon;
-                                const isOpen = openPhases.includes(phaseIdx);
-                                return (
-                                    <div key={phaseIdx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                        {/* Phase Accordion Header Toggle */}
-                                        <div 
-                                            onClick={() => togglePhase(phaseIdx)}
-                                            style={{ 
-                                                padding: '1.1rem 1.25rem', background: '#FAFAFA', cursor: 'pointer', 
-                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                borderBottom: isOpen ? '1px solid #F1F5F9' : 'none'
-                                            }}
-                                        >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                                <div style={{ color: '#1B6B3A' }}>
-                                                    <PhaseIcon size={16} />
+                            {sidebarTab === 'syllabus' ? (
+                                <>
+                                    {filteredPhases.map((phase, phaseIdx) => {
+                                        const PhaseIcon = phase.icon;
+                                        const isOpen = openPhases.includes(phaseIdx);
+                                        return (
+                                            <div key={phaseIdx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                {/* Phase Accordion Header Toggle */}
+                                                <div 
+                                                    onClick={() => togglePhase(phaseIdx)}
+                                                    style={{ 
+                                                        padding: '1.1rem 1.25rem', background: '#FAFAFA', cursor: 'pointer', 
+                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                        borderBottom: isOpen ? '1px solid #F1F5F9' : 'none'
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                                        <div style={{ color: '#1B6B3A' }}>
+                                                            <PhaseIcon size={16} />
+                                                        </div>
+                                                        <span style={{ fontSize: '0.78rem', fontWeight: '900', color: '#1E293B' }}>{phase.name}</span>
+                                                    </div>
+                                                    <ChevronRight size={16} style={{ color: '#94A3B8', transform: isOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
                                                 </div>
-                                                <span style={{ fontSize: '0.78rem', fontWeight: '900', color: '#1E293B' }}>{phase.name}</span>
-                                            </div>
-                                            <ChevronRight size={16} style={{ color: '#94A3B8', transform: isOpen ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
-                                        </div>
 
-                                        {/* Render Module Items nested in this Phase */}
-                                        {isOpen && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', background: 'white' }}>
-                                                {phase.modules.map((module) => {
-                                                    const Icon = module.icon;
-                                                    const isActive = activeModule && activeModule.id === module.id;
-                                                    return (
-                                                        <div 
-                                                            key={module.id}
-                                                            onClick={() => handleModuleSelect(module)}
-                                                            style={{ 
-                                                                padding: '1rem 1.25rem', 
-                                                                cursor: 'pointer',
-                                                                borderLeft: isActive ? '4px solid #1B6B3A' : '4px solid transparent',
-                                                                background: isActive ? '#F0FDF4' : 'transparent',
-                                                                borderBottom: '1px solid #F8FAFC',
-                                                                transition: 'background 0.15s'
-                                                            }}
-                                                        >
-                                                            <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
-                                                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isActive ? '#DCF2E4' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isActive ? '#1B6B3A' : '#64748B', flexShrink: 0 }}>
-                                                                    <Icon size={15} />
-                                                                </div>
-                                                                <div style={{ flex: 1 }}>
-                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                                                                        <span style={{ fontSize: '0.62rem', fontWeight: '800', textTransform: 'uppercase', color: isActive ? '#1B6B3A' : '#64748B' }}>{module.level}</span>
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#94A3B8' }}>
-                                                                            <Clock size={9} />
-                                                                            <span style={{ fontSize: '0.6rem', fontWeight: '600' }}>{module.duration}</span>
+                                                {/* Render Module Items nested in this Phase */}
+                                                {isOpen && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', background: 'white' }}>
+                                                        {phase.modules.map((module) => {
+                                                            const Icon = module.icon;
+                                                            const isActive = activeModule && activeModule.id === module.id;
+                                                            return (
+                                                                <div 
+                                                                    key={module.id}
+                                                                    onClick={() => handleModuleSelect(module)}
+                                                                    style={{ 
+                                                                        padding: '1rem 1.25rem', 
+                                                                        cursor: 'pointer',
+                                                                        borderLeft: isActive ? '4px solid #1B6B3A' : '4px solid transparent',
+                                                                        background: isActive ? '#F0FDF4' : 'transparent',
+                                                                        borderBottom: '1px solid #F8FAFC',
+                                                                        transition: 'background 0.15s'
+                                                                    }}
+                                                                >
+                                                                    <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
+                                                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isActive ? '#DCF2E4' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isActive ? '#1B6B3A' : '#64748B', flexShrink: 0 }}>
+                                                                            <Icon size={15} />
+                                                                        </div>
+                                                                        <div style={{ flex: 1 }}>
+                                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                                                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', textTransform: 'uppercase', color: isActive ? '#1B6B3A' : '#64748B' }}>{module.level}</span>
+                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#94A3B8' }}>
+                                                                                    <Clock size={9} />
+                                                                                    <span style={{ fontSize: '0.6rem', fontWeight: '600' }}>{module.duration}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                            <h4 style={{ fontSize: '0.88rem', fontWeight: '800', color: isActive ? '#064E3B' : '#334155', margin: 0, lineHeight: '1.35' }}>{module.title}</h4>
                                                                         </div>
                                                                     </div>
-                                                                    <h4 style={{ fontSize: '0.88rem', fontWeight: '800', color: isActive ? '#064E3B' : '#334155', margin: 0, lineHeight: '1.35' }}>{module.title}</h4>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    {filteredPhases.length === 0 && (
+                                        <div style={{ padding: '2rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.9rem' }}>No matching modules found in this curriculum.</div>
+                                    )}
+                                </>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', background: 'white' }}>
+                                    {bookmarkedModules.length === 0 ? (
+                                        <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', color: '#94A3B8' }}>
+                                            <Bookmark size={28} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
+                                            <p style={{ fontSize: '0.88rem', fontWeight: '700', color: '#64748B', margin: 0 }}>No bookmarked modules yet.</p>
+                                        </div>
+                                    ) : filteredBookmarkedModules.length === 0 ? (
+                                        <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', color: '#94A3B8' }}>
+                                            <p style={{ fontSize: '0.88rem', fontWeight: '700', color: '#64748B', margin: 0 }}>No bookmarked modules match your search.</p>
+                                        </div>
+                                    ) : (
+                                        filteredBookmarkedModules.map((module) => {
+                                            const Icon = module.icon;
+                                            const isActive = activeModule && activeModule.id === module.id;
+                                            return (
+                                                <div 
+                                                    key={module.id}
+                                                    onClick={() => {
+                                                        handleModuleSelect(module);
+                                                        if (module.bookmarkedTopicIdx !== undefined) {
+                                                            setActiveTopicIdx(module.bookmarkedTopicIdx);
+                                                        }
+                                                    }}
+                                                    style={{ 
+                                                        padding: '1rem 1.25rem', 
+                                                        cursor: 'pointer',
+                                                        borderLeft: isActive ? '4px solid #1B6B3A' : '4px solid transparent',
+                                                        background: isActive ? '#F0FDF4' : 'transparent',
+                                                        borderBottom: '1px solid #F8FAFC',
+                                                        transition: 'background 0.15s'
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start' }}>
+                                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isActive ? '#DCF2E4' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isActive ? '#1B6B3A' : '#64748B', flexShrink: 0 }}>
+                                                            <Icon size={15} />
+                                                        </div>
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ fontSize: '0.62rem', fontWeight: '800', textTransform: 'uppercase', color: '#1B6B3A', marginBottom: '2px' }}>
+                                                                {module.phaseName}
+                                                            </div>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', textTransform: 'uppercase', color: isActive ? '#1B6B3A' : '#64748B' }}>{module.level}</span>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#94A3B8' }}>
+                                                                    <Clock size={9} />
+                                                                    <span style={{ fontSize: '0.6rem', fontWeight: '600' }}>{module.duration}</span>
                                                                 </div>
                                                             </div>
+                                                            <h4 style={{ fontSize: '0.88rem', fontWeight: '800', color: isActive ? '#064E3B' : '#334155', margin: 0, lineHeight: '1.35' }}>{module.title}</h4>
                                                         </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                            {filteredPhases.length === 0 && (
-                                <div style={{ padding: '2rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.9rem' }}>No matching modules found in this curriculum.</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
                             )}
                         </div>
                     </div>
