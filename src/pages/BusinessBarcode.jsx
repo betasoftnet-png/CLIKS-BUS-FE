@@ -383,6 +383,9 @@ const BusinessBarcode = () => {
 
         setCustomFields(prev => {
             if (prev.length >= 25) return prev;
+            if (cleanPresetKey && prev.some(f => f.key && f.key.trim().toLowerCase() === cleanPresetKey.toLowerCase())) {
+                return prev;
+            }
             return [...prev, { 
                 id: Date.now() + Math.random(), 
                 key: presetKey, 
@@ -409,7 +412,14 @@ const BusinessBarcode = () => {
                 return;
             }
         }
-        setCustomFields(prev => prev.map(f => f.id === id ? { ...f, [prop]: val } : f));
+        setCustomFields(prev => {
+            if (prop === 'key' && val && val.trim()) {
+                const cleanKey = val.trim().toLowerCase();
+                const exists = prev.some(f => f.id !== id && f.key && f.key.trim().toLowerCase() === cleanKey);
+                if (exists) return prev;
+            }
+            return prev.map(f => f.id === id ? { ...f, [prop]: val } : f);
+        });
     };
 
     // Logo upload handler

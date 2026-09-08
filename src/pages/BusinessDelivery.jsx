@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { 
     Truck, 
@@ -247,6 +247,46 @@ const BusinessDelivery = () => {
     const [signatureInput, setSignatureInput] = useState('');
     const [feedbackInput, setFeedbackInput] = useState(5);
     const [failedReasonInput, setFailedReasonInput] = useState('');
+    const [proofImage, setProofImage] = useState('');
+    const [proofFileName, setProofFileName] = useState('');
+    const proofInputRef = useRef(null);
+
+    const MAX_PROOF_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    const ALLOWED_PROOF_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+    const handleProofFileSelect = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        const fileType = file.type.toLowerCase();
+        const ext = file.name.split('.').pop().toLowerCase();
+        const isTypeValid = ALLOWED_PROOF_TYPES.includes(fileType) || ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
+
+        if (!isTypeValid) {
+            alert('Unsupported file format. Please upload a JPG, JPEG, PNG, or WEBP image.');
+            if (proofInputRef.current) proofInputRef.current.value = '';
+            return;
+        }
+
+        if (file.size > MAX_PROOF_FILE_SIZE) {
+            alert('File size exceeds the 5MB limit. Please select a smaller image file.');
+            if (proofInputRef.current) proofInputRef.current.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            setProofImage(event.target.result);
+            setProofFileName(file.name);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemoveProofImage = () => {
+        setProofImage('');
+        setProofFileName('');
+        if (proofInputRef.current) proofInputRef.current.value = '';
+    };
 
     // Create Form State
     const [formData, setFormData] = useState(() => ({
@@ -374,6 +414,7 @@ const BusinessDelivery = () => {
                     delivery_status: 'Delivered',
                     delivered_date: new Date().toISOString().replace('T', ' ').slice(0, 16),
                     customer_signature: signatureInput || d.customer_name,
+                    delivery_photo: proofImage || d.delivery_photo || '',
                     delivery_feedback: feedbackInput,
                     failed_delivery_reason: '',
                     reverse_logistics_status: ''
@@ -661,7 +702,15 @@ const BusinessDelivery = () => {
                                         )}
 
                                         <button 
-                                            onClick={() => { setSelectedDelivery(dlv); setOtpInput(''); setSignatureInput(''); setFailedReasonInput(''); setIsActionOpen(true); }}
+                                            onClick={() => { 
+                                                setSelectedDelivery(dlv); 
+                                                setOtpInput(''); 
+                                                setSignatureInput(''); 
+                                                setFailedReasonInput(''); 
+                                                setProofImage(dlv.delivery_photo || '');
+                                                setProofFileName(dlv.delivery_photo ? (dlv.delivery_photo.startsWith('data:') ? 'proof_photo' : dlv.delivery_photo.split('/').pop().split('?')[0] || 'proof_photo.jpg') : '');
+                                                setIsActionOpen(true); 
+                                            }}
                                             style={{ background: '#FAFDFB', border: '1px solid #1B6B3A', padding: '0.5rem 1rem', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer', color: '#1B6B3A' }}
                                         >
                                             Challan & Confirm
@@ -1053,10 +1102,66 @@ const BusinessDelivery = () => {
 
                                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
                                         <div>
-                                            <span style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '0.4rem' }}>Photo / Proof Upload Mocked</span>
-                                            <div style={{ padding: '0.6rem', border: '1px dashed #1B6B3A', borderRadius: '8px', background: '#FAFDFB', color: '#1B6B3A', fontSize: '0.8rem', fontWeight: '700', textAlign: 'center' }}>
-                                                <Camera size={14} style={{ display: 'inline', marginRight: '0.25rem' }} /> Proof Photo Captured ✓
-                                            </div>
+                                            <span style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '0.4rem', fontWeight: '750' }}>Photo / Proof Upload</span>
+                                            <input 
+                                                type="file" 
+                                                ref={proofInputRef}
+                                                accept="image/jpeg,image/jpg,image/png,image/webp"
+                                                onChange={handleProofFileSelect}
+                                                style={{ display: 'none' }} 
+                                            />
+                                            
+                                            {!proofImage ? (
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => proofInputRef.current && proofInputRef.current.click()}
+                                                    style={{ 
+                                                        width: '100%', 
+                                                        padding: '0.6rem', 
+                                                        border: '1px dashed #1B6B3A', 
+                                                        borderRadius: '8px', 
+                                                        background: '#FAFDFB', 
+                                                        color: '#1B6B3A', 
+                                                        fontSize: '0.8rem', 
+                                                        fontWeight: '700', 
+                                                        textAlign: 'center',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '0.35rem'
+                                                    }}
+                                                >
+                                                    <Camera size={14} /> Upload Delivery Proof
+                                                </button>
+                                            ) : (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F0FDF4', border: '1px solid #DCF2E4', padding: '0.4rem 0.6rem', borderRadius: '8px' }}>
+                                                    <img 
+                                                        src={proofImage} 
+                                                        alt="Proof Preview" 
+                                                        style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #CBD5E1' }} 
+                                                    />
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#166534', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={proofFileName}>
+                                                        {proofFileName || 'Proof Image Captured ✓'}
+                                                    </span>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => proofInputRef.current && proofInputRef.current.click()}
+                                                        title="Replace Proof Image"
+                                                        style={{ background: 'none', border: 'none', color: '#1B6B3A', fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer', padding: '2px 4px' }}
+                                                    >
+                                                        Replace
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={handleRemoveProofImage}
+                                                        title="Remove Image"
+                                                        style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center' }}
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#475569', marginBottom: '0.4rem' }}>Feedback Rating</label>
@@ -1109,6 +1214,16 @@ const BusinessDelivery = () => {
                                     <p style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.25rem' }}>
                                         Signed by: <strong>{selectedDelivery.customer_signature}</strong> • Verified via OTP • Feedback: {selectedDelivery.delivery_feedback} Stars
                                     </p>
+                                    {selectedDelivery.delivery_photo && (
+                                        <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>Delivery Proof Image:</span>
+                                            <img 
+                                                src={selectedDelivery.delivery_photo} 
+                                                alt="Delivery Proof" 
+                                                style={{ maxWidth: '180px', maxHeight: '120px', borderRadius: '8px', border: '1px solid #CBD5E1', objectFit: 'cover' }} 
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

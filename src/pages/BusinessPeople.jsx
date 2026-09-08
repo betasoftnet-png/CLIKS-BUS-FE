@@ -65,6 +65,14 @@ const BusinessPeople = () => {
     const [txForm, setTxForm] = useState({ person_id: '', type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
     const [reminderForm, setReminderForm] = useState({ person_id: '', title: '', amount: '', due_date: new Date().toISOString().split('T')[0], notes: '' });
 
+    // Inline validation error states
+    const [contactLoyaltyError, setContactLoyaltyError] = useState('');
+    const [contactEmailError, setContactEmailError] = useState('');
+    const [txAmountError, setTxAmountError] = useState('');
+    const [inlineTxAmountError, setInlineTxAmountError] = useState('');
+    const [reminderAmountError, setReminderAmountError] = useState('');
+    const [inlineRemAmountError, setInlineRemAmountError] = useState('');
+
     // Inline Transaction state inside popup
     const [isInlineTxOpen, setIsInlineTxOpen] = useState(false);
     const [inlineTxForm, setInlineTxForm] = useState({ type: 'lent', amount: '', date: new Date().toISOString().split('T')[0], description: '' });
@@ -342,17 +350,55 @@ const BusinessPeople = () => {
     });
 
     // ── Handlers ────────────────────────────────────────────────────────────
+    const markReminderCompleted = (rem) => {
+        const pId = rem.person_id || rem.personId;
+        deleteReminderMutation.mutate(rem, {
+            onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['people-reminders-all'] });
+                if (pId) {
+                    queryClient.invalidateQueries({ queryKey: ['person-reminders', pId] });
+                }
+            }
+        });
+    };
+
     const handleSaveContact = (e) => {
         e.preventDefault();
+        setContactEmailError('');
+        setContactLoyaltyError('');
+
         const phoneErr = validatePhone(contactForm.phone, true);
         if (phoneErr) return alert(phoneErr);
 
-        if (contactForm.email) {
+        if (contactForm.email && contactForm.email.trim()) {
             const emailErr = validateEmail(contactForm.email, false);
-            if (emailErr) return alert(emailErr);
+            if (emailErr) {
+                setContactEmailError(emailErr);
+                return;
+            }
+
+            // Unique Email Validation (Case-insensitive & ignoring extra spaces)
+            const cleanEmail = contactForm.email.trim().toLowerCase();
+            const exists = people.some(p => {
+                if (editingContactId && String(p.id) === String(editingContactId)) {
+                    return false;
+                }
+                return p.email && p.email.trim().toLowerCase() === cleanEmail;
+            });
+
+            if (exists) {
+                setContactEmailError('A contact with this email address already exists.');
+                return;
+            }
         }
 
         const meta = getContactMeta(contactForm.contact_info);
+        const pointsNum = parseFloat(meta.loyalty_points);
+        if (!isNaN(pointsNum) && pointsNum < 0) {
+            setContactLoyaltyError('Initial loyalty points cannot be negative.');
+            return;
+        }
+
         const payload = {
             ...contactForm,
             contact_info: serializeContactMeta(meta.status, meta.loyalty_points)
@@ -377,13 +423,29 @@ const BusinessPeople = () => {
 
     const handleSaveTx = (e) => {
         e.preventDefault();
+        setTxAmountError('');
         if (!txForm.person_id) return alert('Please select a contact.');
+        
+        const amt = parseFloat(txForm.amount);
+        if (!isNaN(amt) && amt < 0) {
+            setTxAmountError('Value cap amount cannot be negative.');
+            return;
+        }
+
         createTxMutation.mutate(txForm);
     };
 
     const handleSaveInlineTx = (e) => {
         e.preventDefault();
+        setInlineTxAmountError('');
         if (!selectedPersonId) return alert('Target registry contact missing.');
+
+        const amt = parseFloat(inlineTxForm.amount);
+        if (!isNaN(amt) && amt < 0) {
+            setInlineTxAmountError('Value cap amount cannot be negative.');
+            return;
+        }
+
         if (editingTxId) {
             updateTxMutation.mutate({ ...inlineTxForm, person_id: selectedPersonId, id: editingTxId });
         } else {
@@ -393,8 +455,15 @@ const BusinessPeople = () => {
 
     const handleSaveInlineRem = (e) => {
         e.preventDefault();
+        setInlineRemAmountError('');
         if (!selectedPersonId) return alert('Target registry contact missing.');
         
+        const amt = parseFloat(inlineRemForm.amount);
+        if (!isNaN(amt) && amt < 0) {
+            setInlineRemAmountError('Expected amount cannot be negative.');
+            return;
+        }
+
         if (editingRemId) {
             updateReminderMutation.mutate(
                 { ...inlineRemForm, person_id: selectedPersonId, id: editingRemId }
@@ -415,7 +484,15 @@ const BusinessPeople = () => {
 
     const handleSaveReminder = (e) => {
         e.preventDefault();
+        setReminderAmountError('');
         if (!reminderForm.person_id) return alert('Please select a contact.');
+
+        const amt = parseFloat(reminderForm.amount);
+        if (!isNaN(amt) && amt < 0) {
+            setReminderAmountError('Cap value cannot be negative.');
+            return;
+        }
+
         createReminderMutation.mutate(reminderForm);
     };
 
@@ -967,8 +1044,9 @@ const BusinessPeople = () => {
                                                     Alert
                                                 </button>
                                                 <button 
-                                                    onClick={() => deleteReminderMutation.mutate(r)}
-                                                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+                                                    onClick={() => markReminderCompleted(r)}
+                                                    style={{ background: 'none', border: 'none', color: '#10B981', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                                                    title="Mark alert as completed"
                                                 >
                                                     <CheckCircle2 size={18} />
                                                 </button>
@@ -1036,7 +1114,35 @@ const BusinessPeople = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>E-Mail Address</label>
-                                        <input placeholder="user@bnxmail.com" type="email" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value.trim() })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                        <input 
+                                            placeholder="user@gmail.com" 
+                                            type="email" 
+                                            value={contactForm.email} 
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setContactForm({ ...contactForm, email: val });
+                                                if (val.trim()) {
+                                                    const cleanEmail = val.trim().toLowerCase();
+                                                    const exists = people.some(p => {
+                                                        if (editingContactId && String(p.id) === String(editingContactId)) return false;
+                                                        return p.email && p.email.trim().toLowerCase() === cleanEmail;
+                                                    });
+                                                    if (exists) {
+                                                        setContactEmailError('A contact with this email address already exists.');
+                                                    } else {
+                                                        setContactEmailError('');
+                                                    }
+                                                } else {
+                                                    setContactEmailError('');
+                                                }
+                                            }} 
+                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: contactEmailError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} 
+                                        />
+                                        {contactEmailError && (
+                                            <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: '700', marginTop: '0.3rem', display: 'block' }}>
+                                                {contactEmailError}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1084,17 +1190,30 @@ const BusinessPeople = () => {
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Initial Loyalty Points</label>
                                         <input 
                                             type="number" 
+                                            min="0"
                                             placeholder="0" 
                                             value={getContactMeta(contactForm.contact_info).loyalty_points || 0} 
                                             onChange={(e) => {
+                                                const val = e.target.value;
+                                                const num = parseFloat(val);
+                                                if (!isNaN(num) && num < 0) {
+                                                    setContactLoyaltyError('Initial loyalty points cannot be negative.');
+                                                } else {
+                                                    setContactLoyaltyError('');
+                                                }
                                                 const meta = getContactMeta(contactForm.contact_info);
                                                 setContactForm({ 
                                                     ...contactForm, 
-                                                    contact_info: serializeContactMeta(meta.status, e.target.value) 
+                                                    contact_info: serializeContactMeta(meta.status, val) 
                                                 });
                                             }} 
-                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: contactLoyaltyError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} 
                                         />
+                                        {contactLoyaltyError && (
+                                            <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: '700', marginTop: '0.3rem', display: 'block' }}>
+                                                {contactLoyaltyError}
+                                            </span>
+                                        )}
                                     </div>
                                 )}
 
@@ -1139,7 +1258,29 @@ const BusinessPeople = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Value Cap Amount ({currency.symbol})</label>
-                                    <input required type="number" placeholder="0.00" value={txForm.amount} onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1.1rem', fontWeight: '900' }} />
+                                    <input 
+                                        required 
+                                        type="number" 
+                                        min="0"
+                                        placeholder="0.00" 
+                                        value={txForm.amount} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            const amt = parseFloat(val);
+                                            if (!isNaN(amt) && amt < 0) {
+                                                setTxAmountError('Value cap amount cannot be negative.');
+                                            } else {
+                                                setTxAmountError('');
+                                            }
+                                            setTxForm({ ...txForm, amount: val });
+                                        }} 
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: txAmountError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '1.1rem', fontWeight: '900' }} 
+                                    />
+                                    {txAmountError && (
+                                        <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: '700', marginTop: '0.3rem', display: 'block' }}>
+                                            {txAmountError}
+                                        </span>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Asset narrative / Memo</label>
@@ -1178,7 +1319,28 @@ const BusinessPeople = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Cap Value</label>
-                                        <input type="number" placeholder="0.00" value={reminderForm.amount} onChange={(e) => setReminderForm({ ...reminderForm, amount: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '900' }} />
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            placeholder="0.00" 
+                                            value={reminderForm.amount} 
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                const amt = parseFloat(val);
+                                                if (!isNaN(amt) && amt < 0) {
+                                                    setReminderAmountError('Cap value cannot be negative.');
+                                                } else {
+                                                    setReminderAmountError('');
+                                                }
+                                                setReminderForm({ ...reminderForm, amount: val });
+                                            }} 
+                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: reminderAmountError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontWeight: '900' }} 
+                                        />
+                                        {reminderAmountError && (
+                                            <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: '700', marginTop: '0.3rem', display: 'block' }}>
+                                                {reminderAmountError}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                                 <div>
@@ -1691,7 +1853,29 @@ const BusinessPeople = () => {
                                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                                                 <div>
                                                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>AMOUNT ({currency.symbol})</label>
-                                                                    <input required type="number" placeholder="0.00" value={inlineTxForm.amount} onChange={(e) => setInlineTxForm({ ...inlineTxForm, amount: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '800', fontSize: '0.9rem' }} />
+                                                                    <input 
+                                                                        required 
+                                                                        type="number" 
+                                                                        min="0"
+                                                                        placeholder="0.00" 
+                                                                        value={inlineTxForm.amount} 
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            const amt = parseFloat(val);
+                                                                            if (!isNaN(amt) && amt < 0) {
+                                                                                setInlineTxAmountError('Value cap amount cannot be negative.');
+                                                                            } else {
+                                                                                setInlineTxAmountError('');
+                                                                            }
+                                                                            setInlineTxForm({ ...inlineTxForm, amount: val });
+                                                                        }} 
+                                                                        style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: inlineTxAmountError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontWeight: '800', fontSize: '0.9rem' }} 
+                                                                    />
+                                                                    {inlineTxAmountError && (
+                                                                        <span style={{ fontSize: '0.72rem', color: '#EF4444', fontWeight: '700', marginTop: '0.25rem', display: 'block' }}>
+                                                                            {inlineTxAmountError}
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                                 <div>
                                                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>DATE</label>
@@ -1721,7 +1905,29 @@ const BusinessPeople = () => {
                                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                                                 <div>
                                                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#B45309', marginBottom: '0.25rem' }}>EXPECTED ({currency.symbol})</label>
-                                                                    <input required type="number" placeholder="0.00" value={inlineRemForm.amount} onChange={(e) => setInlineRemForm({ ...inlineRemForm, amount: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #FCD34D', outline: 'none', fontWeight: '800', fontSize: '0.9rem' }} />
+                                                                    <input 
+                                                                        required 
+                                                                        type="number" 
+                                                                        min="0"
+                                                                        placeholder="0.00" 
+                                                                        value={inlineRemForm.amount} 
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            const amt = parseFloat(val);
+                                                                            if (!isNaN(amt) && amt < 0) {
+                                                                                setInlineRemAmountError('Expected amount cannot be negative.');
+                                                                            } else {
+                                                                                setInlineRemAmountError('');
+                                                                            }
+                                                                            setInlineRemForm({ ...inlineRemForm, amount: val });
+                                                                        }} 
+                                                                        style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: inlineRemAmountError ? '1.5px solid #EF4444' : '1px solid #FCD34D', outline: 'none', fontWeight: '800', fontSize: '0.9rem' }} 
+                                                                    />
+                                                                    {inlineRemAmountError && (
+                                                                        <span style={{ fontSize: '0.72rem', color: '#EF4444', fontWeight: '700', marginTop: '0.25rem', display: 'block' }}>
+                                                                            {inlineRemAmountError}
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                                 <div>
                                                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#B45309', marginBottom: '0.25rem' }}>DUE MATURITY</label>
@@ -1777,16 +1983,14 @@ const BusinessPeople = () => {
                                                                                     <Edit2 size={14} />
                                                                                 </button>
                                                                                 <button
-                                                                                    onClick={async (e) => {
+                                                                                    onClick={(e) => {
                                                                                         e.stopPropagation();
-                                                                                        if (await window.confirm('Are you sure you want to delete this alert?')) {
-                                                                                            deleteReminderMutation.mutate(rem);
-                                                                                        }
+                                                                                        markReminderCompleted(rem);
                                                                                     }}
-                                                                                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px', display: 'flex' }}
-                                                                                    title="Delete Alert"
+                                                                                    style={{ background: 'none', border: 'none', color: '#10B981', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                                                                                    title="Mark alert as completed"
                                                                                 >
-                                                                                    <Trash2 size={14} />
+                                                                                    <CheckCircle2 size={14} />
                                                                                 </button>
                                                                             </div>
                                                                         </div>

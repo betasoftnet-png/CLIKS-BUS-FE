@@ -249,12 +249,17 @@ const BusinessSuppliers = () => {
             return;
         }
 
-        const invalidEmailRows = parsedSuppliers.filter(s => {
-            const cleanEmail = (s.email || '').trim().toLowerCase();
-            return !cleanEmail || !cleanEmail.endsWith('@bnxmail.com') || !/^[^\s@]+@bnxmail\.com$/.test(cleanEmail);
+        const invalidEmailErrors = [];
+        parsedSuppliers.forEach(s => {
+            const cleanEmail = (s.email || '').trim();
+            const isValidBnxMail = cleanEmail.length > 0 && /^[^\s@]+@bnxmail\.com$/i.test(cleanEmail);
+            if (!isValidBnxMail) {
+                invalidEmailErrors.push(`Row ${s.rowNumber}: Supplier email must use a valid @bnxmail.com address.`);
+            }
         });
-        if (invalidEmailRows.length > 0) {
-            alert('Use a bnxmail.com email address to continue.');
+
+        if (invalidEmailErrors.length > 0) {
+            alert(invalidEmailErrors.join('\n'));
             return;
         }
 
@@ -263,8 +268,8 @@ const BusinessSuppliers = () => {
 
     const generateSampleTemplate = () => {
         const headers = SYSTEM_FIELDS.map(f => f.label.replace(' *', ''));
-        const row1 = ['Acme Industries Ltd', 'info@acme.com', '+919876543210', 'Acme Corp', '27AAAAA1111A1Z1', 'Mumbai', '55000'];
-        const row2 = ['Globex Logistics', 'contact@globex.com', '+919988776655', 'Globex LLC', '27BBBBB2222B2Z2', 'Pune', '0'];
+        const row1 = ['Acme Industries Ltd', 'info@bnxmail.com', '+919876543210', 'Acme Corp', '27AAAAA1111A1Z1', 'Mumbai', '55000'];
+        const row2 = ['Globex Logistics', 'contact@bnxmail.com', '+919988776655', 'Globex LLC', '27BBBBB2222B2Z2', 'Pune', '0'];
         const csvContent = [headers.join(','), row1.join(','), row2.join(',')].join('\n');
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -301,7 +306,12 @@ const BusinessSuppliers = () => {
     });
 
     const activeSupplierId = selectedSupplier?.id || selectedSupplier?.supplier_id;
-    const { data: supplierLedgerData = [] } = useQuery({
+    const { 
+        data: supplierLedgerData = [],
+        isLoading: isLedgerLoading,
+        isError: isLedgerError,
+        error: ledgerError
+    } = useQuery({
         queryKey: ['supplierLedger', activeSupplierId],
         queryFn: () => suppliersService.getLedger(activeSupplierId),
         enabled: Boolean(activeSupplierId)
@@ -316,19 +326,43 @@ const BusinessSuppliers = () => {
         }
 
         const supName = supplier.name || supplier.supplier_name || 'Supplier';
+        const cleanName = supName.replace(/[^a-zA-Z0-9_\-]/g, '_');
+        const todayStr = new Date().toISOString().split('T')[0];
+        const pdfFileName = `Statement_of_Account_${cleanName}_${todayStr}.pdf`;
+
         const gstin = supplier.gstin || 'N/A';
         const phone = supplier.phone || supplier.phone_number || 'N/A';
         const email = supplier.email || 'N/A';
+        const address = supplier.billing_address || supplier.address || 'N/A';
         const symbol = (currency && currency.symbol) ? currency.symbol : '₹';
 
+        let calcRunningBal = 0;
+        let totalDebit = 0;
+        let totalCredit = 0;
+
         const rowsHtml = (ledgerData || []).map((row) => {
-            const deb = parseFloat(row.debit) || 0;
-            const cred = parseFloat(row.credit) || 0;
-            const bal = parseFloat(row.running_balance || row.balance || 0);
+            const deb = parseFloat(row.debit ?? row.debit_amount ?? row.dr ?? 0);
+            const cred = parseFloat(row.credit ?? row.credit_amount ?? row.cr ?? 0);
+            totalDebit += deb;
+            totalCredit += cred;
+
+            let bal = 0;
+            if (row.running_balance !== undefined && row.running_balance !== null) {
+                bal = parseFloat(row.running_balance);
+            } else if (row.balance !== undefined && row.balance !== null) {
+                bal = parseFloat(row.balance);
+            } else {
+                calcRunningBal += (deb - cred);
+                bal = calcRunningBal;
+            }
+
+            const rDate = row.date || row.created_at || row.txn_date || '';
+            const rDesc = row.description || row.reference_id || row.reference_no || row.ref_no || 'Transaction';
+
             return `
                 <tr style="border-bottom: 1px solid #E2E8F0;">
-                    <td style="padding: 10px; font-size: 13px;">${row.date || ''}</td>
-                    <td style="padding: 10px; font-size: 13px; font-weight: 600;">${row.description || row.reference_id || ''}</td>
+                    <td style="padding: 10px; font-size: 13px;">${rDate}</td>
+                    <td style="padding: 10px; font-size: 13px; font-weight: 600;">${rDesc}</td>
                     <td style="padding: 10px; font-size: 13px; color: #DC2626;">${deb > 0 ? symbol + deb.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-'}</td>
                     <td style="padding: 10px; font-size: 13px; color: #16A34A;">${cred > 0 ? symbol + cred.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '-'}</td>
                     <td style="padding: 10px; font-size: 13px; font-weight: 700; text-align: right;">${symbol}${bal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -336,20 +370,25 @@ const BusinessSuppliers = () => {
             `;
         }).join('');
 
+        const finalBalance = (ledgerData && ledgerData.length > 0)
+            ? (parseFloat(ledgerData[ledgerData.length - 1].running_balance ?? ledgerData[ledgerData.length - 1].balance ?? calcRunningBal))
+            : parseFloat(supplier.outstanding_balance || supplier.current_balance || 0);
+
         const htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Statement of Account - ${supName}</title>
+                <title>${pdfFileName}</title>
                 <style>
                     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; color: #0F172A; }
-                    .header { border-bottom: 2px solid #064E3B; padding-bottom: 15px; margin-bottom: 25px; }
+                    .header { border-bottom: 2px solid #064E3B; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
                     .title { font-size: 24px; font-weight: bold; color: #064E3B; margin: 0 0 5px 0; }
                     .subtitle { font-size: 14px; color: #64748B; margin: 0; }
-                    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #F8FAFC; padding: 15px; border-radius: 8px; margin-bottom: 25px; font-size: 13px; }
+                    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #F8FAFC; padding: 15px; border-radius: 8px; margin-bottom: 25px; font-size: 13px; border: 1px solid #E2E8F0; }
                     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
                     th { background: #064E3B; color: white; padding: 12px 10px; text-align: left; font-size: 13px; font-weight: 600; }
                     td { padding: 10px; font-size: 13px; }
+                    tfoot td { font-weight: bold; background: #F1F5F9; border-top: 2px solid #064E3B; }
                     .footer { margin-top: 40px; font-size: 11px; color: #94A3B8; text-align: center; border-top: 1px solid #E2E8F0; padding-top: 15px; }
                     @media print {
                         body { margin: 20px; }
@@ -358,18 +397,24 @@ const BusinessSuppliers = () => {
             </head>
             <body>
                 <div class="header">
-                    <div class="title">Statement of Account</div>
-                    <div class="subtitle">Running Payable & Supplier Ledger Statement</div>
+                    <div>
+                        <div class="title">Statement of Account</div>
+                        <div class="subtitle">Running Supplier Ledger Statement</div>
+                    </div>
+                    <div style="text-align: right; font-size: 12px; color: #64748B;">
+                        <strong>Generated Date:</strong> ${todayStr}
+                    </div>
                 </div>
                 <div class="info-grid">
                     <div>
                         <strong>Supplier Name:</strong> ${supName}<br/>
                         <strong>GSTIN:</strong> ${gstin}<br/>
+                        <strong>Address:</strong> ${address}
                     </div>
                     <div>
                         <strong>Contact Phone:</strong> ${phone}<br/>
                         <strong>Email:</strong> ${email}<br/>
-                        <strong>Generated Date:</strong> ${new Date().toLocaleDateString('en-IN')}
+                        <strong>Generated Date:</strong> ${todayStr}
                     </div>
                 </div>
                 <table>
@@ -383,23 +428,31 @@ const BusinessSuppliers = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        ${rowsHtml || '<tr><td colspan="5" style="text-align:center; padding: 20px; color:#94A3B8;">No transaction records found</td></tr>'}
+                        ${rowsHtml || '<tr><td colspan="5" style="text-align:center; padding: 20px; color:#94A3B8;">No ledger transactions found</td></tr>'}
                     </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2">Totals / Final Running Balance</td>
+                            <td style="color: #DC2626;">${symbol}${totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            <td style="color: #16A34A;">${symbol}${totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            <td style="text-align: right;">${symbol}${finalBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                    </tfoot>
                 </table>
                 <div class="footer">
-                    This statement was digitally generated by CLIKS Business.
+                    This statement was digitally generated by CLIKS Business on ${todayStr}.
                 </div>
                 <script>
+                    document.title = "${pdfFileName}";
                     window.onload = function() {
                         window.print();
-                        setTimeout(function() { window.close(); }, 800);
+                        setTimeout(function() { window.close(); }, 1000);
                     };
                 </script>
             </body>
             </html>
         `;
 
-        printWindow.document.open();
         printWindow.document.write(htmlContent);
         printWindow.document.close();
     };
@@ -1163,7 +1216,24 @@ const BusinessSuppliers = () => {
                     {/* Right side ledger details */}
                     <div className="lg:col-span-5" style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0' }}>
                         {selectedSupplier ? (() => {
-                            const displayLedger = (Array.isArray(supplierLedgerData) && supplierLedgerData.length > 0) ? supplierLedgerData : (selectedSupplier.ledger || []);
+                            const rawLedger = (Array.isArray(supplierLedgerData) && supplierLedgerData.length > 0) 
+                                ? supplierLedgerData 
+                                : (Array.isArray(selectedSupplier.ledger) ? selectedSupplier.ledger : []);
+                            
+                            let runningCalc = 0;
+                            const displayLedger = rawLedger.map(entry => {
+                                const deb = parseFloat(entry.debit ?? entry.debit_amount ?? entry.dr ?? 0);
+                                const cred = parseFloat(entry.credit ?? entry.credit_amount ?? entry.cr ?? 0);
+                                if (entry.running_balance !== undefined && entry.running_balance !== null) {
+                                    return { ...entry, deb, cred, computedBal: parseFloat(entry.running_balance) };
+                                } else if (entry.balance !== undefined && entry.balance !== null) {
+                                    return { ...entry, deb, cred, computedBal: parseFloat(entry.balance) };
+                                } else {
+                                    runningCalc += (deb - cred);
+                                    return { ...entry, deb, cred, computedBal: runningCalc };
+                                }
+                            });
+
                             return (
                                 <div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
@@ -1181,46 +1251,53 @@ const BusinessSuppliers = () => {
                                         </div>
                                     </div>
 
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                        <thead style={{ background: '#F8FAFC', borderBottom: '2px solid #E2E8F0' }}>
-                                            <tr>
-                                                <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Date</th>
-                                                <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Description / Ref No.</th>
-                                                <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Debit ({currency.symbol})</th>
-                                                <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Credit ({currency.symbol})</th>
-                                                <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem', textAlign: 'right' }}>Running Balance ({currency.symbol})</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {displayLedger.length === 0 ? (
+                                    {isLedgerLoading ? (
+                                        <div style={{ padding: '4rem', textAlign: 'center', color: '#064E3B' }}>
+                                            <div className="animate-spin" style={{ margin: '0 auto 1rem', width: '32px', height: '32px', border: '3px solid #E2E8F0', borderTopColor: '#064E3B', borderRadius: '50%' }}></div>
+                                            <p style={{ fontWeight: '700', fontSize: '0.9rem' }}>Loading statement ledger entries...</p>
+                                        </div>
+                                    ) : isLedgerError ? (
+                                        <div style={{ padding: '3rem', textAlign: 'center', color: '#EF4444', background: '#FEF2F2', borderRadius: '16px', border: '1px solid #FEE2E2' }}>
+                                            <AlertTriangle size={32} style={{ margin: '0 auto 0.5rem' }} />
+                                            <p style={{ fontWeight: '800', fontSize: '0.95rem' }}>Failed to load ledger transactions</p>
+                                            <p style={{ fontSize: '0.8rem', color: '#991B1B', marginTop: '0.25rem' }}>{ledgerError?.message || 'An error occurred while fetching statement data.'}</p>
+                                        </div>
+                                    ) : displayLedger.length === 0 ? (
+                                        <div style={{ padding: '3rem', textAlign: 'center', color: '#64748B', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                                            <Info size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.6 }} />
+                                            <p style={{ fontSize: '0.95rem', fontWeight: '750', color: '#334155' }}>No ledger transactions found</p>
+                                            <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '0.25rem' }}>There are no recorded ledger transactions for this supplier yet.</p>
+                                        </div>
+                                    ) : (
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                            <thead style={{ background: '#F8FAFC', borderBottom: '2px solid #E2E8F0' }}>
                                                 <tr>
-                                                    <td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.88rem', fontWeight: '600' }}>
-                                                        No transaction history recorded for this supplier.
-                                                    </td>
+                                                    <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Date</th>
+                                                    <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Description / Ref No.</th>
+                                                    <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Debit ({currency.symbol})</th>
+                                                    <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem' }}>Credit ({currency.symbol})</th>
+                                                    <th style={{ padding: '1rem 1.25rem', color: '#0F172A', fontWeight: '850', fontSize: '0.85rem', textAlign: 'right' }}>Running Balance ({currency.symbol})</th>
                                                 </tr>
-                                            ) : (
-                                                displayLedger.map((row, idx) => {
-                                                    const deb = parseFloat(row.debit) || 0;
-                                                    const cred = parseFloat(row.credit) || 0;
-                                                    return (
-                                                        <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                            <td style={{ padding: '1rem 1.25rem', fontSize: '0.9rem', fontWeight: '600' }}>{row.date}</td>
-                                                            <td style={{ padding: '1rem 1.25rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{row.description || row.reference_id}</td>
-                                                            <td style={{ padding: '1rem 1.25rem', color: '#EF4444', fontWeight: '700' }}>
-                                                                {deb > 0 ? formatCurrency(deb) : '-'}
-                                                            </td>
-                                                            <td style={{ padding: '1rem 1.25rem', color: '#15803D', fontWeight: '700' }}>
-                                                                {cred > 0 ? formatCurrency(cred) : '-'}
-                                                            </td>
-                                                            <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#1E293B' }}>
-                                                                {formatCurrency(row.running_balance || row.balance || 0)}
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })
-                                            )}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                {displayLedger.map((row, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '1rem 1.25rem', fontSize: '0.9rem', fontWeight: '600' }}>{row.date || row.created_at || row.txn_date || ''}</td>
+                                                        <td style={{ padding: '1rem 1.25rem', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{row.description || row.reference_id || row.reference_no || row.ref_no || row.notes || 'Transaction'}</td>
+                                                        <td style={{ padding: '1rem 1.25rem', color: '#EF4444', fontWeight: '700' }}>
+                                                            {row.deb > 0 ? formatCurrency(row.deb) : '-'}
+                                                        </td>
+                                                        <td style={{ padding: '1rem 1.25rem', color: '#15803D', fontWeight: '700' }}>
+                                                            {row.cred > 0 ? formatCurrency(row.cred) : '-'}
+                                                        </td>
+                                                        <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '800', color: '#1E293B' }}>
+                                                            {formatCurrency(row.computedBal)}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
                                 </div>
                             );
                         })() : (
