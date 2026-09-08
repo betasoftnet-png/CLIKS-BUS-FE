@@ -339,7 +339,15 @@ const BusinessPaymentPlan = () => {
                         <form 
                             onSubmit={(e) => {
                                 e.preventDefault();
-                                createMutation.mutate(formData);
+                                const parsedAmount = parseFloat(formData.amount);
+                                if (isNaN(parsedAmount) || parsedAmount <= 0) {
+                                    alert('Payment amount must be strictly greater than 0.');
+                                    return;
+                                }
+                                createMutation.mutate({
+                                    ...formData,
+                                    amount: parsedAmount
+                                });
                             }}
                             style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
                         >
@@ -410,9 +418,21 @@ const BusinessPaymentPlan = () => {
                                     <input 
                                         required 
                                         type="number" 
+                                        min="0.01"
+                                        step="any"
                                         placeholder="0.00" 
                                         value={formData.amount} 
-                                        onChange={e => setFormData({...formData, amount: e.target.value})} 
+                                        onKeyDown={(e) => {
+                                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            if (val === '' || parseFloat(val) >= 0) {
+                                                setFormData({...formData, amount: val});
+                                            }
+                                        }}
                                         style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
                                     />
                                 </div>
