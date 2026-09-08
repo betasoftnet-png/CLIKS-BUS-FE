@@ -582,8 +582,8 @@ const BusinessBilling = () => {
         let totalDiscount = 0;
         
         items.forEach(item => {
-            const qty = parseFloat(item.quantity) || 0;
-            const prc = parseFloat(item.price) || 0;
+            const qty = Math.max(0, parseFloat(item.quantity) || 0);
+            const prc = Math.max(0, parseFloat(item.price) || 0);
             const discPct = parseFloat(item.discount_percent) || 0;
             const discAmt = parseFloat(item.discount_amount) || 0;
             const txRate = activeConfig.enableGst === false ? 0 : (parseFloat(item.tax_rate) || 0);
@@ -701,8 +701,13 @@ const BusinessBilling = () => {
             }
         } else {
             let processedValue = value;
-            if (field === 'quantity' || field === 'free_quantity') {
-                processedValue = Math.max(0, parseFloat(value) || 0);
+            if (field === 'quantity' || field === 'free_quantity' || field === 'price') {
+                if (typeof value === 'number') {
+                    processedValue = Math.max(0, value);
+                } else if (typeof value === 'string' && value !== '') {
+                    const parsed = parseFloat(value);
+                    processedValue = isNaN(parsed) ? '' : Math.max(0, parsed);
+                }
             }
             newItems[index][field] = processedValue;
         }
@@ -2145,7 +2150,33 @@ const BusinessBilling = () => {
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>PRICE ({currency.symbol})</label>
-                                                <input required type="number" value={item.price} onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'price', parseFloat(raw) || 0); }} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                                <input 
+                                                    required 
+                                                    type="number" 
+                                                    min="0"
+                                                    step="any"
+                                                    value={item.price} 
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                            e.preventDefault();
+                                                        }
+                                                    }}
+                                                    onPaste={(e) => {
+                                                        const pasted = e.clipboardData.getData('text');
+                                                        if (pasted.includes('-') || parseFloat(pasted) < 0) {
+                                                            e.preventDefault();
+                                                            const sanitized = Math.max(0, parseFloat(pasted) || 0);
+                                                            handleItemChange(idx, 'price', sanitized);
+                                                        }
+                                                    }}
+                                                    onChange={(e) => {
+                                                        const raw = e.target.value.slice(0, 14);
+                                                        const parsed = parseFloat(raw);
+                                                        const sanitized = isNaN(parsed) ? '' : Math.max(0, parsed);
+                                                        handleItemChange(idx, 'price', sanitized);
+                                                    }} 
+                                                    style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
+                                                />
                                             </div>
                                             {activeConfig.txnDiscount !== false && (
                                                 <div>
