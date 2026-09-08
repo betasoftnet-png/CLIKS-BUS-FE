@@ -9,6 +9,8 @@ export const paymentService = {
     
     paySupplier: async (data) => await apiClient.post('/payments/pay', data).then(res => res.data.data || res.data),
 
+    transferVault: async (data) => await apiClient.post('/payments/transfer', data).then(res => res.data.data || res.data),
+
     // Get unified reports data containing receivables, payables, accounts
     getReports: async () => await apiClient.get('/payments/reports').then(res => res.data.data || res.data),
     

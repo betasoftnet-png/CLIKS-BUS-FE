@@ -21,10 +21,12 @@ import {
     Clock, 
     Calendar,
     Send,
-    TrendingUp
+    TrendingUp,
+    Loader2
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '../services/paymentService';
+import { suppliersService } from '../services/suppliersService';
 import '../App.css';
 import { useCurrency } from '../context';
 
@@ -40,10 +42,18 @@ const BusinessPayments = () => {
 
     const queryClient = useQueryClient();
 
-    // Unified query loading both ledgers and accounts
-    const { data: reportsData = { receivables: [], payables: [], accounts: [] } } = useQuery({
+    // Unified query loading both ledgers, accounts, and overdue invoices
+    const { data: reportsData = { receivables: [], payables: [], accounts: [], overdueInvoices: [] } } = useQuery({
         queryKey: ['paymentReports'],
         queryFn: () => paymentService.getReports()
+    });
+
+    const { data: suppliersList = [] } = useQuery({
+        queryKey: ['suppliersList'],
+        queryFn: async () => {
+            const res = await suppliersService.getSuppliers();
+            return Array.isArray(res) ? res : (res.rows || res.data || []);
+        }
     });
 
     // Mutations
@@ -59,6 +69,9 @@ const BusinessPayments = () => {
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
             setIsPaymentModalOpen(false);
             alert('Customer payment recorded and committed successfully.');
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || 'Failed to record customer payment. Please try again.');
         }
     });
 
@@ -72,14 +85,32 @@ const BusinessPayments = () => {
             queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
             queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['suppliersList'] });
             setIsSupplierModalOpen(false);
             alert('Supplier payment authorized and processed.');
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || 'Failed to process supplier payment. Please try again.');
+        }
+    });
+
+    const transferMutation = useMutation({
+        mutationFn: (data) => paymentService.transferVault(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['paymentReports'] });
+            queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+            setIsTransferModalOpen(false);
+            alert('Internal fund transfer settled across cash/bank registers!');
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || 'Failed to process internal vault transfer.');
         }
     });
 
     const dbReceivables = reportsData.receivables || [];
     const dbPayables = reportsData.payables || [];
     const dbAccounts = reportsData.accounts || [];
+    const dbOverdues = reportsData.overdueInvoices || [];
 
     const receivables = dbReceivables.map(rec => ({
         payment_id: rec.id,
@@ -118,7 +149,26 @@ const BusinessPayments = () => {
         { bank_account_id: 'ACC-DEFL', bank_account_name: 'Default Cash Account', current_balance: 0, type: 'cash' }
     ];
 
-    const overdues = []; // Placeholder derived from outstanding backend logic if provisioned
+    const overdues = dbOverdues.map(inv => {
+        const totalAmt = parseFloat(inv.total_amount || inv.amount || 0);
+        const paidAmt = parseFloat(inv.paid_amount || 0);
+        const pendingAmt = Math.max(0, totalAmt - paidAmt);
+        const dueDateObj = inv.due_date ? new Date(inv.due_date) : new Date();
+        const todayObj = new Date();
+        const diffTime = Math.max(0, todayObj - dueDateObj);
+        const overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+
+        return {
+            invoice_id: inv.invoice_number || `INV-${inv.id}`,
+            customer_name: inv.client_name || 'General Customer',
+            total_amount: totalAmt,
+            paid_amount: paidAmt,
+            pending_amount: pendingAmt > 0 ? pendingAmt : totalAmt,
+            due_date: inv.due_date || 'N/A',
+            overdue_days: overdueDays,
+            reminder_sent: 'Not Sent'
+        };
+    });
 
     // Forms input states
     const [customerForm, setCustomerForm] = useState({
@@ -140,17 +190,25 @@ const BusinessPayments = () => {
     });
 
     const [transferForm, setTransferForm] = useState({
-        from_acc_id: 'ACC-03',
-        to_acc_id: 'ACC-01',
-        amount: 25000
+        from_acc_id: accounts[0]?.bank_account_id || '',
+        to_acc_id: accounts[1]?.bank_account_id || accounts[0]?.bank_account_id || '',
+        amount: 5000
     });
 
     const handleSaveCustomerPayment = (e) => {
         e.preventDefault();
+        const paidAmt = parseFloat(customerForm.paid_amount);
+        const totalAmt = parseFloat(customerForm.total_amount);
+
+        if (isNaN(paidAmt) || paidAmt <= 0 || isNaN(totalAmt) || totalAmt <= 0) {
+            alert('Customer payment amount and total original amount must be strictly greater than 0.');
+            return;
+        }
+
         receiveMutation.mutate({
             customer_name: customerForm.customer_name,
             invoice_id: customerForm.invoice_id,
-            amount: parseFloat(customerForm.paid_amount),
+            amount: paidAmt,
             payment_mode: customerForm.payment_mode,
             reference_number: customerForm.transaction_reference
         });
@@ -158,10 +216,18 @@ const BusinessPayments = () => {
 
     const handleSaveSupplierPayment = (e) => {
         e.preventDefault();
+        const paidAmt = parseFloat(supplierForm.paid_amount);
+        const totalAmt = parseFloat(supplierForm.total_amount);
+
+        if (isNaN(paidAmt) || paidAmt <= 0 || isNaN(totalAmt) || totalAmt <= 0) {
+            alert('Supplier payment amount and original due amount must be strictly greater than 0.');
+            return;
+        }
+
         payMutation.mutate({
             supplier_name: supplierForm.supplier_name,
             purchase_id: supplierForm.purchase_id,
-            amount: parseFloat(supplierForm.paid_amount),
+            amount: paidAmt,
             payment_mode: supplierForm.payment_mode,
             reference_number: supplierForm.transaction_reference
         });
@@ -169,22 +235,33 @@ const BusinessPayments = () => {
 
     const handleInternalTransfer = (e) => {
         e.preventDefault();
-        const transAmt = parseFloat(transferForm.amount) || 0;
-        const sourceAcc = accounts.find(a => a.bank_account_id === transferForm.from_acc_id);
+        const transAmt = parseFloat(transferForm.amount);
 
-        if (transAmt > (sourceAcc?.current_balance || 0)) {
-            alert('Insufficient balance in source account to make internal transfer!');
+        if (isNaN(transAmt) || transAmt <= 0) {
+            alert('Transfer amount must be strictly greater than 0.');
             return;
         }
 
-        // In real usage, this would invoke a /payments/transfer API to move between source and target accounts
-        alert('Simulated fund transfer logged. In production, this will invoke the ledger movement API!');
-        setIsTransferModalOpen(false);
-        alert('Internal fund transfer settled across cash/bank registers!');
+        if (transferForm.from_acc_id === transferForm.to_acc_id) {
+            alert('From Account and To Account cannot be identical!');
+            return;
+        }
+
+        const sourceAcc = accounts.find(a => String(a.bank_account_id) === String(transferForm.from_acc_id));
+        if (sourceAcc && transAmt > (sourceAcc?.current_balance || 0)) {
+            alert(`Insufficient balance in source account (${sourceAcc.bank_account_name || 'Source Account'}) to make internal transfer! Available balance: ${formatCurrency(sourceAcc.current_balance)}`);
+            return;
+        }
+
+        transferMutation.mutate({
+            from_acc_id: transferForm.from_acc_id,
+            to_acc_id: transferForm.to_acc_id,
+            amount: transAmt
+        });
     };
 
     const sendWhatsAppReminder = (custName) => {
-        alert(`Overdue reminder template successfully dispatched via API to ${custName}!`);
+        alert(`Automated WhatsApp & SMS payment reminders for ${custName} is coming soon!`);
     };
 
     const totalOutstandingReceivables = overdues.reduce((sum, o) => sum + o.pending_amount, 0);
@@ -234,7 +311,7 @@ const BusinessPayments = () => {
                 {[
                     { label: 'Outstanding Receivables', value: formatCurrency(totalOutstandingReceivables), icon: TrendingUp, color: '#EF4444', bg: '#FEE2E2' },
                     { label: 'Daily Collections', value: formatCurrency(totalDailyCollections), icon: ArrowDownRight, color: '#1B6B3A', bg: '#DCF2E4' },
-                    { label: 'Combined Balances', value: formatCurrency(accounts.reduce((sum, a) => sum + a.current_balance, 0)), icon: Wallet, color: '#3B82F6', bg: '#DBEAFE' },
+                    { label: 'Combined Balances', value: formatCurrency(accounts.reduce((sum, a) => sum + (parseFloat(a.current_balance) || 0), 0)), icon: Wallet, color: '#3B82F6', bg: '#DBEAFE' },
                     { label: 'Efficiency Rate', value: '94.2%', icon: CheckCircle2, color: '#0D9488', bg: '#CCFBF1' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
@@ -324,15 +401,15 @@ const BusinessPayments = () => {
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-        { key: 'receipt_id', label: 'Receipt ID', placeholder: 'e.g. RCP-001' },
-        { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
-        { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
-        { key: 'invoice_linked', label: 'Invoice Linked', placeholder: 'INV-' },
-        { key: 'total', label: 'Total Original', placeholder: 'e.g. 5000' },
-        { key: 'paid_amount', label: 'Paid Amount', placeholder: 'e.g. 5000' },
-        { key: 'payment_mode', label: 'Mode', placeholder: 'e.g. UPI' },
-        { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
-    ]} onFilterChange={setColFilters} />
+                                { key: 'receipt_id', label: 'Receipt ID', placeholder: 'e.g. RCP-001' },
+                                { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
+                                { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
+                                { key: 'invoice_linked', label: 'Invoice Linked', placeholder: 'INV-' },
+                                { key: 'total', label: 'Total Original', placeholder: 'e.g. 5000' },
+                                { key: 'paid_amount', label: 'Paid Amount', placeholder: 'e.g. 5000' },
+                                { key: 'payment_mode', label: 'Mode', placeholder: 'e.g. UPI' },
+                                { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
+                            ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredReceivables.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((r) => (
                                     <tr key={r.payment_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
@@ -365,15 +442,15 @@ const BusinessPayments = () => {
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-        { key: 'receipt_id', label: 'Receipt ID', placeholder: 'e.g. RCP-001' },
-        { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
-        { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
-        { key: 'invoice_linked', label: 'Invoice Linked', placeholder: 'INV-' },
-        { key: 'total', label: 'Total Original', placeholder: 'e.g. 5000' },
-        { key: 'paid_amount', label: 'Paid Amount', placeholder: 'e.g. 5000' },
-        { key: 'payment_mode', label: 'Mode', placeholder: 'e.g. UPI' },
-        { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
-    ]} onFilterChange={setColFilters} />
+                                { key: 'receipt_id', label: 'Receipt ID', placeholder: 'e.g. RCP-001' },
+                                { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
+                                { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
+                                { key: 'invoice_linked', label: 'Invoice Linked', placeholder: 'INV-' },
+                                { key: 'total', label: 'Total Original', placeholder: 'e.g. 5000' },
+                                { key: 'paid_amount', label: 'Paid Amount', placeholder: 'e.g. 5000' },
+                                { key: 'payment_mode', label: 'Mode', placeholder: 'e.g. UPI' },
+                                { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
+                            ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredPayables.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((p) => (
                                     <tr key={p.payment_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
@@ -404,11 +481,11 @@ const BusinessPayments = () => {
                         <div key={acc.bank_account_id} style={{ background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                                 <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F0F9F4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{acc.bank_account_id}</span>
-                                <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{acc.type.toUpperCase()}</span>
+                                <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{(acc.type || 'ACCOUNT').toUpperCase()}</span>
                             </div>
 
                             <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.5rem' }}>{acc.bank_account_name}</h3>
-                            <p style={{ color: '#64748B', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Account No: {acc.account_number}</p>
+                            <p style={{ color: '#64748B', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Account No: {acc.account_number || acc.bank_account_id}</p>
 
                             <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B' }}>Current Balance:</span>
@@ -431,38 +508,46 @@ const BusinessPayments = () => {
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-        { key: 'receipt_id', label: 'Receipt ID', placeholder: 'e.g. RCP-001' },
-        { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
-        { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
-        { key: 'invoice_linked', label: 'Invoice Linked', placeholder: 'INV-' },
-        { key: 'total', label: 'Total Original', placeholder: 'e.g. 5000' },
-        { key: 'paid_amount', label: 'Paid Amount', placeholder: 'e.g. 5000' },
-        { key: 'payment_mode', label: 'Mode', placeholder: 'e.g. UPI' },
-        { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
-    ]} onFilterChange={setColFilters} />
-                        <tbody>
-                            {overdues.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ov) => (
-                                <tr key={ov.invoice_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                    <td style={{ padding: '1rem', fontWeight: '800' }}>{ov.customer_name}</td>
-                                    <td style={{ padding: '1rem', color: '#475569', fontWeight: '700' }}>{ov.invoice_id}</td>
-                                    <td style={{ padding: '1rem', fontWeight: '850', color: '#EF4444' }}>{formatCurrency(ov.pending_amount)}</td>
-                                    <td style={{ padding: '1rem', color: '#64748B' }}>{ov.due_date}</td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>{ov.overdue_days} Days Overdue</span>
-                                    </td>
-                                    <td style={{ padding: '1rem', color: '#64748B', fontWeight: '700' }}>{ov.reminder_sent}</td>
-                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                        <button 
-                                            onClick={() => sendWhatsAppReminder(ov.customer_name)}
-                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '10px', background: '#10B981', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}
-                                        >
-                                            <MessageSquare size={14} /> Send Reminder
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                { key: 'customer_name', label: 'Customer Name', placeholder: 'Name' },
+                                { key: 'invoice_id', label: 'Invoice Linked ID', placeholder: 'e.g. INV-101' },
+                                { key: 'pending_amount', label: 'Overdue Balance', placeholder: 'Amount' },
+                                { key: 'due_date', label: 'Due Date', placeholder: 'YYYY-MM-DD' },
+                                { key: 'overdue_days', label: 'Overdue Period', placeholder: 'Days' },
+                                { key: 'reminder_sent', label: 'Reminder Status', placeholder: 'Status' },
+                                { key: 'actions', label: 'Actions', placeholder: 'Action' }
+                            ]} onFilterChange={setColFilters} />
+                            <tbody>
+                                {overdues.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ov) => (
+                                    <tr key={ov.invoice_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#1E293B' }}>{ov.customer_name}</td>
+                                        <td style={{ padding: '1rem', color: '#475569', fontWeight: '700' }}>{ov.invoice_id}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '850', color: '#EF4444' }}>{formatCurrency(ov.pending_amount)}</td>
+                                        <td style={{ padding: '1rem', color: '#64748B' }}>{ov.due_date}</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>{ov.overdue_days} Days Overdue</span>
+                                        </td>
+                                        <td style={{ padding: '1rem', color: '#64748B', fontWeight: '700' }}>{ov.reminder_sent}</td>
+                                        <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                            <button 
+                                                onClick={() => sendWhatsAppReminder(ov.customer_name)}
+                                                title="Automated WhatsApp & SMS Reminders - Coming Soon"
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.9rem', borderRadius: '10px', background: '#F1F5F9', color: '#64748B', border: '1px solid #CBD5E1', fontWeight: '700', cursor: 'pointer' }}
+                                            >
+                                                <MessageSquare size={14} /> Send Reminder
+                                                <span style={{ fontSize: '0.65rem', background: '#E2E8F0', padding: '2px 5px', borderRadius: '4px', color: '#475569' }}>Coming Soon</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {overdues.length === 0 && (
+                                    <tr>
+                                        <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>
+                                            No overdue collections found at this time. All customer invoices are current!
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             )}
@@ -479,11 +564,14 @@ const BusinessPayments = () => {
                         <form onSubmit={handleSaveCustomerPayment} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Customer Profile</label>
-                                <select value={customerForm.customer_name} onChange={(e) => setCustomerForm({ ...customerForm, customer_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                    <option>Acme Corporates (Rahul Dev)</option>
-                                    <option>Karan Johar Tech</option>
-                                    <option>Sharma Retail Store</option>
-                                </select>
+                                <input 
+                                    required 
+                                    type="text"
+                                    placeholder="Customer Name..."
+                                    value={customerForm.customer_name} 
+                                    onChange={(e) => setCustomerForm({ ...customerForm, customer_name: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
@@ -492,12 +580,30 @@ const BusinessPayments = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Original Amount ({currency.symbol})</label>
-                                    <input required type="number" value={customerForm.total_amount} onChange={(e) => setCustomerForm({ ...customerForm, total_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input 
+                                        required 
+                                        type="number" 
+                                        min="0.01"
+                                        step="any"
+                                        value={customerForm.total_amount} 
+                                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
+                                        onChange={(e) => setCustomerForm({ ...customerForm, total_amount: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
+                                    />
                                 </div>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Paid amount (Receipt worth, {currency.symbol})</label>
-                                <input required type="number" value={customerForm.paid_amount} onChange={(e) => setCustomerForm({ ...customerForm, paid_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <input 
+                                    required 
+                                    type="number" 
+                                    min="0.01"
+                                    step="any"
+                                    value={customerForm.paid_amount} 
+                                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
+                                    onChange={(e) => setCustomerForm({ ...customerForm, paid_amount: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
+                                />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
@@ -515,8 +621,8 @@ const BusinessPayments = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)' }}>
-                                Finalize Payment Collection
+                            <button type="submit" disabled={receiveMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                {receiveMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : 'Finalize Payment Collection'}
                             </button>
                         </form>
                     </div>
@@ -535,8 +641,22 @@ const BusinessPayments = () => {
                         <form onSubmit={handleSaveSupplierPayment} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Supplier Profile</label>
-                                <select value={supplierForm.supplier_name} onChange={(e) => setSupplierForm({ ...supplierForm, supplier_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                    <option>Delhi Distributors Ltd.</option>
+                                <select 
+                                    value={supplierForm.supplier_name} 
+                                    onChange={(e) => setSupplierForm({ ...supplierForm, supplier_name: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                >
+                                    {suppliersList.map((sup, idx) => (
+                                        <option key={sup.id || idx} value={sup.name || sup.company_name}>
+                                            {sup.name || sup.company_name}
+                                        </option>
+                                    ))}
+                                    {suppliersList.length === 0 && (
+                                        <>
+                                            <option value="Delhi Distributors Ltd.">Delhi Distributors Ltd.</option>
+                                            <option value="Global Trading Corp">Global Trading Corp</option>
+                                        </>
+                                    )}
                                 </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -546,12 +666,30 @@ const BusinessPayments = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Original Due Amount ({currency.symbol})</label>
-                                    <input required type="number" value={supplierForm.total_amount} onChange={(e) => setSupplierForm({ ...supplierForm, total_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input 
+                                        required 
+                                        type="number" 
+                                        min="0.01"
+                                        step="any"
+                                        value={supplierForm.total_amount} 
+                                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
+                                        onChange={(e) => setSupplierForm({ ...supplierForm, total_amount: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
+                                    />
                                 </div>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Paid Amount (Outflow worth, {currency.symbol})</label>
-                                <input required type="number" value={supplierForm.paid_amount} onChange={(e) => setSupplierForm({ ...supplierForm, paid_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <input 
+                                    required 
+                                    type="number" 
+                                    min="0.01"
+                                    step="any"
+                                    value={supplierForm.paid_amount} 
+                                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
+                                    onChange={(e) => setSupplierForm({ ...supplierForm, paid_amount: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
+                                />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
@@ -569,8 +707,8 @@ const BusinessPayments = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)' }}>
-                                Disburse Supplier Funds
+                            <button type="submit" disabled={payMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                {payMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : 'Disburse Supplier Funds'}
                             </button>
                         </form>
                     </div>
@@ -591,23 +729,40 @@ const BusinessPayments = () => {
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>From Account</label>
                                     <select value={transferForm.from_acc_id} onChange={(e) => setTransferForm({ ...transferForm, from_acc_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        {accounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(a => <option key={a.bank_account_id} value={a.bank_account_id}>{a.bank_account_name}</option>)}
+                                        {accounts.map(a => (
+                                            <option key={a.bank_account_id} value={a.bank_account_id}>
+                                                {a.bank_account_name} ({formatCurrency(a.current_balance)})
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>To Account</label>
                                     <select value={transferForm.to_acc_id} onChange={(e) => setTransferForm({ ...transferForm, to_acc_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        {accounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(a => <option key={a.bank_account_id} value={a.bank_account_id}>{a.bank_account_name}</option>)}
+                                        {accounts.map(a => (
+                                            <option key={a.bank_account_id} value={a.bank_account_id}>
+                                                {a.bank_account_name} ({formatCurrency(a.current_balance)})
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Transfer Amount ({currency.symbol})</label>
-                                <input required type="number" value={transferForm.amount} onChange={(e) => setTransferForm({ ...transferForm, amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <input 
+                                    required 
+                                    type="number" 
+                                    min="0.01"
+                                    step="any"
+                                    value={transferForm.amount} 
+                                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
+                                    onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
+                                />
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)' }}>
-                                Settle Fund Transfer
+                            <button type="submit" disabled={transferMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                {transferMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : 'Settle Fund Transfer'}
                             </button>
                         </form>
                     </div>
