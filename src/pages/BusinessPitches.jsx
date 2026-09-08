@@ -39,49 +39,65 @@ export default function BusinessPitches() {
     const [cityName, setCityName] = useState(null);
     const [pincode, setPincode] = useState(null);
     const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+    const [isLocationLoading, setIsLocationLoading] = useState(false);
+    const [locationErrorMsg, setLocationErrorMsg] = useState(null);
+    const [userCoords, setUserCoords] = useState(null);
 
     const requestLocation = () => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setLocationPermissionDenied(false);
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
-                        .then(res => res.json())
-                        .then(data => {
-                            const state = data.principalSubdivision;
-                            const city = data.city || data.locality || data.village;
-                            if (state) {
-                                setGpsState(state);
-                            }
-                            if (city) {
-                                setCityName(city);
-                            }
-                            if (data.postcode) {
-                                setPincode(data.postcode);
-                            }
-                        })
-                        .catch(err => {
-                            console.warn('Geolocation reverse geocoding request interrupted:', err);
-                        });
-                },
-                (error) => {
-                    console.warn('Geolocation access restricted by user:', error.message);
-                    setLocationPermissionDenied(true);
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        } else {
+        if (!navigator.geolocation) {
             setLocationPermissionDenied(true);
+            setLocationErrorMsg("Geolocation is unsupported by your browser. Location features are unavailable.");
+            return;
         }
+
+        setIsLocationLoading(true);
+        setLocationErrorMsg(null);
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setIsLocationLoading(false);
+                setLocationPermissionDenied(false);
+                setLocationErrorMsg(null);
+
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                setUserCoords({ lat, lon });
+
+                fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const state = data.principalSubdivision;
+                        const city = data.city || data.locality || data.village;
+                        if (state) setGpsState(state);
+                        if (city) setCityName(city);
+                        if (data.postcode) setPincode(data.postcode);
+                    })
+                    .catch(err => {
+                        console.warn('Geolocation reverse geocoding request interrupted:', err);
+                    });
+            },
+            (error) => {
+                setIsLocationLoading(false);
+                setLocationPermissionDenied(true);
+                if (error.code === error.PERMISSION_DENIED) {
+                    setLocationErrorMsg("Location permission was denied. Please enable location permission in your browser site settings and try again.");
+                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                    setLocationErrorMsg("Location information is currently unavailable. Please click Retry.");
+                } else if (error.code === error.TIMEOUT) {
+                    setLocationErrorMsg("Location request timed out. Please click Retry.");
+                } else {
+                    setLocationErrorMsg("Unable to retrieve location. Please click Retry.");
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
     };
 
     React.useEffect(() => {
         requestLocation();
     }, []);
 
-    // Form State
+    // Form State & Validation Errors State
     const [formData, setFormData] = useState({
         business_name: '',
         industry: 'Technology',
@@ -95,6 +111,42 @@ export default function BusinessPitches() {
         location: ''
     });
 
+    const [formErrors, setFormErrors] = useState({});
+
+    const validateFundingTarget = (val) => {
+        if (val === '' || val === null || val === undefined) {
+            return 'Funding request amount is required.';
+        }
+        const num = Number(val);
+        if (isNaN(num) || num < 0) {
+            return 'Funding request amount cannot be negative.';
+        }
+        return null;
+    };
+
+    const validateEquityOffered = (val) => {
+        if (val === '' || val === null || val === undefined) return null;
+        const num = Number(val);
+        if (isNaN(num) || num < 0) {
+            return 'Equity transfer percentage cannot be negative.';
+        }
+        if (num > 100) {
+            return 'Equity transfer percentage must be between 0 and 100.';
+        }
+        return null;
+    };
+
+    const validateFounderEmail = (val) => {
+        const clean = (val || '').trim();
+        if (!clean) {
+            return 'Please enter a valid BNXmail address ending in @bnxmail.com.';
+        }
+        if (!/^[^\s@]+@bnxmail\.com$/i.test(clean)) {
+            return 'Please enter a valid BNXmail address ending in @bnxmail.com.';
+        }
+        return null;
+    };
+
     // API Actions
     const { data: pitches = [], isLoading } = useQuery({
         queryKey: ['venture-pitches'],
@@ -106,6 +158,7 @@ export default function BusinessPitches() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['venture-pitches'] });
             setShowCreateModal(false);
+            setFormErrors({});
             // Reset form
             setFormData({
                 business_name: '',
@@ -139,12 +192,24 @@ export default function BusinessPitches() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!formData.business_name || !formData.headline || !formData.funding_target || !formData.founder_email || !formData.founder_phone) {
-            alert("Please supply active founder contact details so investors can reach you.");
+
+        const fundingErr = validateFundingTarget(formData.funding_target);
+        const equityErr = validateEquityOffered(formData.equity_offered);
+        const emailErr = validateFounderEmail(formData.founder_email);
+
+        if (fundingErr || equityErr || emailErr || !formData.business_name || !formData.headline || !formData.founder_phone) {
+            setFormErrors({
+                funding_target: fundingErr,
+                equity_offered: equityErr,
+                founder_email: emailErr
+            });
+            alert(emailErr || fundingErr || equityErr || "Please supply all required founder and venture details correctly.");
             return;
         }
+
         const payload = {
             ...formData,
+            founder_email: (formData.founder_email || '').trim(),
             location: formData.location || (cityName ? `${cityName}, ${gpsState}` : 'Chennai, Tamil Nadu')
         };
         createMutation.mutate(payload);
@@ -216,7 +281,7 @@ export default function BusinessPitches() {
                 boxShadow: '0 10px 25px -5px rgba(30, 58, 138, 0.15)',
                 marginBottom: '1.25rem',
                 position: 'relative',
-                overflow: 'hidden'
+                overflow: 'visible'
             }}>
                 <div style={{ position: 'relative', zIndex: 2 }}>
                     <div style={{
@@ -244,7 +309,7 @@ export default function BusinessPitches() {
                         Connect directly with verified founders, review pitches, and contact owners instantly.
                     </p>
                     
-                    <div style={{ position: 'relative', marginTop: '0.55rem', display: 'inline-block' }}>
+                    <div style={{ position: 'relative', marginTop: '0.55rem', display: 'inline-block', zIndex: 50 }}>
                         <button 
                             onClick={() => setIsLocationMenuOpen(!isLocationMenuOpen)}
                             style={{
@@ -273,7 +338,9 @@ export default function BusinessPitches() {
                         >
                             <MapPin size={13} color="#34D399" />
                             <span>
-                                {gpsState ? (
+                                {isLocationLoading ? (
+                                    'Detecting GPS Location...'
+                                ) : gpsState ? (
                                     `${cityName ? `${cityName}, ` : ''}${gpsState}${pincode ? `, Pincode: ${pincode}` : ''}`
                                 ) : (
                                     'Select Region / Lock GPS'
@@ -286,25 +353,27 @@ export default function BusinessPitches() {
                             <>
                                 <div 
                                     onClick={() => setIsLocationMenuOpen(false)}
-                                    style={{ position: 'fixed', inset: 0, zIndex: 998, background: 'transparent' }} 
+                                    style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'transparent' }} 
                                 />
                                 
                                 <div style={{
                                     position: 'absolute',
-                                    top: '110%',
+                                    top: 'calc(100% + 6px)',
                                     left: 0,
-                                    background: 'white',
-                                    borderRadius: '12px',
-                                    boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                                    background: '#FFFFFF',
+                                    borderRadius: '14px',
+                                    boxShadow: '0 14px 35px rgba(0,0,0,0.22)',
                                     border: '1px solid #E2E8F0',
-                                    padding: '0.4rem',
-                                    minWidth: '220px',
-                                    zIndex: 999,
+                                    padding: '0.5rem',
+                                    minWidth: '260px',
+                                    maxHeight: '300px',
+                                    overflowY: 'auto',
+                                    zIndex: 9999,
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    gap: '2px'
+                                    gap: '3px'
                                 }}>
-                                    <div style={{ fontSize: '0.62rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', padding: '0.3rem 0.5rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.2rem' }}>
+                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', padding: '0.4rem 0.6rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.2rem' }}>
                                         Select Matching Region
                                     </div>
                                     
@@ -327,6 +396,7 @@ export default function BusinessPitches() {
                                                     setGpsState(opt.state);
                                                     setPincode(opt.pincode);
                                                     setLocationPermissionDenied(false);
+                                                    setLocationErrorMsg(null);
                                                 }
                                                 setIsLocationMenuOpen(false);
                                             }}
@@ -334,15 +404,15 @@ export default function BusinessPitches() {
                                                 background: 'transparent',
                                                 border: 'none',
                                                 textAlign: 'left',
-                                                padding: '0.5rem 0.6rem',
-                                                fontSize: '0.78rem',
+                                                padding: '0.55rem 0.65rem',
+                                                fontSize: '0.8rem',
                                                 fontWeight: '750',
-                                                color: '#334155',
+                                                color: '#1E293B',
                                                 borderRadius: '8px',
                                                 cursor: 'pointer',
                                                 display: 'flex',
                                                 flexDirection: 'column',
-                                                gap: '1px',
+                                                gap: '2px',
                                                 transition: 'all 0.15s ease',
                                                 width: '100%'
                                             }}
@@ -352,11 +422,11 @@ export default function BusinessPitches() {
                                             }}
                                             onMouseOut={e => {
                                                 e.currentTarget.style.background = 'transparent';
-                                                e.currentTarget.style.color = '#334155';
+                                                e.currentTarget.style.color = '#1E293B';
                                             }}
                                         >
-                                            <span style={{ fontSize: '0.75rem' }}>{opt.label}</span>
-                                            <span style={{ fontSize: '0.58rem', color: '#94A3B8', fontWeight: '500' }}>
+                                            <span style={{ fontSize: '0.8rem', color: '#0F172A', fontWeight: '800' }}>{opt.label}</span>
+                                            <span style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: '600' }}>
                                                 {opt.pincode ? `Pincode: ${opt.pincode}` : `Plus Code: ${opt.plusCode}`}
                                             </span>
                                         </button>
@@ -485,7 +555,7 @@ export default function BusinessPitches() {
             {/* Scrollable Main Content Wrapper */}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
 
-            {locationPermissionDenied && (
+            {(locationPermissionDenied || locationErrorMsg) && (
                 <div style={{
                     background: '#FEF2F2',
                     border: '1px solid #FCA5A5',
@@ -502,13 +572,13 @@ export default function BusinessPitches() {
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <MapPin size={16} color="#DC2626" />
-                        <span>Location services are disabled or blocked. Enable location permissions in your browser to unlock real-time location-based matchmaking.</span>
+                        <span>
+                            {locationErrorMsg || "Location services are disabled or blocked. Enable location permissions in your browser to unlock real-time location-based matchmaking."}
+                        </span>
                     </div>
                     <button 
-                        onClick={() => {
-                            setLocationPermissionDenied(false);
-                            requestLocation();
-                        }}
+                        disabled={isLocationLoading}
+                        onClick={() => requestLocation()}
                         style={{
                             background: '#DC2626',
                             color: 'white',
@@ -517,13 +587,18 @@ export default function BusinessPitches() {
                             borderRadius: '8px',
                             fontWeight: '800',
                             fontSize: '0.78rem',
-                            cursor: 'pointer',
-                            transition: 'background 0.2s'
+                            cursor: isLocationLoading ? 'not-allowed' : 'pointer',
+                            opacity: isLocationLoading ? 0.7 : 1,
+                            transition: 'background 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            whiteSpace: 'nowrap'
                         }}
-                        onMouseOver={e => e.currentTarget.style.background = '#B91C1C'}
-                        onMouseOut={e => e.currentTarget.style.background = '#DC2626'}
+                        onMouseOver={e => { if (!isLocationLoading) e.currentTarget.style.background = '#B91C1C'; }}
+                        onMouseOut={e => { if (!isLocationLoading) e.currentTarget.style.background = '#DC2626'; }}
                     >
-                        Enable Location
+                        {isLocationLoading ? 'Detecting Location...' : (locationPermissionDenied ? 'Enable Location' : 'Retry Location')}
                     </button>
                 </div>
             )}
@@ -962,12 +1037,46 @@ export default function BusinessPitches() {
                                         <input 
                                             required
                                             type="number"
+                                            min="0"
                                             value={formData.funding_target}
-                                            onChange={(e) => setFormData({ ...formData, funding_target: e.target.value })}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            onChange={(e) => {
+                                                let val = e.target.value;
+                                                if (val !== '' && Number(val) < 0) {
+                                                    val = '0';
+                                                }
+                                                setFormData(prev => ({ ...prev, funding_target: val }));
+                                                const err = validateFundingTarget(val);
+                                                setFormErrors(prev => ({ ...prev, funding_target: err }));
+                                            }}
+                                            onPaste={(e) => {
+                                                const pasted = e.clipboardData.getData('text');
+                                                if (Number(pasted) < 0) {
+                                                    e.preventDefault();
+                                                    setFormData(prev => ({ ...prev, funding_target: '0' }));
+                                                    setFormErrors(prev => ({ ...prev, funding_target: 'Funding request amount cannot be negative.' }));
+                                                }
+                                            }}
                                             placeholder="e.g. 5000000"
-                                            style={{ width: '100%', padding: '0.85rem 0.85rem 0.85rem 2.5rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.85rem 0.85rem 0.85rem 2.5rem',
+                                                borderRadius: '10px',
+                                                border: formErrors.funding_target ? '1px solid #EF4444' : '1px solid #cbd5e1',
+                                                fontSize: '0.95rem',
+                                                outline: 'none'
+                                            }}
                                         />
                                     </div>
+                                    {formErrors.funding_target && (
+                                        <span style={{ fontSize: '0.75rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '700' }}>
+                                            {formErrors.funding_target}
+                                        </span>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
@@ -977,12 +1086,51 @@ export default function BusinessPitches() {
                                         <Target size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                                         <input 
                                             type="number"
+                                            min="0"
+                                            max="100"
                                             value={formData.equity_offered}
-                                            onChange={(e) => setFormData({ ...formData, equity_offered: e.target.value })}
+                                            onKeyDown={(e) => {
+                                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            onChange={(e) => {
+                                                let val = e.target.value;
+                                                if (val !== '' && Number(val) < 0) {
+                                                    val = '0';
+                                                } else if (val !== '' && Number(val) > 100) {
+                                                    val = '100';
+                                                }
+                                                setFormData(prev => ({ ...prev, equity_offered: val }));
+                                                const err = validateEquityOffered(val);
+                                                setFormErrors(prev => ({ ...prev, equity_offered: err }));
+                                            }}
+                                            onPaste={(e) => {
+                                                const pasted = e.clipboardData.getData('text');
+                                                const num = Number(pasted);
+                                                if (num < 0 || num > 100) {
+                                                    e.preventDefault();
+                                                    const clamped = num < 0 ? '0' : '100';
+                                                    setFormData(prev => ({ ...prev, equity_offered: clamped }));
+                                                    setFormErrors(prev => ({ ...prev, equity_offered: validateEquityOffered(clamped) }));
+                                                }
+                                            }}
                                             placeholder="e.g. 10"
-                                            style={{ width: '100%', padding: '0.85rem 0.85rem 0.85rem 2.5rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.85rem 0.85rem 0.85rem 2.5rem',
+                                                borderRadius: '10px',
+                                                border: formErrors.equity_offered ? '1px solid #EF4444' : '1px solid #cbd5e1',
+                                                fontSize: '0.95rem',
+                                                outline: 'none'
+                                            }}
                                         />
                                     </div>
+                                    {formErrors.equity_offered && (
+                                        <span style={{ fontSize: '0.75rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '700' }}>
+                                            {formErrors.equity_offered}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
@@ -1010,11 +1158,28 @@ export default function BusinessPitches() {
                                             type="email"
                                             required
                                             value={formData.founder_email}
-                                            onChange={(e) => setFormData({ ...formData, founder_email: e.target.value })}
-                                            placeholder="founder@yourbiz.com"
-                                            style={{ width: '100%', padding: '0.85rem 0.85rem 0.85rem 2.5rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setFormData(prev => ({ ...prev, founder_email: val }));
+                                                const err = validateFounderEmail(val);
+                                                setFormErrors(prev => ({ ...prev, founder_email: err }));
+                                            }}
+                                            placeholder="founder@bnxmail.com"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.85rem 0.85rem 0.85rem 2.5rem',
+                                                borderRadius: '10px',
+                                                border: formErrors.founder_email ? '1px solid #EF4444' : '1px solid #cbd5e1',
+                                                fontSize: '0.95rem',
+                                                outline: 'none'
+                                            }}
                                         />
                                     </div>
+                                    {formErrors.founder_email && (
+                                        <span style={{ fontSize: '0.75rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '700' }}>
+                                            {formErrors.founder_email}
+                                        </span>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
