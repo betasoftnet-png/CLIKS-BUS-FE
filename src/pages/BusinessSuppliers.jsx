@@ -1155,23 +1155,6 @@ const BusinessSuppliers = () => {
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                                    {supBal > 0 && (
-                                                        <>
-                                                            <button 
-                                                                onClick={() => handleOpenPayNowModal(sup)}
-                                                                title="Instant Pay Gateway"
-                                                                style={{ padding: '0.4rem 0.65rem', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                                                            >
-                                                                <CreditCard size={14} />
-                                                                Pay Now
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => handleOpenPaymentModal(sup)}
-                                                                title="Record Offline Payment"
-                                                                style={{ padding: '0.4rem 0.65rem', borderRadius: '8px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
-                                                            >Record Pay</button>
-                                                        </>
-                                                    )}
                                                     <button onClick={() => handleEdit(sup)} title="Edit specifications" style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={15} /></button>
                                                     <button onClick={() => handleDelete(supId)} title="Delete profile" style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={15} /></button>
                                                 </div>
