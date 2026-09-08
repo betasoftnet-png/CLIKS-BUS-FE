@@ -877,7 +877,6 @@ const BusinessWarehouse = () => {
                                     <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Purchase bill ref</th>
                                     <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Product Description</th>
                                     <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Received Qty</th>
-                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Received By</th>
                                     <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Date Received</th>
                                     <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Destination Warehouse</th>
                                 </tr>
@@ -889,7 +888,6 @@ const BusinessWarehouse = () => {
                                         <td style={{ padding: '1rem', color: '#475569', fontWeight: '700' }}>{inw.purchase_id}</td>
                                         <td style={{ padding: '1rem', fontWeight: '700' }}>{inw.product_name}</td>
                                         <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A' }}>{inw.received_quantity} pcs</td>
-                                        <td style={{ padding: '1rem' }}>{inw.received_by}</td>
                                         <td style={{ padding: '1rem', color: '#64748B' }}>{inw.inward_date}</td>
                                         <td style={{ padding: '1rem', color: '#475569', fontWeight: '600' }}>{inw.warehouse_name}</td>
                                     </tr>
