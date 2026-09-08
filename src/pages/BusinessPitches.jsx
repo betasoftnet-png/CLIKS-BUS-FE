@@ -138,11 +138,16 @@ export default function BusinessPitches() {
 
     const validateFounderEmail = (val) => {
         const clean = (val || '').trim();
-        if (!clean) {
-            return 'Please enter a valid BNXmail address ending in @bnxmail.com.';
+        if (!clean || !/^[^\s@]+@bnxmail\.com$/i.test(clean)) {
+            return 'Enter a valid BNXmail address ending in @bnxmail.com.';
         }
-        if (!/^[^\s@]+@bnxmail\.com$/i.test(clean)) {
-            return 'Please enter a valid BNXmail address ending in @bnxmail.com.';
+        return null;
+    };
+
+    const validateFounderPhone = (val) => {
+        const clean = (val || '').trim();
+        if (!clean || clean.length !== 10 || !/^\d{10}$/.test(clean)) {
+            return 'Enter a valid 10-digit phone number.';
         }
         return null;
     };
@@ -196,20 +201,23 @@ export default function BusinessPitches() {
         const fundingErr = validateFundingTarget(formData.funding_target);
         const equityErr = validateEquityOffered(formData.equity_offered);
         const emailErr = validateFounderEmail(formData.founder_email);
+        const phoneErr = validateFounderPhone(formData.founder_phone);
 
-        if (fundingErr || equityErr || emailErr || !formData.business_name || !formData.headline || !formData.founder_phone) {
+        if (fundingErr || equityErr || emailErr || phoneErr || !formData.business_name || !formData.headline) {
             setFormErrors({
                 funding_target: fundingErr,
                 equity_offered: equityErr,
-                founder_email: emailErr
+                founder_email: emailErr,
+                founder_phone: phoneErr
             });
-            alert(emailErr || fundingErr || equityErr || "Please supply all required founder and venture details correctly.");
+            alert(emailErr || phoneErr || fundingErr || equityErr || "Please supply all required founder and venture details correctly.");
             return;
         }
 
         const payload = {
             ...formData,
             founder_email: (formData.founder_email || '').trim(),
+            founder_phone: (formData.founder_phone || '').trim(),
             location: formData.location || (cityName ? `${cityName}, ${gpsState}` : 'Chennai, Tamil Nadu')
         };
         createMutation.mutate(payload);
@@ -1190,12 +1198,30 @@ export default function BusinessPitches() {
                                         <input 
                                             type="text"
                                             required
+                                            maxLength={10}
                                             value={formData.founder_phone}
-                                            onChange={(e) => setFormData({ ...formData, founder_phone: e.target.value })}
-                                            placeholder="+91 99999 99999"
-                                            style={{ width: '100%', padding: '0.85rem 0.85rem 0.85rem 2.5rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                                setFormData(prev => ({ ...prev, founder_phone: val }));
+                                                const err = validateFounderPhone(val);
+                                                setFormErrors(prev => ({ ...prev, founder_phone: err }));
+                                            }}
+                                            placeholder="e.g. 9999999999"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.85rem 0.85rem 0.85rem 2.5rem',
+                                                borderRadius: '10px',
+                                                border: formErrors.founder_phone ? '1px solid #EF4444' : '1px solid #cbd5e1',
+                                                fontSize: '0.95rem',
+                                                outline: 'none'
+                                            }}
                                         />
                                     </div>
+                                    {formErrors.founder_phone && (
+                                        <span style={{ fontSize: '0.75rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '700' }}>
+                                            {formErrors.founder_phone}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
