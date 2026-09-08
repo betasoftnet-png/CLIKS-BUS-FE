@@ -262,15 +262,29 @@ const BusinessWarehouse = () => {
 
     // Goods Inward (Receivings) Logs from actual backend transactions
     const dbInwards = reportsData?.inwards || [];
-    const inwards = dbInwards.map((inw) => ({
-        inward_id: `INW-${inw.id}`,
-        purchase_id: inw.purchase_bill_ref || 'N/A',
-        product_name: inw.product_name || 'Unknown Item',
-        received_quantity: inw.quantity || 0,
-        received_by: inw.received_by || 'Staff',
-        inward_date: inw.created_at ? inw.created_at.split('T')[0] : 'N/A',
-        warehouse_name: inw.warehouse_name || 'Not Configured'
-    }));
+    const inwards = dbInwards.map((inw) => {
+        let resolvedWhName = inw.warehouse_name;
+        if (!resolvedWhName || resolvedWhName === 'Not Configured') {
+            const matchedWh = warehouses.find(w => 
+                String(w.id) === String(inw.warehouse_id) || 
+                (w.warehouse_code && String(w.warehouse_code).toLowerCase() === String(inw.warehouse_id).toLowerCase()) ||
+                (w.warehouse_name && String(w.warehouse_name).toLowerCase() === String(inw.warehouse_id).toLowerCase())
+            );
+            if (matchedWh) {
+                resolvedWhName = matchedWh.warehouse_name;
+            }
+        }
+
+        return {
+            inward_id: `INW-${inw.id}`,
+            purchase_id: inw.purchase_bill_ref || 'N/A',
+            product_name: inw.product_name || 'Unknown Item',
+            received_quantity: inw.quantity || 0,
+            received_by: inw.received_by || 'Staff',
+            inward_date: inw.created_at ? inw.created_at.split('T')[0] : 'N/A',
+            warehouse_name: resolvedWhName && resolvedWhName !== 'Not Configured' ? resolvedWhName : 'Not Configured'
+        };
+    });
 
     // Form states
     const [newWarehouse, setNewWarehouse] = useState({
@@ -567,12 +581,15 @@ const BusinessWarehouse = () => {
 
     const handleLogInward = (e) => {
         e.preventDefault();
+        const rawWhId = newInward.warehouse_id || (warehouses.length > 0 ? warehouses[0].id : null);
+        const parsedWhId = rawWhId != null && !isNaN(parseInt(rawWhId)) ? parseInt(rawWhId) : rawWhId;
+
         createInwardMutation.mutate({
             stock_id: parseInt(newInward.stock_id),
             quantity: parseInt(newInward.received_quantity),
             purchase_bill_ref: newInward.purchase_id,
             received_by: newInward.received_by,
-            warehouse_id: parseInt(newInward.warehouse_id)
+            warehouse_id: parsedWhId
         });
     };
 
