@@ -22,7 +22,7 @@ export default function BusinessCA({ mode }) {
     const [activeTab] = useState('auditor'); // auditor | ca_cpa | cs_vault | consultant
 
     const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports
-    const [activeAuditorCategory, setActiveAuditorCategory] = useState("Statutory Financial Auditor (ICAI CA)");
+    const [activeAuditorCategory, setActiveAuditorCategory] = useState("FIN-PRO Advisory Workspace");
     const [activeSuiteTool, setActiveSuiteTool] = useState('tool1');
 
     const auditorCategories = [
@@ -31,7 +31,8 @@ export default function BusinessCA({ mode }) {
         "Internal Auditor (CIA / CA / CMA)",
         "Cost Auditor (ICMAI CMA)",
         "Secretarial Auditor (ICSI CS)",
-        "Forensic Auditor (ICAI FAFD / CFE)"
+        "Forensic Auditor (ICAI FAFD / CFE)",
+        "FIN-PRO Advisory Workspace"
     ];
 
     // Timer States
@@ -2496,6 +2497,7 @@ export default function BusinessCA({ mode }) {
                     </div>
 
                     {/* Auditor Category Specialized Suite Card */}
+                    {activeAuditorCategory !== "FIN-PRO Advisory Workspace" && (
                     <div style={{
                         background: '#FFFFFF',
                         borderRadius: '16px',
@@ -3120,8 +3122,11 @@ export default function BusinessCA({ mode }) {
                             );
                         })()}
                     </div>
+                    )}
 
                     {/* Zoho Practice Style Scrollable Horizontal Navigation Tab Bar */}
+                    {activeAuditorCategory === "FIN-PRO Advisory Workspace" && (
+                    <>
                     <div style={{
                         background: '#FFFFFF',
                         borderRadius: '16px',
@@ -5301,6 +5306,8 @@ export default function BusinessCA({ mode }) {
                             )}
                         </AnimatePresence>
                     </div>
+                    </>
+                    )}
 
                     {/* Modals for CRUD operations */}
                     {showAddClientModal && (
