@@ -1,25 +1,45 @@
 # Stage 1: Build the static assets
 FROM node:20-alpine AS builder
+
 WORKDIR /app
 
-# Copy package dependency definitions
+# Vite build-time variables
+ARG VITE_API_BASE_URL
+ARG VITE_CALCULATOR_API_BASE_URL
+ARG VITE_CONTACT_API_BASE_URL
+ARG VITE_CALENDAR_API_BASE_URL
+ARG VITE_NOTES_API_BASE_URL
+ARG VITE_OPEN_METEO_API
+ARG VITE_BIGDATA_CLOUD_API
+
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_CALCULATOR_API_BASE_URL=$VITE_CALCULATOR_API_BASE_URL
+ENV VITE_CONTACT_API_BASE_URL=$VITE_CONTACT_API_BASE_URL
+ENV VITE_CALENDAR_API_BASE_URL=$VITE_CALENDAR_API_BASE_URL
+ENV VITE_NOTES_API_BASE_URL=$VITE_NOTES_API_BASE_URL
+ENV VITE_OPEN_METEO_API=$VITE_OPEN_METEO_API
+ENV VITE_BIGDATA_CLOUD_API=$VITE_BIGDATA_CLOUD_API
+
+# Install dependencies
 COPY package*.json ./
 RUN npm ci
 
-# Copy source code and build project
+# Copy source code
 COPY . .
+
+# Build frontend
 RUN npm run build
+
 
 # Stage 2: Serve using Nginx
 FROM nginx:alpine AS runner
+
 WORKDIR /usr/share/nginx/html
 
-# Remove default static files
 RUN rm -rf ./*
 
-# Copy compiled dist assets from builder stage
-# (If the build folder is named 'build' instead of 'dist', update path accordingly)
 COPY --from=builder /app/dist .
 
 EXPOSE 80
+
 CMD ["nginx", "-g", "daemon off;"]
