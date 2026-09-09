@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
@@ -13,13 +14,13 @@ import { useCurrency, useAuth } from '../context';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { applyTableFilters } from '../utils/filterUtils';
 
-export default function BusinessCA() {
+export default function BusinessCA({ mode }) {
+    const location = useLocation();
+    const activeMode = mode || (location.pathname.startsWith('/ca') ? 'personal' : 'business');
     const { currency, formatCurrency } = useCurrency();
     const { user } = useAuth();
     const [activeTab] = useState('auditor'); // auditor | ca_cpa | cs_vault | consultant
 
-    // Top-level workspace mode switcher
-    const [caMode, setCaMode] = useState('business'); // business | personal
     const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports
 
     // Timer States
@@ -1351,7 +1352,7 @@ export default function BusinessCA() {
                 </div>
             </div>
 
-            {caMode === 'business' ? (
+            {activeMode === 'business' ? (
                 <>
                     {/* Main Area - Restructured as 2-column Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6" style={{
@@ -2357,6 +2358,77 @@ export default function BusinessCA() {
                 </>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+                    {/* Unified FIN-PRO Advisory Workspace (Firm) Header */}
+                    <div style={{
+                        display: 'flex',
+                        justify: 'space-between',
+                        alignItems: 'center',
+                        background: '#FFFFFF',
+                        padding: '24px',
+                        borderRadius: '16px',
+                        border: '1px solid #E2E8F0',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                        flexWrap: 'wrap',
+                        gap: '16px'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div style={{
+                                width: '56px',
+                                height: '56px',
+                                borderRadius: '14px',
+                                background: '#F0FDF4',
+                                border: '1px solid #BBF7D0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#15803d',
+                                flexShrink: 0
+                            }}>
+                                <User size={28} />
+                            </div>
+                            <div>
+                                <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', margin: 0 }}>
+                                    FIN-PRO Advisory Workspace
+                                    <span style={{
+                                        fontSize: '11px',
+                                        fontWeight: '900',
+                                        color: '#15803d',
+                                        background: '#DCFCE7',
+                                        border: '1px solid #BBF7D0',
+                                        padding: '3px 10px',
+                                        borderRadius: '20px',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px'
+                                    }}>
+                                        FIRM PRACTICE LAYER
+                                    </span>
+                                </h1>
+                                <p style={{ fontSize: '13px', color: '#64748B', fontWeight: '500', marginTop: '4px', margin: 0 }}>
+                                    Manage client accounts, advisory requests, compliance tasks, timetracking, workpapers, and firm reports.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Right Side: Active Practice Metrics Pill */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '8px 14px',
+                                borderRadius: '20px',
+                                background: '#F0F5FF',
+                                border: '1px solid #C3DAFE',
+                                color: '#004aad',
+                                fontSize: '12.5px',
+                                fontWeight: '600'
+                            }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#004aad', boxShadow: '0 0 0 3px rgba(0, 74, 173, 0.2)' }} />
+                                <span>Active Practice Clients: <strong style={{ color: '#003380', fontWeight: '700' }}>{allPracticeClients.length}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Zoho Practice Style Scrollable Horizontal Navigation Tab Bar */}
                     <div style={{
                         background: '#FFFFFF',
