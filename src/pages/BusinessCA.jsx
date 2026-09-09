@@ -23,6 +23,7 @@ export default function BusinessCA({ mode }) {
 
     const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports
     const [activeAuditorCategory, setActiveAuditorCategory] = useState("Statutory Financial Auditor (ICAI CA)");
+    const [activeSuiteTool, setActiveSuiteTool] = useState('tool1');
 
     const auditorCategories = [
         "Statutory Financial Auditor (ICAI CA)",
@@ -2460,7 +2461,10 @@ export default function BusinessCA({ mode }) {
                                 <button
                                     key={category}
                                     type="button"
-                                    onClick={() => setActiveAuditorCategory(category)}
+                                    onClick={() => {
+                                        setActiveAuditorCategory(category);
+                                        setActiveSuiteTool('tool1');
+                                    }}
                                     style={{
                                         display: 'inline-flex',
                                         alignItems: 'center',
@@ -2489,6 +2493,632 @@ export default function BusinessCA({ mode }) {
                                 </button>
                             );
                         })}
+                    </div>
+
+                    {/* Auditor Category Specialized Suite Card */}
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '16px',
+                        border: '1px solid #E2E8F0',
+                        padding: '24px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '20px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+                    }}>
+                        {(() => {
+                            let title = "";
+                            let goal = "";
+                            let authorityBadge = "";
+                            let primaryDeliverable = "";
+                            let iconBg = "#F0FDF4";
+                            let iconColor = "#15803d";
+                            let tools = [];
+
+                            if (activeAuditorCategory === "Statutory Financial Auditor (ICAI CA)") {
+                                title = "Statutory Financial Audit Suite";
+                                goal = "Prove a 'true and fair view' under Section 143 of the Companies Act and Indian Accounting Standards (Ind AS).";
+                                authorityBadge = "ICAI CA Standard";
+                                primaryDeliverable = "Rule 11(g) Audit Trail Certificate & SA 230 Working Paper Bundle";
+                                iconBg = "#EFF6FF";
+                                iconColor = "#1D4ED8";
+                                tools = [
+                                    { id: 'tool1', label: 'Rule 11(g) Vault & Certificate' },
+                                    { id: 'tool2', label: 'Smart Vouching & Sampler' },
+                                    { id: 'tool3', label: 'Fixed Asset & Depreciation' },
+                                    { id: 'tool4', label: 'Direct Bank BRS Engine' },
+                                    { id: 'tool5', label: 'SA 230 Working Paper Packager' }
+                                ];
+                            } else if (activeAuditorCategory === "Tax Auditor (ICAI CA)") {
+                                title = "Tax Audit & Form 3CD Hub";
+                                goal = "Verify compliance under Section 44AB and auto-populate Form 3CD.";
+                                authorityBadge = "Sec 44AB Tax Audit";
+                                primaryDeliverable = "1-Click Form 3CD Data Extractor (Clauses 21, 34, 44, Sec 43B(h))";
+                                iconBg = "#FFFBEB";
+                                iconColor = "#B45309";
+                                tools = [
+                                    { id: 'tool1', label: 'Sec 40A(3) Cash Payment Watchdog' },
+                                    { id: 'tool2', label: 'TDS/TCS Hub (Clause 34)' },
+                                    { id: 'tool3', label: 'Clause 44 Expense Breakdown' },
+                                    { id: 'tool4', label: 'Sec 43B(h) MSME Payment Tracker' },
+                                    { id: 'tool5', label: 'Statutory Dues Clock (PF/ESI)' }
+                                ];
+                            } else if (activeAuditorCategory === "Internal Auditor (CIA / CA / CMA)") {
+                                title = "Operational Anomaly & Internal Controls Desk";
+                                goal = "Uncover operational leaks, process bottlenecks, theft, and internal control weaknesses under Section 138.";
+                                authorityBadge = "Sec 138 Internal Controls";
+                                primaryDeliverable = "Inventory shrinkage, AR aging, and cash leakage exception reports";
+                                iconBg = "#F0F5FF";
+                                iconColor = "#004aad";
+                                tools = [
+                                    { id: 'tool1', label: 'Negative Stock & Shrinkage Radar' },
+                                    { id: 'tool2', label: 'AR Aging & Bad Debt Matrix' },
+                                    { id: 'tool3', label: 'Ghost Employee & Payroll Filter' },
+                                    { id: 'tool4', label: 'Petty Cash & Store Scrutinizer' },
+                                    { id: 'tool5', label: 'Vendor Master Integrity Checker' }
+                                ];
+                            } else if (activeAuditorCategory === "Cost Auditor (ICMAI CMA)") {
+                                title = "BOM & Manufacturing Costing Console";
+                                goal = "Audit manufacturing cost structures, input consumption, and CRA-1/CRA-3 compliance under Section 148.";
+                                authorityBadge = "ICMAI CMA Cost Audit";
+                                primaryDeliverable = "CRA-1 Cost Sheets & Raw Material Input-Output Variance Sheets";
+                                iconBg = "#ECFDF5";
+                                iconColor = "#047857";
+                                tools = [
+                                    { id: 'tool1', label: 'BOM & Production SION Tracker' },
+                                    { id: 'tool2', label: 'Scrap, By-Product & Spoilage Monitor' },
+                                    { id: 'tool3', label: 'Overhead Allocation Engine (ABC)' },
+                                    { id: 'tool4', label: 'Form CRA-1 & CRA-3 Export Assistant' }
+                                ];
+                            } else if (activeAuditorCategory === "Secretarial Auditor (ICSI CS)") {
+                                title = "Secretarial Audit & Corporate Governance Suite";
+                                goal = "Ensure legal and corporate governance compliance under Section 204, SEBI LODR, and MCA regulations.";
+                                authorityBadge = "ICSI CS Governance";
+                                primaryDeliverable = "RPT Section 188 disclosures & Form MBP-2 / MBP-4 registers";
+                                iconBg = "#F5F3FF";
+                                iconColor = "#6D28D9";
+                                tools = [
+                                    { id: 'tool1', label: 'Related Party Ledger (Sec 188)' },
+                                    { id: 'tool2', label: 'Sec 185/186 Director Loan Caps' },
+                                    { id: 'tool3', label: 'Statutory Registers (MGT-1, MBP-2, MBP-4)' },
+                                    { id: 'tool4', label: 'Governance Calendar & ROC Alerts' }
+                                ];
+                            } else if (activeAuditorCategory === "Forensic Auditor (ICAI FAFD / CFE)") {
+                                title = "Forensic Analytics & Fraud Detection Suite";
+                                goal = "Detect deliberate fraud, shell entity diversion, invoice circularity, and fund round-tripping.";
+                                authorityBadge = "FAFD / CFE Forensic";
+                                primaryDeliverable = "Benford's Law distribution charts & circular billing graphs";
+                                iconBg = "#FEF2F2";
+                                iconColor = "#DC2626";
+                                tools = [
+                                    { id: 'tool1', label: 'Benford’s Law Anomaly Scanner' },
+                                    { id: 'tool2', label: 'Round-Sum & Threshold Clustering' },
+                                    { id: 'tool3', label: 'Circular Billing Graph Detector' },
+                                    { id: 'tool4', label: 'Weekend & Back-Dated Heatmap' },
+                                    { id: 'tool5', label: 'Deleted & Modified Voucher Inspector' }
+                                ];
+                            }
+
+                            return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    {/* Header Banner */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: iconBg, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800' }}>
+                                                <FileCheck size={24} />
+                                            </div>
+                                            <div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                    <h3 style={{ fontSize: '18px', fontWeight: '850', color: '#0F172A', margin: 0 }}>{title}</h3>
+                                                    <span style={{ fontSize: '10px', fontWeight: '900', background: iconBg, color: iconColor, border: `1px solid ${iconColor}33`, padding: '2px 8px', borderRadius: '12px', textTransform: 'uppercase' }}>{authorityBadge}</span>
+                                                </div>
+                                                <p style={{ fontSize: '12.5px', color: '#64748B', margin: '2px 0 0 0', fontWeight: '500' }}>{goal}</p>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ fontSize: '11.5px', color: '#334155', background: '#F1F5F9', border: '1px solid #E2E8F0', padding: '6px 12px', borderRadius: '8px', fontWeight: '600' }}>
+                                                📦 Core Deliverable: <strong>{primaryDeliverable}</strong>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Sub-tool Navigation Pills */}
+                                    <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', borderBottom: '1px solid #E2E8F0' }}>
+                                        {tools.map(t => {
+                                            const isToolActive = activeSuiteTool === t.id;
+                                            return (
+                                                <button
+                                                    key={t.id}
+                                                    type="button"
+                                                    onClick={() => setActiveSuiteTool(t.id)}
+                                                    style={{
+                                                        padding: '8px 14px',
+                                                        borderRadius: '8px 8px 0 0',
+                                                        border: isToolActive ? `1.5px solid ${iconColor}` : '1px solid transparent',
+                                                        borderBottom: isToolActive ? '2px solid #FFFFFF' : 'none',
+                                                        background: isToolActive ? '#FFFFFF' : 'transparent',
+                                                        color: isToolActive ? iconColor : '#64748B',
+                                                        fontWeight: isToolActive ? '800' : '600',
+                                                        fontSize: '12.5px',
+                                                        cursor: 'pointer',
+                                                        whiteSpace: 'nowrap',
+                                                        transition: 'all 0.15s ease',
+                                                        marginBottom: '-1px'
+                                                    }}
+                                                >
+                                                    {t.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Active Tool Content Panel */}
+                                    <div style={{ background: '#F8FAFC', padding: '20px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                                        {/* STATUTORY CA TOOLS */}
+                                        {activeAuditorCategory === "Statutory Financial Auditor (ICAI CA)" && (
+                                            <>
+                                                {activeSuiteTool === 'tool1' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <div>
+                                                                <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🛡️ Immutable Rule 11(g) Audit-Log Vault & Certificate</h4>
+                                                                <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Append-only, tamper-evident datastore logging all voucher creations, modifications, and deletions with field-level diffs.</p>
+                                                            </div>
+                                                            <button onClick={() => alert('📜 Statutory Rule 11(g) Compliance Audit Trail Certificate generated & downloaded successfully!')} style={{ padding: '8px 16px', background: '#1D4ED8', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                <Download size={15} /> 1-Click Rule 11(g) Report (.PDF)
+                                                            </button>
+                                                        </div>
+                                                        <div style={{ background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '12px', fontFamily: 'monospace', color: '#334155' }}>
+                                                            <div style={{ color: '#166534', fontWeight: '700', marginBottom: '6px' }}>[SYSTEM STATUS] Rule 11(g) Audit Logging: ACTIVE & IMMUTABLE (Zero Downtime / Zero Tampering)</div>
+                                                            <div>• 2026-09-09 14:22:01 | User: accounts@bnxmail.com | Table: vouchers | Action: UPDATE | Field: amount | old: ₹45,000 → new: ₹50,000</div>
+                                                            <div>• 2026-09-09 11:15:40 | User: admin@bnxmail.com | Table: ledger_entries | Action: CREATE | Record ID: #8912 | Status: Verified</div>
+                                                            <div>• 2026-09-08 17:04:12 | User: audit_user@bnxmail.com | Table: invoices | Action: DELETE (Soft) | Record ID: #4401 | Reason: Cancelled</div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool2' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <div>
+                                                                <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🔍 Smart Vouching & Materiality Sampler</h4>
+                                                                <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>3-Way Match Verification (PO ↔ GRN ↔ Purchase Invoice) & Statistical Sampling Engine.</p>
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                                <span style={{ fontSize: '11px', background: '#DBEAFE', color: '#1E40AF', padding: '4px 10px', borderRadius: '6px', fontWeight: '700' }}>Cutoff: &gt; ₹50,000</span>
+                                                                <span style={{ fontSize: '11px', background: '#DCFCE7', color: '#166534', padding: '4px 10px', borderRadius: '6px', fontWeight: '700' }}>3-Way Match Rate: 98.4%</span>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ background: '#FFFFFF', borderRadius: '8px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                                                            <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                                                <thead style={{ background: '#F1F5F9', color: '#475569', fontWeight: '700' }}>
+                                                                    <tr>
+                                                                        <th style={{ padding: '8px 12px' }}>PO Number</th>
+                                                                        <th style={{ padding: '8px 12px' }}>GRN Ref</th>
+                                                                        <th style={{ padding: '8px 12px' }}>Invoice Ref</th>
+                                                                        <th style={{ padding: '8px 12px' }}>Amount</th>
+                                                                        <th style={{ padding: '8px 12px' }}>3-Way Status</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                        <td style={{ padding: '8px 12px', fontWeight: '700' }}>PO-8821</td>
+                                                                        <td style={{ padding: '8px 12px' }}>GRN-4012</td>
+                                                                        <td style={{ padding: '8px 12px' }}>INV-9021</td>
+                                                                        <td style={{ padding: '8px 12px', fontWeight: '700' }}>{formatCurrency(125000)}</td>
+                                                                        <td style={{ padding: '8px 12px', color: '#16A34A', fontWeight: '800' }}>✓ Matched (Qty & Rate)</td>
+                                                                    </tr>
+                                                                    <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                        <td style={{ padding: '8px 12px', fontWeight: '700' }}>PO-8840</td>
+                                                                        <td style={{ padding: '8px 12px' }}>GRN-4029</td>
+                                                                        <td style={{ padding: '8px 12px' }}>INV-9055</td>
+                                                                        <td style={{ padding: '8px 12px', fontWeight: '700' }}>{formatCurrency(68000)}</td>
+                                                                        <td style={{ padding: '8px 12px', color: '#DC2626', fontWeight: '800' }}>⚠ Rate Discrepancy (2.5% spike)</td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool3' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🏢 Fixed Asset & Depreciation Engine</h4>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Auto-computes Companies Act 2013 Sched II (Useful life) vs Income Tax Act (Block of assets).</p>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                            <div style={{ background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>COMPANIES ACT SCHED II (SLM/WDV)</div>
+                                                                <div style={{ fontSize: '18px', fontWeight: '850', color: '#1D4ED8', marginTop: '4px' }}>{formatCurrency(142000)}</div>
+                                                            </div>
+                                                            <div style={{ background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>INCOME TAX ACT (BLOCK OF ASSETS)</div>
+                                                                <div style={{ fontSize: '18px', fontWeight: '850', color: '#15803d', marginTop: '4px' }}>{formatCurrency(168500)}</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool4' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🏦 Direct Bank Reconciliation (BRS) Engine</h4>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Reconciles bank statement feeds against system ledgers with unpresented cheque tracking.</p>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>Unpresented Cheques</div>
+                                                                <div style={{ fontSize: '15px', fontWeight: '800', color: '#D97706' }}>{formatCurrency(124000)}</div>
+                                                            </div>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>Uncleared Deposits</div>
+                                                                <div style={{ fontSize: '15px', fontWeight: '800', color: '#2563EB' }}>{formatCurrency(85000)}</div>
+                                                            </div>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>Net BRS Discrepancy</div>
+                                                                <div style={{ fontSize: '15px', fontWeight: '800', color: '#16A34A' }}>₹0.00 (Reconciled)</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool5' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📁 ICAI SA 230 Working Paper Packager</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Compiles vouchers, balance confirmations, and notes into an SA 230 audit documentation bundle.</p>
+                                                        </div>
+                                                        <button onClick={() => alert('📦 SA 230 Audit Documentation Working Paper Packager bundle (.ZIP) generated!')} style={{ padding: '8px 16px', background: '#1D4ED8', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <Download size={15} /> Package SA 230 Bundle (.ZIP)
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {/* TAX CA TOOLS */}
+                                        {activeAuditorCategory === "Tax Auditor (ICAI CA)" && (
+                                            <>
+                                                {activeSuiteTool === 'tool1' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🚨 Section 40A(3) Cash Payment Watchdog</h4>
+                                                            <span style={{ fontSize: '11px', background: '#FEF2F2', color: '#DC2626', padding: '4px 10px', borderRadius: '6px', fontWeight: '800' }}>Threshold: &gt; ₹10,000 / Day / Party</span>
+                                                        </div>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Flags aggregate daily cash payments to a single vendor subject to tax disallowance under Sec 40A(3).</p>
+                                                        <div style={{ background: '#FFFFFF', padding: '10px 12px', borderRadius: '8px', border: '1px solid #FECACA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <div>
+                                                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#991B1B' }}>Vendor: Sharma Logistics (Cash Payment)</span>
+                                                                <div style={{ fontSize: '11px', color: '#7F1D1D' }}>Date: 2026-09-02 | Total Cash: ₹18,500 across 2 vouchers</div>
+                                                            </div>
+                                                            <span style={{ fontSize: '12px', fontWeight: '900', color: '#DC2626' }}>DISALLOWED u/s 40A(3)</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool2' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📋 TDS/TCS Compliance Hub (Clause 34 of Form 3CD)</h4>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Auto-checks Sections 194C, 194J, 194Q, 206C(1H) rates and deposit dates.</p>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', textAlign: 'center' }}>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Sec 194C (Contractors)</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#16A34A', marginTop: '2px' }}>✓ Compliant</div>
+                                                            </div>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Sec 194J (Professional)</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#16A34A', marginTop: '2px' }}>✓ Compliant</div>
+                                                            </div>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Sec 194Q (Goods Purchase)</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#D97706', marginTop: '2px' }}>⚠ 1 Delay Deposit</div>
+                                                            </div>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Form 3CD Clause 34</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#2563EB', marginTop: '2px' }}>Ready to Export</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool3' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📊 Clause 44 Expenditure Breakdown Matrix</h4>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Mandatory GST expenditure classification matrix for Form 3CD reporting.</p>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>GST Exempt Supplies</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>{formatCurrency(420000)}</div>
+                                                            </div>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Composition Scheme</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>{formatCurrency(180000)}</div>
+                                                            </div>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Registered Entities</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#16A34A', marginTop: '2px' }}>{formatCurrency(4560000)}</div>
+                                                            </div>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Non-Registered Entities</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#D97706', marginTop: '2px' }}>{formatCurrency(810000)}</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool4' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>⏳ Section 43B(h) MSME Payment Tracker</h4>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Tracks vendor aging against statutory 15-day / 45-day MSME payment deadlines to prevent disallowances.</p>
+                                                        <div style={{ background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <div>
+                                                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#0F172A' }}>Micro Vendor: Precision Tools Pvt Ltd</span>
+                                                                <div style={{ fontSize: '11px', color: '#64748B' }}>Invoice Date: 2026-08-01 (40 Days Elapsed) | Limit: 45 Days</div>
+                                                            </div>
+                                                            <span style={{ fontSize: '11.5px', background: '#FEF3C7', color: '#B45309', padding: '4px 10px', borderRadius: '6px', fontWeight: '800' }}>5 Days Remaining</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool5' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>⏰ Statutory Dues Clock (Section 36(1)(va) & 43B)</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Compares PF/ESI payroll deduction dates against monthly statutory due dates.</p>
+                                                        </div>
+                                                        <span style={{ fontSize: '12px', background: '#DCFCE7', color: '#166534', padding: '6px 14px', borderRadius: '8px', fontWeight: '800' }}>✓ PF/ESI Deposited On-Time</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {/* INTERNAL AUDITOR TOOLS */}
+                                        {activeAuditorCategory === "Internal Auditor (CIA / CA / CMA)" && (
+                                            <>
+                                                {activeSuiteTool === 'tool1' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📉 Negative Stock & Inventory Variance Radar</h4>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Alerts on negative stock entries, back-dated billing, and physical vs software stock variance.</p>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                            <div style={{ background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>PHYSICAL VS SOFTWARE VARIANCE</div>
+                                                                <div style={{ fontSize: '18px', fontWeight: '850', color: '#D97706', marginTop: '4px' }}>1.4% Shrinkage</div>
+                                                            </div>
+                                                            <div style={{ background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>NEGATIVE STOCK EVENTS</div>
+                                                                <div style={{ fontSize: '18px', fontWeight: '850', color: '#16A34A', marginTop: '4px' }}>0 Events Blocked</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool2' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📅 Aged Accounts Receivable & Bad Debt Matrix</h4>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Categorizes customer receivables into 0-30, 31-60, 61-90, and 90+ days aging buckets.</p>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', textAlign: 'center' }}>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>0–30 Days</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#16A34A', marginTop: '2px' }}>{formatCurrency(1420000)}</div>
+                                                            </div>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>31–60 Days</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#2563EB', marginTop: '2px' }}>{formatCurrency(580000)}</div>
+                                                            </div>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>61–90 Days</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#D97706', marginTop: '2px' }}>{formatCurrency(210000)}</div>
+                                                            </div>
+                                                            <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>90+ Days (Flagged)</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#DC2626', marginTop: '2px' }}>{formatCurrency(140000)}</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool3' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>👻 Ghost Employee & Payroll Anomaly Filter</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Scans monthly payroll for duplicate bank accounts, duplicate PANs, or zero attendance payouts.</p>
+                                                        </div>
+                                                        <span style={{ fontSize: '12px', background: '#DCFCE7', color: '#166534', padding: '6px 14px', borderRadius: '8px', fontWeight: '800' }}>✓ 0 Duplicate PANs / Bank Collisions</span>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool4' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>💵 Cash Register & Petty Cash Scrutinizer</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Analyzes daily store collections against bank deposit slips to flag unauthorized cash floats.</p>
+                                                        </div>
+                                                        <span style={{ fontSize: '12px', background: '#DCFCE7', color: '#166534', padding: '6px 14px', borderRadius: '8px', fontWeight: '800' }}>✓ Daily Deposits Matched</span>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool5' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🔍 Vendor Master Integrity Checker</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Identifies vendors with missing GSTINs, addresses, or bank accounts matching internal employees.</p>
+                                                        </div>
+                                                        <span style={{ fontSize: '12px', background: '#DCFCE7', color: '#166534', padding: '6px 14px', borderRadius: '8px', fontWeight: '800' }}>✓ 100% Vendor GSTINs Verified</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {/* COST AUDITOR TOOLS */}
+                                        {activeAuditorCategory === "Cost Auditor (ICMAI CMA)" && (
+                                            <>
+                                                {activeSuiteTool === 'tool1' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🏭 Bill of Materials (BOM) & SION Production Tracker</h4>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Multi-level BOM mapping (Raw Material → WIP → Finished Goods) & SION standard vs actual consumption.</p>
+                                                        <div style={{ background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <div>
+                                                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#0F172A' }}>Batch #B-9021 (Precision Alloy Units)</span>
+                                                                <div style={{ fontSize: '11px', color: '#64748B' }}>Standard SION: 1.05 kg/unit | Actual Consumed: 1.04 kg/unit</div>
+                                                            </div>
+                                                            <span style={{ fontSize: '12px', fontWeight: '800', color: '#16A34A' }}>✓ Positive Material Variance (+0.9%)</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool2' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>♻️ Scrap, By-Product & Spoilage Monitor</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Tracks standard vs abnormal loss and attributes scrap sales realization as credit to primary material cost.</p>
+                                                        </div>
+                                                        <span style={{ fontSize: '12px', background: '#ECFDF5', color: '#047857', padding: '6px 14px', borderRadius: '8px', fontWeight: '800' }}>Scrap Credit: {formatCurrency(48500)}</span>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool3' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>⚡ Overhead Allocation Engine (Activity-Based Costing)</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Distributes factory utilities, power, fuel, and machine depreciation across cost centers.</p>
+                                                        </div>
+                                                        <span style={{ fontSize: '12px', background: '#DBEAFE', color: '#1E40AF', padding: '6px 14px', borderRadius: '8px', fontWeight: '800' }}>Rate: ₹420 / Machine Hour</span>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool4' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📄 Statutory CRA-1 & CRA-3 Export Assistant</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Aggregates cost ledgers into standardized Form CRA-1 cost accounting formats.</p>
+                                                        </div>
+                                                        <button onClick={() => alert('📄 Form CRA-1 & CRA-3 Cost Audit Sheets exported successfully!')} style={{ padding: '8px 16px', background: '#047857', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <Download size={15} /> Export CRA-1 Cost Sheets (.XLSX)
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {/* SECRETARIAL AUDITOR TOOLS */}
+                                        {activeAuditorCategory === "Secretarial Auditor (ICSI CS)" && (
+                                            <>
+                                                {activeSuiteTool === 'tool1' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📜 Related Party Transaction (RPT) Ledger (Section 188)</h4>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Tags directors, KMP, and relative entities to calculate aggregate transactions against shareholder approval thresholds.</p>
+                                                        <div style={{ background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <div>
+                                                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#0F172A' }}>RPT Entity: Apex Consultancy (Director Relative Entity)</span>
+                                                                <div style={{ fontSize: '11px', color: '#64748B' }}>12-Month Total: {formatCurrency(2400000)} | Threshold: {formatCurrency(10000000)}</div>
+                                                            </div>
+                                                            <span style={{ fontSize: '12px', fontWeight: '800', color: '#16A34A' }}>✓ Within Board Limits</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool2' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>⚖️ Section 185/186 Director Loan & Investment Caps</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Monitors loans and investments against statutory net worth and paid-up capital limits.</p>
+                                                        </div>
+                                                        <span style={{ fontSize: '12px', background: '#F5F3FF', color: '#6D28D9', padding: '6px 14px', borderRadius: '8px', fontWeight: '800' }}>Cap Utilization: 42%</span>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool3' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📚 Statutory Registers Auto-Populator</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Generates Form MGT-1 (Members), Form MBP-2 (Loans/Guarantees), and Form MBP-4 (Contracts).</p>
+                                                        </div>
+                                                        <button onClick={() => alert('📚 Statutory MCA Registers (Form MGT-1, MBP-2, MBP-4) generated!')} style={{ padding: '8px 16px', background: '#6D28D9', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '12.5px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <Download size={15} /> Generate Registers (MBP-2/4)
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool4' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📅 Corporate Governance Calendar & ROC Alerts</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Tracks statutory timelines for AGMs, Board Meetings, AOC-4, MGT-7, and DIR-3 KYC filings.</p>
+                                                        </div>
+                                                        <span style={{ fontSize: '12px', background: '#DCFCE7', color: '#166534', padding: '6px 14px', borderRadius: '8px', fontWeight: '800' }}>✓ Next AGM Due: 28 days</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                        {/* FORENSIC AUDITOR TOOLS */}
+                                        {activeAuditorCategory === "Forensic Auditor (ICAI FAFD / CFE)" && (
+                                            <>
+                                                {activeSuiteTool === 'tool1' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📈 Benford’s Law Anomaly Scanner</h4>
+                                                            <span style={{ fontSize: '11px', background: '#FEF2F2', color: '#DC2626', padding: '4px 10px', borderRadius: '6px', fontWeight: '800' }}>Chi-Square Score: 2.1 (Low Risk)</span>
+                                                        </div>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Mathematical first-digit frequency analysis across purchase and expense vouchers.</p>
+                                                        <div style={{ background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                                            <div style={{ flex: 1, height: '10px', background: '#E2E8F0', borderRadius: '5px', overflow: 'hidden' }}>
+                                                                <div style={{ width: '92%', height: '100%', background: '#16A34A' }} />
+                                                            </div>
+                                                            <span style={{ fontWeight: '800', color: '#166534' }}>92% Conformity with Benford Distribution</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool2' && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                        <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🎯 Round-Sum & Threshold Clustering</h4>
+                                                        <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Flags transaction clusters just below statutory ceilings (₹9,990 cash limit, ₹49,900 PAN limit).</p>
+                                                        <div style={{ background: '#FFFFFF', padding: '10px 12px', borderRadius: '8px', border: '1px solid #FECACA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <div>
+                                                                <span style={{ fontSize: '12px', fontWeight: '800', color: '#991B1B' }}>Cluster Detected: 4 entries of ₹9,950 to Vendor X</span>
+                                                                <div style={{ fontSize: '11px', color: '#7F1D1D' }}>Single-day total: ₹39,800 (Cash Limit Avoidance Flag)</div>
+                                                            </div>
+                                                            <span style={{ fontSize: '11.5px', background: '#FEF2F2', color: '#DC2626', padding: '4px 10px', borderRadius: '6px', fontWeight: '800' }}>FLAGGED</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool3' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🔄 Circular Billing / Round-Tripping Detector</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Directed graph traversal tracing transaction webs (A → B → C → A) to detect artificial revenue churning.</p>
+                                                        </div>
+                                                        <span style={{ fontSize: '12px', background: '#DCFCE7', color: '#166534', padding: '6px 14px', borderRadius: '8px', fontWeight: '800' }}>✓ 0 Circular Loops Detected</span>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool4' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🗓️ Weekend & Back-Dated Transaction Heatmap</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Highlights spikes in back-dated entries, 2 AM postings, or bulk entries before financial closures.</p>
+                                                        </div>
+                                                        <span style={{ fontSize: '12px', background: '#DCFCE7', color: '#166534', padding: '6px 14px', borderRadius: '8px', fontWeight: '800' }}>✓ Normal Entry Distribution</span>
+                                                    </div>
+                                                )}
+
+                                                {activeSuiteTool === 'tool5' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🗑️ Deleted & Modified Voucher Inspector</h4>
+                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Investigates deleted records and altered amounts preserved by the append-only database.</p>
+                                                        </div>
+                                                        <span style={{ fontSize: '12px', background: '#DBEAFE', color: '#1E40AF', padding: '6px 14px', borderRadius: '8px', fontWeight: '800' }}>3 Logs Audited</span>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* Zoho Practice Style Scrollable Horizontal Navigation Tab Bar */}
