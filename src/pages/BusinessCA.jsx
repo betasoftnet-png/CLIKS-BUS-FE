@@ -1270,86 +1270,89 @@ export default function BusinessCA() {
     const computedGrossRevenue = profitLoss?.gross_revenue || 0;
     const computedTaxUS = Math.round(computedGrossRevenue * 0.21);
 
+    // Dynamic connected CA link for header
+    const connectedCaHeader = outgoingInvitations.find(inv => inv.status === 'Accepted') ||
+        incomingInvitations.find(inv => inv.status === 'Accepted');
+    const connectedCaEmailHeader = connectedCaHeader
+        ? (connectedCaHeader.receiver_email === myEmail ? connectedCaHeader.sender_email : connectedCaHeader.receiver_email)
+        : 'dineshkumar123@bnxmail.com';
 
     return (
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', backgroundColor: '#F8FAFC', minHeight: '85vh', fontFamily: 'Inter, sans-serif' }}>
 
-            {/* Workspace Selector Segment Control */}
+            {/* Unified FIN-PRO Command Centre Header */}
             <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '12px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 background: '#FFFFFF',
-                padding: '6px',
+                padding: '24px',
                 borderRadius: '16px',
                 border: '1px solid #E2E8F0',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                flexWrap: 'wrap',
+                gap: '16px'
             }}>
-                <button
-                    onClick={() => setCaMode('business')}
-                    style={{
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '14px',
+                        background: '#F0F5FF',
+                        border: '1px solid #C3DAFE',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '10px',
-                        padding: '14px',
-                        borderRadius: '12px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease-in-out',
-                        background: caMode === 'business' ? 'linear-gradient(135deg, #004aad 0%, #003380 100%)' : 'transparent',
-                        color: caMode === 'business' ? '#FFFFFF' : '#64748B',
-                        fontWeight: '800',
-                        fontSize: '14px',
-                        boxShadow: caMode === 'business' ? '0 10px 15px -3px rgba(0, 74, 173, 0.3)' : 'none'
-                    }}
-                >
-                    <Building size={18} />
-                    FIN-PRO Command Centre (Business)
-                </button>
-                <button
-                    onClick={() => setCaMode('personal')}
-                    style={{
+                        color: '#004aad',
+                        flexShrink: 0
+                    }}>
+                        <Briefcase size={28} />
+                    </div>
+                    <div>
+                        <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', margin: 0 }}>
+                            FIN-PRO Command Centre
+                            <span style={{
+                                fontSize: '11px',
+                                fontWeight: '900',
+                                color: '#004aad',
+                                background: '#E0EBFF',
+                                border: '1px solid #C3DAFE',
+                                padding: '3px 10px',
+                                borderRadius: '20px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                            }}>
+                                PROFESSIONAL LAYER
+                            </span>
+                        </h1>
+                        <p style={{ fontSize: '13px', color: '#64748B', fontWeight: '500', marginTop: '4px', margin: 0 }}>
+                            Manage audits, taxes, compliance, and client reports in one place.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Right Side: Active Connection Status Pill */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '10px',
-                        padding: '14px',
-                        borderRadius: '12px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease-in-out',
-                        background: caMode === 'personal' ? 'linear-gradient(135deg, #15803d 0%, #166534 100%)' : 'transparent',
-                        color: caMode === 'personal' ? '#FFFFFF' : '#64748B',
-                        fontWeight: '800',
-                        fontSize: '14px',
-                        boxShadow: caMode === 'personal' ? '0 10px 15px -3px rgba(21, 128, 61, 0.3)' : 'none'
-                    }}
-                >
-                    <User size={18} />
-                    FIN-PRO Advisory Workspace (Firm)
-                </button>
+                        gap: '8px',
+                        padding: '8px 14px',
+                        borderRadius: '20px',
+                        background: '#F0FDF4',
+                        border: '1px solid #BBF7D0',
+                        color: '#166534',
+                        fontSize: '12.5px',
+                        fontWeight: '600'
+                    }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E', boxShadow: '0 0 0 3px rgba(34, 197, 94, 0.2)' }} />
+                        <span>Active CA Link: <strong style={{ color: '#14532D', fontWeight: '700' }}>{connectedCaEmailHeader}</strong></span>
+                    </div>
+                </div>
             </div>
 
             {caMode === 'business' ? (
                 <>
-                    {/* Command Centre Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: '#F0F5FF', border: '1px solid #C3DAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#004aad' }}>
-                                <Briefcase size={28} />
-                            </div>
-                            <div>
-                                <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    FIN-PRO Command Centre <span style={{ fontSize: '11px', fontWeight: '900', color: '#004aad', background: '#E0EBFF', border: '1px solid #C3DAFE', padding: '3px 8px', borderRadius: '20px', textTransform: 'uppercase' }}>Professional Layer</span>
-                                </h1>
-                                <p style={{ fontSize: '13px', color: '#64748B', fontWeight: '500', marginTop: '2px' }}>Manage audits, taxes, compliance, and client reports in one place.</p>
-                            </div>
-                        </div>
-
-                        {/* Tab switcher commented out per user request */}
-                    </div>
-
                     {/* Main Area - Restructured as 2-column Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6" style={{
                         width: '100%',
