@@ -22,6 +22,16 @@ export default function BusinessCA({ mode }) {
     const [activeTab] = useState('auditor'); // auditor | ca_cpa | cs_vault | consultant
 
     const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports
+    const [activeAuditorCategory, setActiveAuditorCategory] = useState("Statutory Financial Auditor (ICAI CA)");
+
+    const auditorCategories = [
+        "Statutory Financial Auditor (ICAI CA)",
+        "Tax Auditor (ICAI CA)",
+        "Internal Auditor (CIA / CA / CMA)",
+        "Cost Auditor (ICMAI CMA)",
+        "Secretarial Auditor (ICSI CS)",
+        "Forensic Auditor (ICAI FAFD / CFE)"
+    ];
 
     // Timer States
     const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -2427,6 +2437,58 @@ export default function BusinessCA({ mode }) {
                                 <span>Active Practice Clients: <strong style={{ color: '#003380', fontWeight: '700' }}>{allPracticeClients.length}</strong></span>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Auditor Category Workflow Switch Bar */}
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '16px',
+                        border: '1px solid #E2E8F0',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        gap: '8px',
+                        alignItems: 'center',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)',
+                        overflowX: 'auto',
+                        whiteSpace: 'nowrap',
+                        WebkitOverflowScrolling: 'touch',
+                        scrollbarWidth: 'none'
+                    }}>
+                        {auditorCategories.map((category) => {
+                            const isActive = activeAuditorCategory === category;
+                            return (
+                                <button
+                                    key={category}
+                                    type="button"
+                                    onClick={() => setActiveAuditorCategory(category)}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        padding: '9px 15px',
+                                        borderRadius: '10px',
+                                        border: isActive ? '1.5px solid #15803d' : '1px solid #E2E8F0',
+                                        background: isActive ? '#F0FDF4' : '#F8FAFC',
+                                        color: isActive ? '#15803d' : '#475569',
+                                        fontWeight: isActive ? '800' : '600',
+                                        fontSize: '12.5px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease-in-out',
+                                        boxShadow: isActive ? '0 2px 4px rgba(21, 128, 61, 0.12)' : 'none',
+                                        flexShrink: 0
+                                    }}
+                                >
+                                    <span style={{
+                                        width: '7px',
+                                        height: '7px',
+                                        borderRadius: '50%',
+                                        background: isActive ? '#16A34A' : '#94A3B8',
+                                        display: 'inline-block'
+                                    }} />
+                                    <span>{category}</span>
+                                </button>
+                            );
+                        })}
                     </div>
 
                     {/* Zoho Practice Style Scrollable Horizontal Navigation Tab Bar */}
