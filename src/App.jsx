@@ -333,6 +333,7 @@ function AppContent() {
                     <Route path="/inventory/warehouse" element={<FeatureGate feature="multi-warehouse" requiredPlanName="Growth Plan"><BusinessWarehouse /></FeatureGate>} />
                     <Route path="/finance/accounting" element={<FeatureGate feature="accounting" requiredPlanName="Starter Plan"><BusinessAccounting /></FeatureGate>} />
                     <Route path="/finance/gst" element={<FeatureGate feature="gst-filings" requiredPlanName="Starter Plan"><BusinessGST /></FeatureGate>} />
+                    <Route path="/finance/fittech" element={<BusinessCA />} />
                     <Route path="/marketing" element={<BusinessMarketing />} />
                     <Route path="/ca" element={<BusinessCA />} />
                     <Route path="/sales/delivery" element={<BusinessDelivery />} />

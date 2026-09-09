@@ -254,6 +254,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/finance/expenses')) return 'Expenses';
         if (path.includes('/reports')) return 'Reports';
         if (path.includes('/finance/gst')) return 'Tax';
+        if (path.includes('/finance/fittech')) return 'FITTECH';
         if (path.includes('/hr/staff')) return 'Staff';
         if (path.includes('/hr/attendance')) return 'Attendance';
         if (path.includes('/hr/payroll')) return 'Payroll';
@@ -371,7 +372,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 children: [
                     { label: 'Accounting', icon: Calculator, path: '/finance/accounting', permission: PERMISSIONS.FIN_ACC_ALL },
                     { label: 'Expenses', icon: TrendingUp, path: '/finance/expenses', permission: PERMISSIONS.FIN_EXP_ALL },
-                    { label: 'Tax', icon: PercentCircle, path: '/finance/gst', permission: PERMISSIONS.FIN_TAX_ALL }
+                    { label: 'Tax', icon: PercentCircle, path: '/finance/gst', permission: PERMISSIONS.FIN_TAX_ALL },
+                    { label: 'FITTECH', icon: Cpu, path: '/finance/fittech', permission: PERMISSIONS.FINANCE_ALL }
                 ]
             },
             {

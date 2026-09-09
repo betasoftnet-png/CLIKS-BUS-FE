@@ -1519,6 +1519,31 @@ const BusinessBilling = () => {
                     <ShieldCheck size={15} />
                     <span>Warranty & Replacement Claims</span>
                 </button>
+
+                {/* 5. Delivery Challan */}
+                <button
+                    type="button"
+                    onClick={() => setActiveMainTab('delivery_challan')}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.5rem 0.95rem',
+                        borderRadius: '10px',
+                        fontSize: '0.82rem',
+                        fontWeight: '800',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        border: activeMainTab === 'delivery_challan' ? 'none' : '1px solid #E2E8F0',
+                        background: activeMainTab === 'delivery_challan' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
+                        color: activeMainTab === 'delivery_challan' ? '#FFFFFF' : '#475569',
+                        boxShadow: activeMainTab === 'delivery_challan' ? '0 4px 12px rgba(3, 105, 161, 0.25)' : 'none',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <Truck size={15} />
+                    <span>DELIVERY CHALLAN</span>
+                </button>
             </div>
 
             {/* Invoices List */}
@@ -1574,6 +1599,14 @@ const BusinessBilling = () => {
                                 style={{ padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem' }}
                             >
                                 + Create Sales Return
+                            </button>
+                        )}
+                        {activeMainTab === 'delivery_challan' && (
+                            <button 
+                                onClick={() => alert("Generate Delivery Challan feature active.")} 
+                                style={{ padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                            >
+                                + Generate Delivery Challan
                             </button>
                         )}
                     </div>
@@ -1746,6 +1779,80 @@ const BusinessBilling = () => {
                             </tbody>
                         </table>
 
+                    ) : activeMainTab === 'delivery_challan' ? (
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead>
+                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: '0.75rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Challan No #</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Customer / Client</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Linked Invoice</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Challan Type</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Challan Date</th>
+                                    <th style={{ padding: '0.75rem 1.25rem' }}>Status</th>
+                                    <th style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(() => {
+                                    const defaultChallans = [
+                                        { id: 'CHL-4402', challan_number: 'CHL-2026-4402', client_name: 'Aman Deep', invoice_number: 'INV-40292', challan_type: 'GST', challan_date: '2026-05-06', status: 'Out For Delivery' },
+                                        { id: 'CHL-4403', challan_number: 'CHL-2026-4403', client_name: 'Megha Sharma', invoice_number: 'INV-40293', challan_type: 'GST', challan_date: '2026-05-05', status: 'Delivered' },
+                                        { id: 'CHL-4390', challan_number: 'CHL-2026-4390', client_name: 'Rajesh Patil', invoice_number: 'INV-40285', challan_type: 'GST', challan_date: '2026-05-04', status: 'Delivered' },
+                                        { id: 'CHL-4420', challan_number: 'CHL-2026-4420', client_name: 'Vikram Mehta', invoice_number: 'INV-40301', challan_type: 'Non-GST', challan_date: '2026-05-06', status: 'In Transit' }
+                                    ];
+                                    const invoiceChallans = (Array.isArray(invoices) ? invoices : []).map(inv => ({
+                                        id: `DC-${inv.id}`,
+                                        challan_number: `DC-${inv.invoice_number || inv.id}`,
+                                        client_name: inv.client_name || 'Client',
+                                        invoice_number: inv.invoice_number || 'N/A',
+                                        challan_type: 'GST',
+                                        challan_date: inv.due_date || '2026-05-06',
+                                        status: inv.status === 'Paid' ? 'Delivered' : 'Dispatched'
+                                    }));
+                                    const allChallans = [...defaultChallans, ...invoiceChallans];
+                                    const filtered = allChallans.filter(c => 
+                                        !searchTerm || 
+                                        c.challan_number.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                        c.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        c.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())
+                                    );
+
+                                    return filtered.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <Truck size={32} opacity={0.4} />
+                                                    <p style={{ margin: 0, fontWeight: '700', fontSize: '0.9rem', color: '#475569' }}>No Delivery Challans Found</p>
+                                                    <span style={{ fontSize: '0.8rem' }}>Generate delivery challans for customer shipments and product dispatches.</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filtered.map((chl) => (
+                                            <tr key={chl.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                                <td style={{ padding: '0.75rem 1.25rem', fontWeight: '800', color: '#0284C7' }}>{chl.challan_number}</td>
+                                                <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#0F172A' }}>{chl.client_name}</td>
+                                                <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontFamily: 'monospace' }}>{chl.invoice_number}</td>
+                                                <td style={{ padding: '0.75rem 1.25rem' }}>
+                                                    <span style={{ padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '800', background: chl.challan_type === 'GST' ? '#E0F2FE' : '#F1F5F9', color: chl.challan_type === 'GST' ? '#0369A1' : '#475569' }}>
+                                                        {chl.challan_type}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontSize: '0.8rem' }}>{chl.challan_date}</td>
+                                                <td style={{ padding: '0.75rem 1.25rem' }}>
+                                                    <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: chl.status === 'Delivered' ? '#D1FAE5' : '#FEF3C7', color: chl.status === 'Delivered' ? '#065F46' : '#92400E' }}>
+                                                        {chl.status.toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
+                                                    <button onClick={() => alert(`Delivery Challan #${chl.challan_number}\nClient: ${chl.client_name}\nStatus: ${chl.status}`)} style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>View Details</button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    );
+                                })()}
+                            </tbody>
+                        </table>
                     ) : (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>

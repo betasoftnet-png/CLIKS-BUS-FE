@@ -68,6 +68,7 @@ const BusinessPeople = () => {
     // Inline validation error states
     const [contactLoyaltyError, setContactLoyaltyError] = useState('');
     const [contactEmailError, setContactEmailError] = useState('');
+    const [contactPhoneError, setContactPhoneError] = useState('');
     const [txAmountError, setTxAmountError] = useState('');
     const [inlineTxAmountError, setInlineTxAmountError] = useState('');
     const [reminderAmountError, setReminderAmountError] = useState('');
@@ -236,7 +237,19 @@ const BusinessPeople = () => {
             queryClient.invalidateQueries(['people-list']);
             setIsContactModalOpen(false);
             setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' });
+            setContactEmailError('');
+            setContactPhoneError('');
             alert('Contact added to your network.');
+        },
+        onError: (err) => {
+            const errMsg = err?.response?.data?.message || err?.response?.data?.error?.message || err?.message || '';
+            if (errMsg.toLowerCase().includes('phone') || err?.response?.status === 409) {
+                setContactPhoneError('A contact with this mobile number already exists.');
+            } else if (errMsg.toLowerCase().includes('bnxmail')) {
+                setContactEmailError('Only official @bnxmail.com domain emails are permitted.');
+            } else {
+                alert(errMsg || 'Failed to create contact.');
+            }
         }
     });
 
@@ -264,7 +277,19 @@ const BusinessPeople = () => {
             setIsContactModalOpen(false);
             setEditingContactId(null);
             setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' });
+            setContactEmailError('');
+            setContactPhoneError('');
             alert('Contact profile updated.');
+        },
+        onError: (err) => {
+            const errMsg = err?.response?.data?.message || err?.response?.data?.error?.message || err?.message || '';
+            if (errMsg.toLowerCase().includes('phone') || err?.response?.status === 409) {
+                setContactPhoneError('A contact with this mobile number already exists.');
+            } else if (errMsg.toLowerCase().includes('bnxmail')) {
+                setContactEmailError('Only official @bnxmail.com domain emails are permitted.');
+            } else {
+                alert(errMsg || 'Failed to update contact profile.');
+            }
         }
     });
 
@@ -365,25 +390,44 @@ const BusinessPeople = () => {
     const handleSaveContact = (e) => {
         e.preventDefault();
         setContactEmailError('');
+        setContactPhoneError('');
         setContactLoyaltyError('');
 
         const phoneErr = validatePhone(contactForm.phone, true);
         if (phoneErr) return alert(phoneErr);
 
+        // Unique Phone Number Restriction
+        const cleanPhone = contactForm.phone ? contactForm.phone.trim() : '';
+        if (cleanPhone) {
+            const phoneExists = people.some(p => {
+                if (editingContactId && String(p.id) === String(editingContactId)) {
+                    return false;
+                }
+                return p.phone && p.phone.trim() === cleanPhone;
+            });
+
+            if (phoneExists) {
+                setContactPhoneError('A contact with this mobile number already exists.');
+                return;
+            }
+        }
+
+        // BNXMAIL Email Domain Enforcement
         if (contactForm.email && contactForm.email.trim()) {
-            const emailErr = validateEmail(contactForm.email, false);
-            if (emailErr) {
-                setContactEmailError(emailErr);
+            const cleanEmail = contactForm.email.trim();
+            const bnxmailRegex = /^[a-zA-Z0-9._%+-]+@bnxmail\.com$/i;
+            if (!bnxmailRegex.test(cleanEmail)) {
+                setContactEmailError('Only official @bnxmail.com domain emails are permitted.');
                 return;
             }
 
             // Unique Email Validation (Case-insensitive & ignoring extra spaces)
-            const cleanEmail = contactForm.email.trim().toLowerCase();
+            const lowerEmail = cleanEmail.toLowerCase();
             const exists = people.some(p => {
                 if (editingContactId && String(p.id) === String(editingContactId)) {
                     return false;
                 }
-                return p.email && p.email.trim().toLowerCase() === cleanEmail;
+                return p.email && p.email.trim().toLowerCase() === lowerEmail;
             });
 
             if (exists) {
@@ -1110,32 +1154,75 @@ const BusinessPeople = () => {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Phone Contact <span style={{ color: '#EF4444' }}>*</span></label>
-                                        <input required maxLength={10} placeholder="10 digits (e.g. 9876543210)" type="text" value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                        <input 
+                                            required 
+                                            maxLength={10} 
+                                            placeholder="10 digits (e.g. 9876543210)" 
+                                            type="text" 
+                                            value={contactForm.phone} 
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                                setContactForm({ ...contactForm, phone: val });
+                                                if (val.length === 10) {
+                                                    const exists = people.some(p => {
+                                                        if (editingContactId && String(p.id) === String(editingContactId)) return false;
+                                                        return p.phone && p.phone.trim() === val;
+                                                    });
+                                                    if (exists) {
+                                                        setContactPhoneError('A contact with this mobile number already exists.');
+                                                    } else {
+                                                        setContactPhoneError('');
+                                                    }
+                                                } else {
+                                                    setContactPhoneError('');
+                                                }
+                                            }} 
+                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: contactPhoneError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} 
+                                        />
+                                        {contactPhoneError && (
+                                            <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: '700', marginTop: '0.3rem', display: 'block' }}>
+                                                {contactPhoneError}
+                                            </span>
+                                        )}
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>E-Mail Address</label>
                                         <input 
-                                            placeholder="user@gmail.com" 
+                                            placeholder="user@bnxmail.com" 
                                             type="email" 
                                             value={contactForm.email} 
                                             onChange={(e) => {
                                                 const val = e.target.value;
                                                 setContactForm({ ...contactForm, email: val });
                                                 if (val.trim()) {
-                                                    const cleanEmail = val.trim().toLowerCase();
-                                                    const exists = people.some(p => {
-                                                        if (editingContactId && String(p.id) === String(editingContactId)) return false;
-                                                        return p.email && p.email.trim().toLowerCase() === cleanEmail;
-                                                    });
-                                                    if (exists) {
-                                                        setContactEmailError('A contact with this email address already exists.');
+                                                    const bnxmailRegex = /^[a-zA-Z0-9._%+-]+@bnxmail\.com$/i;
+                                                    if (!bnxmailRegex.test(val.trim())) {
+                                                        setContactEmailError('Only official @bnxmail.com domain emails are permitted.');
                                                     } else {
-                                                        setContactEmailError('');
+                                                        const cleanEmail = val.trim().toLowerCase();
+                                                        const exists = people.some(p => {
+                                                            if (editingContactId && String(p.id) === String(editingContactId)) return false;
+                                                            return p.email && p.email.trim().toLowerCase() === cleanEmail;
+                                                        });
+                                                        if (exists) {
+                                                            setContactEmailError('A contact with this email address already exists.');
+                                                        } else {
+                                                            setContactEmailError('');
+                                                        }
                                                     }
                                                 } else {
                                                     setContactEmailError('');
                                                 }
                                             }} 
+                                            onBlur={(e) => {
+                                                const val = e.target.value.trim();
+                                                if (val) {
+                                                    const bnxmailRegex = /^[a-zA-Z0-9._%+-]+@bnxmail\.com$/i;
+                                                    if (!bnxmailRegex.test(val)) {
+                                                        setContactEmailError('Only official @bnxmail.com domain emails are permitted.');
+                                                    }
+                                                }
+                                            }}
                                             style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: contactEmailError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} 
                                         />
                                         {contactEmailError && (
