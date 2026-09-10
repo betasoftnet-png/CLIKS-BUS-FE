@@ -5,6 +5,8 @@ import { apiClient } from '../api/client';
  */
 export const reportsService = {
     getDashboardSummary: () => apiClient.get('/reports/dashboard-summary').then(res => res.data.data || res.data),
+    getSalesOverview: () => apiClient.get('/reports/dashboard-summary').then(res => res.data.data || res.data),
+    getTopProducts: () => apiClient.get('/products/reports/top-products').then(res => res.data.data || res.data).catch(() => []),
     getProfitLoss: () => apiClient.get('/reports/profit-loss').then(res => res.data.data || res.data),
     getBalanceSheet: () => apiClient.get('/reports/balance-sheet').then(res => res.data.data || res.data),
     getSalesSummary: () => apiClient.get('/reports/sales-summary').then(res => res.data.data || res.data),

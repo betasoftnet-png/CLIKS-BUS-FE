@@ -1511,11 +1511,11 @@ const BusinessCRM = () => {
                                             </div>
                                         </div>
 
-                                        {/* Row 2: Phone Number (+91 dropdown), Alternate Phone (+91 dropdown), Email Address, Website */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.85rem' }}>
-                                            <div>
+                                        {/* Row 2a: Phone Number & Alternate Phone */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                                            <div className="min-w-0" style={{ minWidth: 0 }}>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Phone Number <span style={{ color: '#EF4444' }}>*</span></label>
-                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden w-full" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <CountryCodeSelector
                                                         selectedDialCode={formData.phone_country_code || '+91'}
                                                         onSelect={(c) => {
@@ -1525,13 +1525,13 @@ const BusinessCRM = () => {
                                                         }}
                                                     />
                                                     <span style={{ width: '28px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Phone size={14} /></span>
-                                                    <input required type="text" value={formData.phone_number || ''} maxLength={getCountryPhoneRule(formData.phone_country_code || '+91').max} onChange={(e) => { const rule = getCountryPhoneRule(formData.phone_country_code || '+91'); const val = e.target.value.replace(/\D/g, '').slice(0, rule.max); setFormData({...formData, phone_number: val}); }} style={{ flex: 1, height: '100%', padding: '0 0.65rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. 9876543210" />
+                                                    <input required type="text" value={formData.phone_number || ''} maxLength={getCountryPhoneRule(formData.phone_country_code || '+91').max} onChange={(e) => { const rule = getCountryPhoneRule(formData.phone_country_code || '+91'); const val = e.target.value.replace(/\D/g, '').slice(0, rule.max); setFormData({...formData, phone_number: val}); }} style={{ flex: 1, minWidth: 0, height: '100%', padding: '0 0.65rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. 9876543210" />
                                                 </div>
                                                 {(() => { const rule = getCountryPhoneRule(formData.phone_country_code || '+91'); const len = (formData.phone_number || '').length; if (len > 0 && (len < rule.min || len > rule.max)) { return <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Phone Number: {rule.label}</span>; } return null; })()}
                                             </div>
-                                            <div>
+                                            <div className="min-w-0" style={{ minWidth: 0 }}>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Alternate Phone</label>
-                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden w-full" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <CountryCodeSelector
                                                         selectedDialCode={formData.alt_phone_country_code || '+91'}
                                                         onSelect={(c) => {
@@ -1541,23 +1541,27 @@ const BusinessCRM = () => {
                                                         }}
                                                     />
                                                     <span style={{ width: '28px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Phone size={14} /></span>
-                                                    <input type="text" value={formData.alternate_phone || ''} maxLength={getCountryPhoneRule(formData.alt_phone_country_code || '+91').max} onChange={(e) => { const rule = getCountryPhoneRule(formData.alt_phone_country_code || '+91'); const val = e.target.value.replace(/\D/g, '').slice(0, rule.max); setFormData({...formData, alternate_phone: val}); }} style={{ flex: 1, height: '100%', padding: '0 0.65rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. 9123456780" />
+                                                    <input type="text" value={formData.alternate_phone || ''} maxLength={getCountryPhoneRule(formData.alt_phone_country_code || '+91').max} onChange={(e) => { const rule = getCountryPhoneRule(formData.alt_phone_country_code || '+91'); const val = e.target.value.replace(/\D/g, '').slice(0, rule.max); setFormData({...formData, alternate_phone: val}); }} style={{ flex: 1, minWidth: 0, height: '100%', padding: '0 0.65rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. 9123456780" />
                                                 </div>
                                                 {(() => { const rule = getCountryPhoneRule(formData.alt_phone_country_code || '+91'); const len = (formData.alternate_phone || '').length; if (len > 0 && (len < rule.min || len > rule.max)) { return <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Alternate Phone: {rule.label}</span>; } return null; })()}
                                             </div>
-                                            <div>
+                                        </div>
+
+                                        {/* Row 2b: Email Address & Website */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                                            <div className="min-w-0" style={{ minWidth: 0 }}>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Email Address</label>
-                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden w-full" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Mail size={14} /></span>
-                                                    <input type="email" value={formData.email || ''} onChange={(e) => { const val = e.target.value; setFormData({...formData, email: val}); if (val && val.includes('@')) { const parts = val.split('@'); const domain = (parts[1] || '').toLowerCase(); const expectedDomain = 'bnxmail.com'; if (domain.length > 0 && !expectedDomain.startsWith(domain)) { alert('Please use a @bnxmail.com email address.'); } } }} style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. customer@example.com" />
+                                                    <input type="email" value={formData.email || ''} onChange={(e) => { const val = e.target.value; setFormData({...formData, email: val}); if (val && val.includes('@')) { const parts = val.split('@'); const domain = (parts[1] || '').toLowerCase(); const expectedDomain = 'bnxmail.com'; if (domain.length > 0 && !expectedDomain.startsWith(domain)) { alert('Please use a @bnxmail.com email address.'); } } }} style={{ flex: 1, minWidth: 0, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. customer@example.com" />
                                                 </div>
                                                 {(() => { const val = (formData.email || '').trim().toLowerCase(); if (val && val.includes('@')) { const parts = val.split('@'); const domain = parts[1] || ''; if (domain.length > 0 && domain !== 'bnxmail.com' && !'bnxmail.com'.startsWith(domain)) { return <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Please use a @bnxmail.com email address.</span>; } } return null; })()}
                                             </div>
-                                            <div>
+                                            <div className="min-w-0" style={{ minWidth: 0 }}>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Website</label>
-                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden w-full" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Globe size={14} /></span>
-                                                    <input type="text" value={formData.website} onChange={(e) => setFormData({...formData, website: e.target.value})} style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. www.business.com" />
+                                                    <input type="text" value={formData.website} onChange={(e) => setFormData({...formData, website: e.target.value})} style={{ flex: 1, minWidth: 0, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. www.business.com" />
                                                 </div>
                                             </div>
                                         </div>

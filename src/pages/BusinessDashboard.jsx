@@ -31,7 +31,8 @@ import {
     ShoppingBag,
     ShieldCheck,
     Calendar,
-    CalendarDays
+    CalendarDays,
+    CheckCheck
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -118,7 +119,27 @@ const BusinessDashboard = () => {
         });
     };
 
+    const allShortcutIds = MASTER_SHORTCUTS.map(s => s.id);
+    const isAllSelected = MASTER_SHORTCUTS.length > 0 && selectedShortcuts.length === MASTER_SHORTCUTS.length;
+
+    const handleToggleSelectAll = () => {
+        const next = isAllSelected ? [] : allShortcutIds;
+        setSelectedShortcuts(next);
+        localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(next));
+    };
+
+    const handleSaveConfiguration = () => {
+        localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(selectedShortcuts));
+        setIsModalOpen(false);
+    };
+
     // Analytics Queries
+    const { data: dashboardSummary } = useQuery({
+        queryKey: ['dashboardSummary'],
+        queryFn: () => reportsService.getDashboardSummary(),
+        retry: false
+    });
+
     const { data: salesOverview } = useQuery({
         queryKey: ['salesOverviewDashboard'],
         queryFn: () => reportsService.getSalesOverview(),
@@ -150,19 +171,37 @@ const BusinessDashboard = () => {
     });
 
     // Real dynamic financial calculations
-    const totalSalesAmount = salesOverview?.total_sales ?? salesOverview?.data?.total_sales ?? 0;
-    
     const rawPurchases = Array.isArray(purchasesData) 
         ? purchasesData 
         : (purchasesData?.data || purchasesData?.purchases || []);
 
-    const totalPurchasesAmount = rawPurchases.reduce((acc, p) => 
-        acc + (parseFloat(p.total_amount || p.total || p.grand_total || p.amount || 0)), 0);
+    const purchasesAggregate = rawPurchases.reduce((acc, p) => 
+        acc + (parseFloat(p.grand_total ?? p.total_amount ?? p.total ?? p.amount ?? 0) || 0), 0);
+
+    const summaryPurchases = dashboardSummary?.total_purchases 
+        ?? dashboardSummary?.data?.total_purchases 
+        ?? dashboardSummary?.purchases_total 
+        ?? dashboardSummary?.data?.purchases_total;
+
+    const totalPurchasesAmount = (summaryPurchases !== undefined && summaryPurchases !== null && Number(summaryPurchases) > 0)
+        ? Number(summaryPurchases)
+        : (purchasesAggregate || Number(summaryPurchases) || 0);
+
+    const summarySales = dashboardSummary?.total_sales 
+        ?? dashboardSummary?.data?.total_sales 
+        ?? dashboardSummary?.sales_total;
+
+    const totalSalesAmount = (summarySales !== undefined && summarySales !== null && Number(summarySales) > 0)
+        ? Number(summarySales)
+        : (salesOverview?.total_sales ?? salesOverview?.data?.total_sales ?? 0);
+
+    const summaryExpenses = dashboardSummary?.total_expenses 
+        ?? dashboardSummary?.data?.total_expenses;
 
     const totalExpensesAmount = (trialBalanceData?.totalExpenses ?? trialBalanceData?.data?.totalExpenses)
         ?? ((expensesCategoryReport && expensesCategoryReport.length > 0)
             ? expensesCategoryReport.reduce((acc, e) => acc + (parseFloat(e.total_amount || e.total || 0)), 0)
-            : 0);
+            : (summaryExpenses ? Number(summaryExpenses) : 0));
 
     const estimatedNetProfit = totalSalesAmount - totalExpensesAmount;
 
@@ -727,7 +766,7 @@ const BusinessDashboard = () => {
                             }}
                             onClick={e => e.stopPropagation()}
                         >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                                 <div>
                                     <h2 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#1E293B', letterSpacing: '-0.5px' }}>Configure Quick Actions</h2>
                                     <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.35rem', lineHeight: 1.4 }}>Pin your most frequent workflows straight to the Dashboard overview.</p>
@@ -737,6 +776,49 @@ const BusinessDashboard = () => {
                                     style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', cursor: 'pointer', flexShrink: 0 }}
                                 >
                                     <X size={18} color="#64748B" />
+                                </button>
+                            </div>
+
+                            {/* Select All / Deselect All Action Bar */}
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '0.65rem 0.95rem',
+                                background: '#F8FAFC',
+                                border: '1px solid #E2E8F0',
+                                borderRadius: '14px',
+                                marginBottom: '1.15rem'
+                            }}>
+                                <span style={{ fontSize: '0.82rem', fontWeight: '700', color: '#475569' }}>
+                                    {selectedShortcuts.length} of {MASTER_SHORTCUTS.length} shortcuts active
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={handleToggleSelectAll}
+                                    style={{
+                                        background: isAllSelected ? '#FEF2F2' : '#EFF6FF',
+                                        color: isAllSelected ? '#DC2626' : '#2563EB',
+                                        border: `1px solid ${isAllSelected ? '#FECACA' : '#BFDBFE'}`,
+                                        borderRadius: '8px',
+                                        padding: '4px 12px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: '750',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                    onMouseOver={(e) => {
+                                        e.currentTarget.style.opacity = '0.85';
+                                    }}
+                                    onMouseOut={(e) => {
+                                        e.currentTarget.style.opacity = '1';
+                                    }}
+                                >
+                                    <CheckCheck size={14} />
+                                    {isAllSelected ? 'Deselect All' : 'Select All'}
                                 </button>
                             </div>
 
@@ -807,7 +889,7 @@ const BusinessDashboard = () => {
                             </div>
 
                             <button
-                                onClick={() => setIsModalOpen(false)}
+                                onClick={handleSaveConfiguration}
                                 style={{
                                     width: '100%',
                                     padding: '1rem',

@@ -1531,13 +1531,13 @@ const BusinessSuppliers = () => {
                                             </div>
                                         </div>
 
-                                        {/* Row 2: Mobile Number, Alternate Phone, Email, Website */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.85rem' }}>
-                                            <div>
+                                        {/* Row 2a: Mobile Number & Alternate Phone */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                                            <div className="min-w-0" style={{ minWidth: 0 }}>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Mobile Number <span style={{ color: '#EF4444' }}>*</span>
                                                 </label>
-                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: (formErrors.phone_number || (formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < 10)) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden w-full" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: (formErrors.phone_number || (formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < 10)) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Phone size={14} /></span>
                                                     <input 
                                                         required 
@@ -1549,7 +1549,7 @@ const BusinessSuppliers = () => {
                                                             setFormData({ ...formData, phone_number: val }); 
                                                             if (formErrors.phone_number) setFormErrors({ ...formErrors, phone_number: null }); 
                                                         }} 
-                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, minWidth: 0, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. 9876543210" 
                                                     />
                                                 </div>
@@ -1558,11 +1558,11 @@ const BusinessSuppliers = () => {
                                                     <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Mobile Number: 10 digits required</span>
                                                 )}
                                             </div>
-                                            <div>
+                                            <div className="min-w-0" style={{ minWidth: 0 }}>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Alternate Phone
                                                 </label>
-                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: (formData.alternate_phone && formData.alternate_phone.length > 0 && formData.alternate_phone.length < 10) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden w-full" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: (formData.alternate_phone && formData.alternate_phone.length > 0 && formData.alternate_phone.length < 10) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Phone size={14} /></span>
                                                     <input 
                                                         type="text" 
@@ -1572,7 +1572,7 @@ const BusinessSuppliers = () => {
                                                             const val = e.target.value.replace(/\D/g, '').slice(0, 10); 
                                                             setFormData({ ...formData, alternate_phone: val }); 
                                                         }} 
-                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, minWidth: 0, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. 9123456780" 
                                                     />
                                                 </div>
@@ -1580,11 +1580,15 @@ const BusinessSuppliers = () => {
                                                     <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Alternate Phone: 10 digits required</span>
                                                 )}
                                             </div>
-                                            <div>
+                                        </div>
+
+                                        {/* Row 2b: Email Address & Website Link */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                                            <div className="min-w-0" style={{ minWidth: 0 }}>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Email Address <span style={{ color: '#EF4444' }}>*</span>
                                                 </label>
-                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: ((touchedFields.email && !formData.email?.trim()) || formErrors.email) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden w-full" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: ((touchedFields.email && !formData.email?.trim()) || formErrors.email) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Mail size={14} /></span>
                                                     <input 
                                                         required 
@@ -1594,8 +1598,8 @@ const BusinessSuppliers = () => {
                                                             setFormData({ ...formData, email: e.target.value.trim() }); 
                                                             if (formErrors.email) setFormErrors({ ...formErrors, email: null }); 
                                                         }} 
-                                                        onBlur={() => setTouchedFields(prev => ({ ...prev, email: true }))}
-                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        onBlur={() => setTouchedFields(prev => ({ ...prev, email: true }))} 
+                                                        style={{ flex: 1, minWidth: 0, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. supplier@company.com" 
                                                     />
                                                 </div>
@@ -1605,17 +1609,17 @@ const BusinessSuppliers = () => {
                                                     </span>
                                                 )}
                                             </div>
-                                            <div>
+                                            <div className="min-w-0" style={{ minWidth: 0 }}>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Website Link
                                                 </label>
-                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden w-full" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Link size={14} /></span>
                                                     <input 
                                                         type="text" 
                                                         value={formData.website} 
                                                         onChange={(e) => setFormData({ ...formData, website: e.target.value })} 
-                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, minWidth: 0, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. www.company.com" 
                                                     />
                                                 </div>
