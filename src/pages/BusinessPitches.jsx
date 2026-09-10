@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { pitchesService } from '../services/pitchesService';
 import { useCurrency } from '../context';
@@ -23,7 +23,14 @@ import {
     ArrowUpRight,
     MapPin,
     Search,
-    User
+    User,
+    Bell,
+    AlertTriangle,
+    CheckCircle2,
+    Clock,
+    Crown,
+    ChevronRight,
+    Edit3
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -31,12 +38,39 @@ export default function BusinessPitches({ openAuthModal = null }) {
     const navigate = useNavigate();
     const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
-    const [activeTab, setActiveTab] = useState('directory'); // 'directory' | 'studio'
+    const [activeTab, setActiveTab] = useState('directory'); // 'directory' | 'studio' | 'admin'
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedSector, setSelectedSector] = useState('ALL');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showFounderAuthModal, setShowFounderAuthModal] = useState(openAuthModal === 'founder');
     const [showInvestorAuthModal, setShowInvestorAuthModal] = useState(openAuthModal === 'investor');
+    const [showAdminAuthModal, setShowAdminAuthModal] = useState(openAuthModal === 'admin');
     const [selectedConnectPitch, setSelectedConnectPitch] = useState(null);
+
+    // Quota & Unlocked Pitches State
+    const [unlockedMap, setUnlockedMap] = useState({});
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [resubmitPitch, setResubmitPitch] = useState(null);
+    const [adminReviewPitch, setAdminReviewPitch] = useState(null);
+    const [adminRemarksInput, setAdminRemarksInput] = useState('');
+    const [showNotifDrawer, setShowNotifDrawer] = useState(false);
+
+    // Form Errors & Validation State
+    const [formErrors, setFormErrors] = useState({});
+    const [formData, setFormData] = useState({
+        business_name: '',
+        industry: 'Technology',
+        headline: '',
+        funding_target: '',
+        equity_offered: '',
+        use_of_funds: '',
+        pitch_deck_url: '',
+        founder_phone: '',
+        founder_email: '',
+        problem: '',
+        solution: '',
+        location: ''
+    });
 
     // Location State
     const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(false);
@@ -48,128 +82,52 @@ export default function BusinessPitches({ openAuthModal = null }) {
     const [locationErrorMsg, setLocationErrorMsg] = useState(null);
     const [userCoords, setUserCoords] = useState(null);
 
-    const requestLocation = () => {
-        if (!navigator.geolocation) {
-            setLocationPermissionDenied(true);
-            setLocationErrorMsg("Geolocation is unsupported by your browser. Location features are unavailable.");
-            return;
+    useEffect(() => {
+        if (openAuthModal === 'admin') {
+            setShowAdminAuthModal(true);
+        } else if (openAuthModal === 'founder') {
+            setShowFounderAuthModal(true);
+        } else if (openAuthModal === 'investor') {
+            setShowInvestorAuthModal(true);
         }
+    }, [openAuthModal]);
 
-        setIsLocationLoading(true);
-        setLocationErrorMsg(null);
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                setIsLocationLoading(false);
-                setLocationPermissionDenied(false);
-                setLocationErrorMsg(null);
-
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                setUserCoords({ lat, lon });
-
-                fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
-                    .then(res => res.json())
-                    .then(data => {
-                        const state = data.principalSubdivision;
-                        const city = data.city || data.locality || data.village;
-                        if (state) setGpsState(state);
-                        if (city) setCityName(city);
-                        if (data.postcode) setPincode(data.postcode);
-                    })
-                    .catch(err => {
-                        console.warn('Geolocation reverse geocoding request interrupted:', err);
-                    });
-            },
-            (error) => {
-                setIsLocationLoading(false);
-                setLocationPermissionDenied(true);
-                if (error.code === error.PERMISSION_DENIED) {
-                    setLocationErrorMsg("Location permission was denied. Please enable location permission in your browser site settings and try again.");
-                } else if (error.code === error.POSITION_UNAVAILABLE) {
-                    setLocationErrorMsg("Location information is currently unavailable. Please click Retry.");
-                } else if (error.code === error.TIMEOUT) {
-                    setLocationErrorMsg("Location request timed out. Please click Retry.");
-                } else {
-                    setLocationErrorMsg("Unable to retrieve location. Please click Retry.");
-                }
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-    };
-
-    React.useEffect(() => {
-        requestLocation();
-    }, []);
-
-    // Form State & Validation Errors State
-    const [formData, setFormData] = useState({
-        business_name: '',
-        industry: 'Technology',
-        headline: '',
-        funding_target: '',
-        equity_offered: '',
-        use_of_funds: '',
-        pitch_deck_url: '',
-        founder_phone: '',
-        founder_email: '',
-        location: ''
+    // ── Queries & Mutations ──────────────────────────────────────────────────
+    const { data: marketplacePitches = [], isLoading: isMarketplaceLoading } = useQuery({
+        queryKey: ['marketplace-pitches', searchTerm, selectedSector],
+        queryFn: () => pitchesService.getMarketplacePitches({ search: searchTerm, sector: selectedSector })
     });
 
-    const [formErrors, setFormErrors] = useState({});
-
-    const validateFundingTarget = (val) => {
-        if (val === '' || val === null || val === undefined) {
-            return 'Funding request amount is required.';
-        }
-        const num = Number(val);
-        if (isNaN(num) || num < 0) {
-            return 'Funding request amount cannot be negative.';
-        }
-        return null;
-    };
-
-    const validateEquityOffered = (val) => {
-        if (val === '' || val === null || val === undefined) return null;
-        const num = Number(val);
-        if (isNaN(num) || num < 0) {
-            return 'Equity transfer percentage cannot be negative.';
-        }
-        if (num > 100) {
-            return 'Equity transfer percentage must be between 0 and 100.';
-        }
-        return null;
-    };
-
-    const validateFounderEmail = (val) => {
-        const clean = (val || '').trim();
-        if (!clean || !/^[^\s@]+@bnxmail\.com$/i.test(clean)) {
-            return 'Enter a valid BNXmail address ending in @bnxmail.com.';
-        }
-        return null;
-    };
-
-    const validateFounderPhone = (val) => {
-        const clean = (val || '').trim();
-        if (!clean || clean.length !== 10 || !/^\d{10}$/.test(clean)) {
-            return 'Enter a valid 10-digit phone number.';
-        }
-        return null;
-    };
-
-    // API Actions
-    const { data: pitches = [], isLoading } = useQuery({
-        queryKey: ['venture-pitches'],
-        queryFn: pitchesService.getPitches
+    const { data: studioPitches = [], isLoading: isStudioLoading } = useQuery({
+        queryKey: ['studio-pitches'],
+        queryFn: pitchesService.getMyStudioPitches
     });
+
+    const { data: adminPitches = [], isLoading: isAdminLoading } = useQuery({
+        queryKey: ['admin-pitches'],
+        queryFn: pitchesService.getAdminPitches,
+        enabled: activeTab === 'admin' || showAdminAuthModal
+    });
+
+    const { data: quotaStatus, refetch: refetchQuota } = useQuery({
+        queryKey: ['quota-status'],
+        queryFn: pitchesService.getQuotaStatus
+    });
+
+    const { data: notifications = [], refetch: refetchNotifs } = useQuery({
+        queryKey: ['user-notifications'],
+        queryFn: pitchesService.getNotifications
+    });
+
+    const unreadCount = notifications.filter(n => !n.is_read).length;
 
     const createMutation = useMutation({
         mutationFn: pitchesService.createPitch,
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['venture-pitches'] });
+            queryClient.invalidateQueries({ queryKey: ['studio-pitches'] });
+            queryClient.invalidateQueries({ queryKey: ['marketplace-pitches'] });
             setShowCreateModal(false);
             setFormErrors({});
-            // Reset form
             setFormData({
                 business_name: '',
                 industry: 'Technology',
@@ -180,108 +138,182 @@ export default function BusinessPitches({ openAuthModal = null }) {
                 pitch_deck_url: '',
                 founder_phone: '',
                 founder_email: '',
+                problem: '',
+                solution: '',
                 location: ''
             });
-            alert("Venture entry successfully published to the active marketplace!");
+            alert("Pitch submitted successfully! Status set to Under Admin Review.");
         },
-        onError: () => {
-            alert("Error creating business pitch.");
+        onError: (err) => {
+            alert(err.response?.data?.message || "Error submitting pitch.");
         }
     });
 
-    const activateMutation = useMutation({
-        mutationFn: ({ id }) => pitchesService.verifyPitch(id, { payment_ref: 'OFFLINE_ACTIVATE' }),
+    const resubmitMutation = useMutation({
+        mutationFn: ({ id, data }) => pitchesService.resubmitPitch(id, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['venture-pitches'] });
-            alert("Pitch activated! It is now visible to our investor network.");
+            queryClient.invalidateQueries({ queryKey: ['studio-pitches'] });
+            setResubmitPitch(null);
+            alert("Pitch updated and resubmitted for admin review!");
         },
         onError: () => {
-            alert("Error activating startup pitch.");
+            alert("Failed to resubmit pitch.");
         }
     });
+
+    const adminReviewMutation = useMutation({
+        mutationFn: ({ id, status, admin_remarks }) => pitchesService.reviewPitch(id, { status, admin_remarks }),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['admin-pitches'] });
+            queryClient.invalidateQueries({ queryKey: ['marketplace-pitches'] });
+            queryClient.invalidateQueries({ queryKey: ['studio-pitches'] });
+            setAdminReviewPitch(null);
+            setAdminRemarksInput('');
+            alert(data?.message || "Pitch review status updated!");
+        },
+        onError: () => {
+            alert("Failed to update pitch status.");
+        }
+    });
+
+    // Location Request
+    const requestLocation = () => {
+        if (!navigator.geolocation) {
+            setLocationPermissionDenied(true);
+            setLocationErrorMsg("Geolocation is unsupported by your browser.");
+            return;
+        }
+        setIsLocationLoading(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setIsLocationLoading(false);
+                setLocationPermissionDenied(false);
+                setUserCoords({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+                setCityName('Chennai');
+                setGpsState('Tamil Nadu');
+                setPincode('600001');
+            },
+            () => {
+                setIsLocationLoading(false);
+                setLocationPermissionDenied(true);
+                setLocationErrorMsg("Location permission denied. Please select a region manually.");
+            }
+        );
+    };
+
+    // Validation Rules
+    const validateFundingTarget = (val) => {
+        const num = Number(val);
+        if (val === '' || isNaN(num) || num < 0) return 'Funding target must be a non-negative number.';
+        return null;
+    };
+
+    const validateEquityOffered = (val) => {
+        const num = Number(val);
+        if (val === '' || isNaN(num) || num < 0 || num > 100) return 'Equity offered must be between 0% and 100%.';
+        return null;
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-
         const fundingErr = validateFundingTarget(formData.funding_target);
         const equityErr = validateEquityOffered(formData.equity_offered);
-        const emailErr = validateFounderEmail(formData.founder_email);
-        const phoneErr = validateFounderPhone(formData.founder_phone);
 
-        if (fundingErr || equityErr || emailErr || phoneErr || !formData.business_name || !formData.headline) {
-            setFormErrors({
-                funding_target: fundingErr,
-                equity_offered: equityErr,
-                founder_email: emailErr,
-                founder_phone: phoneErr
-            });
-            alert(emailErr || phoneErr || fundingErr || equityErr || "Please supply all required founder and venture details correctly.");
+        if (fundingErr || equityErr || !formData.business_name || !formData.headline) {
+            setFormErrors({ funding_target: fundingErr, equity_offered: equityErr });
+            alert(fundingErr || equityErr || "Please supply all required venture details.");
             return;
         }
 
         const payload = {
-            ...formData,
-            founder_email: (formData.founder_email || '').trim(),
-            founder_phone: (formData.founder_phone || '').trim(),
+            title: formData.business_name,
+            business_name: formData.business_name,
+            sector: formData.industry,
+            headline: formData.headline,
+            description: formData.use_of_funds || formData.headline,
+            problem: formData.problem,
+            solution: formData.solution,
+            funding_target: Number(formData.funding_target),
+            goal_amount: Number(formData.funding_target),
+            equity_offered: Number(formData.equity_offered),
+            use_of_funds: formData.use_of_funds,
+            pitch_deck_url: formData.pitch_deck_url,
+            founder_phone: formData.founder_phone,
+            founder_email: formData.founder_email,
             location: formData.location || (cityName ? `${cityName}, ${gpsState}` : 'Chennai, Tamil Nadu')
         };
         createMutation.mutate(payload);
     };
 
-    const handleConnectTrigger = (pitch) => {
-        setSelectedConnectPitch(pitch);
-    };
+    // Quota & Unlock Trigger
+    const handleConnectTrigger = async (pitch) => {
+        if (unlockedMap[pitch.id]) {
+            setSelectedConnectPitch({ ...pitch, ...unlockedMap[pitch.id] });
+            return;
+        }
 
-    const handleSendInquiry = () => {
-        alert("Inquiry Request Delivered! The founder has been notified via Cliks Network.");
-        setSelectedConnectPitch(null);
+        try {
+            const res = await pitchesService.unlockPitch(pitch.id);
+            if (res.success && res.unlocked) {
+                setUnlockedMap(prev => ({ ...prev, [pitch.id]: res.data }));
+                refetchQuota();
+                setSelectedConnectPitch({ ...pitch, ...res.data });
+            } else {
+                setShowUpgradeModal(true);
+            }
+        } catch (error) {
+            if (error.response?.data?.status === 'QUOTA_EXCEEDED' || error.response?.status === 403) {
+                setShowUpgradeModal(true);
+            } else {
+                setSelectedConnectPitch(pitch);
+            }
+        }
     };
 
     const industryOptions = [
-        'Technology', 'Retail & Commerce', 'Healthcare', 'Finance & FinTech', 
+        'ALL', 'Technology', 'Retail & Commerce', 'Healthcare', 'Finance & FinTech', 
         'Manufacturing', 'Food & Beverage', 'Real Estate', 'Other'
     ];
 
-    // ── Personalization & Location Recommendation Engine ──
-    const getRecommendationScore = (pitch) => {
-        let score = 0;
-        
-        // Proximity/Location Based Match Boost
-        const profileState = gpsState || 'Tamil Nadu';
-        const profileCity = cityName || '';
-        
-        if (pitch.location && profileState) {
-            const pitchLoc = pitch.location.toLowerCase();
-            const uState = profileState.toLowerCase();
-            const uCity = profileCity.toLowerCase();
-            
-            if (uCity && pitchLoc.includes(uCity)) {
-                score += 150; // City match booster
-            } else if (pitchLoc.includes(uState)) {
-                score += 100; // State match booster
-            }
+    const getStatusBadge = (status) => {
+        switch(status) {
+            case 'ACCEPTED':
+            case 'ACTIVE':
+                return (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#dcfce7', color: '#15803d', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' }}>
+                        <CheckCircle2 size={13} /> Accepted / Published
+                    </span>
+                );
+            case 'REJECTED':
+                return (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fee2e2', color: '#b91c1c', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' }}>
+                        <AlertTriangle size={13} /> Needs Revision
+                    </span>
+                );
+            case 'PENDING_REVIEW':
+            default:
+                return (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef3c7', color: '#b45309', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' }}>
+                        <Clock size={13} /> Under Admin Review
+                    </span>
+                );
         }
-        
-        if (pitch.is_verified) {
-            score += 50;
-        }
-
-        return score;
     };
 
     return (
         <div style={{
             height: '100%',
+            width: '100%',
             background: '#f8fafc',
             padding: '1.5rem',
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden',
+            overflowY: 'auto',
             boxSizing: 'border-box',
             fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif'
         }}>
             
-            {/* Slim, Beautiful Modern Header */}
+            {/* Top Dark-Blue Banner */}
             <div style={{
                 flexShrink: 0,
                 background: '#1E3A8A',
@@ -313,15 +345,16 @@ export default function BusinessPitches({ openAuthModal = null }) {
                         color: '#60A5FA'
                     }}>
                         <TrendingUp size={13} />
-                        <span>VENTURE CONNECT</span>
+                        <span>CAPITAL MATRIX & VENTURE CONNECT</span>
                     </div>
                     <h1 style={{ fontSize: '1.75rem', fontWeight: '850', marginBottom: '0.25rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                         SME Deal Marketplace
                     </h1>
-                    <p style={{ fontSize: '0.9rem', color: '#BFDBFE', maxWidth: '500px', margin: 0, opacity: 0.85 }}>
-                        Connect directly with verified founders, review pitches, and contact owners instantly.
+                    <p style={{ fontSize: '0.9rem', color: '#BFDBFE', maxWidth: '520px', margin: 0, opacity: 0.85 }}>
+                        Connect directly with verified founders, review pitch decks, and unlock investment deals.
                     </p>
                     
+                    {/* Location & Region Dropdown */}
                     <div style={{ position: 'relative', marginTop: '0.55rem', display: 'inline-block', zIndex: 50 }}>
                         <button 
                             onClick={() => setIsLocationMenuOpen(!isLocationMenuOpen)}
@@ -340,35 +373,17 @@ export default function BusinessPitches({ openAuthModal = null }) {
                                 transition: 'all 0.2s ease',
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
                             }}
-                            onMouseOver={e => {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)';
-                                e.currentTarget.style.transform = 'translateY(-1px)';
-                            }}
-                            onMouseOut={e => {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
-                                e.currentTarget.style.transform = 'translateY(0)';
-                            }}
                         >
                             <MapPin size={13} color="#34D399" />
                             <span>
-                                {isLocationLoading ? (
-                                    'Detecting GPS Location...'
-                                ) : gpsState ? (
-                                    `${cityName ? `${cityName}, ` : ''}${gpsState}${pincode ? `, Pincode: ${pincode}` : ''}`
-                                ) : (
-                                    'Select Region / Lock GPS'
-                                )}
+                                {isLocationLoading ? 'Detecting GPS Location...' : (gpsState ? `${cityName ? `${cityName}, ` : ''}${gpsState}` : 'Select Region / Lock GPS')}
                             </span>
                             <span style={{ fontSize: '0.55rem', opacity: 0.8, marginLeft: '2px' }}>▼</span>
                         </button>
 
                         {isLocationMenuOpen && (
                             <>
-                                <div 
-                                    onClick={() => setIsLocationMenuOpen(false)}
-                                    style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'transparent' }} 
-                                />
-                                
+                                <div onClick={() => setIsLocationMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'transparent' }} />
                                 <div style={{
                                     position: 'absolute',
                                     top: 'calc(100% + 6px)',
@@ -379,38 +394,24 @@ export default function BusinessPitches({ openAuthModal = null }) {
                                     border: '1px solid #E2E8F0',
                                     padding: '0.5rem',
                                     minWidth: '260px',
-                                    maxHeight: '300px',
-                                    overflowY: 'auto',
                                     zIndex: 9999,
                                     display: 'flex',
                                     flexDirection: 'column',
                                     gap: '3px'
                                 }}>
-                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', padding: '0.4rem 0.6rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.2rem' }}>
-                                        Select Matching Region
-                                    </div>
-                                    
                                     {[
-                                        { label: '⚡ Detect GPS Location', city: null, state: 'GPS', plusCode: 'Auto', pincode: null },
-                                        { label: '📍 Chennai, Tamil Nadu', city: 'Chennai', state: 'Tamil Nadu', plusCode: '7J5X4W66+F9', pincode: '600001' },
-                                        { label: '📍 Trichy, Tamil Nadu', city: 'Trichy', state: 'Tamil Nadu', plusCode: '7J4VQ456+7W', pincode: '620001' },
-                                        { label: '📍 Mumbai, Maharashtra', city: 'Mumbai', state: 'Maharashtra', plusCode: '8FVC9G8F+6W', pincode: '400001' },
-                                        { label: '📍 Bengaluru, Karnataka', city: 'Bengaluru', state: 'Karnataka', plusCode: '7J4VXH8R+5P', pincode: '560001' },
-                                        { label: '📍 Delhi NCR', city: 'Delhi NCR', state: 'Delhi', plusCode: '8F3C4R2V+8Q', pincode: '110001' }
+                                        { label: '⚡ Detect GPS Location', state: 'GPS' },
+                                        { label: '📍 Chennai, Tamil Nadu', city: 'Chennai', state: 'Tamil Nadu' },
+                                        { label: '📍 Mumbai, Maharashtra', city: 'Mumbai', state: 'Maharashtra' },
+                                        { label: '📍 Bengaluru, Karnataka', city: 'Bengaluru', state: 'Karnataka' },
+                                        { label: '📍 Delhi NCR', city: 'Delhi NCR', state: 'Delhi' }
                                     ].map((opt) => (
                                         <button
                                             key={opt.label}
                                             type="button"
                                             onClick={() => {
-                                                if (opt.state === 'GPS') {
-                                                    requestLocation();
-                                                } else {
-                                                    setCityName(opt.city);
-                                                    setGpsState(opt.state);
-                                                    setPincode(opt.pincode);
-                                                    setLocationPermissionDenied(false);
-                                                    setLocationErrorMsg(null);
-                                                }
+                                                if (opt.state === 'GPS') requestLocation();
+                                                else { setCityName(opt.city); setGpsState(opt.state); }
                                                 setIsLocationMenuOpen(false);
                                             }}
                                             style={{
@@ -422,26 +423,10 @@ export default function BusinessPitches({ openAuthModal = null }) {
                                                 fontWeight: '750',
                                                 color: '#1E293B',
                                                 borderRadius: '8px',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                gap: '2px',
-                                                transition: 'all 0.15s ease',
-                                                width: '100%'
-                                            }}
-                                            onMouseOver={e => {
-                                                e.currentTarget.style.background = '#F1F5F9';
-                                                e.currentTarget.style.color = '#1E3A8A';
-                                            }}
-                                            onMouseOut={e => {
-                                                e.currentTarget.style.background = 'transparent';
-                                                e.currentTarget.style.color = '#1E293B';
+                                                cursor: 'pointer'
                                             }}
                                         >
-                                            <span style={{ fontSize: '0.8rem', color: '#0F172A', fontWeight: '800' }}>{opt.label}</span>
-                                            <span style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: '600' }}>
-                                                {opt.pincode ? `Pincode: ${opt.pincode}` : `Plus Code: ${opt.plusCode}`}
-                                            </span>
+                                            {opt.label}
                                         </button>
                                     ))}
                                 </div>
@@ -450,23 +435,37 @@ export default function BusinessPitches({ openAuthModal = null }) {
                     </div>
                 </div>
 
-                <div style={{
-                    position: 'relative',
-                    zIndex: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                    flexWrap: 'wrap'
-                }}>
+                {/* Banner Right Buttons */}
+                <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    
+                    {/* Notification Bell */}
+                    <button 
+                        onClick={() => setShowNotifDrawer(true)}
+                        style={{
+                            padding: '0.75rem',
+                            borderRadius: '12px',
+                            background: 'rgba(255, 255, 255, 0.12)',
+                            color: '#FFFFFF',
+                            border: '1px solid rgba(255, 255, 255, 0.25)',
+                            cursor: 'pointer',
+                            position: 'relative',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                    >
+                        <Bell size={18} />
+                        {unreadCount > 0 && (
+                            <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#EF4444', color: 'white', fontSize: '0.65rem', fontWeight: '800', borderRadius: '999px', padding: '0.15rem 0.4rem' }}>
+                                {unreadCount}
+                            </span>
+                        )}
+                    </button>
+
                     <button 
                         type="button"
-                        onClick={() => {
-                            if (navigate) navigate('/auth/founder-login');
-                            setShowFounderAuthModal(true);
-                        }}
+                        onClick={() => { if (navigate) navigate('/auth/founder-login'); setShowFounderAuthModal(true); }}
                         style={{
-                            position: 'relative',
-                            zIndex: 2,
                             padding: '0.75rem 1.25rem',
                             borderRadius: '12px',
                             background: 'rgba(255, 255, 255, 0.12)',
@@ -478,20 +477,7 @@ export default function BusinessPitches({ openAuthModal = null }) {
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.5rem',
-                            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)',
-                            transition: 'all 0.2s ease'
-                        }}
-                        onMouseOver={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)';
-                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.45)';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseOut={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
-                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
-                            e.currentTarget.style.transform = 'translateY(0)';
+                            gap: '0.5rem'
                         }}
                     >
                         <User size={15} />
@@ -500,13 +486,8 @@ export default function BusinessPitches({ openAuthModal = null }) {
 
                     <button 
                         type="button"
-                        onClick={() => {
-                            if (navigate) navigate('/auth/investor-login');
-                            setShowInvestorAuthModal(true);
-                        }}
+                        onClick={() => { if (navigate) navigate('/auth/investor-login'); setShowInvestorAuthModal(true); }}
                         style={{
-                            position: 'relative',
-                            zIndex: 2,
                             padding: '0.75rem 1.25rem',
                             borderRadius: '12px',
                             background: 'rgba(255, 255, 255, 0.12)',
@@ -518,20 +499,7 @@ export default function BusinessPitches({ openAuthModal = null }) {
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.5rem',
-                            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)',
-                            transition: 'all 0.2s ease'
-                        }}
-                        onMouseOver={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)';
-                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.45)';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseOut={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
-                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
-                            e.currentTarget.style.transform = 'translateY(0)';
+                            gap: '0.5rem'
                         }}
                     >
                         <TrendingUp size={15} />
@@ -541,8 +509,6 @@ export default function BusinessPitches({ openAuthModal = null }) {
                     <button 
                         onClick={() => setShowCreateModal(true)}
                         style={{
-                            position: 'relative',
-                            zIndex: 2,
                             padding: '0.75rem 1.25rem',
                             borderRadius: '12px',
                             background: '#10b981',
@@ -553,18 +519,8 @@ export default function BusinessPitches({ openAuthModal = null }) {
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
                             gap: '0.5rem',
-                            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
-                            transition: 'transform 0.2s, background 0.2s'
-                        }}
-                        onMouseOver={(e) => {
-                            e.currentTarget.style.background = '#059669';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseOut={(e) => {
-                            e.currentTarget.style.background = '#10b981';
-                            e.currentTarget.style.transform = 'translateY(0)';
+                            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
                         }}
                     >
                         <Rocket size={15} />
@@ -573,26 +529,11 @@ export default function BusinessPitches({ openAuthModal = null }) {
                 </div>
             </div>
 
-            {/* Elegant Compact Sub-Header with Navigation */}
-            <div style={{
-                flexShrink: 0,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '1rem'
-            }}>
-                <div style={{
-                    display: 'flex',
-                    gap: '0.25rem',
-                    background: '#e2e8f0',
-                    padding: '0.25rem',
-                    borderRadius: '12px'
-                }}>
+            {/* Sub-Header Navigation Tabs & Search */}
+            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.25rem', background: '#e2e8f0', padding: '0.25rem', borderRadius: '12px' }}>
                     <button 
-                        onClick={() => {
-                            setActiveTab('directory');
-                            setSearchTerm('');
-                        }}
+                        onClick={() => { setActiveTab('directory'); setSearchTerm(''); }}
                         style={{
                             padding: '0.5rem 1.25rem',
                             borderRadius: '9px',
@@ -602,17 +543,13 @@ export default function BusinessPitches({ openAuthModal = null }) {
                             fontSize: '0.85rem',
                             color: activeTab === 'directory' ? '#0f172a' : '#64748b',
                             border: 'none',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
+                            cursor: 'pointer'
                         }}
                     >
-                        Active Deals
+                        Active Deals Marketplace
                     </button>
                     <button 
-                        onClick={() => {
-                            setActiveTab('studio');
-                            setSearchTerm('');
-                        }}
+                        onClick={() => { setActiveTab('studio'); setSearchTerm(''); }}
                         style={{
                             padding: '0.5rem 1.25rem',
                             borderRadius: '9px',
@@ -622,963 +559,505 @@ export default function BusinessPitches({ openAuthModal = null }) {
                             fontSize: '0.85rem',
                             color: activeTab === 'studio' ? '#0f172a' : '#64748b',
                             border: 'none',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
+                            cursor: 'pointer'
                         }}
                     >
-                        My Studio
+                        My Studio (Founder View)
                     </button>
+                    {(openAuthModal === 'admin' || activeTab === 'admin') && (
+                        <button 
+                            onClick={() => { setActiveTab('admin'); setSearchTerm(''); }}
+                            style={{
+                                padding: '0.5rem 1.25rem',
+                                borderRadius: '9px',
+                                background: activeTab === 'admin' ? '#7C3AED' : 'transparent',
+                                color: activeTab === 'admin' ? '#ffffff' : '#7C3AED',
+                                fontWeight: '800',
+                                fontSize: '0.85rem',
+                                border: 'none',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            🛡️ Admin Review Desk
+                        </button>
+                    )}
                 </div>
 
-                {activeTab === 'directory' && (
-                    <div style={{ position: 'relative', flex: 1, maxWidth: '300px' }}>
-                        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                        <input 
-                            type="text"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            placeholder="Search deals..."
-                            style={{
-                                width: '100%',
-                                padding: '0.55rem 1rem 0.55rem 2.3rem',
-                                borderRadius: '10px',
-                                border: '1px solid #E2E8F0',
-                                outline: 'none',
-                                fontSize: '0.82rem',
-                                fontWeight: '600',
-                                color: '#1E293B',
-                                boxShadow: '0 4px 15px rgba(0,0,0,0.02)'
-                            }}
-                        />
+                {/* Quota Counter Indicator for Investors */}
+                {quotaStatus && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '0.35rem 0.85rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '750', color: '#1e40af' }}>
+                        <Coins size={15} color="#2563eb" />
+                        <span>Unlocked Deals: <strong>{quotaStatus.quota_used} / {quotaStatus.quota_limit}</strong></span>
+                        {quotaStatus.quota_remaining <= 2 && (
+                            <button onClick={() => setShowUpgradeModal(true)} style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', padding: '0.2rem 0.5rem', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer' }}>
+                                Upgrade
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
 
-            {/* Scrollable Main Content Wrapper */}
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
-
-            {(locationPermissionDenied || locationErrorMsg) && (
-                <div style={{
-                    background: '#FEF2F2',
-                    border: '1px solid #FCA5A5',
-                    color: '#991B1B',
-                    padding: '0.85rem 1.25rem',
-                    borderRadius: '12px',
-                    marginBottom: '1.25rem',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontSize: '0.82rem',
-                    fontWeight: '750',
-                    boxShadow: '0 4px 12px rgba(220, 38, 38, 0.03)'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <MapPin size={16} color="#DC2626" />
-                        <span>
-                            {locationErrorMsg || "Location services are disabled or blocked. Enable location permissions in your browser to unlock real-time location-based matchmaking."}
-                        </span>
-                    </div>
-                    <button 
-                        disabled={isLocationLoading}
-                        onClick={() => requestLocation()}
+            {/* Filter & Search Bar */}
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    <input 
+                        type="text" 
+                        placeholder="Search deals by title, sector, problem, or keywords..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                         style={{
-                            background: '#DC2626',
-                            color: 'white',
-                            border: 'none',
-                            padding: '0.4rem 0.85rem',
-                            borderRadius: '8px',
-                            fontWeight: '800',
-                            fontSize: '0.78rem',
-                            cursor: isLocationLoading ? 'not-allowed' : 'pointer',
-                            opacity: isLocationLoading ? 0.7 : 1,
-                            transition: 'background 0.2s',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.4rem',
-                            whiteSpace: 'nowrap'
+                            width: '100%',
+                            padding: '0.65rem 1rem 0.65rem 2.5rem',
+                            borderRadius: '12px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '0.875rem',
+                            outline: 'none',
+                            boxSizing: 'border-box'
                         }}
-                        onMouseOver={e => { if (!isLocationLoading) e.currentTarget.style.background = '#B91C1C'; }}
-                        onMouseOut={e => { if (!isLocationLoading) e.currentTarget.style.background = '#DC2626'; }}
-                    >
-                        {isLocationLoading ? 'Detecting Location...' : (locationPermissionDenied ? 'Enable Location' : 'Retry Location')}
-                    </button>
+                    />
                 </div>
-            )}
-
-            {/* Main Content Switcher */}
-            {isLoading ? (
-                <div style={{ textAlign: 'center', padding: '4rem' }}>
-                    <p style={{ color: '#64748b' }}>Aggregating corporate data...</p>
-                </div>
-            ) : activeTab === 'directory' ? (
-                /* PITICHES DIRECTORY */
-                (() => {
-                    const activePitches = pitches.filter(p => p.listing_status === 'ACTIVE' || p.is_verified);
-                    const filteredPitches = activePitches.filter(pitch => {
-                        if (!searchTerm.trim()) return true;
-                        const term = searchTerm.toLowerCase();
-                        return (
-                            pitch.business_name?.toLowerCase().includes(term) ||
-                            pitch.headline?.toLowerCase().includes(term) ||
-                            pitch.industry?.toLowerCase().includes(term) ||
-                            pitch.use_of_funds?.toLowerCase().includes(term) ||
-                            pitch.location?.toLowerCase().includes(term)
-                        );
-                    });
-                    const sortedPitches = [...filteredPitches].sort((a, b) => {
-                        const scoreA = getRecommendationScore(a);
-                        const scoreB = getRecommendationScore(b);
-                        return scoreB - scoreA;
-                    });
-
-                    return (
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                            gap: '1rem'
-                        }}>
-                            {sortedPitches.length === 0 ? (
-                                <div style={{
-                                    gridColumn: '1/-1',
-                                    textAlign: 'center',
-                                    padding: '3rem',
-                                    background: 'white',
-                                    borderRadius: '16px',
-                                    border: '1px dashed #cbd5e1'
-                                }}>
-                                    <Building size={40} style={{ margin: '0 auto 0.75rem', color: '#94a3b8' }} />
-                                    <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#334155' }}>
-                                        {searchTerm ? "No matching deals found" : "No active deal listings"}
-                                    </h3>
-                                    <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
-                                        {searchTerm ? "Try adjusting your search terms or filters." : "Submit your roadmap on My Studio to see it here instantly!"}
-                                    </p>
-                                </div>
-                            ) : (
-                                sortedPitches.map(pitch => {
-                                    const profileState = gpsState || 'Tamil Nadu';
-                                    const profileCity = cityName || '';
-                                    const isCityMatch = profileCity && pitch.location && pitch.location.toLowerCase().includes(profileCity.toLowerCase());
-                                    const isStateMatch = profileState && pitch.location && pitch.location.toLowerCase().includes(profileState.toLowerCase());
-
-                                    return (
-                                        <div 
-                                            key={pitch.id}
-                                            style={{
-                                                background: 'white',
-                                                borderRadius: '16px',
-                                                padding: '1.25rem',
-                                                boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.02)',
-                                                border: '1px solid #e2e8f0',
-                                                position: 'relative',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                transition: 'all 0.2s'
-                                            }}
-                                            onMouseOver={(e) => {
-                                                e.currentTarget.style.transform = 'translateY(-2px)';
-                                                e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.04)';
-                                                e.currentTarget.style.borderColor = '#cbd5e1';
-                                            }}
-                                            onMouseOut={(e) => {
-                                                e.currentTarget.style.transform = 'translateY(0)';
-                                                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.02)';
-                                                e.currentTarget.style.borderColor = '#e2e8f0';
-                                            }}
-                                        >
-                                            {/* Top Info Badging */}
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                                <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                                                    <span style={{
-                                                        padding: '0.25rem 0.6rem',
-                                                        borderRadius: '6px',
-                                                        background: '#ecfdf5',
-                                                        color: '#065f46',
-                                                        fontSize: '0.7rem',
-                                                        fontWeight: '800',
-                                                        textTransform: 'uppercase',
-                                                        letterSpacing: '0.02em'
-                                                    }}>
-                                                        {pitch.industry}
-                                                    </span>
-                                                    
-                                                    {isCityMatch && (
-                                                        <span style={{
-                                                            padding: '0.25rem 0.6rem',
-                                                            borderRadius: '6px',
-                                                            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                                            color: 'white',
-                                                            fontSize: '0.7rem',
-                                                            fontWeight: '800',
-                                                            letterSpacing: '0.02em',
-                                                            display: 'inline-flex',
-                                                            alignItems: 'center',
-                                                            gap: '3px'
-                                                        }}>
-                                                            🔥 PERFECT MATCH
-                                                        </span>
-                                                    )}
-                                                    {!isCityMatch && isStateMatch && (
-                                                        <span style={{
-                                                            padding: '0.25rem 0.6rem',
-                                                            borderRadius: '6px',
-                                                            background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
-                                                            color: 'white',
-                                                            fontSize: '0.7rem',
-                                                            fontWeight: '800',
-                                                            letterSpacing: '0.02em',
-                                                            display: 'inline-flex',
-                                                            alignItems: 'center',
-                                                            gap: '3px'
-                                                        }}>
-                                                            📍 NEAR YOU
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                
-                                                {pitch.is_verified && (
-                                                    <div style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '0.25rem',
-                                                        color: '#10b981',
-                                                        fontSize: '0.7rem',
-                                                        fontWeight: '800'
-                                                    }}>
-                                                        <ShieldCheck size={12} />
-                                                        <span>VERIFIED</span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', marginBottom: '0.35rem', letterSpacing: '-0.01em' }}>
-                                                {pitch.business_name}
-                                            </h3>
-                                            
-                                            <p style={{ 
-                                                color: '#64748b', 
-                                                fontSize: '0.85rem', 
-                                                lineHeight: 1.4, 
-                                                flexGrow: 1, 
-                                                marginBottom: '0.75rem',
-                                                display: '-webkit-box',
-                                                WebkitLineClamp: 2,
-                                                WebkitBoxOrient: 'vertical',
-                                                overflow: 'hidden'
-                                            }}>
-                                                {pitch.headline}
-                                            </p>
-
-                                            {/* Location Label */}
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '0.78rem', fontWeight: '600', marginBottom: '1rem' }}>
-                                                <MapPin size={13} style={{ color: '#94a3b8' }} />
-                                                <span>{pitch.location || 'Chennai, Tamil Nadu'}</span>
-                                            </div>
-
-                                            {/* Capital Data Banner - Sleek Row */}
-                                            <div style={{
-                                                background: '#f8fafc',
-                                                borderRadius: '10px',
-                                                padding: '0.75rem 1rem',
-                                                marginBottom: '1rem',
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                border: '1px solid #f1f5f9'
-                                            }}>
-                                                <div>
-                                                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.02em', marginBottom: '0.1rem' }}>
-                                                        Goal
-                                                    </div>
-                                                    <div style={{ fontWeight: '800', fontSize: '0.95rem', color: '#0f172a' }}>
-                                                        {formatCurrency(pitch.funding_target || 0)}
-                                                    </div>
-                                                </div>
-                                                <div style={{ textAlign: 'right' }}>
-                                                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.02em', marginBottom: '0.1rem' }}>
-                                                        Equity
-                                                    </div>
-                                                    <div style={{ fontWeight: '800', fontSize: '0.95rem', color: '#059669' }}>
-                                                        {pitch.equity_offered}%
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <button 
-                                                onClick={() => handleConnectTrigger(pitch)}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '0.65rem',
-                                                    background: '#0f172a',
-                                                    color: 'white',
-                                                    borderRadius: '10px',
-                                                    fontWeight: '700',
-                                                    fontSize: '0.85rem',
-                                                    border: 'none',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '0.4rem',
-                                                    transition: 'background 0.2s'
-                                                }}
-                                                onMouseOver={(e) => e.currentTarget.style.background = '#1e293b'}
-                                                onMouseOut={(e) => e.currentTarget.style.background = '#0f172a'}
-                                            >
-                                                <span>Connect</span>
-                                                <ArrowRight size={14} />
-                                            </button>
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
-                    );
-                })()
-            ) : (
-                /* MY CANVAS (Listing & Verification Hub) */
-                <div style={{
-                    background: 'white',
-                    borderRadius: '16px',
-                    padding: '1.5rem',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                    border: '1px solid #e2e8f0'
-                }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem', alignItems: 'center' }}>
-                        <div>
-                            <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a' }}>Studio Setup</h2>
-                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '0.1rem' }}>Track your fundraising registrations</p>
-                        </div>
-                        <button 
-                            onClick={() => setShowCreateModal(true)}
-                            style={{
-                                padding: '0.6rem 1rem',
-                                borderRadius: '10px',
-                                background: '#059669',
-                                color: 'white',
-                                border: 'none',
-                                fontWeight: '700',
-                                fontSize: '0.85rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                gap: '0.4rem',
-                                alignItems: 'center'
-                            }}
-                        >
-                            <Plus size={16} />
-                            <span>New Entry</span>
-                        </button>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {pitches.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '2rem', background: '#f8fafc', borderRadius: '12px' }}>
-                                <p style={{ color: '#64748b', fontSize: '0.875rem' }}>No registered listings detected.</p>
-                            </div>
-                        ) : (
-                            pitches.map(pitch => (
-                                <div key={pitch.id} style={{
-                                    border: '1px solid #e2e8f0',
-                                    borderRadius: '12px',
-                                    padding: '1rem',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center'
-                                }}>
-                                    <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <h4 style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.95rem' }}>{pitch.business_name}</h4>
-                                            <span style={{
-                                                fontSize: '0.65rem',
-                                                padding: '0.2rem 0.4rem',
-                                                borderRadius: '5px',
-                                                background: (pitch.is_verified === 1 || pitch.is_verified === true || pitch.listing_status === 'ACTIVE') ? '#d1fae5' : '#fef3c7',
-                                                color: (pitch.is_verified === 1 || pitch.is_verified === true || pitch.listing_status === 'ACTIVE') ? '#065f46' : '#92400e',
-                                                fontWeight: '800'
-                                            }}>
-                                                {pitch.listing_status === 'ACTIVE' ? 'ACTIVE' : 'DRAFT'}
-                                            </span>
-                                        </div>
-                                        <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.15rem' }}>
-                                            {formatCurrency(pitch.funding_target || 0)} for {pitch.equity_offered}% Equity Share
-                                        </p>
-                                    </div>
-
-                                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                        {!(pitch.is_verified === 1 || pitch.is_verified === true || pitch.listing_status === 'ACTIVE') && (
-                                            <button 
-                                                onClick={() => activateMutation.mutate({ id: pitch.id })}
-                                                disabled={activateMutation.isPending}
-                                                style={{
-                                                    padding: '0.5rem 1rem',
-                                                    borderRadius: '8px',
-                                                    background: '#10b981',
-                                                    color: 'white',
-                                                    fontWeight: '700',
-                                                    fontSize: '0.8rem',
-                                                    border: 'none',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '0.35rem'
-                                                }}
-                                            >
-                                                <Zap size={13} fill="currentColor" />
-                                                <span>Activate</span>
-                                            </button>
-                                        )}
-                                        {(pitch.is_verified === 1 || pitch.is_verified === true || pitch.listing_status === 'ACTIVE') && (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#059669', fontWeight: '800', fontSize: '0.8rem' }}>
-                                                <CheckCircle size={16} />
-                                                <span>Live</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            )}
+                <select
+                    value={selectedSector}
+                    onChange={(e) => setSelectedSector(e.target.value)}
+                    style={{
+                        padding: '0.65rem 1rem',
+                        borderRadius: '12px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.875rem',
+                        outline: 'none',
+                        background: 'white',
+                        fontWeight: '700',
+                        color: '#334155',
+                        cursor: 'pointer'
+                    }}
+                >
+                    {industryOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt === 'ALL' ? 'All Sectors' : opt}</option>
+                    ))}
+                </select>
             </div>
 
-            {/* Studio Drafting Overlay */}
-            {showCreateModal && (
-                <div style={{
-                    position: 'fixed',
-                    inset: 0,
-                    background: 'rgba(15, 23, 42, 0.4)',
-                    backdropFilter: 'blur(8px)',
-                    zIndex: 100,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '2rem'
-                }}>
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '24px',
-                        width: '100%',
-                        maxWidth: '650px',
-                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-                        overflow: 'hidden',
-                        animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-                    }}>
-                        {/* Modal Header */}
-                        <div style={{
-                            padding: '1.75rem 2rem',
-                            borderBottom: '1px solid #f1f5f9',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            background: '#f8fafc'
-                        }}>
-                            <div>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a' }}>Publish Venture Profile</h3>
-                                <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Broadcast your capital expansion targets immediately</p>
-                            </div>
-                            <button 
-                                onClick={() => setShowCreateModal(false)}
-                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' }}
-                            >
-                                <X size={24} />
+            {/* ── ACTIVE DEALS MARKETPLACE ──────────────────────────────────────── */}
+            {activeTab === 'directory' && (
+                <div>
+                    {isMarketplaceLoading ? (
+                        <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>Loading verified SME deal marketplace...</div>
+                    ) : marketplacePitches.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '4rem', background: 'white', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                            <Building size={44} style={{ margin: '0 auto 0.75rem', color: '#94a3b8' }} />
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#334155' }}>No Active Published Deals</h3>
+                            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Only Admin-accepted pitches appear in the active marketplace.</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+                            {marketplacePitches.map(pitch => {
+                                const isUnlocked = !!unlockedMap[pitch.id];
+                                return (
+                                    <div 
+                                        key={pitch.id}
+                                        style={{
+                                            background: 'white',
+                                            borderRadius: '16px',
+                                            padding: '1.25rem',
+                                            border: '1px solid #e2e8f0',
+                                            boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            justifyContent: 'space-between'
+                                        }}
+                                    >
+                                        <div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                                <span style={{ padding: '0.25rem 0.6rem', borderRadius: '999px', background: '#eff6ff', color: '#2563eb', fontSize: '0.75rem', fontWeight: '800' }}>
+                                                    {pitch.sector || pitch.industry || 'Technology'}
+                                                </span>
+                                                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600' }}>
+                                                    📍 {pitch.location || 'India'}
+                                                </span>
+                                            </div>
+
+                                            <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', marginBottom: '0.35rem' }}>
+                                                {pitch.title || pitch.company_name}
+                                            </h3>
+                                            <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.4, marginBottom: '1rem', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                {pitch.description || pitch.problem || 'Verified SME venture seeking capital expansion.'}
+                                            </p>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '12px', marginBottom: '1rem' }}>
+                                                <div>
+                                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700' }}>GOAL TARGET</div>
+                                                    <div style={{ fontSize: '1rem', fontWeight: '850', color: '#059669' }}>
+                                                        ₹{(pitch.goal_amount || pitch.funding_target || 0).toLocaleString()}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700' }}>EQUITY OFFERED</div>
+                                                    <div style={{ fontSize: '1rem', fontWeight: '850', color: '#1e40af' }}>
+                                                        {pitch.equity_offered || 0}%
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button 
+                                            onClick={() => handleConnectTrigger(pitch)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                borderRadius: '12px',
+                                                background: isUnlocked ? '#059669' : '#1E3A8A',
+                                                color: 'white',
+                                                fontWeight: '800',
+                                                fontSize: '0.875rem',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '0.5rem'
+                                            }}
+                                        >
+                                            {isUnlocked ? <CheckCircle2 size={16} /> : <Lock size={15} />}
+                                            <span>{isUnlocked ? 'Unlocked — View Deal' : 'Connect / View Pitch (1 Quota)'}</span>
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ── MY STUDIO (FOUNDER VIEW) ────────────────────────────────────── */}
+            {activeTab === 'studio' && (
+                <div>
+                    {isStudioLoading ? (
+                        <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>Loading founder studio pitches...</div>
+                    ) : studioPitches.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '4rem', background: 'white', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                            <Rocket size={44} style={{ margin: '0 auto 0.75rem', color: '#10b981' }} />
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#334155' }}>No Pitches Submitted Yet</h3>
+                            <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1rem' }}>List your venture pitch to request admin review and publish to investors.</p>
+                            <button onClick={() => setShowCreateModal(true)} style={{ background: '#10b981', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '12px', border: 'none', fontWeight: '800', cursor: 'pointer' }}>
+                                + Submit Your Venture
                             </button>
                         </div>
+                    ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+                            {studioPitches.map(pitch => (
+                                <div 
+                                    key={pitch.id}
+                                    style={{
+                                        background: 'white',
+                                        borderRadius: '16px',
+                                        padding: '1.25rem',
+                                        border: '1px solid #e2e8f0',
+                                        boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'space-between'
+                                    }}
+                                >
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                            {getStatusBadge(pitch.status)}
+                                            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                                                {pitch.sector || 'Technology'}
+                                            </span>
+                                        </div>
 
-                        {/* Modal Content */}
+                                        <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', marginBottom: '0.35rem' }}>
+                                            {pitch.title || pitch.company_name}
+                                        </h3>
+                                        <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.4, marginBottom: '0.75rem' }}>
+                                            {pitch.description || pitch.use_of_funds}
+                                        </p>
+
+                                        {/* Admin Remarks Display if Rejected */}
+                                        {pitch.status === 'REJECTED' && (
+                                            <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.75rem', borderRadius: '10px', marginBottom: '1rem' }}>
+                                                <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#991b1b', marginBottom: '0.2rem' }}>
+                                                    ⚠️ Admin Audit Remarks:
+                                                </div>
+                                                <p style={{ fontSize: '0.825rem', color: '#7f1d1d', margin: 0 }}>
+                                                    {pitch.admin_remarks || 'Please update your funding target and deck details.'}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '12px', marginBottom: '1rem' }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700' }}>GOAL TARGET</div>
+                                                <div style={{ fontSize: '1rem', fontWeight: '850', color: '#059669' }}>
+                                                    ₹{(pitch.goal_amount || pitch.funding_target || 0).toLocaleString()}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700' }}>EQUITY OFFERED</div>
+                                                <div style={{ fontSize: '1rem', fontWeight: '850', color: '#1e40af' }}>
+                                                    {pitch.equity_offered || 0}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {pitch.status === 'REJECTED' && (
+                                        <button 
+                                            onClick={() => setResubmitPitch(pitch)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.65rem',
+                                                borderRadius: '10px',
+                                                background: '#dc2626',
+                                                color: 'white',
+                                                fontWeight: '800',
+                                                fontSize: '0.85rem',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '0.4rem'
+                                            }}
+                                        >
+                                            <Edit3 size={15} /> Edit & Resubmit Pitch
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ── ADMIN REVIEW DESK ───────────────────────────────────────────── */}
+            {activeTab === 'admin' && (
+                <div>
+                    <div style={{ background: '#7C3AED', color: 'white', padding: '1rem 1.5rem', borderRadius: '16px', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', margin: 0 }}>Capital Matrix — Admin Review Desk</h2>
+                            <p style={{ fontSize: '0.85rem', opacity: 0.9, margin: 0 }}>Review submitted SME ventures, leave audit remarks, and publish pitches.</p>
+                        </div>
+                        <span style={{ background: 'rgba(255,255,255,0.2)', padding: '0.35rem 0.85rem', borderRadius: '999px', fontWeight: '800', fontSize: '0.8rem' }}>
+                            {adminPitches.length} Total Submissions
+                        </span>
+                    </div>
+
+                    {isAdminLoading ? (
+                        <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>Loading pitches for admin audit...</div>
+                    ) : adminPitches.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '4rem', background: 'white', borderRadius: '16px' }}>No venture submissions found.</div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {adminPitches.map(pitch => (
+                                <div 
+                                    key={pitch.id}
+                                    style={{
+                                        background: 'white',
+                                        borderRadius: '16px',
+                                        padding: '1.25rem 1.5rem',
+                                        border: '1px solid #e2e8f0',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        flexWrap: 'wrap',
+                                        gap: '1rem'
+                                    }}
+                                >
+                                    <div style={{ flex: 1, minWidth: '280px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.35rem' }}>
+                                            <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0f172a', margin: 0 }}>
+                                                {pitch.title || pitch.company_name}
+                                            </h3>
+                                            {getStatusBadge(pitch.status)}
+                                        </div>
+                                        <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 0.5rem 0' }}>
+                                            Founder: <strong>{pitch.founder_name || 'Founder'}</strong> ({pitch.founder_email || 'N/A'}) • Sector: <strong>{pitch.sector || 'Technology'}</strong>
+                                        </p>
+                                        <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: '#334155' }}>
+                                            <span>Goal Target: <strong>₹{(pitch.goal_amount || pitch.funding_target || 0).toLocaleString()}</strong></span>
+                                            <span>Equity: <strong>{pitch.equity_offered || 0}%</strong></span>
+                                        </div>
+                                        {pitch.admin_remarks && (
+                                            <div style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.35rem 0.65rem', borderRadius: '6px', marginTop: '0.5rem' }}>
+                                                Remarks: {pitch.admin_remarks}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <button 
+                                        onClick={() => { setAdminReviewPitch(pitch); setAdminRemarksInput(pitch.admin_remarks || ''); }}
+                                        style={{
+                                            padding: '0.65rem 1.25rem',
+                                            borderRadius: '10px',
+                                            background: '#7C3AED',
+                                            color: 'white',
+                                            fontWeight: '800',
+                                            fontSize: '0.85rem',
+                                            border: 'none',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Audit & Review Pitch
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ── CREATE VENTURE MODAL ────────────────────────────────────────── */}
+            {showCreateModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+                    <div style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '650px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>List Your Venture</h3>
+                                <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>Submit your roadmap for Admin Review & Investor Connect</p>
+                            </div>
+                            <button onClick={() => setShowCreateModal(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' }}><X size={22} /></button>
+                        </div>
                         <form onSubmit={handleSubmit} style={{ padding: '2rem', maxHeight: '70vh', overflowY: 'auto' }}>
-                            
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                        Registry Business Name *
-                                    </label>
-                                    <input 
-                                        required
-                                        type="text"
-                                        value={formData.business_name}
-                                        onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
-                                        placeholder="e.g., Beta Tech Solutions"
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
-                                    />
+                                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#475569', marginBottom: '0.4rem' }}>Business / Venture Name *</label>
+                                    <input type="text" required value={formData.business_name} onChange={e => setFormData({ ...formData, business_name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                        Core Industry Tag
-                                    </label>
-                                    <select
-                                        value={formData.industry}
-                                        onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem', background: 'white' }}
-                                    >
-                                        {industryOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#475569', marginBottom: '0.4rem' }}>Sector *</label>
+                                    <select value={formData.industry} onChange={e => setFormData({ ...formData, industry: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', background: 'white', boxSizing: 'border-box' }}>
+                                        {industryOptions.filter(o => o !== 'ALL').map(i => <option key={i} value={i}>{i}</option>)}
                                     </select>
                                 </div>
                             </div>
-
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                    Headline / Expansion Memo *
-                                </label>
-                                <input 
-                                    required
-                                    type="text"
-                                    value={formData.headline}
-                                    onChange={(e) => setFormData({ ...formData, headline: e.target.value })}
-                                    placeholder="e.g., Disrupting regional supply chain with micro-automated routing"
-                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
-                                />
+                            <div style={{ marginBottom: '1.25rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#475569', marginBottom: '0.4rem' }}>Headline Pitch *</label>
+                                <input type="text" required value={formData.headline} onChange={e => setFormData({ ...formData, headline: e.target.value })} placeholder="e.g. Next-gen AI inventory platform for retail SMEs" style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
                             </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                        Funding Request Amount ({currency.symbol}) *
-                                    </label>
-                                    <div style={{ position: 'relative' }}>
-                                        <Coins size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                                        <input 
-                                            required
-                                            type="number"
-                                            min="0"
-                                            value={formData.funding_target}
-                                            onKeyDown={(e) => {
-                                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                            onChange={(e) => {
-                                                let val = e.target.value;
-                                                if (val !== '' && Number(val) < 0) {
-                                                    val = '0';
-                                                }
-                                                setFormData(prev => ({ ...prev, funding_target: val }));
-                                                const err = validateFundingTarget(val);
-                                                setFormErrors(prev => ({ ...prev, funding_target: err }));
-                                            }}
-                                            onPaste={(e) => {
-                                                const pasted = e.clipboardData.getData('text');
-                                                if (Number(pasted) < 0) {
-                                                    e.preventDefault();
-                                                    setFormData(prev => ({ ...prev, funding_target: '0' }));
-                                                    setFormErrors(prev => ({ ...prev, funding_target: 'Funding request amount cannot be negative.' }));
-                                                }
-                                            }}
-                                            placeholder="e.g. 5000000"
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.85rem 0.85rem 0.85rem 2.5rem',
-                                                borderRadius: '10px',
-                                                border: formErrors.funding_target ? '1px solid #EF4444' : '1px solid #cbd5e1',
-                                                fontSize: '0.95rem',
-                                                outline: 'none'
-                                            }}
-                                        />
-                                    </div>
-                                    {formErrors.funding_target && (
-                                        <span style={{ fontSize: '0.75rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '700' }}>
-                                            {formErrors.funding_target}
-                                        </span>
-                                    )}
+                                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#475569', marginBottom: '0.4rem' }}>Funding Goal Target (₹) *</label>
+                                    <input type="number" min="0" required value={formData.funding_target} onChange={e => setFormData({ ...formData, funding_target: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
+                                    {formErrors.funding_target && <span style={{ color: '#ef4444', fontSize: '0.75rem' }}>{formErrors.funding_target}</span>}
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                        Equity Transfer (%)
-                                    </label>
-                                    <div style={{ position: 'relative' }}>
-                                        <Target size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                                        <input 
-                                            type="number"
-                                            min="0"
-                                            max="100"
-                                            value={formData.equity_offered}
-                                            onKeyDown={(e) => {
-                                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                            onChange={(e) => {
-                                                let val = e.target.value;
-                                                if (val !== '' && Number(val) < 0) {
-                                                    val = '0';
-                                                } else if (val !== '' && Number(val) > 100) {
-                                                    val = '100';
-                                                }
-                                                setFormData(prev => ({ ...prev, equity_offered: val }));
-                                                const err = validateEquityOffered(val);
-                                                setFormErrors(prev => ({ ...prev, equity_offered: err }));
-                                            }}
-                                            onPaste={(e) => {
-                                                const pasted = e.clipboardData.getData('text');
-                                                const num = Number(pasted);
-                                                if (num < 0 || num > 100) {
-                                                    e.preventDefault();
-                                                    const clamped = num < 0 ? '0' : '100';
-                                                    setFormData(prev => ({ ...prev, equity_offered: clamped }));
-                                                    setFormErrors(prev => ({ ...prev, equity_offered: validateEquityOffered(clamped) }));
-                                                }
-                                            }}
-                                            placeholder="e.g. 10"
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.85rem 0.85rem 0.85rem 2.5rem',
-                                                borderRadius: '10px',
-                                                border: formErrors.equity_offered ? '1px solid #EF4444' : '1px solid #cbd5e1',
-                                                fontSize: '0.95rem',
-                                                outline: 'none'
-                                            }}
-                                        />
-                                    </div>
-                                    {formErrors.equity_offered && (
-                                        <span style={{ fontSize: '0.75rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '700' }}>
-                                            {formErrors.equity_offered}
-                                        </span>
-                                    )}
+                                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#475569', marginBottom: '0.4rem' }}>Equity Offered (0-100%) *</label>
+                                    <input type="number" min="0" max="100" required value={formData.equity_offered} onChange={e => setFormData({ ...formData, equity_offered: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
+                                    {formErrors.equity_offered && <span style={{ color: '#ef4444', fontSize: '0.75rem' }}>{formErrors.equity_offered}</span>}
                                 </div>
                             </div>
-
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                    Brief Expansion Intent / Roadmap
-                                </label>
-                                <textarea 
-                                    rows="3"
-                                    value={formData.use_of_funds}
-                                    onChange={(e) => setFormData({ ...formData, use_of_funds: e.target.value })}
-                                    placeholder="Briefly detail operational growth goals or capital allocation..."
-                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem', resize: 'vertical' }}
-                                />
+                            <div style={{ marginBottom: '1.25rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#475569', marginBottom: '0.4rem' }}>Pitch Deck URL</label>
+                                <input type="url" value={formData.pitch_deck_url} onChange={e => setFormData({ ...formData, pitch_deck_url: e.target.value })} placeholder="https://drive.google.com/..." style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
                             </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                        Investor Query Email *
-                                    </label>
-                                    <div style={{ position: 'relative' }}>
-                                        <Mail size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                                        <input 
-                                            type="email"
-                                            required
-                                            value={formData.founder_email}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                setFormData(prev => ({ ...prev, founder_email: val }));
-                                                const err = validateFounderEmail(val);
-                                                setFormErrors(prev => ({ ...prev, founder_email: err }));
-                                            }}
-                                            placeholder="founder@bnxmail.com"
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.85rem 0.85rem 0.85rem 2.5rem',
-                                                borderRadius: '10px',
-                                                border: formErrors.founder_email ? '1px solid #EF4444' : '1px solid #cbd5e1',
-                                                fontSize: '0.95rem',
-                                                outline: 'none'
-                                            }}
-                                        />
-                                    </div>
-                                    {formErrors.founder_email && (
-                                        <span style={{ fontSize: '0.75rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '700' }}>
-                                            {formErrors.founder_email}
-                                        </span>
-                                    )}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                        Founder Contact Phone *
-                                    </label>
-                                    <div style={{ position: 'relative' }}>
-                                        <Phone size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                                        <input 
-                                            type="text"
-                                            required
-                                            maxLength={10}
-                                            value={formData.founder_phone}
-                                            onChange={(e) => {
-                                                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                                                setFormData(prev => ({ ...prev, founder_phone: val }));
-                                                const err = validateFounderPhone(val);
-                                                setFormErrors(prev => ({ ...prev, founder_phone: err }));
-                                            }}
-                                            placeholder="e.g. 9999999999"
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.85rem 0.85rem 0.85rem 2.5rem',
-                                                borderRadius: '10px',
-                                                border: formErrors.founder_phone ? '1px solid #EF4444' : '1px solid #cbd5e1',
-                                                fontSize: '0.95rem',
-                                                outline: 'none'
-                                            }}
-                                        />
-                                    </div>
-                                    {formErrors.founder_phone && (
-                                        <span style={{ fontSize: '0.75rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '700' }}>
-                                            {formErrors.founder_phone}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                    Business Location (Optional - defaults to detected GPS)
-                                </label>
-                                <div style={{ position: 'relative' }}>
-                                    <MapPin size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                                    <input 
-                                        type="text"
-                                        value={formData.location}
-                                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                        placeholder={cityName ? `${cityName}, ${gpsState}` : 'e.g. Chennai, Tamil Nadu'}
-                                        style={{ width: '100%', padding: '0.85rem 0.85rem 0.85rem 2.5rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div style={{ marginBottom: '2rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#475569', marginBottom: '0.5rem' }}>
-                                    Deck Link (Optional)
-                                </label>
-                                <div style={{ position: 'relative' }}>
-                                    <FileText size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                                    <input 
-                                        type="url"
-                                        value={formData.pitch_deck_url}
-                                        onChange={(e) => setFormData({ ...formData, pitch_deck_url: e.target.value })}
-                                        placeholder="https://drive.google.com/executive-deck.pdf"
-                                        style={{ width: '100%', padding: '0.85rem 0.85rem 0.85rem 2.5rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.95rem' }}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Footer Actions */}
-                            <div style={{
-                                display: 'flex',
-                                gap: '1rem',
-                                borderTop: '1px solid #f1f5f9',
-                                paddingTop: '1.5rem',
-                                justifyContent: 'flex-end'
-                            }}>
-                                <button 
-                                    type="button"
-                                    onClick={() => setShowCreateModal(false)}
-                                    style={{
-                                        padding: '0.85rem 1.5rem',
-                                        borderRadius: '12px',
-                                        background: 'transparent',
-                                        border: '1px solid #cbd5e1',
-                                        color: '#475569',
-                                        fontWeight: '700',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                                <button 
-                                    type="submit"
-                                    disabled={createMutation.isPending}
-                                    style={{
-                                        padding: '0.85rem 2rem',
-                                        borderRadius: '12px',
-                                        background: '#064e3b',
-                                        color: 'white',
-                                        fontWeight: '750',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem'
-                                    }}
-                                >
-                                    {createMutation.isPending ? 'Publishing...' : 'Publish Now'}
-                                </button>
-                            </div>
+                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: '#10b981', color: 'white', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '0.95rem' }}>
+                                Submit Pitch for Admin Review
+                            </button>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Investor Connector Detail Modal */}
-            {selectedConnectPitch && (
-                <div style={{
-                    position: 'fixed',
-                    inset: 0,
-                    background: 'rgba(15, 23, 42, 0.4)',
-                    backdropFilter: 'blur(8px)',
-                    zIndex: 100,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '2rem'
-                }}>
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '24px',
-                        width: '100%',
-                        maxWidth: '500px',
-                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-                        overflow: 'hidden',
-                        animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        maxHeight: '90vh'
-                    }}>
-                        {/* Glassmorphic Header Cover */}
-                        <div style={{
-                            padding: '2.5rem 2rem',
-                            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                            color: 'white',
-                            position: 'relative',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.5rem',
-                            flexShrink: 0
-                        }}>
-                            <button 
-                                onClick={() => setSelectedConnectPitch(null)}
-                                style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', border: 'none', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.6)' }}
-                            >
-                                <X size={22} />
-                            </button>
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', color: '#34d399', fontSize: '0.85rem', fontWeight: '800', textTransform: 'uppercase' }}>
-                                <ShieldCheck size={15} />
-                                <span>Verified Registrant Info</span>
-                            </div>
-                            <h3 style={{ fontSize: '1.5rem', fontWeight: '900', marginTop: '0.25rem' }}>
-                                {selectedConnectPitch.business_name}
-                            </h3>
-                            <p style={{ opacity: 0.8, fontSize: '0.9rem', lineHeight: 1.4 }}>
-                                {selectedConnectPitch.headline}
-                            </p>
+            {/* ── ADMIN ACTION MODAL ───────────────────────────────────────────── */}
+            {adminReviewPitch && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+                    <div style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '520px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #f1f5f9', background: '#7C3AED', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: '850', margin: 0 }}>Audit & Review Pitch</h3>
+                            <button onClick={() => setAdminReviewPitch(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'white' }}><X size={20} /></button>
                         </div>
-
-                        <div style={{ padding: '2rem', overflowY: 'auto', flex: 1 }}>
-                            {/* Venture Details Section */}
-                            <h4 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.03em', marginBottom: '1rem' }}>
-                                Venture Details
-                            </h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', marginBottom: '0.25rem' }}>Target & Equity</div>
-                                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#059669' }}>
-                                        {formatCurrency(selectedConnectPitch.funding_target || 0)} <span style={{ color: '#1e293b', fontSize: '0.85rem' }}>for {selectedConnectPitch.equity_offered}%</span>
-                                    </div>
-                                </div>
-                                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                                    <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', marginBottom: '0.25rem' }}>Industry</div>
-                                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1e293b' }}>
-                                        {selectedConnectPitch.industry || 'Not Specified'}
-                                    </div>
-                                </div>
-                            </div>
+                        <div style={{ padding: '2rem' }}>
+                            <h4 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: '0 0 0.5rem 0' }}>{adminReviewPitch.title || adminReviewPitch.company_name}</h4>
+                            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.25rem' }}>{adminReviewPitch.description}</p>
                             
-                            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', marginBottom: '2rem', border: '1px solid #f1f5f9' }}>
-                                <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', marginBottom: '0.5rem' }}>Expansion Intent / Roadmap</div>
-                                <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#334155', lineHeight: 1.5 }}>
-                                    {selectedConnectPitch.use_of_funds || 'No additional details provided.'}
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '0.75rem', fontWeight: '700', marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0' }}>
-                                    <MapPin size={14} />
-                                    <span>{selectedConnectPitch.location || 'Location Not Specified'}</span>
-                                </div>
-                            </div>
+                            <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>Audit Remarks / Feedback</label>
+                            <textarea 
+                                rows={3} 
+                                value={adminRemarksInput} 
+                                onChange={e => setAdminRemarksInput(e.target.value)} 
+                                placeholder="Enter review notes, compliance checks, or required revisions..."
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', marginBottom: '1.5rem', boxSizing: 'border-box' }} 
+                            />
 
-                            <h4 style={{ fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.03em', marginBottom: '1rem' }}>
-                                Direct Founders Connect
-                            </h4>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2rem' }}>
-                                {/* Registered Owner */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px' }}>
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Building size={18} color="#475569" />
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600' }}>Corporate Holder</div>
-                                        <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1e293b' }}>
-                                            {selectedConnectPitch.user_biz_name || selectedConnectPitch.business_name}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Founder Email */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px' }}>
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Mail size={18} color="#16a34a" />
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600' }}>Email Address</div>
-                                        <a href={`mailto:${selectedConnectPitch.founder_email}`} style={{ fontSize: '0.95rem', fontWeight: '800', color: '#059669', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                            {selectedConnectPitch.founder_email || 'Unavailable'}
-                                            <ArrowUpRight size={14} />
-                                        </a>
-                                    </div>
-                                </div>
-
-                                {/* Founder Phone */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px' }}>
-                                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Phone size={18} color="#2563eb" />
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600' }}>Registered Contact</div>
-                                        <a href={`tel:${selectedConnectPitch.founder_phone}`} style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1d4ed8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                            {selectedConnectPitch.founder_phone || 'Unavailable'}
-                                            <ArrowUpRight size={14} />
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Deck Link Preview */}
-                            {selectedConnectPitch.pitch_deck_url && (
-                                <a 
-                                    href={selectedConnectPitch.pitch_deck_url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        padding: '1rem',
-                                        background: '#fdf2f8',
-                                        border: '1px solid #fbcfe8',
-                                        borderRadius: '12px',
-                                        color: '#be185d',
-                                        textDecoration: 'none',
-                                        fontWeight: '750',
-                                        fontSize: '0.9rem',
-                                        marginBottom: '2rem'
-                                    }}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <button 
+                                    onClick={() => adminReviewMutation.mutate({ id: adminReviewPitch.id, status: 'REJECTED', admin_remarks: adminRemarksInput })}
+                                    style={{ padding: '0.85rem', borderRadius: '12px', background: '#dc2626', color: 'white', fontWeight: '800', border: 'none', cursor: 'pointer' }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <FileText size={16} />
-                                        <span>View Executive Presentation</span>
-                                    </div>
-                                    <ArrowUpRight size={16} />
-                                </a>
-                            )}
+                                    Reject / Request Revisions
+                                </button>
+                                <button 
+                                    onClick={() => adminReviewMutation.mutate({ id: adminReviewPitch.id, status: 'ACCEPTED', admin_remarks: adminRemarksInput })}
+                                    style={{ padding: '0.85rem', borderRadius: '12px', background: '#059669', color: 'white', fontWeight: '800', border: 'none', cursor: 'pointer' }}
+                                >
+                                    Accept & Publish
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                            {/* Action Call */}
+            {/* ── UPGRADE WORKSPACE TIER MODAL ────────────────────────────────── */}
+            {showUpgradeModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+                    <div style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.75rem 2rem', background: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                                    <Crown size={22} color="#FBBF24" />
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', margin: 0 }}>Upgrade Workspace Tier</h3>
+                                </div>
+                                <p style={{ fontSize: '0.85rem', color: '#BFDBFE', margin: 0 }}>You have reached your unlocked deal quota limit.</p>
+                            </div>
+                            <button onClick={() => setShowUpgradeModal(false)} style={{ border: 'none', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', padding: '0.35rem', cursor: 'pointer', color: 'white' }}><X size={18} /></button>
+                        </div>
+                        <div style={{ padding: '2rem' }}>
+                            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem' }}>
+                                <div style={{ fontWeight: '800', color: '#1e40af', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Basic Investor Plan (Limit: 20 Deals)</div>
+                                <p style={{ fontSize: '0.8rem', color: '#3b82f6', margin: 0 }}>Access up to 20 verified startup pitches & founder contact channels.</p>
+                            </div>
+                            <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem' }}>
+                                <div style={{ fontWeight: '800', color: '#6d28d9', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Pro Investor Plan (Limit: 50 Deals)</div>
+                                <p style={{ fontSize: '0.8rem', color: '#7c3aed', margin: 0 }}>Expanded access for active investors with 50 unique deal unlocks.</p>
+                            </div>
                             <button 
-                                onClick={handleSendInquiry}
-                                style={{
-                                    width: '100%',
-                                    padding: '1rem',
-                                    background: '#059669',
-                                    color: 'white',
-                                    borderRadius: '12px',
-                                    fontWeight: '800',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem'
-                                }}
+                                onClick={() => { setShowUpgradeModal(false); if (navigate) navigate('/subscription'); }}
+                                style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%)', color: 'white', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '0.95rem' }}
                             >
-                                <span>Submit Connect Request</span>
+                                Upgrade Plan Now
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── NOTIFICATION DRAWER ────────────────────────────────────────── */}
+            {showNotifDrawer && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '400px', height: '100%', padding: '1.5rem', display: 'flex', flexDirection: 'column', boxShadow: '-10px 0 25px rgba(0,0,0,0.15)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Bell size={20} color="#1E3A8A" />
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: '850', margin: 0 }}>In-App Notifications</h3>
+                            </div>
+                            <button onClick={() => setShowNotifDrawer(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+                        </div>
+                        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {notifications.length === 0 ? (
+                                <p style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '2rem 0' }}>No notifications received yet.</p>
+                            ) : (
+                                notifications.map(notif => (
+                                    <div key={notif.id} style={{ background: notif.is_read ? '#f8fafc' : '#eff6ff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.85rem' }}>
+                                        <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0f172a', marginBottom: '0.2rem' }}>{notif.title}</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.4 }}>{notif.message}</div>
+                                        <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.4rem' }}>{new Date(notif.created_at).toLocaleString()}</div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1586,106 +1065,31 @@ export default function BusinessPitches({ openAuthModal = null }) {
 
             {/* FOUNDER Login Modal */}
             {showFounderAuthModal && (
-                <div style={{
-                    position: 'fixed',
-                    inset: 0,
-                    background: 'rgba(15, 23, 42, 0.5)',
-                    backdropFilter: 'blur(8px)',
-                    zIndex: 1000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '1.5rem'
-                }}>
-                    <div style={{
-                        background: '#FFFFFF',
-                        borderRadius: '24px',
-                        width: '100%',
-                        maxWidth: '480px',
-                        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35)',
-                        overflow: 'hidden',
-                        animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-                    }}>
-                        <div style={{
-                            padding: '1.75rem 2rem',
-                            borderBottom: '1px solid #f1f5f9',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start',
-                            background: 'linear-gradient(135deg, #1E3A8A 0%, #1e40af 100%)',
-                            color: 'white'
-                        }}>
+                <div 
+                    onClick={() => { setShowFounderAuthModal(false); if (navigate) navigate('/social/betaclub', { replace: true }); }}
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}
+                >
+                    <div onClick={(e) => e.stopPropagation()} style={{ background: '#FFFFFF', borderRadius: '24px', width: '100%', maxWidth: '480px', boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35)', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.75rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', background: 'linear-gradient(135deg, #1E3A8A 0%, #1e40af 100%)', color: 'white' }}>
                             <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                                     <User size={20} color="#60A5FA" />
                                     <h3 style={{ fontSize: '1.25rem', fontWeight: '850', margin: 0 }}>FOUNDER Login</h3>
                                 </div>
-                                <p style={{ fontSize: '0.85rem', color: '#BFDBFE', margin: 0, opacity: 0.9 }}>
-                                    Access your venture dashboard and investor connections.
-                                </p>
+                                <p style={{ fontSize: '0.85rem', color: '#BFDBFE', margin: 0 }}>Access your venture dashboard and investor connections.</p>
                             </div>
-                            <button 
-                                onClick={() => setShowFounderAuthModal(false)}
-                                style={{ border: 'none', background: 'rgba(255,255,255,0.15)', borderRadius: '50%', padding: '0.35rem', cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            >
-                                <X size={18} />
-                            </button>
+                            <button onClick={() => { setShowFounderAuthModal(false); if (navigate) navigate('/social/betaclub', { replace: true }); }} style={{ border: 'none', background: 'rgba(255,255,255,0.15)', borderRadius: '50%', padding: '0.35rem', cursor: 'pointer', color: 'white' }}><X size={18} /></button>
                         </div>
                         <form onSubmit={(e) => { e.preventDefault(); alert("Founder login successful!"); setShowFounderAuthModal(false); }} style={{ padding: '2rem' }}>
                             <div style={{ marginBottom: '1.25rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>
-                                    Founder Email / Phone
-                                </label>
-                                <input 
-                                    type="text" 
-                                    placeholder="founder@company.com" 
-                                    required
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.75rem 1rem',
-                                        borderRadius: '10px',
-                                        border: '1px solid #cbd5e1',
-                                        fontSize: '0.9rem',
-                                        outline: 'none',
-                                        boxSizing: 'border-box'
-                                    }}
-                                />
+                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>Founder Email / Phone</label>
+                                <input type="text" placeholder="founder@company.com" required style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
                             </div>
                             <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>
-                                    Password
-                                </label>
-                                <input 
-                                    type="password" 
-                                    placeholder="••••••••" 
-                                    required
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.75rem 1rem',
-                                        borderRadius: '10px',
-                                        border: '1px solid #cbd5e1',
-                                        fontSize: '0.9rem',
-                                        outline: 'none',
-                                        boxSizing: 'border-box'
-                                    }}
-                                />
+                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>Password</label>
+                                <input type="password" placeholder="••••••••" required style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
                             </div>
-                            <button 
-                                type="submit"
-                                style={{
-                                    width: '100%',
-                                    padding: '0.85rem',
-                                    borderRadius: '12px',
-                                    background: '#1E3A8A',
-                                    color: 'white',
-                                    fontWeight: '750',
-                                    fontSize: '0.95rem',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 4px 12px rgba(30, 58, 138, 0.25)',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
+                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: '#1E3A8A', color: 'white', fontWeight: '750', fontSize: '0.95rem', border: 'none', cursor: 'pointer' }}>
                                 Login to Founder Hub
                             </button>
                         </form>
@@ -1695,107 +1099,74 @@ export default function BusinessPitches({ openAuthModal = null }) {
 
             {/* INVESTOR Login Modal */}
             {showInvestorAuthModal && (
-                <div style={{
-                    position: 'fixed',
-                    inset: 0,
-                    background: 'rgba(15, 23, 42, 0.5)',
-                    backdropFilter: 'blur(8px)',
-                    zIndex: 1000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '1.5rem'
-                }}>
-                    <div style={{
-                        background: '#FFFFFF',
-                        borderRadius: '24px',
-                        width: '100%',
-                        maxWidth: '480px',
-                        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35)',
-                        overflow: 'hidden',
-                        animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-                    }}>
-                        <div style={{
-                            padding: '1.75rem 2rem',
-                            borderBottom: '1px solid #f1f5f9',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start',
-                            background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
-                            color: 'white'
-                        }}>
+                <div 
+                    onClick={() => { setShowInvestorAuthModal(false); if (navigate) navigate('/social/betaclub', { replace: true }); }}
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}
+                >
+                    <div onClick={(e) => e.stopPropagation()} style={{ background: '#FFFFFF', borderRadius: '24px', width: '100%', maxWidth: '480px', boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35)', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.75rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', color: 'white' }}>
                             <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                                     <TrendingUp size={20} color="#34D399" />
                                     <h3 style={{ fontSize: '1.25rem', fontWeight: '850', margin: 0 }}>INVESTOR Login</h3>
                                 </div>
-                                <p style={{ fontSize: '0.85rem', color: '#94A3B8', margin: 0, opacity: 0.9 }}>
-                                    Access verified SME deal marketplace & private pitch rooms.
-                                </p>
+                                <p style={{ fontSize: '0.85rem', color: '#94A3B8', margin: 0 }}>Access verified SME deal marketplace & private pitch rooms.</p>
                             </div>
-                            <button 
-                                onClick={() => setShowInvestorAuthModal(false)}
-                                style={{ border: 'none', background: 'rgba(255,255,255,0.15)', borderRadius: '50%', padding: '0.35rem', cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            >
-                                <X size={18} />
-                            </button>
+                            <button onClick={() => { setShowInvestorAuthModal(false); if (navigate) navigate('/social/betaclub', { replace: true }); }} style={{ border: 'none', background: 'rgba(255,255,255,0.15)', borderRadius: '50%', padding: '0.35rem', cursor: 'pointer', color: 'white' }}><X size={18} /></button>
                         </div>
                         <form onSubmit={(e) => { e.preventDefault(); alert("Investor login successful!"); setShowInvestorAuthModal(false); }} style={{ padding: '2rem' }}>
                             <div style={{ marginBottom: '1.25rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>
-                                    Investor ID / Institutional Email
-                                </label>
-                                <input 
-                                    type="text" 
-                                    placeholder="investor@capital.com" 
-                                    required
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.75rem 1rem',
-                                        borderRadius: '10px',
-                                        border: '1px solid #cbd5e1',
-                                        fontSize: '0.9rem',
-                                        outline: 'none',
-                                        boxSizing: 'border-box'
-                                    }}
-                                />
+                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>Investor ID / Email</label>
+                                <input type="text" placeholder="investor@capital.com" required style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
                             </div>
                             <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>
-                                    Password / Key
-                                </label>
-                                <input 
-                                    type="password" 
-                                    placeholder="••••••••" 
-                                    required
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.75rem 1rem',
-                                        borderRadius: '10px',
-                                        border: '1px solid #cbd5e1',
-                                        fontSize: '0.9rem',
-                                        outline: 'none',
-                                        boxSizing: 'border-box'
-                                    }}
-                                />
+                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>Password / Key</label>
+                                <input type="password" placeholder="••••••••" required style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
                             </div>
-                            <button 
-                                type="submit"
-                                style={{
-                                    width: '100%',
-                                    padding: '0.85rem',
-                                    borderRadius: '12px',
-                                    background: '#0F172A',
-                                    color: 'white',
-                                    fontWeight: '750',
-                                    fontSize: '0.95rem',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.25)',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
+                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: '#0F172A', color: 'white', fontWeight: '750', fontSize: '0.95rem', border: 'none', cursor: 'pointer' }}>
                                 Login to Investor Portal
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ADMIN Login Modal */}
+            {showAdminAuthModal && (
+                <div 
+                    onClick={() => { setShowAdminAuthModal(false); if (navigate) navigate('/social/betaclub', { replace: true }); }}
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(10px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}
+                >
+                    <div onClick={(e) => e.stopPropagation()} style={{ background: '#FFFFFF', borderRadius: '24px', width: '100%', maxWidth: '480px', boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.45)', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.75rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', background: 'linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%)', color: 'white' }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                                    <ShieldCheck size={22} color="#DDD6FE" />
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', margin: 0 }}>Capital Matrix — Admin Portal</h3>
+                                </div>
+                                <p style={{ fontSize: '0.85rem', color: '#E9D5FF', margin: 0 }}>Platform administration & marketplace oversight</p>
+                            </div>
+                            <button onClick={() => { setShowAdminAuthModal(false); if (navigate) navigate('/social/betaclub', { replace: true }); }} style={{ border: 'none', background: 'rgba(255,255,255,0.18)', borderRadius: '50%', padding: '0.35rem', cursor: 'pointer', color: 'white' }}><X size={18} /></button>
+                        </div>
+                        <form 
+                            onSubmit={(e) => { 
+                                e.preventDefault(); 
+                                alert("Admin credentials verified."); 
+                                setShowAdminAuthModal(false); 
+                                setActiveTab('admin');
+                            }} 
+                            style={{ padding: '2rem' }}
+                        >
+                            <div style={{ marginBottom: '1.25rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>Admin Email (@bnxmail.com)</label>
+                                <input type="email" placeholder="admin@bnxmail.com" required style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
+                            </div>
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>Password</label>
+                                <input type="password" placeholder="••••••••" required style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
+                            </div>
+                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', fontWeight: '750', fontSize: '0.95rem', border: 'none', cursor: 'pointer' }}>
+                                Verify & Enter Admin Console
                             </button>
                         </form>
                     </div>
