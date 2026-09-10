@@ -1446,12 +1446,12 @@ const BusinessCRM = () => {
             {/* Create/Edit Customer Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1rem' }}>
-                    <div className="max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-100" style={{ background: '#FFFFFF', width: '100%', maxWidth: '896px', maxHeight: '90vh', borderRadius: '1rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div className="max-w-4xl w-full max-h-[88vh] flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-100" style={{ background: '#FFFFFF', width: '100%', maxWidth: '896px', maxHeight: '88vh', borderRadius: '1rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
                         {/* ── Fixed Header ── */}
                         <div className="flex-shrink-0 px-6 py-4 border-b border-slate-100 bg-white flex justify-between items-center z-10" style={{ flexShrink: 0, padding: '1rem 1.5rem', borderBottom: '1px solid #F1F5F9', background: '#FFFFFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED', flexShrink: 0 }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#EDE9FE', border: '1px solid #DDD6FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED', flexShrink: 0 }}>
                                     <User size={20} />
                                 </div>
                                 <div>
@@ -1469,20 +1469,20 @@ const BusinessCRM = () => {
                             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 ledger-modal-scrollbar bg-slate-50/50" style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: '#F8FAFC' }}>
 
                                 {/* ── Section 1: Basic Information ── */}
-                                <div style={{ background: 'white', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.9rem 1.25rem', background: '#F5F3FF', borderBottom: '1px solid #EDE9FE' }}>
+                                <div className="w-full flex-shrink-0 p-4 bg-purple-50/20 border border-purple-100/60 rounded-xl overflow-hidden shadow-sm" style={{ width: '100%', flexShrink: 0, background: 'rgba(250, 245, 255, 0.35)', borderRadius: '14px', border: '1px solid rgba(233, 213, 255, 0.8)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1.25rem', background: '#F5F3FF', borderBottom: '1px solid #EDE9FE', margin: '-1rem -1rem 1rem -1rem' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                                             <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED' }}>
                                                 <Store size={16} />
                                             </div>
                                             <div>
-                                                <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E1B4B' }}>Basic Information</div>
-                                                <div style={{ fontSize: '0.72rem', color: '#6D6C8A' }}>Enter customer and contact details.</div>
+                                                <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#4C1D95' }}>Basic Information</div>
+                                                <div style={{ fontSize: '0.72rem', color: '#6D28D9' }}>Enter customer and contact details.</div>
                                             </div>
                                         </div>
-                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', fontWeight: '700' }}>● Required fields</span>
+                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', fontWeight: '700' }}>* Required fields</span>
                                     </div>
-                                    <div className="p-5 space-y-4" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div className="space-y-4" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         {/* Row 1: Customer Name, Shop/Business Name, Customer Type/Group */}
                                         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1.3fr 1fr', gap: '0.85rem' }}>
                                             <div>
@@ -1524,7 +1524,8 @@ const BusinessCRM = () => {
                                                             setFormData({ ...formData, phone_country_code: c.dialCode, phone_number: sliced });
                                                         }}
                                                     />
-                                                    <input required type="text" value={formData.phone_number || ''} maxLength={getCountryPhoneRule(formData.phone_country_code || '+91').max} onChange={(e) => { const rule = getCountryPhoneRule(formData.phone_country_code || '+91'); const val = e.target.value.replace(/\D/g, '').slice(0, rule.max); setFormData({...formData, phone_number: val}); }} style={{ flex: 1, height: '100%', padding: '0 0.65rem', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. 9876543210" />
+                                                    <span style={{ width: '28px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Phone size={14} /></span>
+                                                    <input required type="text" value={formData.phone_number || ''} maxLength={getCountryPhoneRule(formData.phone_country_code || '+91').max} onChange={(e) => { const rule = getCountryPhoneRule(formData.phone_country_code || '+91'); const val = e.target.value.replace(/\D/g, '').slice(0, rule.max); setFormData({...formData, phone_number: val}); }} style={{ flex: 1, height: '100%', padding: '0 0.65rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. 9876543210" />
                                                 </div>
                                                 {(() => { const rule = getCountryPhoneRule(formData.phone_country_code || '+91'); const len = (formData.phone_number || '').length; if (len > 0 && (len < rule.min || len > rule.max)) { return <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Phone Number: {rule.label}</span>; } return null; })()}
                                             </div>
@@ -1539,7 +1540,8 @@ const BusinessCRM = () => {
                                                             setFormData({ ...formData, alt_phone_country_code: c.dialCode, alternate_phone: sliced });
                                                         }}
                                                     />
-                                                    <input type="text" value={formData.alternate_phone || ''} maxLength={getCountryPhoneRule(formData.alt_phone_country_code || '+91').max} onChange={(e) => { const rule = getCountryPhoneRule(formData.alt_phone_country_code || '+91'); const val = e.target.value.replace(/\D/g, '').slice(0, rule.max); setFormData({...formData, alternate_phone: val}); }} style={{ flex: 1, height: '100%', padding: '0 0.65rem', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. 9123456780" />
+                                                    <span style={{ width: '28px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Phone size={14} /></span>
+                                                    <input type="text" value={formData.alternate_phone || ''} maxLength={getCountryPhoneRule(formData.alt_phone_country_code || '+91').max} onChange={(e) => { const rule = getCountryPhoneRule(formData.alt_phone_country_code || '+91'); const val = e.target.value.replace(/\D/g, '').slice(0, rule.max); setFormData({...formData, alternate_phone: val}); }} style={{ flex: 1, height: '100%', padding: '0 0.65rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. 9123456780" />
                                                 </div>
                                                 {(() => { const rule = getCountryPhoneRule(formData.alt_phone_country_code || '+91'); const len = (formData.alternate_phone || '').length; if (len > 0 && (len < rule.min || len > rule.max)) { return <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Alternate Phone: {rule.label}</span>; } return null; })()}
                                             </div>
@@ -1554,7 +1556,7 @@ const BusinessCRM = () => {
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Website</label>
                                                 <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Link size={14} /></span>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Globe size={14} /></span>
                                                     <input type="text" value={formData.website} onChange={(e) => setFormData({...formData, website: e.target.value})} style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. www.business.com" />
                                                 </div>
                                             </div>
@@ -1563,17 +1565,17 @@ const BusinessCRM = () => {
                                 </div>
 
                                 {/* ── Section 2: Tax & Address Details ── */}
-                                <div style={{ background: 'white', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.9rem 1.25rem', background: '#F5F3FF', borderBottom: '1px solid #EDE9FE' }}>
+                                <div className="w-full flex-shrink-0 p-4 bg-purple-50/20 border border-purple-100/60 rounded-xl overflow-hidden shadow-sm" style={{ width: '100%', flexShrink: 0, background: 'rgba(250, 245, 255, 0.35)', borderRadius: '14px', border: '1px solid rgba(233, 213, 255, 0.8)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem 1.25rem', background: '#F5F3FF', borderBottom: '1px solid #EDE9FE', margin: '-1rem -1rem 1rem -1rem' }}>
                                         <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED' }}>
                                             <FileText size={16} />
                                         </div>
                                         <div>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E1B4B' }}>Tax & Address Details</div>
-                                            <div style={{ fontSize: '0.72rem', color: '#6D6C8A' }}>Add tax information and place of supply.</div>
+                                            <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#4C1D95' }}>Tax & Address Details</div>
+                                            <div style={{ fontSize: '0.72rem', color: '#6D28D9' }}>Add tax information and place of supply.</div>
                                         </div>
                                     </div>
-                                    <div className="p-5 space-y-4" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div className="space-y-4" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         {/* Row 1: GSTIN, PAN, Tax Type, Place of Supply */}
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.85rem' }}>
                                             <div>
@@ -1611,7 +1613,7 @@ const BusinessCRM = () => {
                                         </div>
 
                                         {/* Row 2: Shipping Address textarea/input (with map-pin icon and "0/300" character counter) */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: editingCustomer ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: editingCustomer ? '1fr 1fr' : '1fr', gap: '0.85rem' }}>
                                             {editingCustomer && (
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Billing Address</label>
@@ -1636,17 +1638,17 @@ const BusinessCRM = () => {
                                 </div>
 
                                 {/* ── Section 3: Financial & Preference Details ── */}
-                                <div style={{ background: 'white', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.9rem 1.25rem', background: '#F5F3FF', borderBottom: '1px solid #EDE9FE' }}>
+                                <div className="w-full flex-shrink-0 p-4 bg-purple-50/20 border border-purple-100/60 rounded-xl overflow-hidden shadow-sm" style={{ width: '100%', flexShrink: 0, background: 'rgba(250, 245, 255, 0.35)', borderRadius: '14px', border: '1px solid rgba(233, 213, 255, 0.8)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem 1.25rem', background: '#F5F3FF', borderBottom: '1px solid #EDE9FE', margin: '-1rem -1rem 1rem -1rem' }}>
                                         <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED' }}>
                                             <CreditCard size={16} />
                                         </div>
                                         <div>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E1B4B' }}>Financial & Preference Details</div>
-                                            <div style={{ fontSize: '0.72rem', color: '#6D6C8A' }}>Set credit, payment terms and communication preferences.</div>
+                                            <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#4C1D95' }}>Financial & Preference Details</div>
+                                            <div style={{ fontSize: '0.72rem', color: '#6D28D9' }}>Set credit, payment terms and communication preferences.</div>
                                         </div>
                                     </div>
-                                    <div className="p-5 space-y-4" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div className="space-y-4" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         {/* Row 1: Opening Balance, Credit Limit, Due Days, Preferred Reminder */}
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.85rem' }}>
                                             <div>
@@ -1709,11 +1711,11 @@ const BusinessCRM = () => {
                             </div>
 
                             {/* ── Fixed Footer Actions ── */}
-                            <div className="flex-shrink-0 px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 backdrop-blur-sm flex justify-between items-center z-10" style={{ flexShrink: 0, padding: '0.875rem 1.5rem', borderTop: '1px solid #F1F5F9', background: 'rgba(248, 250, 252, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
+                            <div className="flex-shrink-0 px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex justify-between items-center z-10" style={{ flexShrink: 0, padding: '0.875rem 1.5rem', borderTop: '1px solid #F1F5F9', background: 'rgba(248, 250, 252, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
                                 <button type="button" onClick={closeModal} className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-5 py-2.5 rounded-lg transition-colors" style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#FFFFFF', color: '#475569', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}>
                                     Cancel
                                 </button>
-                                <button type="submit" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.5rem', borderRadius: '10px', background: '#7C3AED', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(124,58,237,0.25)' }}>
+                                <button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition-all" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.5rem', borderRadius: '10px', background: '#7C3AED', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(124,58,237,0.25)' }}>
                                     <Check size={16} />
                                     {editingCustomer ? 'Update Customer' : 'Register Customer'}
                                 </button>
