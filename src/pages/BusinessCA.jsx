@@ -2380,76 +2380,7 @@ export default function BusinessCA({ mode }) {
                 </>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
-                    {/* Unified FIN-PRO Advisory Workspace (Firm) Header */}
-                    <div style={{
-                        display: 'flex',
-                        justify: 'space-between',
-                        alignItems: 'center',
-                        background: '#FFFFFF',
-                        padding: '24px',
-                        borderRadius: '16px',
-                        border: '1px solid #E2E8F0',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-                        flexWrap: 'wrap',
-                        gap: '16px'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <div style={{
-                                width: '56px',
-                                height: '56px',
-                                borderRadius: '14px',
-                                background: '#F0FDF4',
-                                border: '1px solid #BBF7D0',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#15803d',
-                                flexShrink: 0
-                            }}>
-                                <User size={28} />
-                            </div>
-                            <div>
-                                <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', margin: 0 }}>
-                                    FIN-PRO Advisory Workspace
-                                    <span style={{
-                                        fontSize: '11px',
-                                        fontWeight: '900',
-                                        color: '#15803d',
-                                        background: '#DCFCE7',
-                                        border: '1px solid #BBF7D0',
-                                        padding: '3px 10px',
-                                        borderRadius: '20px',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.5px'
-                                    }}>
-                                        FIRM PRACTICE LAYER
-                                    </span>
-                                </h1>
-                                <p style={{ fontSize: '13px', color: '#64748B', fontWeight: '500', marginTop: '4px', margin: 0 }}>
-                                    Manage client accounts, advisory requests, compliance tasks, timetracking, workpapers, and firm reports.
-                                </p>
-                            </div>
-                        </div>
 
-                        {/* Right Side: Active Practice Metrics Pill */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                padding: '8px 14px',
-                                borderRadius: '20px',
-                                background: '#F0F5FF',
-                                border: '1px solid #C3DAFE',
-                                color: '#004aad',
-                                fontSize: '12.5px',
-                                fontWeight: '600'
-                            }}>
-                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#004aad', boxShadow: '0 0 0 3px rgba(0, 74, 173, 0.2)' }} />
-                                <span>Active Practice Clients: <strong style={{ color: '#003380', fontWeight: '700' }}>{allPracticeClients.length}</strong></span>
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Auditor Category Workflow Switch Bar */}
                     <div style={{
@@ -2502,6 +2433,88 @@ export default function BusinessCA({ mode }) {
                                         display: 'inline-block'
                                     }} />
                                     <span>{category}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* 7-Tab Sub-Navigation Bar — Row 2 */}
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '12px',
+                        border: '1px solid #E2E8F0',
+                        padding: '6px 12px',
+                        display: 'flex',
+                        gap: '4px',
+                        alignItems: 'center',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                        overflowX: 'auto',
+                        whiteSpace: 'nowrap',
+                        WebkitOverflowScrolling: 'touch',
+                        scrollbarWidth: 'none'
+                    }}>
+                        {sidebarTabs.map((tab) => {
+                            const TabIcon = tab.icon;
+                            const isActive = personalTab === tab.id ||
+                                (tab.id === 'clients' && personalTab === 'requests') ||
+                                (tab.id === 'teams' && personalTab === 'team_requests');
+                            const isAuditorTab = tab.id === 'auditor_desk';
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setPersonalTab(tab.id)}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        flexShrink: 0,
+                                        gap: '7px',
+                                        padding: isAuditorTab ? '8px 14px' : '8px 14px',
+                                        borderRadius: isAuditorTab ? '8px' : '8px',
+                                        border: isAuditorTab
+                                            ? (isActive ? '1.5px solid #15803d' : '1px solid #BBF7D0')
+                                            : 'none',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.18s',
+                                        background: isAuditorTab
+                                            ? (isActive ? '#15803d' : '#F0FDF4')
+                                            : (isActive ? '#F0FDF4' : 'transparent'),
+                                        color: isAuditorTab
+                                            ? (isActive ? '#FFFFFF' : '#15803d')
+                                            : (isActive ? '#15803d' : '#475569'),
+                                        fontWeight: isActive ? '700' : '600',
+                                        fontSize: '13px'
+                                    }}
+                                    onMouseEnter={e => {
+                                        if (!isActive && !isAuditorTab) {
+                                            e.currentTarget.style.background = '#F8FAFC';
+                                            e.currentTarget.style.color = '#0F172A';
+                                        }
+                                    }}
+                                    onMouseLeave={e => {
+                                        if (!isActive && !isAuditorTab) {
+                                            e.currentTarget.style.background = 'transparent';
+                                            e.currentTarget.style.color = '#475569';
+                                        }
+                                    }}
+                                >
+                                    <TabIcon size={15} style={{ color: isAuditorTab ? (isActive ? '#FFFFFF' : '#15803d') : (isActive ? '#15803d' : '#64748B') }} />
+                                    <span>{tab.label}</span>
+                                    {/* Dynamic Badges */}
+                                    {tab.id === 'clients' && practiceRequests.filter(r => r.status === 'Awaiting Client').length > 0 && (
+                                        <span style={{ fontSize: '10px', fontWeight: '900', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
+                                            {practiceRequests.filter(r => r.status === 'Awaiting Client').length}
+                                        </span>
+                                    )}
+                                    {tab.id === 'tasks' && practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length > 0 && (
+                                        <span style={{ fontSize: '10px', fontWeight: '900', background: '#FFFBEB', color: '#D97706', border: '1px solid #FEF3C7', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
+                                            {practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length}
+                                        </span>
+                                    )}
+                                    {tab.id === 'teams' && teamRequests.filter(r => r.status === 'Pending').length > 0 && (
+                                        <span style={{ fontSize: '10px', fontWeight: '900', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
+                                            {teamRequests.filter(r => r.status === 'Pending').length}
+                                        </span>
+                                    )}
                                 </button>
                             );
                         })}
@@ -3147,92 +3160,6 @@ export default function BusinessCA({ mode }) {
                             })()}
                         </div>
                     )}
-
-                    {/* Persistent 7-Tab Sub-Navigation Bar */}
-                    <div style={{
-                        background: '#FFFFFF',
-                        borderRadius: '16px',
-                        border: '1px solid #E2E8F0',
-                        padding: '10px 16px',
-                        display: 'flex',
-                        gap: '6px',
-                        alignItems: 'center',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)',
-                        position: 'sticky',
-                        top: '24px',
-                        zIndex: 10,
-                        overflowX: 'auto',
-                        whiteSpace: 'nowrap',
-                        WebkitOverflowScrolling: 'touch',
-                        scrollbarWidth: 'none' // For Firefox
-                    }}>
-                        {/* Inline custom styles to hide scrollbar in Webkit browsers */}
-                        <style dangerouslySetInnerHTML={{
-                            __html: `
-                            div::-webkit-scrollbar {
-                                display: none;
-                            }
-                        `}} />
-
-                        {sidebarTabs.map((tab) => {
-                            const TabIcon = tab.icon;
-                            const isActive = personalTab === tab.id ||
-                                (tab.id === 'clients' && personalTab === 'requests') ||
-                                (tab.id === 'teams' && personalTab === 'team_requests');
-                            return (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setPersonalTab(tab.id)}
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        flexShrink: 0,
-                                        gap: '8px',
-                                        padding: '10px 16px',
-                                        borderRadius: '10px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        background: isActive ? '#F0FDF4' : 'transparent',
-                                        color: isActive ? '#15803d' : '#475569',
-                                        fontWeight: isActive ? '800' : '600',
-                                        fontSize: '13px'
-                                    }}
-                                    onMouseEnter={e => {
-                                        if (!isActive) {
-                                            e.currentTarget.style.background = '#F8FAFC';
-                                            e.currentTarget.style.color = '#0F172A';
-                                        }
-                                    }}
-                                    onMouseLeave={e => {
-                                        if (!isActive) {
-                                            e.currentTarget.style.background = 'transparent';
-                                            e.currentTarget.style.color = '#475569';
-                                        }
-                                    }}
-                                >
-                                    <TabIcon size={16} style={{ color: isActive ? '#15803d' : '#64748B' }} />
-                                    <span>{tab.label}</span>
-                                    {/* Dynamic Badges */}
-                                    {tab.id === 'clients' && practiceRequests.filter(r => r.status === 'Awaiting Client').length > 0 && (
-                                        <span style={{ fontSize: '10px', fontWeight: '900', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
-                                            {practiceRequests.filter(r => r.status === 'Awaiting Client').length}
-                                        </span>
-                                    )}
-                                    {tab.id === 'tasks' && practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length > 0 && (
-                                        <span style={{ fontSize: '10px', fontWeight: '900', background: '#FFFBEB', color: '#D97706', border: '1px solid #FEF3C7', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
-                                            {practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length}
-                                        </span>
-                                    )}
-                                    {tab.id === 'teams' && teamRequests.filter(r => r.status === 'Pending').length > 0 && (
-                                        <span style={{ fontSize: '10px', fontWeight: '900', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
-                                            {teamRequests.filter(r => r.status === 'Pending').length}
-                                        </span>
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
 
                     {/* Main Content Workspace Container */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0, width: '100%' }}>
