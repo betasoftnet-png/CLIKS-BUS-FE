@@ -42,13 +42,46 @@ import {
     Paperclip,
     Upload,
     Check,
-    Bell
+    Bell,
+    Building2,
+    Warehouse,
+    Landmark,
+    IdCard,
+    Store,
+    Receipt,
+    Link
 } from 'lucide-react';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { validatePhone, validateEmail, validateGstin, validatePan } from '../utils/validationRules';
 import { useCurrency } from '../context';
+
+const INDIAN_STATES = [
+    'Maharashtra',
+    'Delhi',
+    'Karnataka',
+    'Tamil Nadu',
+    'Gujarat',
+    'Uttar Pradesh',
+    'West Bengal',
+    'Telangana',
+    'Rajasthan',
+    'Kerala',
+    'Andhra Pradesh',
+    'Punjab',
+    'Haryana',
+    'Madhya Pradesh',
+    'Bihar',
+    'Odisha',
+    'Assam',
+    'Jharkhand',
+    'Chhattisgarh',
+    'Uttarakhand',
+    'Goa',
+    'Himachal Pradesh',
+    'Jammu & Kashmir'
+];
 
 const BusinessSuppliers = () => {
     const { currency, formatCurrency } = useCurrency();
@@ -662,6 +695,7 @@ const BusinessSuppliers = () => {
 
 
     const [formErrors, setFormErrors] = useState({});
+    const [touchedFields, setTouchedFields] = useState({});
 
     const handleDelete = async (id) => {
         if (await customConfirm('Are you sure you want to completely remove this vendor/supplier profile? All ledger records will be deleted.')) {
@@ -672,11 +706,18 @@ const BusinessSuppliers = () => {
     const handleSubmitSupplier = (e) => {
         e.preventDefault();
         const errors = {};
+
+        if (!formData.supplier_name?.trim()) {
+            errors.supplier_name = 'Business name is required';
+        }
+
         const phoneErr = validatePhone(formData.phone_number, true);
         if (phoneErr) errors.phone_number = phoneErr;
 
         const cleanEmail = (formData.email || '').trim().toLowerCase();
-        if (!cleanEmail || !cleanEmail.endsWith('@bnxmail.com') || !/^[^\s@]+@bnxmail\.com$/.test(cleanEmail)) {
+        if (!cleanEmail) {
+            errors.email = 'Email address is required';
+        } else if (!cleanEmail.endsWith('@bnxmail.com') || !/^[^\s@]+@bnxmail\.com$/.test(cleanEmail)) {
             errors.email = 'Use a bnxmail.com email address to continue.';
         }
 
@@ -688,11 +729,13 @@ const BusinessSuppliers = () => {
 
         if (Object.keys(errors).length > 0) {
             setFormErrors(errors);
+            setTouchedFields({ supplier_name: true, email: true, phone_number: true });
             const firstMsg = Object.values(errors)[0];
             alert(firstMsg);
             return;
         }
         setFormErrors({});
+        setTouchedFields({});
 
         const payload = {
             name: formData.supplier_name,
@@ -1376,154 +1419,547 @@ const BusinessSuppliers = () => {
             </div>
             {/* Register/Edit Supplier Modal */}
             {isModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '800px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                            <div>
-                                <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B' }}>{editingSupplier ? 'Edit Supplier Profile' : 'Register Vendor Master Profile'}</h2>
-                                <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Code: {formData.supplier_code}</p>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
+                    <div style={{ background: '#F8FAFC', width: '100%', maxWidth: '880px', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                        
+                        {/* ── Header Section ── */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.75rem', background: 'white', borderBottom: '1px solid #E2E8F0', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#ECFDF5', border: '1px solid #D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0 }}>
+                                    <Building2 size={22} />
+                                </div>
+                                <div>
+                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0F172A', margin: 0, lineHeight: 1.3, letterSpacing: '-0.02em' }}>
+                                        {editingSupplier ? 'Edit Supplier Profile' : 'Register Vendor Master Profile'}
+                                    </h2>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: '2px 0 0 0' }}>
+                                        Provide your business and contact details to get started.
+                                    </p>
+                                </div>
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569', background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: '6px', padding: '0.35rem 0.75rem' }}>
+                                    Code: {formData.supplier_code}
+                                </span>
+                                <button 
+                                    type="button"
+                                    onClick={() => { setIsModalOpen(false); setFormErrors({}); setTouchedFields({}); }} 
+                                    style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
                         </div>
 
-                        <form onSubmit={handleSubmitSupplier} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            
-                            {/* General */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1.25rem', background: '#F8FAFC', padding: '1.5rem', borderRadius: '20px' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Supplier / Business Name <span style={{ color: '#EF4444' }}>*</span></label>
-                                    <input required type="text" value={formData.supplier_name} onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : TechCorp India Pvt Ltd" />
+                        {/* ── Form Body with 4 Sectioned Cards ── */}
+                        <form onSubmit={handleSubmitSupplier} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', margin: 0 }}>
+                            <div className="ledger-modal-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+                                {/* ── Section 1: Basic Information ── */}
+                                <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1.25rem', background: '#F0FDF4', borderBottom: '1px solid #DCFCE7' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
+                                                <User size={16} />
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#14532D' }}>Basic Information</div>
+                                                <div style={{ fontSize: '0.72rem', color: '#15803D' }}>Enter your business name and contact details.</div>
+                                            </div>
+                                        </div>
+                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', fontWeight: '700' }}>* Required fields</span>
+                                    </div>
+
+                                    <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                                        {/* Row 1: Supplier Name, Contact Person, Supplier Type */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '0.85rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Supplier / Business Name <span style={{ color: '#EF4444' }}>*</span>
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: ((touchedFields.supplier_name && !formData.supplier_name?.trim()) || formErrors.supplier_name) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Building2 size={15} /></span>
+                                                    <input 
+                                                        required 
+                                                        type="text" 
+                                                        value={formData.supplier_name} 
+                                                        onChange={(e) => { 
+                                                            setFormData({ ...formData, supplier_name: e.target.value }); 
+                                                            if (formErrors.supplier_name) setFormErrors({ ...formErrors, supplier_name: null }); 
+                                                        }} 
+                                                        onBlur={() => setTouchedFields(prev => ({ ...prev, supplier_name: true }))}
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        placeholder="e.g. TechCorp India Pvt Ltd" 
+                                                    />
+                                                </div>
+                                                {((touchedFields.supplier_name && !formData.supplier_name?.trim()) || formErrors.supplier_name) && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>
+                                                        Business name is required
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Contact Person
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><User size={15} /></span>
+                                                    <input 
+                                                        type="text" 
+                                                        value={formData.contact_person} 
+                                                        onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        placeholder="e.g. Harish Menon" 
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Supplier Type
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Store size={15} /></span>
+                                                    <select 
+                                                        value={formData.supplier_type} 
+                                                        onChange={(e) => setFormData({ ...formData, supplier_type: e.target.value })} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent', cursor: 'pointer' }}
+                                                    >
+                                                        <option value="local">Local Supplier</option>
+                                                        <option value="import">Import Supplier</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Row 2: Mobile Number, Alternate Phone, Email, Website */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.85rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Mobile Number <span style={{ color: '#EF4444' }}>*</span>
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: (formErrors.phone_number || (formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < 10)) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Phone size={14} /></span>
+                                                    <input 
+                                                        required 
+                                                        type="text" 
+                                                        maxLength={10} 
+                                                        value={formData.phone_number} 
+                                                        onChange={(e) => { 
+                                                            const val = e.target.value.replace(/\D/g, '').slice(0, 10); 
+                                                            setFormData({ ...formData, phone_number: val }); 
+                                                            if (formErrors.phone_number) setFormErrors({ ...formErrors, phone_number: null }); 
+                                                        }} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        placeholder="e.g. 9876543210" 
+                                                    />
+                                                </div>
+                                                {formErrors.phone_number && <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>{formErrors.phone_number}</span>}
+                                                {formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < 10 && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Mobile Number: 10 digits required</span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Alternate Phone
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: (formData.alternate_phone && formData.alternate_phone.length > 0 && formData.alternate_phone.length < 10) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Phone size={14} /></span>
+                                                    <input 
+                                                        type="text" 
+                                                        maxLength={10} 
+                                                        value={formData.alternate_phone} 
+                                                        onChange={(e) => { 
+                                                            const val = e.target.value.replace(/\D/g, '').slice(0, 10); 
+                                                            setFormData({ ...formData, alternate_phone: val }); 
+                                                        }} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        placeholder="e.g. 9123456780" 
+                                                    />
+                                                </div>
+                                                {formData.alternate_phone && formData.alternate_phone.length > 0 && formData.alternate_phone.length < 10 && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Alternate Phone: 10 digits required</span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Email Address <span style={{ color: '#EF4444' }}>*</span>
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: ((touchedFields.email && !formData.email?.trim()) || formErrors.email) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Mail size={14} /></span>
+                                                    <input 
+                                                        required 
+                                                        type="email" 
+                                                        value={formData.email} 
+                                                        onChange={(e) => { 
+                                                            setFormData({ ...formData, email: e.target.value.trim() }); 
+                                                            if (formErrors.email) setFormErrors({ ...formErrors, email: null }); 
+                                                        }} 
+                                                        onBlur={() => setTouchedFields(prev => ({ ...prev, email: true }))}
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        placeholder="e.g. supplier@company.com" 
+                                                    />
+                                                </div>
+                                                {((touchedFields.email && !formData.email?.trim()) || formErrors.email) && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>
+                                                        {formErrors.email || 'Email address is required'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Website Link
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Link size={14} /></span>
+                                                    <input 
+                                                        type="text" 
+                                                        value={formData.website} 
+                                                        onChange={(e) => setFormData({ ...formData, website: e.target.value })} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        placeholder="e.g. www.company.com" 
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Contact Person</label>
-                                    <input required type="text" value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Harish Mehta" />
+
+                                {/* ── Section 2: Tax & Registration Details ── */}
+                                <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem 1.25rem', background: '#F0FDF4', borderBottom: '1px solid #DCFCE7' }}>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
+                                            <Receipt size={16} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#14532D' }}>Tax & Registration Details</div>
+                                            <div style={{ fontSize: '0.72rem', color: '#15803D' }}>Add your tax and registration information.</div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.85rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    GSTIN ID
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: (formErrors.gstin || (formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15)) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><CreditCard size={14} /></span>
+                                                    <input 
+                                                        type="text" 
+                                                        maxLength={15} 
+                                                        value={formData.gstin} 
+                                                        onChange={(e) => { 
+                                                            const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15); 
+                                                            setFormData({ ...formData, gstin: val }); 
+                                                            if (formErrors.gstin) setFormErrors({ ...formErrors, gstin: null }); 
+                                                        }} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        placeholder="e.g. 27AAAAA0000A1Z5" 
+                                                    />
+                                                </div>
+                                                {formErrors.gstin && <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>{formErrors.gstin}</span>}
+                                                {formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15 && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>GSTIN: 15 characters required</span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    PAN Number
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: (formErrors.pan_number || (formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10)) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><IdCard size={14} /></span>
+                                                    <input 
+                                                        type="text" 
+                                                        maxLength={10} 
+                                                        value={formData.pan_number} 
+                                                        onChange={(e) => { 
+                                                            const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 10); 
+                                                            setFormData({ ...formData, pan_number: val }); 
+                                                            if (formErrors.pan_number) setFormErrors({ ...formErrors, pan_number: null }); 
+                                                        }} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        placeholder="e.g. ABCDE1234F" 
+                                                    />
+                                                </div>
+                                                {formErrors.pan_number && <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>{formErrors.pan_number}</span>}
+                                                {formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10 && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>PAN: 10 characters required</span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Tax Registration
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><ShieldCheck size={14} /></span>
+                                                    <select 
+                                                        value={formData.tax_type} 
+                                                        onChange={(e) => setFormData({ ...formData, tax_type: e.target.value })} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent', cursor: 'pointer' }}
+                                                    >
+                                                        <option value="registered">Registered Business</option>
+                                                        <option value="unregistered">Unregistered Vendor</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    State of Supply
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><MapPin size={14} /></span>
+                                                    <select 
+                                                        value={formData.place_of_supply} 
+                                                        onChange={(e) => setFormData({ ...formData, place_of_supply: e.target.value })} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent', cursor: 'pointer' }}
+                                                    >
+                                                        {INDIAN_STATES.map((st) => (
+                                                            <option key={st} value={st}>{st}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Supplier Type</label>
-                                    <select value={formData.supplier_type} onChange={(e) => setFormData({ ...formData, supplier_type: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        <option value="local">Local Supplier</option>
-                                        <option value="import">Import Supplier</option>
-                                    </select>
+
+                                {/* ── Section 3: Address Details ── */}
+                                <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem 1.25rem', background: '#F0FDF4', borderBottom: '1px solid #DCFCE7' }}>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
+                                            <MapPin size={16} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#14532D' }}>Address Details</div>
+                                            <div style={{ fontSize: '0.72rem', color: '#15803D' }}>Provide your business and warehouse addresses.</div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1.4fr 1fr 0.85fr', gap: '0.85rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Billing Headquarters Address
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Building2 size={14} /></span>
+                                                    <input 
+                                                        type="text" 
+                                                        value={formData.billing_address} 
+                                                        onChange={(e) => setFormData({ ...formData, billing_address: e.target.value })} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        placeholder="e.g. No: 3663, TNHB Colony" 
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Shipping Warehouse Address
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Warehouse size={14} /></span>
+                                                    <input 
+                                                        type="text" 
+                                                        value={formData.shipping_address} 
+                                                        onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        placeholder="e.g. TNHB Industrial Area" 
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    City
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Building2 size={14} /></span>
+                                                    <input 
+                                                        type="text" 
+                                                        value={formData.city} 
+                                                        onChange={(e) => setFormData({ ...formData, city: e.target.value })} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        placeholder="e.g. Chennai" 
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Postal Code (Pincode)
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: (formData.pincode && formData.pincode.length > 0 && formData.pincode.length < 6) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Mail size={14} /></span>
+                                                    <input 
+                                                        type="text" 
+                                                        maxLength={6} 
+                                                        value={formData.pincode} 
+                                                        onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        placeholder="e.g. 602001" 
+                                                    />
+                                                </div>
+                                                {formData.pincode && formData.pincode.length > 0 && formData.pincode.length < 6 && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Pincode: 6 digits required</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+
+                                {/* ── Section 4: Banking & Payment Terms ── */}
+                                <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem 1.25rem', background: '#F0FDF4', borderBottom: '1px solid #DCFCE7' }}>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
+                                            <CreditCard size={16} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#14532D' }}>Banking & Payment Terms</div>
+                                            <div style={{ fontSize: '0.72rem', color: '#15803D' }}>Add your bank details and payment preferences.</div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                                        {/* Row 1: Bank Account, IFSC, UPI */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.85rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Bank Account Number
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><CreditCard size={14} /></span>
+                                                    <input 
+                                                        type="text" 
+                                                        value={formData.bank_account_number || ''} 
+                                                        onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value.replace(/\D/g, '') })} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        placeholder="e.g. 912345678901" 
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    IFSC Code
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: (formData.ifsc_code && formData.ifsc_code.length > 0 && formData.ifsc_code.length < 11) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Landmark size={14} /></span>
+                                                    <input 
+                                                        type="text" 
+                                                        maxLength={11} 
+                                                        value={formData.ifsc_code || ''} 
+                                                        onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        placeholder="e.g. SBIN0001234" 
+                                                    />
+                                                </div>
+                                                {formData.ifsc_code && formData.ifsc_code.length > 0 && formData.ifsc_code.length < 11 && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>IFSC: 11 characters required</span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    UPI ID
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Smartphone size={14} /></span>
+                                                    <input 
+                                                        type="text" 
+                                                        value={formData.upi_id || ''} 
+                                                        onChange={(e) => setFormData({ ...formData, upi_id: e.target.value.trim() })} 
+                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        placeholder="e.g. vendor@upi" 
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Sub-card: Credit & Payment Details with clock/timer icon */}
+                                        <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.35rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#065F46', fontSize: '0.8rem', fontWeight: '700' }}>
+                                                <Clock size={15} /> Credit & Payment Details
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.85rem' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#166534', marginBottom: '0.4rem' }}>
+                                                        Opening Payable Balance ({currency.symbol})
+                                                    </label>
+                                                    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #DCF2E4', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                        <span style={{ padding: '0 0.6rem', color: '#16A34A', fontWeight: '700', fontSize: '0.85rem' }}>₹</span>
+                                                        <input 
+                                                            type="text" 
+                                                            disabled={!!editingSupplier} 
+                                                            value={formData.opening_balance === 0 ? '' : formData.opening_balance} 
+                                                            placeholder="0" 
+                                                            onChange={(e) => {
+                                                                let val = e.target.value.replace(/\D/g, '');
+                                                                if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
+                                                                setFormData({ ...formData, opening_balance: val === '' ? 0 : parseFloat(val) });
+                                                            }} 
+                                                            style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        />
+                                                    </div>
+                                                    <span style={{ fontSize: '0.67rem', color: '#64748B', marginTop: '0.2rem', display: 'block' }}>
+                                                        Keep positive if you owe them, negative for advance payment
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#166534', marginBottom: '0.4rem' }}>
+                                                        Credit Limit Allowance ({currency.symbol})
+                                                    </label>
+                                                    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #DCF2E4', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                        <span style={{ padding: '0 0.6rem', color: '#16A34A', fontWeight: '700', fontSize: '0.85rem' }}>₹</span>
+                                                        <input 
+                                                            type="text" 
+                                                            value={formData.credit_limit === 0 ? '' : formData.credit_limit} 
+                                                            placeholder="200000" 
+                                                            onChange={(e) => {
+                                                                let val = e.target.value.replace(/\D/g, '');
+                                                                if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
+                                                                setFormData({ ...formData, credit_limit: val === '' ? 0 : parseFloat(val) });
+                                                            }} 
+                                                            style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#166534', marginBottom: '0.4rem' }}>
+                                                        Payment Terms (Days)
+                                                    </label>
+                                                    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #DCF2E4', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                        <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Calendar size={14} /></span>
+                                                        <input 
+                                                            type="text" 
+                                                            value={formData.payment_terms} 
+                                                            onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })} 
+                                                            style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                            placeholder="e.g. Net 30" 
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
 
-                            {/* Contact Demographics */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Mobile Number <span style={{ color: '#EF4444' }}>*</span></label>
-                                    <input required type="text" maxLength={10} value={formData.phone_number} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData({ ...formData, phone_number: val }); if (formErrors.phone_number) setFormErrors({ ...formErrors, phone_number: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formErrors.phone_number || (formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < 10)) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 9876543210" />
-                                    {formErrors.phone_number && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.phone_number}</span>}
-                                    {formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < 10 && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>Mobile Number: 10 digits required</span>}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Alternate Phone</label>
-                                    <input type="text" maxLength={10} value={formData.alternate_phone} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData({ ...formData, alternate_phone: val }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formData.alternate_phone && formData.alternate_phone.length > 0 && formData.alternate_phone.length < 10) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 9123456780" />
-                                    {formData.alternate_phone && formData.alternate_phone.length > 0 && formData.alternate_phone.length < 10 && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>Alternate Phone: 10 digits required</span>}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Email Address <span style={{ color: '#EF4444' }}>*</span></label>
-                                    <input required type="email" value={formData.email} onChange={(e) => { setFormData({ ...formData, email: e.target.value.trim() }); if (formErrors.email) setFormErrors({ ...formErrors, email: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: formErrors.email ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : supplier@bnxmail.com" />
-                                    {formErrors.email && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.email}</span>}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Website Link</label>
-                                    <input type="text" value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : www.brand.com" />
-                                </div>
+                            {/* ── Modal Footer Actions ── */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.75rem', background: 'white', borderTop: '1px solid #E2E8F0', flexShrink: 0 }}>
+                                <button 
+                                    type="button" 
+                                    onClick={() => { setIsModalOpen(false); setFormErrors({}); setTouchedFields({}); }} 
+                                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-5 py-2.5 rounded-lg transition-colors"
+                                    style={{ border: '1px solid #E2E8F0', cursor: 'pointer', fontSize: '0.85rem' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition-all"
+                                    style={{ border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
+                                >
+                                    <Check size={16} />
+                                    {editingSupplier ? 'Save Supplier Specifications' : 'Initialize Supplier Master Profile'}
+                                </button>
                             </div>
-
-                            {/* Taxes */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>GSTIN ID</label>
-                                    <input type="text" maxLength={15} value={formData.gstin} onChange={(e) => { const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15); setFormData({ ...formData, gstin: val }); if (formErrors.gstin) setFormErrors({ ...formErrors, gstin: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formErrors.gstin || (formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15)) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 27AAAAA0000A1Z5" />
-                                    {formErrors.gstin && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.gstin}</span>}
-                                    {formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15 && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>GSTIN: 15 characters required</span>}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>PAN Number</label>
-                                    <input type="text" maxLength={10} value={formData.pan_number} onChange={(e) => { const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 10); setFormData({ ...formData, pan_number: val }); if (formErrors.pan_number) setFormErrors({ ...formErrors, pan_number: null }); }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formErrors.pan_number || (formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10)) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : ABCDE1234F" />
-                                    {formErrors.pan_number && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>{formErrors.pan_number}</span>}
-                                    {formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10 && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>PAN: 10 characters required</span>}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Tax Registration</label>
-                                    <select value={formData.tax_type} onChange={(e) => setFormData({ ...formData, tax_type: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        <option value="registered">Registered Business</option>
-                                        <option value="unregistered">Unregistered Vendor</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>State of Supply</label>
-                                    <input type="text" value={formData.place_of_supply} onChange={(e) => setFormData({ ...formData, place_of_supply: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Tamil Nadu" />
-                                </div>
-                            </div>
-
-                            {/* Billing details */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Billing Headquarters Address</label>
-                                    <input type="text" value={formData.billing_address} onChange={(e) => setFormData({ ...formData, billing_address: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : No:3663 TNHB Kakkalur" />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Shipping Warehouse Address</label>
-                                    <input type="text" value={formData.shipping_address} onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : TNHB Industrial Estate" />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>City</label>
-                                    <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Chennai" />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Postal Code (Pincode)</label>
-                                    <input type="text" maxLength={6} value={formData.pincode} onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formData.pincode && formData.pincode.length > 0 && formData.pincode.length < 6) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 602001" />
-                                    {formData.pincode && formData.pincode.length > 0 && formData.pincode.length < 6 && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>Pincode: 6 digits required</span>}
-                                </div>
-                            </div>
-
-                            {/* Bank Details */}
-                            <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', border: '1px solid #E2E8F0' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Bank Account Number</label>
-                                    <input type="text" value={formData.bank_account_number || ''} onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value.replace(/\D/g, '') })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : 912345678901" />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase' }}>IFSC Code</label>
-                                    <input type="text" maxLength={11} value={formData.ifsc_code || ''} onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formData.ifsc_code && formData.ifsc_code.length > 0 && formData.ifsc_code.length < 11) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : SBIN0001234" />
-                                    {formData.ifsc_code && formData.ifsc_code.length > 0 && formData.ifsc_code.length < 11 && <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>IFSC: 11 characters required</span>}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase' }}>UPI ID</label>
-                                    <input type="text" value={formData.upi_id || ''} onChange={(e) => setFormData({ ...formData, upi_id: e.target.value.trim() })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : vendor@upi" />
-                                </div>
-                            </div>
-
-                            {/* Opening & Credit settings */}
-                            <div style={{ background: '#F0F9F4', padding: '1.5rem', borderRadius: '20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', border: '1px solid #DCF2E4' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Opening Payable Balance ({currency.symbol})</label>
-                                    <input type="text" disabled={!!editingSupplier} value={formData.opening_balance === 0 ? '' : formData.opening_balance} onChange={(e) => {
-                                        let val = e.target.value.replace(/\D/g, '');
-                                        if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
-                                        setFormData({ ...formData, opening_balance: val === '' ? 0 : parseFloat(val) });
-                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Example : 0" />
-                                    <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Keep positive if you owe them, negative for advance payment.</span>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Credit limit allowance ({currency.symbol})</label>
-                                    <input type="text" value={formData.credit_limit === 0 ? '' : formData.credit_limit} onChange={(e) => {
-                                        let val = e.target.value.replace(/\D/g, '');
-                                        if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
-                                        setFormData({ ...formData, credit_limit: val === '' ? 0 : parseFloat(val) });
-                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Example : 50000" />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Payment Terms (Days)</label>
-                                    <input type="text" value={formData.payment_terms} onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Example : Net 30" />
-                                </div>
-                            </div>
-
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.2)' }}>
-                                {editingSupplier ? 'Save Supplier Specifications' : 'Initialize Supplier Master Profile'}
-                            </button>
                         </form>
                     </div>
                 </div>
