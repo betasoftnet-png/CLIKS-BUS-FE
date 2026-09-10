@@ -810,45 +810,55 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
 
                     // Dynamic Active Subscription Categories Evaluator
                     const activeBoxes = [];
+
                     // [1] Business Plan
-                    activeBoxes.push({ type: 'business', label: 'Business Plan' });
+                    const hasBusinessPlan = Boolean(
+                        selectedPlan || 
+                        user?.tier || 
+                        user?.plan_type || 
+                        user?.business_plan || 
+                        user?.active_plans?.business
+                    );
+                    if (hasBusinessPlan || activeBoxes.length === 0) {
+                        activeBoxes.push({ type: 'business', label: 'Business Plan' });
+                    }
 
                     // [2] FIN-PRO Plan
-                    const isFinProActive = Boolean(
+                    const hasFinProPlan = Boolean(
                         user?.finpro_plan || 
                         user?.ca_plan || 
                         user?.active_plans?.finpro || 
                         localStorage.getItem('cliks_finpro_active') === 'true' ||
-                        ['Fin-Pro Solo', 'Fin-Pro Firm', 'FIN-PRO'].includes(selectedPlan) ||
-                        user?.email === 'santhoshhhhhhh@bnxmail.com'
+                        localStorage.getItem('cliks_finpro_plan') ||
+                        ['Fin-Pro Solo', 'Fin-Pro Firm', 'FIN-PRO'].includes(selectedPlan)
                     );
-                    if (isFinProActive) {
+                    if (hasFinProPlan) {
                         activeBoxes.push({ type: 'finpro', label: 'FIN-PRO Plan' });
                     }
 
                     // [3] Capital Matrix - Investor Club
-                    const isInvestorActive = Boolean(
+                    const hasInvestorPlan = Boolean(
                         user?.investor_plan || 
                         user?.betaclub_investor_plan || 
                         user?.active_plans?.investor || 
                         localStorage.getItem('cliks_investor_active') === 'true' ||
-                        ['Basic Investor', 'Pro Investor', 'Investor Club'].includes(selectedPlan) ||
-                        user?.email === 'santhoshhhhhhh@bnxmail.com'
+                        localStorage.getItem('cliks_investor_plan') ||
+                        ['Basic Investor', 'Pro Investor', 'Investor Club'].includes(selectedPlan)
                     );
-                    if (isInvestorActive) {
+                    if (hasInvestorPlan) {
                         activeBoxes.push({ type: 'investor', label: 'Capital Matrix - Investor Club' });
                     }
 
                     // [4] Capital Matrix - Products & Ideas / Poster / Founder
-                    const isPosterActive = Boolean(
+                    const hasPosterPlan = Boolean(
                         user?.poster_plan || 
                         user?.founder_plan || 
                         user?.active_plans?.poster || 
                         localStorage.getItem('cliks_poster_active') === 'true' ||
-                        ['Monthly Innovator', 'Yearly Founder', 'Poster Plan'].includes(selectedPlan) ||
-                        user?.email === 'santhoshhhhhhh@bnxmail.com'
+                        localStorage.getItem('cliks_poster_plan') ||
+                        ['Monthly Innovator', 'Yearly Founder', 'Poster Plan'].includes(selectedPlan)
                     );
-                    if (isPosterActive) {
+                    if (hasPosterPlan) {
                         activeBoxes.push({ type: 'poster', label: 'Capital Matrix - Products & Ideas / Poster / Founder' });
                     }
 
