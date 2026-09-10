@@ -85,29 +85,35 @@ export default function BusinessPitches({ openAuthModal = null }) {
     useEffect(() => {
         if (openAuthModal === 'admin') {
             setShowAdminAuthModal(true);
+            setActiveTab('admin');
         } else if (openAuthModal === 'founder') {
             setShowFounderAuthModal(true);
+            setActiveTab('studio');
         } else if (openAuthModal === 'investor') {
             setShowInvestorAuthModal(true);
+            setActiveTab('directory');
         }
     }, [openAuthModal]);
 
     // ── Queries & Mutations ──────────────────────────────────────────────────
-    const { data: marketplacePitches = [], isLoading: isMarketplaceLoading } = useQuery({
+    const { data: rawMarketplacePitches = [], isLoading: isMarketplaceLoading } = useQuery({
         queryKey: ['marketplace-pitches', searchTerm, selectedSector],
         queryFn: () => pitchesService.getMarketplacePitches({ search: searchTerm, sector: selectedSector })
     });
+    const marketplacePitches = Array.isArray(rawMarketplacePitches) ? rawMarketplacePitches : (rawMarketplacePitches?.pitches || rawMarketplacePitches?.data || []);
 
-    const { data: studioPitches = [], isLoading: isStudioLoading } = useQuery({
+    const { data: rawStudioPitches = [], isLoading: isStudioLoading } = useQuery({
         queryKey: ['studio-pitches'],
-        queryFn: pitchesService.getMyStudioPitches
+        queryFn: () => pitchesService.getMyStudioPitches().catch(() => [])
     });
+    const studioPitches = Array.isArray(rawStudioPitches) ? rawStudioPitches : (rawStudioPitches?.pitches || rawStudioPitches?.data || []);
 
-    const { data: adminPitches = [], isLoading: isAdminLoading } = useQuery({
+    const { data: rawAdminPitches = [], isLoading: isAdminLoading, isError: isAdminError } = useQuery({
         queryKey: ['admin-pitches'],
-        queryFn: pitchesService.getAdminPitches,
+        queryFn: () => pitchesService.getAdminPitches().catch(() => []),
         enabled: activeTab === 'admin' || showAdminAuthModal
     });
+    const adminPitches = Array.isArray(rawAdminPitches) ? rawAdminPitches : (rawAdminPitches?.pitches || rawAdminPitches?.data || []);
 
     const { data: quotaStatus, refetch: refetchQuota } = useQuery({
         queryKey: ['quota-status'],
@@ -876,9 +882,14 @@ export default function BusinessPitches({ openAuthModal = null }) {
                                         <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 0.5rem 0' }}>
                                             Founder: <strong>{pitch.founder_name || 'Founder'}</strong> ({pitch.founder_email || 'N/A'}) • Sector: <strong>{pitch.sector || 'Technology'}</strong>
                                         </p>
-                                        <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: '#334155' }}>
+                                        <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: '#334155', flexWrap: 'wrap', marginTop: '0.35rem' }}>
                                             <span>Goal Target: <strong>₹{(pitch.goal_amount || pitch.funding_target || 0).toLocaleString()}</strong></span>
                                             <span>Equity: <strong>{pitch.equity_offered || 0}%</strong></span>
+                                            {(pitch.pitch_deck_url || pitch.deck_url) && (
+                                                <a href={pitch.pitch_deck_url || pitch.deck_url} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: '700' }}>
+                                                    📄 View Pitch Deck
+                                                </a>
+                                            )}
                                         </div>
                                         {pitch.admin_remarks && (
                                             <div style={{ fontSize: '0.78rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.35rem 0.65rem', borderRadius: '6px', marginTop: '0.5rem' }}>
