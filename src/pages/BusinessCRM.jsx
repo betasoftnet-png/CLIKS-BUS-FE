@@ -34,7 +34,14 @@ import {
     Percent,
     ChevronDown,
     Check,
-    Calculator
+    Calculator,
+    Store,
+    IdCard,
+    Link,
+    Bell,
+    Star,
+    MapPin,
+    CreditCard
 } from 'lucide-react';
 import '../App.css';
 import { crmService } from '../services/crmService';
@@ -1438,328 +1445,266 @@ const BusinessCRM = () => {
             {/* Create/Edit Customer Modal */}
             {isModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '32px', padding: '2rem 2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexShrink: 0 }}>
-                            <div>
-                                <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#7C3AED', margin: 0 }}>{editingCustomer ? 'Edit Customer Profile' : 'New Customer Registration'}</h2>
-                                <p style={{ fontSize: '0.85rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>Code: {formData.customer_code}</p>
+                    <div style={{ background: '#F8FAFC', width: '100%', maxWidth: '860px', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+                        {/* ── Header ── */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.75rem', background: 'white', borderBottom: '1px solid #E2E8F0', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED', flexShrink: 0 }}>
+                                    <User size={20} />
+                                </div>
+                                <div>
+                                    <h2 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0F172A', margin: 0, lineHeight: 1.3 }}>{editingCustomer ? 'Edit Customer Profile' : 'New Customer Registration'}</h2>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>Add customer details to start doing business with them.</p>
+                                </div>
                             </div>
-                            <button onClick={closeModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.35rem 0.75rem' }}>Code: {formData.customer_code}</span>
+                                <button onClick={closeModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}><X size={18} /></button>
+                            </div>
                         </div>
 
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-                            <div className="ledger-modal-scrollbar" style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '0.5rem' }}>
-                            {/* Basic Customer Profile */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', background: '#F8FAFC', padding: '1.5rem', borderRadius: '20px' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Customer Name</label>
-                                    <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Rajesh Gupta" />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Shop / Business Name</label>
-                                    <input type="text" value={formData.business_name} onChange={(e) => setFormData({...formData, business_name: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Gupta Groceries Wholesale" />
-                                </div>
-                                {activeConfig.partyGroup !== false && (
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Customer Type / Group</label>
-                                        <select value={formData.customer_type} onChange={(e) => setFormData({...formData, customer_type: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                            <option value="wholesale">Wholesale</option>
-                                            <option value="retail">Retail</option>
-                                        </select>
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', margin: 0 }}>
+                            <div className="ledger-modal-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+
+                                {/* ── Section 1: Basic Information ── */}
+                                <div style={{ background: 'white', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.9rem 1.25rem', background: '#F5F3FF', borderBottom: '1px solid #EDE9FE' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED' }}>
+                                                <Store size={16} />
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E1B4B' }}>Basic Information</div>
+                                                <div style={{ fontSize: '0.72rem', color: '#6D6C8A' }}>Enter customer and contact details.</div>
+                                            </div>
+                                        </div>
+                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', fontWeight: '700' }}>● Required fields</span>
                                     </div>
-                                )}
+                                    <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Customer Name <span style={{ color: '#EF4444' }}>*</span></label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><User size={15} /></span>
+                                                    <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} placeholder="e.g. Rajesh Gupta" />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Shop / Business Name</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Building2 size={15} /></span>
+                                                    <input type="text" value={formData.business_name} onChange={(e) => setFormData({...formData, business_name: e.target.value})} style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} placeholder="e.g. Gupta Groceries World" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.85rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Phone Number <span style={{ color: '#EF4444' }}>*</span></label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <CountryCodeSelector
+                                                        selectedDialCode={formData.phone_country_code || '+91'}
+                                                        onSelect={(c) => {
+                                                            const rule = getCountryPhoneRule(c.dialCode);
+                                                            const sliced = (formData.phone_number || '').slice(0, rule.max);
+                                                            setFormData({ ...formData, phone_country_code: c.dialCode, phone_number: sliced });
+                                                        }}
+                                                    />
+                                                    <input required type="text" value={formData.phone_number || ''} maxLength={getCountryPhoneRule(formData.phone_country_code || '+91').max} onChange={(e) => { const rule = getCountryPhoneRule(formData.phone_country_code || '+91'); const val = e.target.value.replace(/\D/g, '').slice(0, rule.max); setFormData({...formData, phone_number: val}); }} style={{ flex: 1, padding: '0.7rem 0.5rem', border: 'none', borderLeft: '1px solid #E2E8F0', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. 9876543210" />
+                                                </div>
+                                                {(() => { const rule = getCountryPhoneRule(formData.phone_country_code || '+91'); const len = (formData.phone_number || '').length; if (len > 0 && (len < rule.min || len > rule.max)) { return <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Phone Number: {rule.label}</span>; } return null; })()}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Alternate Phone</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <CountryCodeSelector
+                                                        selectedDialCode={formData.alt_phone_country_code || '+91'}
+                                                        onSelect={(c) => {
+                                                            const rule = getCountryPhoneRule(c.dialCode);
+                                                            const sliced = (formData.alternate_phone || '').slice(0, rule.max);
+                                                            setFormData({ ...formData, alt_phone_country_code: c.dialCode, alternate_phone: sliced });
+                                                        }}
+                                                    />
+                                                    <input type="text" value={formData.alternate_phone || ''} maxLength={getCountryPhoneRule(formData.alt_phone_country_code || '+91').max} onChange={(e) => { const rule = getCountryPhoneRule(formData.alt_phone_country_code || '+91'); const val = e.target.value.replace(/\D/g, '').slice(0, rule.max); setFormData({...formData, alternate_phone: val}); }} style={{ flex: 1, padding: '0.7rem 0.5rem', border: 'none', borderLeft: '1px solid #E2E8F0', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. 9123456780" />
+                                                </div>
+                                                {(() => { const rule = getCountryPhoneRule(formData.alt_phone_country_code || '+91'); const len = (formData.alternate_phone || '').length; if (len > 0 && (len < rule.min || len > rule.max)) { return <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Alternate Phone: {rule.label}</span>; } return null; })()}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Email Address</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Mail size={14} /></span>
+                                                    <input type="email" value={formData.email || ''} onChange={(e) => { const val = e.target.value; setFormData({...formData, email: val}); if (val && val.includes('@')) { const parts = val.split('@'); const domain = (parts[1] || '').toLowerCase(); const expectedDomain = 'bnxmail.com'; if (domain.length > 0 && !expectedDomain.startsWith(domain)) { alert('Please use a @bnxmail.com email address.'); } } }} style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. customer@example.com" />
+                                                </div>
+                                                {(() => { const val = (formData.email || '').trim().toLowerCase(); if (val && val.includes('@')) { const parts = val.split('@'); const domain = parts[1] || ''; if (domain.length > 0 && domain !== 'bnxmail.com' && !'bnxmail.com'.startsWith(domain)) { return <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Please use a @bnxmail.com email address.</span>; } } return null; })()}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Website</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Link size={14} /></span>
+                                                    <input type="text" value={formData.website} onChange={(e) => setFormData({...formData, website: e.target.value})} style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. www.business.com" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {activeConfig.partyGroup !== false && (
+                                            <div style={{ maxWidth: '220px' }}>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Customer Type / Group</label>
+                                                <select value={formData.customer_type} onChange={(e) => setFormData({...formData, customer_type: e.target.value})} style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem' }}>
+                                                    <option value="wholesale">Wholesale</option>
+                                                    <option value="retail">Retail</option>
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* ── Section 2: Tax & Address Details ── */}
+                                <div style={{ background: 'white', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.9rem 1.25rem', background: '#F5F3FF', borderBottom: '1px solid #EDE9FE' }}>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED' }}>
+                                            <FileText size={16} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E1B4B' }}>Tax & Address Details</div>
+                                            <div style={{ fontSize: '0.72rem', color: '#6D6C8A' }}>Add tax information and place of supply.</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.85rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>GSTIN</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: (formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><CreditCard size={14} /></span>
+                                                    <input type="text" value={formData.gstin || ''} maxLength={15} onChange={(e) => { const val = e.target.value.toUpperCase().slice(0, 15); setFormData({...formData, gstin: val}); }} style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. 07AAAAA1111A1Z5" />
+                                                </div>
+                                                {formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15 && <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>GSTIN: 15 characters required</span>}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>PAN Number</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: (((formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10) || (formData.pan && formData.pan.length > 0 && formData.pan.length < 10))) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><IdCard size={14} /></span>
+                                                    <input type="text" value={formData.pan_number || formData.pan || ''} maxLength={10} onChange={(e) => { const val = e.target.value.toUpperCase().slice(0, 10); setFormData({...formData, pan_number: val, pan: val}); }} style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. ABCDE1234F" />
+                                                </div>
+                                                {((formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10) || (formData.pan && formData.pan.length > 0 && formData.pan.length < 10)) && <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>PAN: 10 characters required</span>}
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Tax Type</label>
+                                                <select value={formData.tax_type} onChange={(e) => setFormData({...formData, tax_type: e.target.value})} style={{ width: '100%', padding: '0.72rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem' }}>
+                                                    <option value="registered">Registered Business</option>
+                                                    <option value="unregistered">Unregistered Consumer</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Place of Supply</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><MapPin size={14} /></span>
+                                                    <input type="text" value={formData.place_of_supply} onChange={(e) => setFormData({...formData, place_of_supply: e.target.value})} style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. Delhi" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: editingCustomer ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                                            {editingCustomer && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Billing Address</label>
+                                                    <textarea value={formData.billing_address} onChange={(e) => setFormData({...formData, billing_address: e.target.value})} style={{ width: '100%', padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', minHeight: '64px', resize: 'vertical', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 101 Corporate Park" />
+                                                </div>
+                                            )}
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Shipping Address</label>
+                                                <div style={{ position: 'relative' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'flex-start', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                        <span style={{ padding: '0.75rem 0.6rem 0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center', flexShrink: 0 }}><MapPin size={14} /></span>
+                                                        <textarea value={formData.shipping_address} maxLength={300} onChange={(e) => setFormData({...formData, shipping_address: e.target.value})} style={{ flex: 1, padding: '0.7rem 0.5rem 1.5rem 0', border: 'none', outline: 'none', background: 'transparent', minHeight: '64px', resize: 'vertical', fontSize: '0.85rem' }} placeholder="e.g. Plot 45, Godown Hub, Industrial Area" />
+                                                    </div>
+                                                    <span style={{ position: 'absolute', bottom: '6px', right: '10px', fontSize: '0.65rem', color: '#94A3B8', fontWeight: '600' }}>{(formData.shipping_address || '').length}/300</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ── Section 3: Financial & Preference Details ── */}
+                                <div style={{ background: 'white', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.9rem 1.25rem', background: '#F5F3FF', borderBottom: '1px solid #EDE9FE' }}>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED' }}>
+                                            <CreditCard size={16} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E1B4B' }}>Financial & Preference Details</div>
+                                            <div style={{ fontSize: '0.72rem', color: '#6D6C8A' }}>Set credit, payment terms and communication preferences.</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.85rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Opening Balance ({currency.symbol})</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', fontWeight: '700', fontSize: '0.9rem' }}>₹</span>
+                                                    <input type="text" value={formData.opening_balance === 0 ? '' : formData.opening_balance} placeholder="0" onChange={(e) => { let val = e.target.value.replace(/\D/g, ''); if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, ''); setFormData({...formData, opening_balance: val === '' ? 0 : parseFloat(val)}); }} style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} />
+                                                </div>
+                                                <span style={{ fontSize: '0.67rem', color: '#94A3B8', marginTop: '0.2rem', display: 'block' }}>Use negative for advance payment</span>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Credit Limit ({currency.symbol})</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', fontWeight: '700', fontSize: '0.9rem' }}>₹</span>
+                                                    <input type="text" value={formData.credit_limit === 0 ? '' : formData.credit_limit} placeholder="50000" onChange={(e) => { let val = e.target.value.replace(/\D/g, ''); if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, ''); setFormData({...formData, credit_limit: val === '' ? 0 : parseFloat(val)}); }} style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Due Days (Terms)</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Calendar size={14} /></span>
+                                                    <input type="text" value={formData.due_days === 0 ? '' : formData.due_days} placeholder="30" onChange={(e) => { let val = e.target.value.replace(/\D/g, ''); if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, ''); setFormData({...formData, due_days: val === '' ? 0 : parseInt(val)}); }} style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Preferred Reminder</label>
+                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Bell size={14} /></span>
+                                                    <select value={formData.preferred_contact} onChange={(e) => setFormData({...formData, preferred_contact: e.target.value})} style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', background: 'transparent', fontSize: '0.85rem' }}>
+                                                        <option value="WhatsApp">WhatsApp</option>
+                                                        <option value="SMS">SMS</option>
+                                                        <option value="Email">Email</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap' }}>
+                                            {activeConfig.loyalty !== false && (
+                                                <div style={{ width: '200px' }}>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Opening Loyalty Points</label>
+                                                    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                        <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Star size={14} /></span>
+                                                        <input type="number" min={!editingCustomer ? "0" : undefined} step={!editingCustomer ? "1" : undefined} value={formData.loyalty_points === 0 ? '' : formData.loyalty_points} placeholder="0" onKeyDown={(e) => { if (!editingCustomer) { if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') { e.preventDefault(); } } }} onChange={(e) => { if (!editingCustomer) { const rawVal = e.target.value; if (rawVal === '') { setFormData({...formData, loyalty_points: 0}); return; } const sanitized = rawVal.replace(/[^0-9]/g, ''); let parsed = parseInt(sanitized, 10); if (isNaN(parsed) || parsed < 0) { parsed = 0; } setFormData({...formData, loyalty_points: parsed}); } else { setFormData({...formData, loyalty_points: parseInt(e.target.value) || 0}); } }} style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {activeConfig.partyStatus !== false && (
+                                                <div style={{ width: '200px' }}>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Account Status</label>
+                                                    <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} style={{ width: '100%', padding: '0.72rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem' }}>
+                                                        <option value="active">Active</option>
+                                                        <option value="inactive">Inactive</option>
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
 
-                            {/* Contact Details */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Phone Number</label>
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                        <CountryCodeSelector
-                                            selectedDialCode={formData.phone_country_code || '+91'}
-                                            onSelect={(c) => {
-                                                const rule = getCountryPhoneRule(c.dialCode);
-                                                const sliced = (formData.phone_number || '').slice(0, rule.max);
-                                                setFormData({ ...formData, phone_country_code: c.dialCode, phone_number: sliced });
-                                            }}
-                                        />
-                                        <input 
-                                            required 
-                                            type="text" 
-                                            value={formData.phone_number || ''} 
-                                            maxLength={getCountryPhoneRule(formData.phone_country_code || '+91').max}
-                                            onChange={(e) => {
-                                                const rule = getCountryPhoneRule(formData.phone_country_code || '+91');
-                                                const val = e.target.value.replace(/\D/g, '').slice(0, rule.max);
-                                                setFormData({...formData, phone_number: val});
-                                            }} 
-                                            style={{ 
-                                                width: '100%', 
-                                                padding: '0.85rem', 
-                                                borderRadius: '0 14px 14px 0', 
-                                                border: '1px solid #E2E8F0', 
-                                                borderLeft: 'none', 
-                                                outline: 'none', 
-                                                background: 'white' 
-                                            }} 
-                                            placeholder="Example : 9876543210" 
-                                        />
-                                    </div>
-                                    {(() => {
-                                        const rule = getCountryPhoneRule(formData.phone_country_code || '+91');
-                                        const len = (formData.phone_number || '').length;
-                                        if (len > 0 && (len < rule.min || len > rule.max)) {
-                                            return (
-                                                <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
-                                                    Phone Number: {rule.label}
-                                                </span>
-                                            );
-                                        }
-                                        return null;
-                                    })()}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Alternate Phone</label>
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                        <CountryCodeSelector
-                                            selectedDialCode={formData.alt_phone_country_code || '+91'}
-                                            onSelect={(c) => {
-                                                const rule = getCountryPhoneRule(c.dialCode);
-                                                const sliced = (formData.alternate_phone || '').slice(0, rule.max);
-                                                setFormData({ ...formData, alt_phone_country_code: c.dialCode, alternate_phone: sliced });
-                                            }}
-                                        />
-                                        <input 
-                                            type="text" 
-                                            value={formData.alternate_phone || ''} 
-                                            maxLength={getCountryPhoneRule(formData.alt_phone_country_code || '+91').max}
-                                            onChange={(e) => {
-                                                const rule = getCountryPhoneRule(formData.alt_phone_country_code || '+91');
-                                                const val = e.target.value.replace(/\D/g, '').slice(0, rule.max);
-                                                setFormData({...formData, alternate_phone: val});
-                                            }} 
-                                            style={{ 
-                                                width: '100%', 
-                                                padding: '0.85rem', 
-                                                borderRadius: '0 14px 14px 0', 
-                                                border: '1px solid #E2E8F0', 
-                                                borderLeft: 'none', 
-                                                outline: 'none', 
-                                                background: 'white' 
-                                            }} 
-                                            placeholder="Example : 9123456780" 
-                                        />
-                                    </div>
-                                    {(() => {
-                                        const rule = getCountryPhoneRule(formData.alt_phone_country_code || '+91');
-                                        const len = (formData.alternate_phone || '').length;
-                                        if (len > 0 && (len < rule.min || len > rule.max)) {
-                                            return (
-                                                <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
-                                                    Alternate Phone: {rule.label}
-                                                </span>
-                                            );
-                                        }
-                                        return null;
-                                    })()}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Email Address</label>
-                                    <input 
-                                        type="email" 
-                                        value={formData.email || ''} 
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            setFormData({...formData, email: val});
-                                            if (val && val.includes('@')) {
-                                                const parts = val.split('@');
-                                                const domain = (parts[1] || '').toLowerCase();
-                                                const expectedDomain = 'bnxmail.com';
-                                                if (domain.length > 0 && !expectedDomain.startsWith(domain)) {
-                                                    alert('Please use a @bnxmail.com email address.');
-                                                }
-                                            }
-                                        }} 
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
-                                        placeholder="Example : customer@bnxmail.com" 
-                                    />
-                                    {(() => {
-                                        const val = (formData.email || '').trim().toLowerCase();
-                                        if (val && val.includes('@')) {
-                                            const parts = val.split('@');
-                                            const domain = parts[1] || '';
-                                            if (domain.length > 0 && domain !== 'bnxmail.com' && !'bnxmail.com'.startsWith(domain)) {
-                                                return (
-                                                    <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
-                                                        Please use a @bnxmail.com email address.
-                                                    </span>
-                                                );
-                                            }
-                                        }
-                                        return null;
-                                    })()}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Website</label>
-                                    <input type="text" value={formData.website} onChange={(e) => setFormData({...formData, website: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : www.brand.com" />
-                                </div>
+                            {/* ── Footer Actions ── */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.75rem', background: 'white', borderTop: '1px solid #E2E8F0', flexShrink: 0 }}>
+                                <button type="button" onClick={closeModal} style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#475569', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}>
+                                    Cancel
+                                </button>
+                                <button type="submit" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.5rem', borderRadius: '10px', background: '#7C3AED', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(124,58,237,0.25)' }}>
+                                    <Check size={16} />
+                                    {editingCustomer ? 'Update Customer' : 'Register Customer'}
+                                </button>
                             </div>
-
-                            {/* Tax details */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>GSTIN</label>
-                                    <input 
-                                        type="text" 
-                                        value={formData.gstin || ''} 
-                                        maxLength={15}
-                                        onChange={(e) => {
-                                            const val = e.target.value.toUpperCase().slice(0, 15);
-                                            setFormData({...formData, gstin: val});
-                                        }} 
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
-                                        placeholder="Example : 07AAAAA1111A1Z1" 
-                                    />
-                                    {formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15 && (
-                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
-                                            GSTIN: 15 characters required
-                                        </span>
-                                    )}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>PAN Number</label>
-                                    <input 
-                                        type="text" 
-                                        value={formData.pan_number || formData.pan || ''} 
-                                        maxLength={10}
-                                        onChange={(e) => {
-                                            const val = e.target.value.toUpperCase().slice(0, 10);
-                                            setFormData({...formData, pan_number: val, pan: val});
-                                        }} 
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: (((formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10) || (formData.pan && formData.pan.length > 0 && formData.pan.length < 10))) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
-                                        placeholder="Example : ABCDE1234F" 
-                                    />
-                                    {((formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10) || (formData.pan && formData.pan.length > 0 && formData.pan.length < 10)) && (
-                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.25rem', display: 'block', fontWeight: '600' }}>
-                                            PAN: 10 characters required
-                                        </span>
-                                    )}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Tax Type</label>
-                                    <select value={formData.tax_type} onChange={(e) => setFormData({...formData, tax_type: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        <option value="registered">Registered Business</option>
-                                        <option value="unregistered">Unregistered Consumer</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Place of Supply</label>
-                                    <input type="text" value={formData.place_of_supply} onChange={(e) => setFormData({...formData, place_of_supply: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Example : Tamil Nadu" />
-                                </div>
-                            </div>
-
-                            {/* Addresses */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                {editingCustomer ? (
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Billing Address</label>
-                                        <textarea value={formData.billing_address} onChange={(e) => setFormData({...formData, billing_address: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', minHeight: '60px' }} placeholder="Example : 101 Corporate Park" />
-                                    </div>
-                                ) : (
-                                    <div />
-                                )}
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Shipping Address</label>
-                                    <textarea value={formData.shipping_address} onChange={(e) => setFormData({...formData, shipping_address: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', minHeight: '60px' }} placeholder="Example : Plot 45 Godown Hub" />
-                                </div>
-                            </div>
-
-                            {/* Financial Credit Controls */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', background: '#F0F9F4', padding: '1.5rem', borderRadius: '20px' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Opening Balance ({currency.symbol})</label>
-                                    <input type="text" value={formData.opening_balance === 0 ? '' : formData.opening_balance} placeholder="Example : 0" onChange={(e) => {
-                                        let val = e.target.value.replace(/\D/g, '');
-                                        if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
-                                        setFormData({...formData, opening_balance: val === '' ? 0 : parseFloat(val)});
-                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Credit Limit ({currency.symbol})</label>
-                                    <input type="text" value={formData.credit_limit === 0 ? '' : formData.credit_limit} placeholder="Example : 50000" onChange={(e) => {
-                                        let val = e.target.value.replace(/\D/g, '');
-                                        if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
-                                        setFormData({...formData, credit_limit: val === '' ? 0 : parseFloat(val)});
-                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Due Days (Terms)</label>
-                                    <input type="text" value={formData.due_days === 0 ? '' : formData.due_days} placeholder="Example : 30" onChange={(e) => {
-                                        let val = e.target.value.replace(/\D/g, '');
-                                        if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
-                                        setFormData({...formData, due_days: val === '' ? 0 : parseInt(val)});
-                                    }} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Preferred Reminder</label>
-                                    <select value={formData.preferred_contact} onChange={(e) => setFormData({...formData, preferred_contact: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }}>
-                                        <option value="WhatsApp">WhatsApp</option>
-                                        <option value="SMS">SMS</option>
-                                        <option value="Email">Email</option>
-                                    </select>
-                                </div>
-                                {activeConfig.partyStatus !== false && (
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Account Status</label>
-                                        <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }}>
-                                            <option value="active">Active</option>
-                                            <option value="inactive">Inactive</option>
-                                        </select>
-                                    </div>
-                                )}
-                                {activeConfig.loyalty !== false && (
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#7C3AED', marginBottom: '0.5rem' }}>Opening Loyalty Points</label>
-                                        <input 
-                                            type="number" 
-                                            min={!editingCustomer ? "0" : undefined}
-                                            step={!editingCustomer ? "1" : undefined}
-                                            value={formData.loyalty_points === 0 ? '' : formData.loyalty_points} 
-                                            placeholder="0" 
-                                            onKeyDown={(e) => {
-                                                if (!editingCustomer) {
-                                                    if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') {
-                                                        e.preventDefault();
-                                                    }
-                                                }
-                                            }}
-                                            onChange={(e) => {
-                                                if (!editingCustomer) {
-                                                    const rawVal = e.target.value;
-                                                    if (rawVal === '') {
-                                                        setFormData({...formData, loyalty_points: 0});
-                                                        return;
-                                                    }
-                                                    const sanitized = rawVal.replace(/[^0-9]/g, '');
-                                                    let parsed = parseInt(sanitized, 10);
-                                                    if (isNaN(parsed) || parsed < 0) {
-                                                        parsed = 0;
-                                                    }
-                                                    setFormData({...formData, loyalty_points: parsed});
-                                                } else {
-                                                    setFormData({...formData, loyalty_points: parseInt(e.target.value) || 0});
-                                                }
-                                            }} 
-                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} 
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                            </div>
-
-                            <button type="submit" style={{ flexShrink: 0, width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', marginTop: '1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.2)' }}>
-                                {editingCustomer ? 'Update Customer' : 'Register Customer'}
-                            </button>
                         </form>
                     </div>
                 </div>
