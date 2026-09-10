@@ -52,15 +52,24 @@ jobs:
           host: 204.168.244.118
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          timeout: 30s
+          command_timeout: 10m
           script: |
+            set -e
+
             cd /var/www/CLIKS-BUS-FE
 
+            echo "Logging in to GHCR..."
             echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u betasoftnet-png --password-stdin
 
+            echo "Pulling latest Docker image..."
             docker compose pull
 
+            echo "Starting Docker container..."
             docker compose up -d --force-recreate
 
-            echo "Deployment completed."
-
+            echo "Checking container..."
             docker ps --filter name=cliks-business-fe
+
+            echo "Deployment completed successfully."
