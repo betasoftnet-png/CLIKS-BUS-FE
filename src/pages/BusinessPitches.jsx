@@ -444,30 +444,6 @@ export default function BusinessPitches({ openAuthModal = null }) {
                 {/* Banner Right Buttons */}
                 <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                     
-                    {/* Notification Bell */}
-                    <button 
-                        onClick={() => setShowNotifDrawer(true)}
-                        style={{
-                            padding: '0.75rem',
-                            borderRadius: '12px',
-                            background: 'rgba(255, 255, 255, 0.12)',
-                            color: '#FFFFFF',
-                            border: '1px solid rgba(255, 255, 255, 0.25)',
-                            cursor: 'pointer',
-                            position: 'relative',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}
-                    >
-                        <Bell size={18} />
-                        {unreadCount > 0 && (
-                            <span style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#EF4444', color: 'white', fontSize: '0.65rem', fontWeight: '800', borderRadius: '999px', padding: '0.15rem 0.4rem' }}>
-                                {unreadCount}
-                            </span>
-                        )}
-                    </button>
-
                     <button 
                         type="button"
                         onClick={() => { if (navigate) navigate('/auth/founder-login'); setShowFounderAuthModal(true); }}
