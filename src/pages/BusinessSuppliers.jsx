@@ -1420,7 +1420,7 @@ const BusinessSuppliers = () => {
             {/* Register/Edit Supplier Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1rem' }}>
-                    <div className="max-w-4xl w-full max-h-[88vh] flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-100" style={{ background: '#FFFFFF', width: '100%', maxWidth: '896px', maxHeight: '88vh', borderRadius: '1rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div className="max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-100" style={{ background: '#FFFFFF', width: '100%', maxWidth: '896px', maxHeight: '90vh', borderRadius: '1rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         
                         {/* ── Fixed Header Section ── */}
                         <div className="flex-shrink-0 px-6 py-4 border-b border-slate-100 bg-white flex justify-between items-center z-10" style={{ flexShrink: 0, padding: '1rem 1.5rem', borderBottom: '1px solid #F1F5F9', background: '#FFFFFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
@@ -1456,7 +1456,7 @@ const BusinessSuppliers = () => {
                             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 ledger-modal-scrollbar bg-slate-50/50" style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: '#F8FAFC' }}>
 
                                 {/* ── Section 1: Basic Information ── */}
-                                <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                <div className="w-full flex-shrink-0 bg-white rounded-xl border border-emerald-100/60 overflow-hidden shadow-sm" style={{ width: '100%', flexShrink: 0, background: '#FFFFFF', borderRadius: '14px', border: '1px solid rgba(209, 250, 229, 0.8)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1.25rem', background: '#F0FDF4', borderBottom: '1px solid #DCFCE7' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                                             <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
@@ -1470,15 +1470,15 @@ const BusinessSuppliers = () => {
                                         <span style={{ fontSize: '0.7rem', color: '#EF4444', fontWeight: '700' }}>* Required fields</span>
                                     </div>
 
-                                    <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                                    <div className="p-5 space-y-4" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         {/* Row 1: Supplier Name, Contact Person, Supplier Type */}
                                         <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '0.85rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Supplier / Business Name <span style={{ color: '#EF4444' }}>*</span>
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: ((touchedFields.supplier_name && !formData.supplier_name?.trim()) || formErrors.supplier_name) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Building2 size={15} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: ((touchedFields.supplier_name && !formData.supplier_name?.trim()) || formErrors.supplier_name) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Building2 size={15} /></span>
                                                     <input 
                                                         required 
                                                         type="text" 
@@ -1488,7 +1488,7 @@ const BusinessSuppliers = () => {
                                                             if (formErrors.supplier_name) setFormErrors({ ...formErrors, supplier_name: null }); 
                                                         }} 
                                                         onBlur={() => setTouchedFields(prev => ({ ...prev, supplier_name: true }))}
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
                                                         placeholder="e.g. TechCorp India Pvt Ltd" 
                                                     />
                                                 </div>
@@ -1502,13 +1502,13 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Contact Person
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><User size={15} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><User size={15} /></span>
                                                     <input 
                                                         type="text" 
                                                         value={formData.contact_person} 
                                                         onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
                                                         placeholder="e.g. Harish Menon" 
                                                     />
                                                 </div>
@@ -1517,12 +1517,12 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Supplier Type
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Store size={15} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Store size={15} /></span>
                                                     <select 
                                                         value={formData.supplier_type} 
                                                         onChange={(e) => setFormData({ ...formData, supplier_type: e.target.value })} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent', cursor: 'pointer' }}
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent', cursor: 'pointer' }}
                                                     >
                                                         <option value="local">Local Supplier</option>
                                                         <option value="import">Import Supplier</option>
@@ -1537,8 +1537,8 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Mobile Number <span style={{ color: '#EF4444' }}>*</span>
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: (formErrors.phone_number || (formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < 10)) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Phone size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: (formErrors.phone_number || (formData.phone_number && formData.phone_number.length > 0 && formData.phone_number.length < 10)) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Phone size={14} /></span>
                                                     <input 
                                                         required 
                                                         type="text" 
@@ -1549,7 +1549,7 @@ const BusinessSuppliers = () => {
                                                             setFormData({ ...formData, phone_number: val }); 
                                                             if (formErrors.phone_number) setFormErrors({ ...formErrors, phone_number: null }); 
                                                         }} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. 9876543210" 
                                                     />
                                                 </div>
@@ -1562,8 +1562,8 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Alternate Phone
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: (formData.alternate_phone && formData.alternate_phone.length > 0 && formData.alternate_phone.length < 10) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Phone size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: (formData.alternate_phone && formData.alternate_phone.length > 0 && formData.alternate_phone.length < 10) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Phone size={14} /></span>
                                                     <input 
                                                         type="text" 
                                                         maxLength={10} 
@@ -1572,7 +1572,7 @@ const BusinessSuppliers = () => {
                                                             const val = e.target.value.replace(/\D/g, '').slice(0, 10); 
                                                             setFormData({ ...formData, alternate_phone: val }); 
                                                         }} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. 9123456780" 
                                                     />
                                                 </div>
@@ -1584,8 +1584,8 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Email Address <span style={{ color: '#EF4444' }}>*</span>
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: ((touchedFields.email && !formData.email?.trim()) || formErrors.email) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Mail size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: ((touchedFields.email && !formData.email?.trim()) || formErrors.email) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Mail size={14} /></span>
                                                     <input 
                                                         required 
                                                         type="email" 
@@ -1595,7 +1595,7 @@ const BusinessSuppliers = () => {
                                                             if (formErrors.email) setFormErrors({ ...formErrors, email: null }); 
                                                         }} 
                                                         onBlur={() => setTouchedFields(prev => ({ ...prev, email: true }))}
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. supplier@company.com" 
                                                     />
                                                 </div>
@@ -1609,13 +1609,13 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Website Link
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Link size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Link size={14} /></span>
                                                     <input 
                                                         type="text" 
                                                         value={formData.website} 
                                                         onChange={(e) => setFormData({ ...formData, website: e.target.value })} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. www.company.com" 
                                                     />
                                                 </div>
@@ -1625,7 +1625,7 @@ const BusinessSuppliers = () => {
                                 </div>
 
                                 {/* ── Section 2: Tax & Registration Details ── */}
-                                <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                <div className="w-full flex-shrink-0 bg-white rounded-xl border border-emerald-100/60 overflow-hidden shadow-sm" style={{ width: '100%', flexShrink: 0, background: '#FFFFFF', borderRadius: '14px', border: '1px solid rgba(209, 250, 229, 0.8)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem 1.25rem', background: '#F0FDF4', borderBottom: '1px solid #DCFCE7' }}>
                                         <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
                                             <Receipt size={16} />
@@ -1636,14 +1636,14 @@ const BusinessSuppliers = () => {
                                         </div>
                                     </div>
 
-                                    <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                                    <div className="p-5 space-y-4" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.85rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     GSTIN ID
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: (formErrors.gstin || (formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15)) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><CreditCard size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: (formErrors.gstin || (formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15)) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><CreditCard size={14} /></span>
                                                     <input 
                                                         type="text" 
                                                         maxLength={15} 
@@ -1653,7 +1653,7 @@ const BusinessSuppliers = () => {
                                                             setFormData({ ...formData, gstin: val }); 
                                                             if (formErrors.gstin) setFormErrors({ ...formErrors, gstin: null }); 
                                                         }} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. 27AAAAA0000A1Z5" 
                                                     />
                                                 </div>
@@ -1666,8 +1666,8 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     PAN Number
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: (formErrors.pan_number || (formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10)) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><IdCard size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: (formErrors.pan_number || (formData.pan_number && formData.pan_number.length > 0 && formData.pan_number.length < 10)) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IdCard size={14} /></span>
                                                     <input 
                                                         type="text" 
                                                         maxLength={10} 
@@ -1677,7 +1677,7 @@ const BusinessSuppliers = () => {
                                                             setFormData({ ...formData, pan_number: val }); 
                                                             if (formErrors.pan_number) setFormErrors({ ...formErrors, pan_number: null }); 
                                                         }} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. ABCDE1234F" 
                                                     />
                                                 </div>
@@ -1690,12 +1690,12 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Tax Registration
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><ShieldCheck size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><ShieldCheck size={14} /></span>
                                                     <select 
                                                         value={formData.tax_type} 
                                                         onChange={(e) => setFormData({ ...formData, tax_type: e.target.value })} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent', cursor: 'pointer' }}
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'white', cursor: 'pointer' }}
                                                     >
                                                         <option value="registered">Registered Business</option>
                                                         <option value="unregistered">Unregistered Vendor</option>
@@ -1706,12 +1706,12 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     State of Supply
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><MapPin size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><MapPin size={14} /></span>
                                                     <select 
                                                         value={formData.place_of_supply} 
                                                         onChange={(e) => setFormData({ ...formData, place_of_supply: e.target.value })} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent', cursor: 'pointer' }}
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'white', cursor: 'pointer' }}
                                                     >
                                                         {INDIAN_STATES.map((st) => (
                                                             <option key={st} value={st}>{st}</option>
@@ -1724,7 +1724,7 @@ const BusinessSuppliers = () => {
                                 </div>
 
                                 {/* ── Section 3: Address Details ── */}
-                                <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                <div className="w-full flex-shrink-0 bg-white rounded-xl border border-emerald-100/60 overflow-hidden shadow-sm" style={{ width: '100%', flexShrink: 0, background: '#FFFFFF', borderRadius: '14px', border: '1px solid rgba(209, 250, 229, 0.8)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem 1.25rem', background: '#F0FDF4', borderBottom: '1px solid #DCFCE7' }}>
                                         <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
                                             <MapPin size={16} />
@@ -1735,19 +1735,19 @@ const BusinessSuppliers = () => {
                                         </div>
                                     </div>
 
-                                    <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                                    <div className="p-5 space-y-4" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1.4fr 1fr 0.85fr', gap: '0.85rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Billing Headquarters Address
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Building2 size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Building2 size={14} /></span>
                                                     <input 
                                                         type="text" 
                                                         value={formData.billing_address} 
                                                         onChange={(e) => setFormData({ ...formData, billing_address: e.target.value })} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. No: 3663, TNHB Colony" 
                                                     />
                                                 </div>
@@ -1756,13 +1756,13 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Shipping Warehouse Address
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Warehouse size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Warehouse size={14} /></span>
                                                     <input 
                                                         type="text" 
                                                         value={formData.shipping_address} 
                                                         onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. TNHB Industrial Area" 
                                                     />
                                                 </div>
@@ -1771,13 +1771,13 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     City
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Building2 size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Building2 size={14} /></span>
                                                     <input 
                                                         type="text" 
                                                         value={formData.city} 
                                                         onChange={(e) => setFormData({ ...formData, city: e.target.value })} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. Chennai" 
                                                     />
                                                 </div>
@@ -1786,14 +1786,14 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Postal Code (Pincode)
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: (formData.pincode && formData.pincode.length > 0 && formData.pincode.length < 6) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Mail size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: (formData.pincode && formData.pincode.length > 0 && formData.pincode.length < 6) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Mail size={14} /></span>
                                                     <input 
                                                         type="text" 
                                                         maxLength={6} 
                                                         value={formData.pincode} 
                                                         onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
                                                         placeholder="e.g. 602001" 
                                                     />
                                                 </div>
@@ -1806,7 +1806,7 @@ const BusinessSuppliers = () => {
                                 </div>
 
                                 {/* ── Section 4: Banking & Payment Terms ── */}
-                                <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                <div className="w-full flex-shrink-0 bg-white rounded-xl border border-emerald-100/60 overflow-hidden shadow-sm" style={{ width: '100%', flexShrink: 0, background: '#FFFFFF', borderRadius: '14px', border: '1px solid rgba(209, 250, 229, 0.8)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.85rem 1.25rem', background: '#F0FDF4', borderBottom: '1px solid #DCFCE7' }}>
                                         <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
                                             <CreditCard size={16} />
@@ -1817,20 +1817,20 @@ const BusinessSuppliers = () => {
                                         </div>
                                     </div>
 
-                                    <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                                    <div className="p-5 space-y-4" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         {/* Row 1: Bank Account, IFSC, UPI */}
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.85rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     Bank Account Number
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><CreditCard size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><CreditCard size={14} /></span>
                                                     <input 
                                                         type="text" 
                                                         value={formData.bank_account_number || ''} 
                                                         onChange={(e) => setFormData({ ...formData, bank_account_number: e.target.value.replace(/\D/g, '') })} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
                                                         placeholder="e.g. 912345678901" 
                                                     />
                                                 </div>
@@ -1839,14 +1839,14 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     IFSC Code
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: (formData.ifsc_code && formData.ifsc_code.length > 0 && formData.ifsc_code.length < 11) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Landmark size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: (formData.ifsc_code && formData.ifsc_code.length > 0 && formData.ifsc_code.length < 11) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Landmark size={14} /></span>
                                                     <input 
                                                         type="text" 
                                                         maxLength={11} 
                                                         value={formData.ifsc_code || ''} 
                                                         onChange={(e) => setFormData({ ...formData, ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
                                                         placeholder="e.g. SBIN0001234" 
                                                     />
                                                 </div>
@@ -1858,13 +1858,13 @@ const BusinessSuppliers = () => {
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
                                                     UPI ID
                                                 </label>
-                                                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Smartphone size={14} /></span>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Smartphone size={14} /></span>
                                                     <input 
                                                         type="text" 
                                                         value={formData.upi_id || ''} 
                                                         onChange={(e) => setFormData({ ...formData, upi_id: e.target.value.trim() })} 
-                                                        style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                        style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
                                                         placeholder="e.g. vendor@upi" 
                                                     />
                                                 </div>
@@ -1872,8 +1872,8 @@ const BusinessSuppliers = () => {
                                         </div>
 
                                         {/* Sub-card: Credit & Payment Details with clock/timer icon */}
-                                        <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.35rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#065F46', fontSize: '0.8rem', fontWeight: '700' }}>
+                                        <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '0.35rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#065F46', fontSize: '0.82rem', fontWeight: '700' }}>
                                                 <Clock size={15} /> Credit & Payment Details
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.85rem' }}>
@@ -1881,8 +1881,8 @@ const BusinessSuppliers = () => {
                                                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#166534', marginBottom: '0.4rem' }}>
                                                         Opening Payable Balance ({currency.symbol})
                                                     </label>
-                                                    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #DCF2E4', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                        <span style={{ padding: '0 0.6rem', color: '#16A34A', fontWeight: '700', fontSize: '0.85rem' }}>₹</span>
+                                                    <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #DCF2E4', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                        <span style={{ width: '38px', height: '100%', color: '#16A34A', fontWeight: '700', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>₹</span>
                                                         <input 
                                                             type="text" 
                                                             disabled={!!editingSupplier} 
@@ -1893,7 +1893,7 @@ const BusinessSuppliers = () => {
                                                                 if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
                                                                 setFormData({ ...formData, opening_balance: val === '' ? 0 : parseFloat(val) });
                                                             }} 
-                                                            style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                            style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
                                                         />
                                                     </div>
                                                     <span style={{ fontSize: '0.67rem', color: '#64748B', marginTop: '0.2rem', display: 'block' }}>
@@ -1904,8 +1904,8 @@ const BusinessSuppliers = () => {
                                                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#166534', marginBottom: '0.4rem' }}>
                                                         Credit Limit Allowance ({currency.symbol})
                                                     </label>
-                                                    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #DCF2E4', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                        <span style={{ padding: '0 0.6rem', color: '#16A34A', fontWeight: '700', fontSize: '0.85rem' }}>₹</span>
+                                                    <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #DCF2E4', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                        <span style={{ width: '38px', height: '100%', color: '#16A34A', fontWeight: '700', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>₹</span>
                                                         <input 
                                                             type="text" 
                                                             value={formData.credit_limit === 0 ? '' : formData.credit_limit} 
@@ -1915,7 +1915,7 @@ const BusinessSuppliers = () => {
                                                                 if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
                                                                 setFormData({ ...formData, credit_limit: val === '' ? 0 : parseFloat(val) });
                                                             }} 
-                                                            style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                            style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
                                                         />
                                                     </div>
                                                 </div>
@@ -1923,14 +1923,14 @@ const BusinessSuppliers = () => {
                                                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#166534', marginBottom: '0.4rem' }}>
                                                         Payment Terms (Days)
                                                     </label>
-                                                    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #DCF2E4', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                        <span style={{ padding: '0 0.6rem', color: '#94A3B8', display: 'flex', alignItems: 'center' }}><Calendar size={14} /></span>
+                                                    <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #DCF2E4', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                        <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Calendar size={14} /></span>
                                                         <input 
                                                             type="text" 
                                                             value={formData.payment_terms} 
                                                             onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })} 
-                                                            style={{ flex: 1, padding: '0.7rem 0.5rem 0.7rem 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
-                                                            placeholder="e.g. Net 30" 
+                                                            style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} 
+                                                            placeholder="Net 30" 
                                                         />
                                                     </div>
                                                 </div>
@@ -1942,19 +1942,19 @@ const BusinessSuppliers = () => {
                             </div>
 
                             {/* ── Fixed Modal Footer Actions ── */}
-                            <div className="flex-shrink-0 px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 backdrop-blur-sm flex justify-between items-center z-10" style={{ flexShrink: 0, padding: '0.875rem 1.5rem', borderTop: '1px solid #F1F5F9', background: 'rgba(248, 250, 252, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
+                            <div className="flex-shrink-0 px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 backdrop-blur-sm flex justify-between items-center z-10" style={{ flexShrink: 0, padding: '0.875rem 1.5rem', borderTop: '1px solid #F1F5F9', background: 'rgba(248, 250, 252, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
                                 <button 
                                     type="button" 
                                     onClick={() => { setIsModalOpen(false); setFormErrors({}); setTouchedFields({}); }} 
                                     className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-5 py-2.5 rounded-lg transition-colors"
-                                    style={{ border: '1px solid #E2E8F0', cursor: 'pointer', fontSize: '0.85rem' }}
+                                    style={{ border: '1px solid #E2E8F0', cursor: 'pointer', fontSize: '0.85rem', background: '#FFFFFF', color: '#475569', fontWeight: '600', padding: '0.6rem 1.25rem', borderRadius: '10px' }}
                                 >
                                     Cancel
                                 </button>
                                 <button 
                                     type="submit" 
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2.5 rounded-lg flex items-center gap-2 shadow-sm transition-all"
-                                    style={{ border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
+                                    style={{ border: 'none', cursor: 'pointer', fontSize: '0.9rem', background: '#059669', color: 'white', fontWeight: '700', padding: '0.65rem 1.5rem', borderRadius: '10px', boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)' }}
                                 >
                                     <Check size={16} />
                                     {editingSupplier ? 'Save Supplier Specifications' : 'Initialize Supplier Master Profile'}
