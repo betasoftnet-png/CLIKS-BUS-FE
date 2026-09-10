@@ -1419,17 +1419,17 @@ const BusinessSuppliers = () => {
             </div>
             {/* Register/Edit Supplier Modal */}
             {isModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
-                    <div style={{ background: '#F8FAFC', width: '100%', maxWidth: '880px', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                    <div className="max-w-4xl w-full max-h-[88vh] flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-100" style={{ background: '#FFFFFF', width: '100%', maxWidth: '896px', maxHeight: '88vh', borderRadius: '1rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         
-                        {/* ── Header Section ── */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.75rem', background: 'white', borderBottom: '1px solid #E2E8F0', flexShrink: 0 }}>
+                        {/* ── Fixed Header Section ── */}
+                        <div className="flex-shrink-0 px-6 py-4 border-b border-slate-100 bg-white flex justify-between items-center z-10" style={{ flexShrink: 0, padding: '1rem 1.5rem', borderBottom: '1px solid #F1F5F9', background: '#FFFFFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                                 <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#ECFDF5', border: '1px solid #D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0 }}>
                                     <Building2 size={22} />
                                 </div>
                                 <div>
-                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0F172A', margin: 0, lineHeight: 1.3, letterSpacing: '-0.02em' }}>
+                                    <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#0F172A', margin: 0, lineHeight: 1.3, letterSpacing: '-0.02em' }}>
                                         {editingSupplier ? 'Edit Supplier Profile' : 'Register Vendor Master Profile'}
                                     </h2>
                                     <p style={{ fontSize: '0.75rem', color: '#64748B', margin: '2px 0 0 0' }}>
@@ -1452,8 +1452,8 @@ const BusinessSuppliers = () => {
                         </div>
 
                         {/* ── Form Body with 4 Sectioned Cards ── */}
-                        <form onSubmit={handleSubmitSupplier} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', margin: 0 }}>
-                            <div className="ledger-modal-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <form onSubmit={handleSubmitSupplier} className="flex flex-col flex-1 overflow-hidden m-0 min-h-0" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', minHeight: 0, margin: 0 }}>
+                            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 ledger-modal-scrollbar bg-slate-50/50" style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: '#F8FAFC' }}>
 
                                 {/* ── Section 1: Basic Information ── */}
                                 <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '14px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
@@ -1941,8 +1941,8 @@ const BusinessSuppliers = () => {
 
                             </div>
 
-                            {/* ── Modal Footer Actions ── */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.75rem', background: 'white', borderTop: '1px solid #E2E8F0', flexShrink: 0 }}>
+                            {/* ── Fixed Modal Footer Actions ── */}
+                            <div className="flex-shrink-0 px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 backdrop-blur-sm flex justify-between items-center z-10" style={{ flexShrink: 0, padding: '0.875rem 1.5rem', borderTop: '1px solid #F1F5F9', background: 'rgba(248, 250, 252, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
                                 <button 
                                     type="button" 
                                     onClick={() => { setIsModalOpen(false); setFormErrors({}); setTouchedFields({}); }} 

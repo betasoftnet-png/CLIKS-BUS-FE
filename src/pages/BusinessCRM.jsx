@@ -1444,28 +1444,28 @@ const BusinessCRM = () => {
 
             {/* Create/Edit Customer Modal */}
             {isModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: '#F8FAFC', width: '100%', maxWidth: '860px', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[1000] p-4" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                    <div className="max-w-4xl w-full max-h-[88vh] flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-100" style={{ background: '#FFFFFF', width: '100%', maxWidth: '896px', maxHeight: '88vh', borderRadius: '1rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-                        {/* ── Header ── */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.75rem', background: 'white', borderBottom: '1px solid #E2E8F0', flexShrink: 0 }}>
+                        {/* ── Fixed Header ── */}
+                        <div className="flex-shrink-0 px-6 py-4 border-b border-slate-100 bg-white flex justify-between items-center z-10" style={{ flexShrink: 0, padding: '1rem 1.5rem', borderBottom: '1px solid #F1F5F9', background: '#FFFFFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7C3AED', flexShrink: 0 }}>
                                     <User size={20} />
                                 </div>
                                 <div>
-                                    <h2 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0F172A', margin: 0, lineHeight: 1.3 }}>{editingCustomer ? 'Edit Customer Profile' : 'New Customer Registration'}</h2>
-                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>Add customer details to start doing business with them.</p>
+                                    <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#0F172A', margin: 0, lineHeight: 1.3, letterSpacing: '-0.02em' }}>{editingCustomer ? 'Edit Customer Profile' : 'New Customer Registration'}</h2>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: '2px 0 0 0' }}>Add customer details to start doing business with them.</p>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.35rem 0.75rem' }}>Code: {formData.customer_code}</span>
+                                <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748B', background: '#F1F5F9', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.35rem 0.75rem' }}>Code: {formData.customer_code}</span>
                                 <button onClick={closeModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}><X size={18} /></button>
                             </div>
                         </div>
 
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', margin: 0 }}>
-                            <div className="ledger-modal-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden m-0 min-h-0" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', minHeight: 0, margin: 0 }}>
+                            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 ledger-modal-scrollbar bg-slate-50/50" style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: '#F8FAFC' }}>
 
 
                                 {/* ── Section 1: Basic Information ── */}
@@ -1695,9 +1695,9 @@ const BusinessCRM = () => {
 
                             </div>
 
-                            {/* ── Footer Actions ── */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.75rem', background: 'white', borderTop: '1px solid #E2E8F0', flexShrink: 0 }}>
-                                <button type="button" onClick={closeModal} style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#475569', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}>
+                            {/* ── Fixed Footer Actions ── */}
+                            <div className="flex-shrink-0 px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 backdrop-blur-sm flex justify-between items-center z-10" style={{ flexShrink: 0, padding: '0.875rem 1.5rem', borderTop: '1px solid #F1F5F9', background: 'rgba(248, 250, 252, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 }}>
+                                <button type="button" onClick={closeModal} className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-5 py-2.5 rounded-lg transition-colors" style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#FFFFFF', color: '#475569', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}>
                                     Cancel
                                 </button>
                                 <button type="submit" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.5rem', borderRadius: '10px', background: '#7C3AED', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(124,58,237,0.25)' }}>
