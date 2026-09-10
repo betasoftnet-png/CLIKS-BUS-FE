@@ -764,6 +764,18 @@ export default function BusinessCA({ mode }) {
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
     const [showReportSuccess, setShowReportSuccess] = useState(false);
 
+    const getAuditorShortLabel = (cat) => {
+        if (!cat) return "Dynamic Auditor Tab";
+        if (cat.includes("Statutory")) return "Statutory Financial Auditor";
+        if (cat.includes("Tax Auditor")) return "Tax Auditor";
+        if (cat.includes("Internal Auditor")) return "Internal Auditor";
+        if (cat.includes("Cost Auditor")) return "Cost Auditor";
+        if (cat.includes("Secretarial")) return "Secretarial Auditor";
+        if (cat.includes("Forensic")) return "Forensic Auditor";
+        if (cat.includes("Advisory")) return "FIN-PRO Advisory Workspace";
+        return cat.split(' (')[0] || cat;
+    };
+
     const sidebarTabs = [
         { id: 'home', label: 'Home', icon: Home },
         { id: 'clients', label: 'Clients', icon: User, badge: null },
@@ -771,9 +783,7 @@ export default function BusinessCA({ mode }) {
         { id: 'teams', label: 'Teams', icon: Users, badge: null },
         { id: 'timetracking', label: 'Time Tracking', icon: Clock, badge: null },
         { id: 'workpaper', label: 'Workpaper', icon: FileText },
-        { id: 'documents', label: 'consult', icon: Wallet },
-        { id: 'reports', label: 'Reports', icon: BarChart },
-        { id: 'senior_ca', label: 'Senior CA', icon: UserCheck }
+        { id: 'auditor_desk', label: getAuditorShortLabel(activeAuditorCategory), icon: Briefcase }
     ];
 
     // Timer Effect
@@ -2465,6 +2475,7 @@ export default function BusinessCA({ mode }) {
                                     onClick={() => {
                                         setActiveAuditorCategory(category);
                                         setActiveSuiteTool('tool1');
+                                        setPersonalTab('auditor_desk');
                                     }}
                                     style={{
                                         display: 'inline-flex',
@@ -2497,7 +2508,7 @@ export default function BusinessCA({ mode }) {
                     </div>
 
                     {/* Auditor Category Specialized Suite Card */}
-                    {activeAuditorCategory !== "FIN-PRO Advisory Workspace" && (
+                    {personalTab === 'auditor_desk' && (
                     <div style={{
                         background: '#FFFFFF',
                         borderRadius: '16px',
@@ -2598,6 +2609,19 @@ export default function BusinessCA({ mode }) {
                                     { id: 'tool3', label: 'Circular Billing Graph Detector' },
                                     { id: 'tool4', label: 'Weekend & Back-Dated Heatmap' },
                                     { id: 'tool5', label: 'Deleted & Modified Voucher Inspector' }
+                                ];
+                            } else {
+                                title = "FIN-PRO Advisory & Practice Suite";
+                                goal = "Execute firm-wide advisory, client engagement workflows, compliance tracking, and practice operations.";
+                                authorityBadge = "Advisory Workspace";
+                                primaryDeliverable = "Unified Practice Management & Executive Compliance Reports";
+                                iconBg = "#F0FDF4";
+                                iconColor = "#15803d";
+                                tools = [
+                                    { id: 'tool1', label: 'Practice Overview & Analytics' },
+                                    { id: 'tool2', label: 'Client Engagement Desk' },
+                                    { id: 'tool3', label: 'Compliance Audit Checklist' },
+                                    { id: 'tool4', label: 'Team Task Allocation' }
                                 ];
                             }
 
@@ -3124,9 +3148,7 @@ export default function BusinessCA({ mode }) {
                     </div>
                     )}
 
-                    {/* Zoho Practice Style Scrollable Horizontal Navigation Tab Bar */}
-                    {activeAuditorCategory === "FIN-PRO Advisory Workspace" && (
-                    <>
+                    {/* Persistent 7-Tab Sub-Navigation Bar */}
                     <div style={{
                         background: '#FFFFFF',
                         borderRadius: '16px',
@@ -5306,8 +5328,6 @@ export default function BusinessCA({ mode }) {
                             )}
                         </AnimatePresence>
                     </div>
-                    </>
-                    )}
 
                     {/* Modals for CRUD operations */}
                     {showAddClientModal && (
@@ -6161,8 +6181,6 @@ export default function BusinessCA({ mode }) {
                             </div>
                         </div>
                     )}
-                </div>
-            )}
             {/* 💳 Payment Process Modal (Module 5) */}
             {showPaymentModal && selectedInvoiceToPay && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
@@ -6243,7 +6261,8 @@ export default function BusinessCA({ mode }) {
                     </div>
                 </div>
             )}
-
+                    </div>
+                )}
         </div>
     );
 }
