@@ -124,34 +124,67 @@ export const AuthProvider = ({ children }) => {
         }
     }, [user, token]);
 
-    const changePlan = async (newPlanName) => {
+    const changePlan = async (newPlanName, targetCategory = null) => {
         const duration = getPlanDuration(newPlanName);
+
+        // Detect category if not provided
+        let cat = targetCategory;
+        if (!cat) {
+            if (['Fin-Pro Solo', 'Fin-Pro Firm', 'FIN-PRO'].includes(newPlanName)) {
+                cat = 'fin_pro';
+            } else if (['Basic Investor', 'Pro Investor', 'Investor Club'].includes(newPlanName)) {
+                cat = 'investor';
+            } else if (['Monthly Innovator', 'Yearly Founder', 'Poster Plan'].includes(newPlanName)) {
+                cat = 'poster';
+            } else {
+                cat = 'business';
+            }
+        }
+
+        const existingSubs = user?.active_subscriptions || {
+            business: { active: true, plan: user?.tier || 'Starter Plan' },
+            fin_pro: { active: Boolean(localStorage.getItem('cliks_finpro_active') === 'true'), plan: null },
+            investor: { active: Boolean(localStorage.getItem('cliks_investor_active') === 'true'), plan: null },
+            poster: { active: Boolean(localStorage.getItem('cliks_poster_active') === 'true'), plan: null }
+        };
+
+        const updatedSubs = {
+            ...existingSubs,
+            [cat]: { active: true, plan: newPlanName, updated_at: new Date().toISOString() }
+        };
+
+        if (cat === 'fin_pro') localStorage.setItem('cliks_finpro_active', 'true');
+        if (cat === 'investor') localStorage.setItem('cliks_investor_active', 'true');
+        if (cat === 'poster') localStorage.setItem('cliks_poster_active', 'true');
+
+        const updatePayload = {
+            active_subscriptions: updatedSubs
+        };
+
+        if (cat === 'business') {
+            updatePayload.tier = newPlanName;
+            updatePayload.subscription_days_remaining = duration;
+        }
+
         try {
-            // Hit backend database to persist updated tier & days remaining
-            const res = await profileService.updateProfile({ 
-                tier: newPlanName, 
-                subscription_days_remaining: duration 
-            });
-            
-            // Extract the user data
+            const res = await profileService.updateProfile(updatePayload);
             const updatedUser = res.data || res;
             setUser(prev => ({ 
                 ...prev, 
                 ...updatedUser,
-                tier: newPlanName,
-                subscription_days_remaining: duration
+                active_subscriptions: updatedSubs,
+                ...(cat === 'business' ? { tier: newPlanName, subscription_days_remaining: duration } : {})
             }));
-            setPlanDaysRemaining(duration);
+            if (cat === 'business') setPlanDaysRemaining(duration);
             return updatedUser;
         } catch (err) {
             console.error("Failed to update active subscription in database:", err);
-            // Simulated/Fallback path if API fails
             setUser(prev => ({
                 ...prev,
-                tier: newPlanName,
-                subscription_days_remaining: duration
+                active_subscriptions: updatedSubs,
+                ...(cat === 'business' ? { tier: newPlanName, subscription_days_remaining: duration } : {})
             }));
-            setPlanDaysRemaining(duration);
+            if (cat === 'business') setPlanDaysRemaining(duration);
         }
     };
 

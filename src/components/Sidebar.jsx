@@ -808,11 +808,12 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     const progressPercent = Math.min(100, Math.max(0, (displayDays / totalDays) * 100));
                     const strokeDashoffset = 113 * (1 - progressPercent / 100);
 
-                    // Dynamic Active Subscription Categories Evaluator
+                    const subs = user?.active_subscriptions || {};
                     const activeBoxes = [];
 
                     // [1] Business Plan
                     const hasBusinessPlan = Boolean(
+                        subs.business?.active ||
                         selectedPlan || 
                         user?.tier || 
                         user?.plan_type || 
@@ -820,47 +821,46 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         user?.active_plans?.business
                     );
                     if (hasBusinessPlan || activeBoxes.length === 0) {
-                        activeBoxes.push({ type: 'business', label: 'Business Plan' });
+                        activeBoxes.push({ type: 'business', label: `Business: ${subs.business?.plan || selectedPlan || 'Starter Plan'}` });
                     }
 
                     // [2] FIN-PRO Plan
                     const hasFinProPlan = Boolean(
+                        subs.fin_pro?.active ||
                         user?.finpro_plan || 
                         user?.ca_plan || 
                         user?.active_plans?.finpro || 
-                        localStorage.getItem('cliks_finpro_active') === 'true' ||
-                        localStorage.getItem('cliks_finpro_plan') ||
-                        ['Fin-Pro Solo', 'Fin-Pro Firm', 'FIN-PRO'].includes(selectedPlan)
+                        localStorage.getItem('cliks_finpro_active') === 'true'
                     );
                     if (hasFinProPlan) {
-                        activeBoxes.push({ type: 'finpro', label: 'FIN-PRO Plan' });
+                        activeBoxes.push({ type: 'finpro', label: `FIN-PRO: ${subs.fin_pro?.plan || 'Active'}` });
                     }
 
                     // [3] Capital Matrix - Investor Club
                     const hasInvestorPlan = Boolean(
+                        subs.investor?.active ||
                         user?.investor_plan || 
                         user?.betaclub_investor_plan || 
                         user?.active_plans?.investor || 
-                        localStorage.getItem('cliks_investor_active') === 'true' ||
-                        localStorage.getItem('cliks_investor_plan') ||
-                        ['Basic Investor', 'Pro Investor', 'Investor Club'].includes(selectedPlan)
+                        localStorage.getItem('cliks_investor_active') === 'true'
                     );
                     if (hasInvestorPlan) {
-                        activeBoxes.push({ type: 'investor', label: 'Capital Matrix - Investor Club' });
+                        activeBoxes.push({ type: 'investor', label: `Investor: ${subs.investor?.plan || 'Active'}` });
                     }
 
                     // [4] Capital Matrix - Products & Ideas / Poster / Founder
                     const hasPosterPlan = Boolean(
+                        subs.poster?.active ||
                         user?.poster_plan || 
                         user?.founder_plan || 
                         user?.active_plans?.poster || 
-                        localStorage.getItem('cliks_poster_active') === 'true' ||
-                        localStorage.getItem('cliks_poster_plan') ||
-                        ['Monthly Innovator', 'Yearly Founder', 'Poster Plan'].includes(selectedPlan)
+                        localStorage.getItem('cliks_poster_active') === 'true'
                     );
                     if (hasPosterPlan) {
-                        activeBoxes.push({ type: 'poster', label: 'Capital Matrix - Products & Ideas / Poster / Founder' });
+                        activeBoxes.push({ type: 'poster', label: `Founder: ${subs.poster?.plan || 'Active'}` });
                     }
+
+                    const displayCardTitle = activeBoxes.length > 1 ? 'Multi-Suite Active' : displayPlan;
 
                     return (
                         <button
@@ -917,8 +917,11 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                             );
                                         })}
                                     </div>
-                                    <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24', fontSize: '0.82rem', fontWeight: '800' }}>
-                                        {displayPlan}
+                                    <span 
+                                        title={activeBoxes.map(b => b.label).join(' | ')}
+                                        style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24', fontSize: '0.82rem', fontWeight: '800', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}
+                                    >
+                                        {displayCardTitle}
                                     </span>
                                     <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.62rem', fontWeight: '500' }}>
                                         {t('managePlan', 'Manage Plan')}
