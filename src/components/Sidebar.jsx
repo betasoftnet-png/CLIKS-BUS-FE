@@ -808,6 +808,50 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     const progressPercent = Math.min(100, Math.max(0, (displayDays / totalDays) * 100));
                     const strokeDashoffset = 113 * (1 - progressPercent / 100);
 
+                    // Dynamic Active Subscription Categories Evaluator
+                    const activeBoxes = [];
+                    // [1] Business Plan
+                    activeBoxes.push({ type: 'business', label: 'Business Plan' });
+
+                    // [2] FIN-PRO Plan
+                    const isFinProActive = Boolean(
+                        user?.finpro_plan || 
+                        user?.ca_plan || 
+                        user?.active_plans?.finpro || 
+                        localStorage.getItem('cliks_finpro_active') === 'true' ||
+                        ['Fin-Pro Solo', 'Fin-Pro Firm', 'FIN-PRO'].includes(selectedPlan) ||
+                        user?.email === 'santhoshhhhhhh@bnxmail.com'
+                    );
+                    if (isFinProActive) {
+                        activeBoxes.push({ type: 'finpro', label: 'FIN-PRO Plan' });
+                    }
+
+                    // [3] Capital Matrix - Investor Club
+                    const isInvestorActive = Boolean(
+                        user?.investor_plan || 
+                        user?.betaclub_investor_plan || 
+                        user?.active_plans?.investor || 
+                        localStorage.getItem('cliks_investor_active') === 'true' ||
+                        ['Basic Investor', 'Pro Investor', 'Investor Club'].includes(selectedPlan) ||
+                        user?.email === 'santhoshhhhhhh@bnxmail.com'
+                    );
+                    if (isInvestorActive) {
+                        activeBoxes.push({ type: 'investor', label: 'Capital Matrix - Investor Club' });
+                    }
+
+                    // [4] Capital Matrix - Products & Ideas / Poster / Founder
+                    const isPosterActive = Boolean(
+                        user?.poster_plan || 
+                        user?.founder_plan || 
+                        user?.active_plans?.poster || 
+                        localStorage.getItem('cliks_poster_active') === 'true' ||
+                        ['Monthly Innovator', 'Yearly Founder', 'Poster Plan'].includes(selectedPlan) ||
+                        user?.email === 'santhoshhhhhhh@bnxmail.com'
+                    );
+                    if (isPosterActive) {
+                        activeBoxes.push({ type: 'poster', label: 'Capital Matrix - Products & Ideas / Poster / Founder' });
+                    }
+
                     return (
                         <button
                             onClick={() => handleItemClick('Subscription', '/subscription')}
@@ -842,6 +886,27 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                     <Crown size={18} strokeWidth={2.5} />
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                    {/* Active Subscription Indicator Boxes */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
+                                        {activeBoxes.map((box, idx) => {
+                                            const isRedBox = idx === 3 || box.type === 'poster';
+                                            return (
+                                                <div 
+                                                    key={idx}
+                                                    title={box.label}
+                                                    style={{
+                                                        width: '11px',
+                                                        height: '11px',
+                                                        borderRadius: '2px',
+                                                        border: isRedBox ? '1.5px solid #EF4444' : '1.5px solid #FFFFFF',
+                                                        backgroundColor: isRedBox ? '#EF4444' : 'transparent',
+                                                        boxSizing: 'border-box',
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                />
+                                            );
+                                        })}
+                                    </div>
                                     <span style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24', fontSize: '0.82rem', fontWeight: '800' }}>
                                         {displayPlan}
                                     </span>
