@@ -26,13 +26,13 @@ export default function BusinessCA({ mode }) {
     const [activeSuiteTool, setActiveSuiteTool] = useState('tool1');
 
     const auditorCategories = [
+        "FIN-PRO Advisory Workspace",
         "Statutory Financial Auditor (ICAI CA)",
         "Tax Auditor (ICAI CA)",
         "Internal Auditor (CIA / CA / CMA)",
         "Cost Auditor (ICMAI CMA)",
         "Secretarial Auditor (ICSI CS)",
-        "Forensic Auditor (ICAI FAFD / CFE)",
-        "FIN-PRO Advisory Workspace"
+        "Forensic Auditor (ICAI FAFD / CFE)"
     ];
 
     // Timer States
