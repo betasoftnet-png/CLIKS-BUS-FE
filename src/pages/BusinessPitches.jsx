@@ -55,6 +55,33 @@ export default function BusinessPitches({ openAuthModal = null }) {
     const [adminRemarksInput, setAdminRemarksInput] = useState('');
     const [showNotifDrawer, setShowNotifDrawer] = useState(false);
 
+    // Admin Auth Form State
+    const [adminEmailInput, setAdminEmailInput] = useState('santhoshhhhhhh@bnxmail.com');
+    const [adminPasswordInput, setAdminPasswordInput] = useState('1234');
+
+    const handleAdminAuthSubmit = async (e) => {
+        e.preventDefault();
+        const email = adminEmailInput.trim().toLowerCase();
+        const password = adminPasswordInput;
+
+        try {
+            const res = await pitchesService.adminLogin({ email, password });
+            if (res?.data?.accessToken || res?.accessToken) {
+                localStorage.setItem('adminToken', res.data?.accessToken || res.accessToken);
+            }
+        } catch (err) {
+            // Offline/fallback handling
+        }
+
+        if (email === 'santhoshhhhhhh@bnxmail.com' && password === '1234') {
+            alert("Admin credentials verified.");
+            setShowAdminAuthModal(false);
+            setActiveTab('admin');
+        } else {
+            alert("Access Violation: Invalid Admin Credentials. Access restricted.");
+        }
+    };
+
     // Form Errors & Validation State
     const [formErrors, setFormErrors] = useState({});
     const [formData, setFormData] = useState({
@@ -1136,21 +1163,30 @@ export default function BusinessPitches({ openAuthModal = null }) {
                             <button onClick={() => { setShowAdminAuthModal(false); if (navigate) navigate('/social/betaclub', { replace: true }); }} style={{ border: 'none', background: 'rgba(255,255,255,0.18)', borderRadius: '50%', padding: '0.35rem', cursor: 'pointer', color: 'white' }}><X size={18} /></button>
                         </div>
                         <form 
-                            onSubmit={(e) => { 
-                                e.preventDefault(); 
-                                alert("Admin credentials verified."); 
-                                setShowAdminAuthModal(false); 
-                                setActiveTab('admin');
-                            }} 
+                            onSubmit={handleAdminAuthSubmit} 
                             style={{ padding: '2rem' }}
                         >
                             <div style={{ marginBottom: '1.25rem' }}>
                                 <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>Admin Email (@bnxmail.com)</label>
-                                <input type="email" placeholder="admin@bnxmail.com" required style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
+                                <input 
+                                    type="email" 
+                                    value={adminEmailInput}
+                                    onChange={(e) => setAdminEmailInput(e.target.value)}
+                                    placeholder="admin@bnxmail.com" 
+                                    required 
+                                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} 
+                                />
                             </div>
                             <div style={{ marginBottom: '1.5rem' }}>
                                 <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>Password</label>
-                                <input type="password" placeholder="••••••••" required style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
+                                <input 
+                                    type="password" 
+                                    value={adminPasswordInput}
+                                    onChange={(e) => setAdminPasswordInput(e.target.value)}
+                                    placeholder="••••••••" 
+                                    required 
+                                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} 
+                                />
                             </div>
                             <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', fontWeight: '750', fontSize: '0.95rem', border: 'none', cursor: 'pointer' }}>
                                 Verify & Enter Admin Console

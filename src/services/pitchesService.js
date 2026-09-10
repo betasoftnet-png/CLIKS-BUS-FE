@@ -11,6 +11,7 @@ export const pitchesService = {
     verifyPitch: (id, payload = {}) => apiClient.post(`/pitches/${id}/verify`, payload).then(res => res.data.data || res.data),
     
     // Admin Review Endpoints
+    adminLogin: (payload) => apiClient.post('/admin/auth/login', payload).then(res => res.data),
     getAdminPitches: () => apiClient.get('/admin/ventures/pitches').then(res => res.data.data || res.data),
     reviewPitch: (id, payload) => apiClient.put(`/admin/ventures/pitches/${id}/review`, payload).then(res => res.data),
     
