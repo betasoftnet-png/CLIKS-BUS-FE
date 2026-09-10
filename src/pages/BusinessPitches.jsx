@@ -22,15 +22,20 @@ import {
     MessageSquare,
     ArrowUpRight,
     MapPin,
-    Search
+    Search,
+    User
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-export default function BusinessPitches() {
+export default function BusinessPitches({ openAuthModal = null }) {
+    const navigate = useNavigate();
     const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('directory'); // 'directory' | 'studio'
     const [searchTerm, setSearchTerm] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showFounderAuthModal, setShowFounderAuthModal] = useState(openAuthModal === 'founder');
+    const [showInvestorAuthModal, setShowInvestorAuthModal] = useState(openAuthModal === 'investor');
     const [selectedConnectPitch, setSelectedConnectPitch] = useState(null);
 
     // Location State
@@ -445,38 +450,127 @@ export default function BusinessPitches() {
                     </div>
                 </div>
 
-                <button 
-                    onClick={() => setShowCreateModal(true)}
-                    style={{
-                        position: 'relative',
-                        zIndex: 2,
-                        padding: '0.75rem 1.25rem',
-                        borderRadius: '12px',
-                        background: '#10b981',
-                        color: 'white',
-                        fontWeight: '700',
-                        fontSize: '0.875rem',
-                        border: 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem',
-                        boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
-                        transition: 'transform 0.2s, background 0.2s'
-                    }}
-                    onMouseOver={(e) => {
-                        e.currentTarget.style.background = '#059669';
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseOut={(e) => {
-                        e.currentTarget.style.background = '#10b981';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                >
-                    <Rocket size={15} />
-                    <span>List Your Venture</span>
-                </button>
+                <div style={{
+                    position: 'relative',
+                    zIndex: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    flexWrap: 'wrap'
+                }}>
+                    <button 
+                        type="button"
+                        onClick={() => {
+                            if (navigate) navigate('/auth/founder-login');
+                            setShowFounderAuthModal(true);
+                        }}
+                        style={{
+                            position: 'relative',
+                            zIndex: 2,
+                            padding: '0.75rem 1.25rem',
+                            borderRadius: '12px',
+                            background: 'rgba(255, 255, 255, 0.12)',
+                            color: '#FFFFFF',
+                            fontWeight: '700',
+                            fontSize: '0.875rem',
+                            border: '1px solid rgba(255, 255, 255, 0.25)',
+                            backdropFilter: 'blur(8px)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.45)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                    >
+                        <User size={15} />
+                        <span>FOUNDER login</span>
+                    </button>
+
+                    <button 
+                        type="button"
+                        onClick={() => {
+                            if (navigate) navigate('/auth/investor-login');
+                            setShowInvestorAuthModal(true);
+                        }}
+                        style={{
+                            position: 'relative',
+                            zIndex: 2,
+                            padding: '0.75rem 1.25rem',
+                            borderRadius: '12px',
+                            background: 'rgba(255, 255, 255, 0.12)',
+                            color: '#FFFFFF',
+                            fontWeight: '700',
+                            fontSize: '0.875rem',
+                            border: '1px solid rgba(255, 255, 255, 0.25)',
+                            backdropFilter: 'blur(8px)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.45)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                    >
+                        <TrendingUp size={15} />
+                        <span>INVESTOR login</span>
+                    </button>
+
+                    <button 
+                        onClick={() => setShowCreateModal(true)}
+                        style={{
+                            position: 'relative',
+                            zIndex: 2,
+                            padding: '0.75rem 1.25rem',
+                            borderRadius: '12px',
+                            background: '#10b981',
+                            color: 'white',
+                            fontWeight: '700',
+                            fontSize: '0.875rem',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                            transition: 'transform 0.2s, background 0.2s'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.background = '#059669';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.background = '#10b981';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                    >
+                        <Rocket size={15} />
+                        <span>List Your Venture</span>
+                    </button>
+                </div>
             </div>
 
             {/* Elegant Compact Sub-Header with Navigation */}
@@ -1486,6 +1580,224 @@ export default function BusinessPitches() {
                                 <span>Submit Connect Request</span>
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* FOUNDER Login Modal */}
+            {showFounderAuthModal && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(15, 23, 42, 0.5)',
+                    backdropFilter: 'blur(8px)',
+                    zIndex: 1000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '1.5rem'
+                }}>
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '24px',
+                        width: '100%',
+                        maxWidth: '480px',
+                        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35)',
+                        overflow: 'hidden',
+                        animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                    }}>
+                        <div style={{
+                            padding: '1.75rem 2rem',
+                            borderBottom: '1px solid #f1f5f9',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            background: 'linear-gradient(135deg, #1E3A8A 0%, #1e40af 100%)',
+                            color: 'white'
+                        }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                                    <User size={20} color="#60A5FA" />
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', margin: 0 }}>FOUNDER Login</h3>
+                                </div>
+                                <p style={{ fontSize: '0.85rem', color: '#BFDBFE', margin: 0, opacity: 0.9 }}>
+                                    Access your venture dashboard and investor connections.
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setShowFounderAuthModal(false)}
+                                style={{ border: 'none', background: 'rgba(255,255,255,0.15)', borderRadius: '50%', padding: '0.35rem', cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <form onSubmit={(e) => { e.preventDefault(); alert("Founder login successful!"); setShowFounderAuthModal(false); }} style={{ padding: '2rem' }}>
+                            <div style={{ marginBottom: '1.25rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>
+                                    Founder Email / Phone
+                                </label>
+                                <input 
+                                    type="text" 
+                                    placeholder="founder@company.com" 
+                                    required
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem 1rem',
+                                        borderRadius: '10px',
+                                        border: '1px solid #cbd5e1',
+                                        fontSize: '0.9rem',
+                                        outline: 'none',
+                                        boxSizing: 'border-box'
+                                    }}
+                                />
+                            </div>
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>
+                                    Password
+                                </label>
+                                <input 
+                                    type="password" 
+                                    placeholder="••••••••" 
+                                    required
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem 1rem',
+                                        borderRadius: '10px',
+                                        border: '1px solid #cbd5e1',
+                                        fontSize: '0.9rem',
+                                        outline: 'none',
+                                        boxSizing: 'border-box'
+                                    }}
+                                />
+                            </div>
+                            <button 
+                                type="submit"
+                                style={{
+                                    width: '100%',
+                                    padding: '0.85rem',
+                                    borderRadius: '12px',
+                                    background: '#1E3A8A',
+                                    color: 'white',
+                                    fontWeight: '750',
+                                    fontSize: '0.95rem',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 12px rgba(30, 58, 138, 0.25)',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                Login to Founder Hub
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* INVESTOR Login Modal */}
+            {showInvestorAuthModal && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(15, 23, 42, 0.5)',
+                    backdropFilter: 'blur(8px)',
+                    zIndex: 1000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '1.5rem'
+                }}>
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '24px',
+                        width: '100%',
+                        maxWidth: '480px',
+                        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35)',
+                        overflow: 'hidden',
+                        animation: 'modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                    }}>
+                        <div style={{
+                            padding: '1.75rem 2rem',
+                            borderBottom: '1px solid #f1f5f9',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                            color: 'white'
+                        }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                                    <TrendingUp size={20} color="#34D399" />
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', margin: 0 }}>INVESTOR Login</h3>
+                                </div>
+                                <p style={{ fontSize: '0.85rem', color: '#94A3B8', margin: 0, opacity: 0.9 }}>
+                                    Access verified SME deal marketplace & private pitch rooms.
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setShowInvestorAuthModal(false)}
+                                style={{ border: 'none', background: 'rgba(255,255,255,0.15)', borderRadius: '50%', padding: '0.35rem', cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <form onSubmit={(e) => { e.preventDefault(); alert("Investor login successful!"); setShowInvestorAuthModal(false); }} style={{ padding: '2rem' }}>
+                            <div style={{ marginBottom: '1.25rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>
+                                    Investor ID / Institutional Email
+                                </label>
+                                <input 
+                                    type="text" 
+                                    placeholder="investor@capital.com" 
+                                    required
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem 1rem',
+                                        borderRadius: '10px',
+                                        border: '1px solid #cbd5e1',
+                                        fontSize: '0.9rem',
+                                        outline: 'none',
+                                        boxSizing: 'border-box'
+                                    }}
+                                />
+                            </div>
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#334155', marginBottom: '0.4rem' }}>
+                                    Password / Key
+                                </label>
+                                <input 
+                                    type="password" 
+                                    placeholder="••••••••" 
+                                    required
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem 1rem',
+                                        borderRadius: '10px',
+                                        border: '1px solid #cbd5e1',
+                                        fontSize: '0.9rem',
+                                        outline: 'none',
+                                        boxSizing: 'border-box'
+                                    }}
+                                />
+                            </div>
+                            <button 
+                                type="submit"
+                                style={{
+                                    width: '100%',
+                                    padding: '0.85rem',
+                                    borderRadius: '12px',
+                                    background: '#0F172A',
+                                    color: 'white',
+                                    fontWeight: '750',
+                                    fontSize: '0.95rem',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.25)',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                Login to Investor Portal
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}

@@ -346,6 +346,8 @@ function AppContent() {
                     <Route path="/social/meetup" element={<Navigate to="/social/betaclub" replace />} />
                     <Route path="/social/betaclub" element={<BusinessPitches />} />
                     <Route path="/social/investors" element={<Navigate to="/social/betaclub" replace />} />
+                    <Route path="/auth/founder-login" element={<BusinessPitches openAuthModal="founder" />} />
+                    <Route path="/auth/investor-login" element={<BusinessPitches openAuthModal="investor" />} />
                     <Route path="/social/trading" element={<BusinessTrading />} />
                     <Route path="/referral" element={<BusinessReferral />} />
                     <Route path="/cliks" element={<BusinessPlaceholder title="Cliks" />} />
