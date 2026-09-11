@@ -7,7 +7,8 @@ import {
     RefreshCw, Globe, ArrowLeftRight, Landmark, Calendar, Clock,
     UserCheck, ChevronRight, Layers, FileCheck, HelpCircle, TrendingUp, Plus, Search, Building,
     User, Wallet, Percent, PiggyBank, FileUp, Home, Users, Folder, BarChart, Play, Square, Trash2, PlusCircle, CheckSquare, FileSpreadsheet, Edit2,
-    Calculator, History, Info, Save, X, ChevronDown, Check, Download, ExternalLink, Eye, MessageSquare
+    Calculator, History, Info, Save, X, ChevronDown, Check, Download, ExternalLink, Eye, MessageSquare,
+    ShieldCheck, Award, MapPin, CheckCircle
 } from 'lucide-react';
 import { accountingService, gstService, contactsService, caService, profileService } from '../services';
 import { useCurrency, useAuth } from '../context';
@@ -48,6 +49,103 @@ export default function BusinessCA({ mode }) {
         if (cat.includes('tax')) return 'tax';
         return 'finpro';
     })();
+
+    // ── ICAI Professional Verification State ──
+    const [icaiVerification, setIcaiVerification] = useState(() => {
+        const saved = localStorage.getItem('cliks_icai_verification');
+        if (saved) {
+            try { return JSON.parse(saved); } catch (e) {}
+        }
+        return {
+            fullName: '',
+            firmName: '',
+            membershipNo: '',
+            email: user?.email || '',
+            copStatus: 'Full-Time COP',
+            associateFellow: 'Associate (ACA)',
+            address: '',
+            region: 'Southern',
+            status: localStorage.getItem('cliks_ca_verification_status') || 'UNVERIFIED'
+        };
+    });
+
+    const [isIcaiModalOpen, setIsIcaiModalOpen] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
+
+    const [icaiFormData, setIcaiFormData] = useState({
+        fullName: icaiVerification.fullName || '',
+        firmName: icaiVerification.firmName || '',
+        membershipNo: icaiVerification.membershipNo || '',
+        email: icaiVerification.email || user?.email || '',
+        copStatus: icaiVerification.copStatus || 'Full-Time COP',
+        associateFellow: icaiVerification.associateFellow || 'Associate (ACA)',
+        address: icaiVerification.address || '',
+        region: icaiVerification.region || 'Southern'
+    });
+
+    // Automatically synchronize state from localStorage
+    useEffect(() => {
+        const syncIcai = () => {
+            const saved = localStorage.getItem('cliks_icai_verification');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    setIcaiVerification(parsed);
+                } catch (e) {}
+            } else {
+                const status = localStorage.getItem('cliks_ca_verification_status') || 'UNVERIFIED';
+                setIcaiVerification(prev => ({ ...prev, status }));
+            }
+        };
+        syncIcai();
+        window.addEventListener('storage', syncIcai);
+        return () => window.removeEventListener('storage', syncIcai);
+    }, []);
+
+    // Auto-open modal if URL has ?verify_icai=true
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        if (params.get('verify_icai') === 'true') {
+            setIsIcaiModalOpen(true);
+        }
+    }, [location.search]);
+
+    // Sync form data whenever icaiVerification updates
+    useEffect(() => {
+        if (icaiVerification) {
+            setIcaiFormData({
+                fullName: icaiVerification.fullName || '',
+                firmName: icaiVerification.firmName || '',
+                membershipNo: icaiVerification.membershipNo || '',
+                email: icaiVerification.email || user?.email || '',
+                copStatus: icaiVerification.copStatus || 'Holding COP (Full-Time)',
+                associateFellow: icaiVerification.associateFellow || 'Associate Member (ACA)',
+                address: icaiVerification.address || '',
+                region: icaiVerification.region || 'Southern India Regional Council (SIRC)'
+            });
+        }
+    }, [icaiVerification]);
+
+    const handleSubmitIcaiVerification = (e) => {
+        e.preventDefault();
+        if (!icaiFormData.fullName.trim() || !icaiFormData.membershipNo.trim()) {
+            alert('Please fill in both Member Name and Membership / Reg No.');
+            return;
+        }
+
+        const submission = {
+            ...icaiFormData,
+            email: icaiFormData.email || user?.email || '',
+            status: 'PENDING_REVIEW',
+            submittedAt: new Date().toISOString().split('T')[0]
+        };
+
+        setIcaiVerification(submission);
+        localStorage.setItem('cliks_icai_verification', JSON.stringify(submission));
+        localStorage.setItem('cliks_ca_verification_status', 'PENDING_REVIEW');
+        setIsEditMode(false);
+        alert('Your ICAI membership credentials have been submitted for institutional verification.');
+    };
 
     // Timer States
     const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -2331,55 +2429,182 @@ export default function BusinessCA({ mode }) {
                         background: '#FFFFFF',
                         borderRadius: '16px',
                         border: '1px solid #E2E8F0',
-                        padding: '8px 12px',
+                        padding: '8px 16px',
                         display: 'flex',
-                        gap: '8px',
+                        justifyContent: 'space-between',
                         alignItems: 'center',
+                        gap: '12px',
                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)',
-                        overflowX: 'auto',
-                        whiteSpace: 'nowrap',
-                        WebkitOverflowScrolling: 'touch',
-                        scrollbarWidth: 'none'
+                        flexWrap: 'wrap'
                     }}>
-                        {auditorCategories.map((category) => {
-                            const isActive = activeAuditorCategory === category;
-                            return (
+                        <div style={{
+                            display: 'flex',
+                            gap: '8px',
+                            alignItems: 'center',
+                            overflowX: 'auto',
+                            whiteSpace: 'nowrap',
+                            WebkitOverflowScrolling: 'touch',
+                            scrollbarWidth: 'none',
+                            flex: 1
+                        }}>
+                            {auditorCategories.map((category) => {
+                                const isActive = activeAuditorCategory === category;
+                                return (
+                                    <button
+                                        key={category}
+                                        type="button"
+                                        onClick={() => {
+                                            setActiveAuditorCategory(category);
+                                            setActiveSuiteTool('tool1');
+                                            setPersonalTab('auditor_desk');
+                                        }}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            padding: '9px 15px',
+                                            borderRadius: '10px',
+                                            border: isActive ? '1.5px solid #15803d' : '1px solid #E2E8F0',
+                                            background: isActive ? '#F0FDF4' : '#F8FAFC',
+                                            color: isActive ? '#15803d' : '#475569',
+                                            fontWeight: isActive ? '800' : '600',
+                                            fontSize: '12.5px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.15s ease-in-out',
+                                            boxShadow: isActive ? '0 2px 4px rgba(21, 128, 61, 0.12)' : 'none',
+                                            flexShrink: 0
+                                        }}
+                                    >
+                                        <span style={{
+                                            width: '7px',
+                                            height: '7px',
+                                            borderRadius: '50%',
+                                            background: isActive ? '#16A34A' : '#94A3B8',
+                                            display: 'inline-block'
+                                        }} />
+                                        <span>{category}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Top-Right VERIFY ICAI Dynamic Status Button */}
+                        <div style={{ flexShrink: 0 }}>
+                            {icaiVerification.status === 'VERIFIED' ? (
                                 <button
-                                    key={category}
                                     type="button"
                                     onClick={() => {
-                                        setActiveAuditorCategory(category);
-                                        setActiveSuiteTool('tool1');
-                                        setPersonalTab('auditor_desk');
+                                        setIsEditMode(false);
+                                        setIsIcaiModalOpen(true);
                                     }}
+                                    className="bg-emerald-600 text-white px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-emerald-700 transition-all cursor-pointer"
                                     style={{
+                                        background: '#059669',
+                                        color: '#FFFFFF',
+                                        padding: '6px 16px',
+                                        borderRadius: '9999px',
+                                        fontSize: '12px',
+                                        fontWeight: '700',
+                                        border: 'none',
+                                        cursor: 'pointer',
                                         display: 'inline-flex',
                                         alignItems: 'center',
                                         gap: '6px',
-                                        padding: '9px 15px',
-                                        borderRadius: '10px',
-                                        border: isActive ? '1.5px solid #15803d' : '1px solid #E2E8F0',
-                                        background: isActive ? '#F0FDF4' : '#F8FAFC',
-                                        color: isActive ? '#15803d' : '#475569',
-                                        fontWeight: isActive ? '800' : '600',
-                                        fontSize: '12.5px',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.15s ease-in-out',
-                                        boxShadow: isActive ? '0 2px 4px rgba(21, 128, 61, 0.12)' : 'none',
-                                        flexShrink: 0
+                                        boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)'
                                     }}
                                 >
-                                    <span style={{
-                                        width: '7px',
-                                        height: '7px',
-                                        borderRadius: '50%',
-                                        background: isActive ? '#16A34A' : '#94A3B8',
-                                        display: 'inline-block'
-                                    }} />
-                                    <span>{category}</span>
+                                    <ShieldCheck size={14} />
+                                    <span>ICAI Verified ✓</span>
                                 </button>
-                            );
-                        })}
+                            ) : icaiVerification.status === 'PENDING_REVIEW' ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsEditMode(false);
+                                        setIsIcaiModalOpen(true);
+                                    }}
+                                    className="bg-amber-50 text-amber-700 border border-amber-300 px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 hover:bg-amber-100 transition-all cursor-pointer shadow-sm"
+                                    style={{
+                                        background: '#FFFBEB',
+                                        color: '#B45309',
+                                        border: '1px solid #FCD34D',
+                                        padding: '6px 16px',
+                                        borderRadius: '9999px',
+                                        fontSize: '12px',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}
+                                >
+                                    <Clock size={13} />
+                                    <span>ICAI Verification: Pending Admin Approval</span>
+                                </button>
+                            ) : icaiVerification.status === 'REJECTED' ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsEditMode(true);
+                                        setIcaiFormData({
+                                            fullName: icaiVerification.fullName || '',
+                                            firmName: icaiVerification.firmName || '',
+                                            membershipNo: icaiVerification.membershipNo || '',
+                                            email: icaiVerification.email || user?.email || '',
+                                            copStatus: icaiVerification.copStatus || 'Full-Time COP',
+                                            associateFellow: icaiVerification.associateFellow || 'Associate (ACA)',
+                                            address: icaiVerification.address || '',
+                                            region: icaiVerification.region || 'Southern'
+                                        });
+                                        setIsIcaiModalOpen(true);
+                                    }}
+                                    className="border border-rose-500 bg-rose-50 text-rose-600 px-4 py-1.5 rounded-full text-xs font-bold cursor-pointer hover:bg-rose-100 transition-all flex items-center gap-1.5 shadow-sm"
+                                    style={{
+                                        background: '#FFF1F2',
+                                        color: '#E11D48',
+                                        border: '1px solid #F43F5E',
+                                        padding: '6px 16px',
+                                        borderRadius: '9999px',
+                                        fontSize: '12px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}
+                                >
+                                    <AlertTriangle size={13} />
+                                    <span>ICAI Verification Rejected ✕ (Re-submit)</span>
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsEditMode(true);
+                                        setIsIcaiModalOpen(true);
+                                    }}
+                                    className="border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 px-4 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                                    style={{
+                                        background: 'transparent',
+                                        color: '#047857',
+                                        border: '2px solid #059669',
+                                        padding: '6px 16px',
+                                        borderRadius: '9999px',
+                                        fontSize: '12px',
+                                        fontWeight: '800',
+                                        letterSpacing: '0.03em',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                                    }}
+                                >
+                                    <Award size={14} />
+                                    <span>VERIFY ICAI</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {/* 7-Tab Sub-Navigation Bar — Row 2 */}
@@ -6069,6 +6294,486 @@ export default function BusinessCA({ mode }) {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* 🏛 ICAI Professional Verification Modal */}
+            {isIcaiModalOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    backdropFilter: 'blur(4px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 999999,
+                    padding: '20px'
+                }}>
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '20px',
+                        width: '100%',
+                        maxWidth: '720px',
+                        maxHeight: '92vh',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        border: '1px solid #E2E8F0'
+                    }}>
+                        {/* Header */}
+                        <div style={{
+                            padding: '20px 24px',
+                            background: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)',
+                            color: '#FFFFFF',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '12px',
+                                    background: 'rgba(255, 255, 255, 0.15)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    <ShieldCheck size={24} className="text-white" />
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0, letterSpacing: '-0.02em', color: '#FFFFFF' }}>
+                                        Verify ICAI Member Credentials
+                                    </h3>
+                                    <p style={{ fontSize: '12px', margin: '2px 0 0 0', opacity: 0.85, color: '#D1FAE5' }}>
+                                        Submit your official membership records for institutional CA accreditation.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => { setIsIcaiModalOpen(false); setIsEditMode(false); }}
+                                style={{
+                                    border: 'none',
+                                    background: 'rgba(255, 255, 255, 0.2)',
+                                    color: '#FFFFFF',
+                                    borderRadius: '50%',
+                                    width: '32px',
+                                    height: '32px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+                            {/* If read-only mode (status !== 'UNVERIFIED' and !isEditMode) */}
+                            {icaiVerification.status !== 'UNVERIFIED' && !isEditMode ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    {/* Status Alert Banner */}
+                                    {icaiVerification.status === 'PENDING_REVIEW' && (
+                                        <div style={{
+                                            padding: '16px 20px',
+                                            borderRadius: '14px',
+                                            background: '#FEF3C7',
+                                            border: '1px solid #FCD34D',
+                                            display: 'flex',
+                                            alignItems: 'flex-start',
+                                            gap: '12px'
+                                        }}>
+                                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#D97706', marginTop: '5px', flexShrink: 0 }} />
+                                            <div>
+                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#92400E' }}>
+                                                    Verification in Progress: Pending Institutional Review
+                                                </div>
+                                                <div style={{ fontSize: '12.5px', color: '#B45309', marginTop: '3px', lineHeight: '1.4' }}>
+                                                    Your credentials have been submitted to the Cliks Master Administration desk for institutional ICAI registry validation. You will be notified immediately upon approval.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {icaiVerification.status === 'VERIFIED' && (
+                                        <div style={{
+                                            padding: '16px 20px',
+                                            borderRadius: '14px',
+                                            background: '#ECFDF5',
+                                            border: '1px solid #6EE7B7',
+                                            display: 'flex',
+                                            alignItems: 'flex-start',
+                                            gap: '12px'
+                                        }}>
+                                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#059669', marginTop: '5px', flexShrink: 0 }} />
+                                            <div>
+                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#065F46' }}>
+                                                    ICAI Member Verified ✓
+                                                </div>
+                                                <div style={{ fontSize: '12.5px', color: '#047857', marginTop: '3px', lineHeight: '1.4' }}>
+                                                    Your professional ICAI credentials are verified and active. You are fully authorized to access and subscribe to the FIN-PRO Advisory Suite.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {icaiVerification.status === 'REJECTED' && (
+                                        <div style={{
+                                            padding: '16px 20px',
+                                            borderRadius: '14px',
+                                            background: '#FEF2F2',
+                                            border: '1px solid #FECACA',
+                                            display: 'flex',
+                                            alignItems: 'flex-start',
+                                            gap: '12px'
+                                        }}>
+                                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#DC2626', marginTop: '5px', flexShrink: 0 }} />
+                                            <div>
+                                                <div style={{ fontSize: '14px', fontWeight: '800', color: '#991B1B' }}>
+                                                    Verification Unsuccessful (Action Required)
+                                                </div>
+                                                <div style={{ fontSize: '12.5px', color: '#B91C1C', marginTop: '3px', lineHeight: '1.4' }}>
+                                                    The submitted membership details could not be validated against the ICAI portal records. Please verify your Registration No. and Firm details, then update and re-submit.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Credential Details Grid */}
+                                    <div style={{
+                                        background: '#F8FAFC',
+                                        borderRadius: '16px',
+                                        border: '1px solid #E2E8F0',
+                                        padding: '20px',
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(2, 1fr)',
+                                        gap: '16px'
+                                    }}>
+                                        <div>
+                                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>CA Full Name</span>
+                                            <div style={{ fontSize: '14px', fontWeight: '750', color: '#1E293B', marginTop: '3px' }}>{icaiVerification.fullName || '—'}</div>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Firm / Practice Name</span>
+                                            <div style={{ fontSize: '14px', fontWeight: '750', color: '#1E293B', marginTop: '3px' }}>{icaiVerification.firmName || '—'}</div>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ICAI Membership / Reg No</span>
+                                            <div style={{ fontSize: '14px', fontWeight: '800', color: '#047857', marginTop: '3px', fontFamily: 'monospace' }}>{icaiVerification.membershipNo || '—'}</div>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Professional Email</span>
+                                            <div style={{ fontSize: '14px', fontWeight: '600', color: '#1E293B', marginTop: '3px' }}>{icaiVerification.email || '—'}</div>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Certificate of Practice (COP)</span>
+                                            <div style={{ fontSize: '13px', fontWeight: '650', color: '#334155', marginTop: '3px' }}>{icaiVerification.copStatus || '—'}</div>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Designation</span>
+                                            <div style={{ fontSize: '13px', fontWeight: '650', color: '#334155', marginTop: '3px' }}>{icaiVerification.associateFellow || '—'}</div>
+                                        </div>
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Regional Council</span>
+                                            <div style={{ fontSize: '13px', fontWeight: '650', color: '#334155', marginTop: '3px' }}>{icaiVerification.region || '—'}</div>
+                                        </div>
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Professional Address</span>
+                                            <div style={{ fontSize: '13px', fontWeight: '500', color: '#475569', marginTop: '3px', whiteSpace: 'pre-line' }}>{icaiVerification.address || '—'}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '10px' }}>
+                                        {icaiVerification.status === 'REJECTED' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditMode(true)}
+                                                style={{
+                                                    padding: '10px 20px',
+                                                    borderRadius: '10px',
+                                                    background: '#DC2626',
+                                                    color: '#FFFFFF',
+                                                    border: 'none',
+                                                    fontSize: '13px',
+                                                    fontWeight: '700',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Edit & Re-submit Credentials
+                                            </button>
+                                        )}
+                                        {icaiVerification.status === 'PENDING_REVIEW' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditMode(true)}
+                                                style={{
+                                                    padding: '10px 18px',
+                                                    borderRadius: '10px',
+                                                    background: '#F1F5F9',
+                                                    color: '#334155',
+                                                    border: '1px solid #CBD5E1',
+                                                    fontSize: '13px',
+                                                    fontWeight: '600',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Update Information
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => { setIsIcaiModalOpen(false); setIsEditMode(false); }}
+                                            style={{
+                                                padding: '10px 24px',
+                                                borderRadius: '10px',
+                                                background: '#047857',
+                                                color: '#FFFFFF',
+                                                border: 'none',
+                                                fontSize: '13px',
+                                                fontWeight: '700',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Done
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Form View (Editing / Initial Submission) */
+                                <form onSubmit={handleSubmitIcaiVerification} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                                                CA Full Name <span style={{ color: '#EF4444' }}>*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="e.g. CA Rajesh Sharma"
+                                                value={icaiFormData.fullName}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px 14px',
+                                                    borderRadius: '10px',
+                                                    border: '1px solid #CBD5E1',
+                                                    fontSize: '13.5px',
+                                                    outline: 'none',
+                                                    background: '#FFFFFF'
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                                                Firm / Practice Name <span style={{ color: '#EF4444' }}>*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="e.g. Sharma & Associates LLP"
+                                                value={icaiFormData.firmName}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, firmName: e.target.value }))}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px 14px',
+                                                    borderRadius: '10px',
+                                                    border: '1px solid #CBD5E1',
+                                                    fontSize: '13.5px',
+                                                    outline: 'none',
+                                                    background: '#FFFFFF'
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                                                ICAI Membership / Reg No. <span style={{ color: '#EF4444' }}>*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="e.g. ICAI-M-508219"
+                                                value={icaiFormData.membershipNo}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, membershipNo: e.target.value }))}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px 14px',
+                                                    borderRadius: '10px',
+                                                    border: '1px solid #CBD5E1',
+                                                    fontSize: '13.5px',
+                                                    outline: 'none',
+                                                    background: '#FFFFFF',
+                                                    fontFamily: 'monospace',
+                                                    fontWeight: '700'
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                                                Professional Email <span style={{ color: '#EF4444' }}>*</span>
+                                            </label>
+                                            <input
+                                                type="email"
+                                                required
+                                                placeholder="e.g. ca.rajesh@icai.org"
+                                                value={icaiFormData.email}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, email: e.target.value }))}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px 14px',
+                                                    borderRadius: '10px',
+                                                    border: '1px solid #CBD5E1',
+                                                    fontSize: '13.5px',
+                                                    outline: 'none',
+                                                    background: '#FFFFFF'
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                                                Certificate of Practice (COP)
+                                            </label>
+                                            <select
+                                                value={icaiFormData.copStatus}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, copStatus: e.target.value }))}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px 14px',
+                                                    borderRadius: '10px',
+                                                    border: '1px solid #CBD5E1',
+                                                    fontSize: '13.5px',
+                                                    outline: 'none',
+                                                    background: '#FFFFFF'
+                                                }}
+                                            >
+                                                <option value="Holding COP (Full-Time)">Holding COP (Full-Time)</option>
+                                                <option value="Holding COP (Part-Time)">Holding COP (Part-Time)</option>
+                                                <option value="Not Holding COP">Not Holding COP</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                                                Member Designation
+                                            </label>
+                                            <select
+                                                value={icaiFormData.associateFellow}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, associateFellow: e.target.value }))}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px 14px',
+                                                    borderRadius: '10px',
+                                                    border: '1px solid #CBD5E1',
+                                                    fontSize: '13.5px',
+                                                    outline: 'none',
+                                                    background: '#FFFFFF'
+                                                }}
+                                            >
+                                                <option value="Associate Member (ACA)">Associate Member (ACA)</option>
+                                                <option value="Fellow Member (FCA)">Fellow Member (FCA)</option>
+                                            </select>
+                                        </div>
+
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                                                ICAI Regional Council Chapter
+                                            </label>
+                                            <select
+                                                value={icaiFormData.region}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, region: e.target.value }))}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px 14px',
+                                                    borderRadius: '10px',
+                                                    border: '1px solid #CBD5E1',
+                                                    fontSize: '13.5px',
+                                                    outline: 'none',
+                                                    background: '#FFFFFF'
+                                                }}
+                                            >
+                                                <option value="Southern India Regional Council (SIRC)">Southern India Regional Council (SIRC)</option>
+                                                <option value="Western India Regional Council (WIRC)">Western India Regional Council (WIRC)</option>
+                                                <option value="Northern India Regional Council (NIRC)">Northern India Regional Council (NIRC)</option>
+                                                <option value="Eastern India Regional Council (EIRC)">Eastern India Regional Council (EIRC)</option>
+                                                <option value="Central India Regional Council (CIRC)">Central India Regional Council (CIRC)</option>
+                                                <option value="Overseas / International Chapter">Overseas / International Chapter</option>
+                                            </select>
+                                        </div>
+
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                                                Professional Office Address
+                                            </label>
+                                            <textarea
+                                                rows={3}
+                                                placeholder="Enter registered practice address, city, state, and pincode..."
+                                                value={icaiFormData.address}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, address: e.target.value }))}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px 14px',
+                                                    borderRadius: '10px',
+                                                    border: '1px solid #CBD5E1',
+                                                    fontSize: '13.5px',
+                                                    outline: 'none',
+                                                    background: '#FFFFFF',
+                                                    resize: 'vertical'
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Form Footer */}
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #E2E8F0' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setIsIcaiModalOpen(false); setIsEditMode(false); }}
+                                            style={{
+                                                padding: '11px 20px',
+                                                borderRadius: '10px',
+                                                background: '#F1F5F9',
+                                                color: '#475569',
+                                                border: '1px solid #CBD5E1',
+                                                fontSize: '13px',
+                                                fontWeight: '600',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            style={{
+                                                padding: '11px 24px',
+                                                borderRadius: '10px',
+                                                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                                                color: '#FFFFFF',
+                                                border: 'none',
+                                                fontSize: '13.5px',
+                                                fontWeight: '800',
+                                                cursor: 'pointer',
+                                                boxShadow: '0 4px 6px -1px rgba(5, 150, 105, 0.25)'
+                                            }}
+                                        >
+                                            Submit for ICAI Verification
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

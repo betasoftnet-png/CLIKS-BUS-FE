@@ -28,8 +28,10 @@ import {
     Link,
     Smartphone,
     Headphones,
-    CheckCircle2
+    CheckCircle2,
+    ShieldAlert
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { load } from '@cashfreepayments/cashfree-js';
 import { apiClient } from '../api/client';
 import '../App.css';
@@ -37,15 +39,27 @@ import { customConfirm } from '../utils/customConfirm';
 import { useCurrency, useAuth } from '../context';
 
 const BusinessSubscription = () => {
+    const navigate = useNavigate();
     const { currency, formatCurrency } = useCurrency();
     const { user, selectedPlan: selectedTier, changePlan, planDaysRemaining } = useAuth();
     const [activeCategory, setActiveCategory] = useState('business');
     const [betaSubCategory, setBetaSubCategory] = useState('investor'); 
     const [isProcessing, setIsProcessing] = useState(false);
     const [firmMembersCount, setFirmMembersCount] = useState(3);
+    const [showIcaiGuardModal, setShowIcaiGuardModal] = useState(false);
 
     const handleUpgrade = async (tier) => {
         if (tier.name === selectedTier) return;
+
+        // Institutional ICAI Verification Guard for FIN-PRO Suite
+        const isFinProTier = (tier.name && tier.name.startsWith('Fin-Pro')) || activeCategory === 'ca';
+        if (isFinProTier) {
+            const caStatus = localStorage.getItem('cliks_ca_verification_status');
+            if (caStatus !== 'VERIFIED') {
+                setShowIcaiGuardModal(true);
+                return;
+            }
+        }
         
         let amt = tier.priceAnnually || tier.price;
         if (tier.name === 'Fin-Pro Firm') {
@@ -932,6 +946,126 @@ const BusinessSubscription = () => {
                     </table>
                 </div>
             </div>
+
+            {/* 🛡 ICAI Verification Guard Modal */}
+            {showIcaiGuardModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    backdropFilter: 'blur(4px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 999999,
+                    padding: '20px'
+                }}>
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '24px',
+                        width: '100%',
+                        maxWidth: '520px',
+                        overflow: 'hidden',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        border: '1px solid #E2E8F0'
+                    }}>
+                        <div style={{
+                            padding: '28px 28px 20px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            textAlign: 'center'
+                        }}>
+                            <div style={{
+                                width: '64px',
+                                height: '64px',
+                                borderRadius: '20px',
+                                background: '#FEF3C7',
+                                color: '#D97706',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginBottom: '16px',
+                                border: '1px solid #FDE68A'
+                            }}>
+                                <ShieldAlert size={34} />
+                            </div>
+                            <h3 style={{ fontSize: '20px', fontWeight: '850', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+                                Institutional ICAI Verification Required
+                            </h3>
+                            <p style={{ fontSize: '14px', color: '#64748B', marginTop: '10px', lineHeight: '1.6' }}>
+                                You must verify your official ICAI credentials before subscribing to the <strong>FIN-PRO Advisory Suite</strong>. This ensures compliance with institutional CA standards.
+                            </p>
+                        </div>
+
+                        <div style={{
+                            background: '#F8FAFC',
+                            padding: '16px 28px',
+                            borderTop: '1px solid #F1F5F9',
+                            borderBottom: '1px solid #F1F5F9',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px'
+                        }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669', flexShrink: 0 }} />
+                            <span style={{ fontSize: '12.5px', color: '#475569', fontWeight: '600' }}>
+                                Verification takes only a minute and unlocks multi-client auditing, direct workpapers, and client billing.
+                            </span>
+                        </div>
+
+                        <div style={{
+                            padding: '20px 28px',
+                            display: 'flex',
+                            gap: '12px',
+                            justifyContent: 'flex-end'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={() => setShowIcaiGuardModal(false)}
+                                style={{
+                                    padding: '11px 20px',
+                                    borderRadius: '12px',
+                                    background: '#F1F5F9',
+                                    color: '#475569',
+                                    border: '1px solid #CBD5E1',
+                                    fontSize: '13.5px',
+                                    fontWeight: '700',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Not Now
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowIcaiGuardModal(false);
+                                    navigate('/ca?verify_icai=true');
+                                }}
+                                style={{
+                                    padding: '11px 24px',
+                                    borderRadius: '12px',
+                                    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                                    color: '#FFFFFF',
+                                    border: 'none',
+                                    fontSize: '13.5px',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 6px -1px rgba(5, 150, 105, 0.25)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                <span>Proceed to ICAI Verification</span>
+                                <ArrowUpRight size={16} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             </div>
         </div>
     );

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
     ShieldCheck, 
     X, 
+    Check,
     TrendingUp, 
     Users, 
     CreditCard, 
@@ -84,6 +85,7 @@ export default function AdminPortal() {
     const [caList, setCaList] = useState([]);
     const [caSearch, setCaSearch] = useState('');
     const [caStatusFilter, setCaStatusFilter] = useState('All');
+    const [selectedCaDetails, setSelectedCaDetails] = useState(null);
 
     // Support Desk State
     const [ticketsList, setTicketsList] = useState([]);
@@ -382,7 +384,15 @@ export default function AdminPortal() {
             }
 
             // 3. CA Directory Seed
-            setCaList([
+            let localSubmission = null;
+            try {
+                const savedIcai = localStorage.getItem('cliks_icai_verification');
+                if (savedIcai) {
+                    localSubmission = JSON.parse(savedIcai);
+                }
+            } catch (e) {}
+
+            const baseCaSeed = [
                 {
                     id: 301,
                     fullName: 'CA Rajesh Sharma, FCA',
@@ -392,7 +402,10 @@ export default function AdminPortal() {
                     clientsCount: 28,
                     tier: 'FIN-PRO Firm (10 Seats)',
                     status: 'Verified & Active',
-                    phone: '+91 98401 22390'
+                    phone: '+91 98401 22390',
+                    copStatus: 'Holding COP (Full-Time)',
+                    region: 'Northern India Regional Council (NIRC)',
+                    address: 'B-44, Barakhamba Road, Connaught Place, New Delhi 110001'
                 },
                 {
                     id: 302,
@@ -403,7 +416,10 @@ export default function AdminPortal() {
                     clientsCount: 16,
                     tier: 'FIN-PRO Solo',
                     status: 'Verified & Active',
-                    phone: '+91 94440 98112'
+                    phone: '+91 94440 98112',
+                    copStatus: 'Holding COP (Full-Time)',
+                    region: 'Southern India Regional Council (SIRC)',
+                    address: '42, Mount Road, Teynampet, Chennai 600018'
                 },
                 {
                     id: 303,
@@ -414,7 +430,10 @@ export default function AdminPortal() {
                     clientsCount: 34,
                     tier: 'FIN-PRO Firm (25 Seats)',
                     status: 'Verified & Active',
-                    phone: '+91 98200 44510'
+                    phone: '+91 98200 44510',
+                    copStatus: 'Holding COP (Full-Time)',
+                    region: 'Western India Regional Council (WIRC)',
+                    address: '108 Nariman Point, Marine Drive, Mumbai 400021'
                 },
                 {
                     id: 304,
@@ -424,8 +443,11 @@ export default function AdminPortal() {
                     email: 'meera@iyertax.com',
                     clientsCount: 7,
                     tier: 'FIN-PRO Solo',
-                    status: 'Under Review',
-                    phone: '+91 97910 88231'
+                    status: 'Pending Review',
+                    phone: '+91 97910 88231',
+                    copStatus: 'Holding COP (Part-Time)',
+                    region: 'Southern India Regional Council (SIRC)',
+                    address: '15/2 100 Feet Ring Road, Indiranagar, Bengaluru 560038'
                 },
                 {
                     id: 305,
@@ -435,10 +457,40 @@ export default function AdminPortal() {
                     email: 'audit@vgadvisory.co.in',
                     clientsCount: 2,
                     tier: 'FIN-PRO Solo',
-                    status: 'Pending Verification',
-                    phone: '+91 98840 12789'
+                    status: 'Pending Review',
+                    phone: '+91 98840 12789',
+                    copStatus: 'Not Holding COP',
+                    region: 'Southern India Regional Council (SIRC)',
+                    address: '77 Anna Salai, Guindy, Chennai 600032'
                 }
-            ]);
+            ];
+
+            if (localSubmission && (localSubmission.fullName || localSubmission.membershipNo)) {
+                const mapStatus = {
+                    'VERIFIED': 'Verified & Active',
+                    'REJECTED': 'Rejected',
+                    'PENDING_REVIEW': 'Pending Review',
+                    'UNVERIFIED': 'Pending Review'
+                };
+                const formattedUserCa = {
+                    id: 'usr-ca-submission',
+                    fullName: localSubmission.fullName || 'CA Applicant',
+                    firmName: localSubmission.firmName || 'Practice Applicant',
+                    membershipNo: localSubmission.membershipNo || 'ICAI Pending',
+                    email: localSubmission.email || user?.email || 'applicant@cliksca.com',
+                    clientsCount: 0,
+                    tier: 'FIN-PRO Solo (Pending Verification)',
+                    status: mapStatus[localSubmission.status] || 'Pending Review',
+                    phone: '+91 98765 43210',
+                    copStatus: localSubmission.copStatus || 'Holding COP (Full-Time)',
+                    region: localSubmission.region || 'Southern India Regional Council (SIRC)',
+                    address: localSubmission.address || 'Registered Office Address',
+                    isUserSubmission: true
+                };
+                setCaList([formattedUserCa, ...baseCaSeed]);
+            } else {
+                setCaList(baseCaSeed);
+            }
 
             // 4. Support Tickets Seed
             let apiTickets = [];
@@ -698,14 +750,61 @@ export default function AdminPortal() {
         alert(`Ticket ${ticketId} status updated to: ${newStatus}`);
     };
 
-    const handleToggleCaVerification = (caId) => {
+    const handleVerifyCa = (caId) => {
         setCaList(prev => prev.map(ca => {
             if (ca.id === caId) {
-                const isVerified = ca.status.includes('Verified');
-                return { ...ca, status: isVerified ? 'Under Review' : 'Verified & Active' };
+                return { ...ca, status: 'Verified & Active' };
             }
             return ca;
         }));
+
+        // Persist to user's local storage for cross-page synchronization
+        try {
+            const saved = localStorage.getItem('cliks_icai_verification');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                parsed.status = 'VERIFIED';
+                localStorage.setItem('cliks_icai_verification', JSON.stringify(parsed));
+            }
+        } catch (e) {}
+        localStorage.setItem('cliks_ca_verification_status', 'VERIFIED');
+        window.dispatchEvent(new Event('storage'));
+
+        if (selectedCaDetails && selectedCaDetails.id === caId) {
+            setSelectedCaDetails(prev => ({ ...prev, status: 'Verified & Active' }));
+        }
+
+        alert('ICAI Credentials Officially Verified! Access to FIN-PRO advisory suite and subscription unlocked.');
+    };
+
+    const handleRejectCa = (caId) => {
+        setCaList(prev => prev.map(ca => {
+            if (ca.id === caId) {
+                return { ...ca, status: 'Rejected' };
+            }
+            return ca;
+        }));
+
+        try {
+            const saved = localStorage.getItem('cliks_icai_verification');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                parsed.status = 'REJECTED';
+                localStorage.setItem('cliks_icai_verification', JSON.stringify(parsed));
+            }
+        } catch (e) {}
+        localStorage.setItem('cliks_ca_verification_status', 'REJECTED');
+        window.dispatchEvent(new Event('storage'));
+
+        if (selectedCaDetails && selectedCaDetails.id === caId) {
+            setSelectedCaDetails(prev => ({ ...prev, status: 'Rejected' }));
+        }
+
+        alert('ICAI Verification Rejected. Applicant can modify details and re-submit.');
+    };
+
+    const handleToggleCaVerification = (caId) => {
+        handleVerifyCa(caId);
     };
 
     // ── RENDER 1: LOGIN MODAL (IF UNAUTHENTICATED) ────────────────────────────
@@ -1824,10 +1923,10 @@ export default function AdminPortal() {
                                         <th style={{ padding: '0.85rem 1rem' }}>Firm Name</th>
                                         <th style={{ padding: '0.85rem 1rem' }}>Membership / Reg No</th>
                                         <th style={{ padding: '0.85rem 1rem' }}>Professional Email</th>
-                                        <th style={{ padding: '0.85rem 1rem' }}>Associated Clients</th>
+                                        <th style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>Member Details</th>
                                         <th style={{ padding: '0.85rem 1rem' }}>Practice Workspace Tier</th>
                                         <th style={{ padding: '0.85rem 1rem' }}>Verification Status</th>
-                                        <th style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>Admin Action</th>
+                                        <th style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>Admin Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1850,20 +1949,29 @@ export default function AdminPortal() {
                                                 <td style={{ padding: '0.85rem 1rem', fontFamily: 'monospace', fontWeight: '800', color: '#1E40AF' }}>
                                                     {ca.membershipNo}
                                                 </td>
-                                                <td style={{ padding: '0.85rem 1rem', color: '#475569', fontFamily: 'monospace' }}>
+                                                <td style={{ padding: '0.85rem 1rem', color: '#475569', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                                                     {ca.email}
                                                 </td>
-                                                <td style={{ padding: '0.85rem 1rem' }}>
-                                                    <span style={{
-                                                        background: '#F1F5F9',
-                                                        color: '#0F172A',
-                                                        padding: '0.2rem 0.6rem',
-                                                        borderRadius: '999px',
-                                                        fontSize: '0.75rem',
-                                                        fontWeight: '850'
-                                                    }}>
-                                                        {ca.clientsCount} Clients
-                                                    </span>
+                                                <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
+                                                    <button
+                                                        onClick={() => setSelectedCaDetails(ca)}
+                                                        style={{
+                                                            background: '#EFF6FF',
+                                                            color: '#1E40AF',
+                                                            border: '1px solid #BFDBFE',
+                                                            borderRadius: '8px',
+                                                            padding: '0.35rem 0.65rem',
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: '750',
+                                                            cursor: 'pointer',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px'
+                                                        }}
+                                                    >
+                                                        <Eye size={12} />
+                                                        <span>Preview</span>
+                                                    </button>
                                                 </td>
                                                 <td style={{ padding: '0.85rem 1rem' }}>
                                                     <span style={{
@@ -1882,33 +1990,63 @@ export default function AdminPortal() {
                                                         display: 'inline-flex',
                                                         alignItems: 'center',
                                                         gap: '4px',
-                                                        background: ca.status.includes('Verified') ? '#DCFCE7' : (ca.status.includes('Under Review') ? '#EFF6FF' : '#FEF3C7'),
-                                                        color: ca.status.includes('Verified') ? '#15803D' : (ca.status.includes('Under Review') ? '#1D4ED8' : '#B45309'),
-                                                        padding: '0.2rem 0.6rem',
+                                                        background: ca.status.includes('Verified') ? '#DCFCE7' : (ca.status.includes('Rejected') ? '#FEE2E2' : '#FEF3C7'),
+                                                        color: ca.status.includes('Verified') ? '#15803D' : (ca.status.includes('Rejected') ? '#DC2626' : '#B45309'),
+                                                        padding: '0.25rem 0.65rem',
                                                         borderRadius: '999px',
                                                         fontSize: '0.72rem',
                                                         fontWeight: '850'
                                                     }}>
-                                                        {ca.status.includes('Verified') ? <CheckCircle size={12} /> : <Clock size={12} />}
+                                                        {ca.status.includes('Verified') ? <CheckCircle size={12} /> : (ca.status.includes('Rejected') ? <XCircle size={12} /> : <Clock size={12} />)}
                                                         <span>{ca.status}</span>
                                                     </span>
                                                 </td>
                                                 <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                                                    <button 
-                                                        onClick={() => handleToggleCaVerification(ca.id)}
-                                                        style={{
-                                                            background: ca.status.includes('Verified') ? '#F1F5F9' : '#10B981',
-                                                            color: ca.status.includes('Verified') ? '#475569' : '#FFFFFF',
-                                                            border: 'none',
-                                                            padding: '0.35rem 0.75rem',
-                                                            borderRadius: '8px',
-                                                            fontSize: '0.72rem',
-                                                            fontWeight: '800',
-                                                            cursor: 'pointer'
-                                                        }}
-                                                    >
-                                                        {ca.status.includes('Verified') ? 'Re-audit' : 'Verify Now'}
-                                                    </button>
+                                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                                        <button 
+                                                            onClick={() => handleVerifyCa(ca.id)}
+                                                            title="Accept & Verify ICAI Credentials"
+                                                            disabled={ca.status.includes('Verified')}
+                                                            style={{
+                                                                background: ca.status.includes('Verified') ? '#F1F5F9' : '#10B981',
+                                                                color: ca.status.includes('Verified') ? '#94A3B8' : '#FFFFFF',
+                                                                border: 'none',
+                                                                padding: '0.35rem 0.65rem',
+                                                                borderRadius: '8px',
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: '800',
+                                                                cursor: ca.status.includes('Verified') ? 'default' : 'pointer',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px'
+                                                            }}
+                                                        >
+                                                            <Check size={12} />
+                                                            <span>Accept</span>
+                                                        </button>
+
+                                                        <button 
+                                                            onClick={() => handleRejectCa(ca.id)}
+                                                            title="Reject ICAI Registration"
+                                                            disabled={ca.status.includes('Rejected')}
+                                                            style={{
+                                                                background: ca.status.includes('Rejected') ? '#F1F5F9' : '#EF4444',
+                                                                color: ca.status.includes('Rejected') ? '#94A3B8' : '#FFFFFF',
+                                                                border: 'none',
+                                                                padding: '0.35rem 0.65rem',
+                                                                borderRadius: '8px',
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: '800',
+                                                                cursor: ca.status.includes('Rejected') ? 'default' : 'pointer',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px'
+                                                            }}
+                                                        >
+                                                            <X size={12} />
+                                                            <span>Reject</span>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
@@ -2484,6 +2622,202 @@ export default function AdminPortal() {
                                     }}
                                 >
                                     Mark Resolved
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── CA MEMBER DETAILS AUDIT MODAL ───────────────────────── */}
+            {selectedCaDetails && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    backdropFilter: 'blur(6px)',
+                    zIndex: 99999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '1.5rem'
+                }}>
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '24px',
+                        width: '100%',
+                        maxWidth: '640px',
+                        overflow: 'hidden',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        border: '1px solid #E2E8F0',
+                        animation: 'fadeIn 0.2s ease-out'
+                    }}>
+                        {/* Header */}
+                        <div style={{
+                            padding: '1.25rem 1.5rem',
+                            background: 'linear-gradient(135deg, #1E3A8A 0%, #1E40AF 100%)',
+                            color: '#FFFFFF',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{
+                                    width: '36px',
+                                    height: '36px',
+                                    borderRadius: '10px',
+                                    background: 'rgba(255, 255, 255, 0.2)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    <ShieldCheck size={20} color="#FFFFFF" />
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '1.05rem', fontWeight: '850', margin: 0, color: '#FFFFFF' }}>
+                                        ICAI Credential Audit Dossier
+                                    </h3>
+                                    <p style={{ fontSize: '0.75rem', margin: 0, color: '#BFDBFE' }}>
+                                        Official practitioner credentials submitted for institutional accreditation
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedCaDetails(null)}
+                                style={{
+                                    border: 'none',
+                                    background: 'rgba(255, 255, 255, 0.2)',
+                                    color: '#FFFFFF',
+                                    borderRadius: '50%',
+                                    width: '32px',
+                                    height: '32px',
+                                    cursor: 'pointer',
+                                    fontWeight: '800',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Body Details */}
+                        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div style={{
+                                background: '#F8FAFC',
+                                borderRadius: '16px',
+                                border: '1px solid #E2E8F0',
+                                padding: '1.25rem',
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(2, 1fr)',
+                                gap: '1rem'
+                            }}>
+                                <div>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>CA Full Name</span>
+                                    <div style={{ fontSize: '0.925rem', fontWeight: '850', color: '#0F172A', marginTop: '3px' }}>{selectedCaDetails.fullName}</div>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Firm / Practice Name</span>
+                                    <div style={{ fontSize: '0.925rem', fontWeight: '750', color: '#334155', marginTop: '3px' }}>{selectedCaDetails.firmName}</div>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>ICAI Membership / Reg No</span>
+                                    <div style={{ fontSize: '0.925rem', fontWeight: '900', color: '#1E40AF', fontFamily: 'monospace', marginTop: '3px' }}>{selectedCaDetails.membershipNo}</div>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Professional Email</span>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#0F172A', marginTop: '3px' }}>{selectedCaDetails.email}</div>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Certificate of Practice (COP)</span>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#047857', marginTop: '3px' }}>{selectedCaDetails.copStatus || 'Full-Time Practice (COP Active)'}</div>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Regional Council Chapter</span>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: '650', color: '#334155', marginTop: '3px' }}>{selectedCaDetails.region || 'Southern India Regional Council (SIRC)'}</div>
+                                </div>
+                                <div style={{ gridColumn: 'span 2' }}>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Registered Professional Address</span>
+                                    <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '3px', lineHeight: '1.4' }}>{selectedCaDetails.address || 'Registered Office Address on official ICAI records'}</div>
+                                </div>
+                                <div style={{ gridColumn: 'span 2' }}>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Verification Status</span>
+                                    <div style={{ marginTop: '5px' }}>
+                                        <span style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '5px',
+                                            padding: '0.3rem 0.75rem',
+                                            borderRadius: '999px',
+                                            fontSize: '0.78rem',
+                                            fontWeight: '850',
+                                            background: selectedCaDetails.status.includes('Verified') ? '#DCFCE7' : (selectedCaDetails.status.includes('Rejected') ? '#FEE2E2' : '#FEF3C7'),
+                                            color: selectedCaDetails.status.includes('Verified') ? '#15803D' : (selectedCaDetails.status.includes('Rejected') ? '#DC2626' : '#B45309')
+                                        }}>
+                                            {selectedCaDetails.status.includes('Verified') ? <CheckCircle size={13} /> : (selectedCaDetails.status.includes('Rejected') ? <XCircle size={13} /> : <Clock size={13} />)}
+                                            <span>{selectedCaDetails.status}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal Actions */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid #F1F5F9', paddingTop: '1rem' }}>
+                                <button
+                                    onClick={() => setSelectedCaDetails(null)}
+                                    style={{
+                                        padding: '0.6rem 1.25rem',
+                                        borderRadius: '10px',
+                                        background: '#F1F5F9',
+                                        color: '#475569',
+                                        border: '1px solid #CBD5E1',
+                                        fontSize: '0.825rem',
+                                        fontWeight: '700',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    onClick={() => handleRejectCa(selectedCaDetails.id)}
+                                    disabled={selectedCaDetails.status.includes('Rejected')}
+                                    style={{
+                                        padding: '0.6rem 1.25rem',
+                                        borderRadius: '10px',
+                                        background: selectedCaDetails.status.includes('Rejected') ? '#F1F5F9' : '#EF4444',
+                                        color: selectedCaDetails.status.includes('Rejected') ? '#94A3B8' : '#FFFFFF',
+                                        border: 'none',
+                                        fontSize: '0.825rem',
+                                        fontWeight: '800',
+                                        cursor: selectedCaDetails.status.includes('Rejected') ? 'default' : 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px'
+                                    }}
+                                >
+                                    <X size={14} />
+                                    <span>Reject Submission</span>
+                                </button>
+                                <button
+                                    onClick={() => handleVerifyCa(selectedCaDetails.id)}
+                                    disabled={selectedCaDetails.status.includes('Verified')}
+                                    style={{
+                                        padding: '0.6rem 1.5rem',
+                                        borderRadius: '10px',
+                                        background: selectedCaDetails.status.includes('Verified') ? '#F1F5F9' : '#10B981',
+                                        color: selectedCaDetails.status.includes('Verified') ? '#94A3B8' : '#FFFFFF',
+                                        border: 'none',
+                                        fontSize: '0.825rem',
+                                        fontWeight: '800',
+                                        cursor: selectedCaDetails.status.includes('Verified') ? 'default' : 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px'
+                                    }}
+                                >
+                                    <Check size={14} />
+                                    <span>Accept & Verify</span>
                                 </button>
                             </div>
                         </div>
