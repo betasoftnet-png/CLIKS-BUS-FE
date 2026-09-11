@@ -43,8 +43,12 @@ import {
     Award,
     AlertCircle,
     Activity,
-    Smartphone
+    Smartphone,
+    Zap,
+    Copy,
+    QrCode
 } from 'lucide-react';
+import { complianceService } from '../services/complianceService';
 import { validateEmail, validateGstin, validatePhone, validatePan } from '../utils/validationRules';
 import { 
     billingService, 
@@ -211,7 +215,57 @@ const BusinessBilling = () => {
     const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
     const [viewingInvoice, setViewingInvoice] = useState(null); // New state for Viewing full invoice on screen
     const [showLivePreview, setShowLivePreview] = useState(false); // State for split-pane preview during creation
+    const [generatingIrnId, setGeneratingIrnId] = useState(null);
     const barcodeInputRef = React.useRef(null);
+
+    const handleGenerateIRN = async (invoice) => {
+        if (!invoice) return;
+        const invKey = invoice.id || invoice.invoice_number;
+        setGeneratingIrnId(invKey);
+        try {
+            const payload = {
+                invoiceId: invoice.id,
+                invoiceNumber: invoice.invoice_number,
+                buyerGstin: invoice.client_gstin || invoice.customer_gstin,
+                buyerName: invoice.client_name,
+                buyerAddress: invoice.billing_address || invoice.shipping_address,
+                buyerPlace: invoice.city || 'Pune',
+                buyerPincode: invoice.pincode || '411001',
+                totalAmount: invoice.total_amount || invoice.amount,
+                taxAmount: invoice.tax_amount || 0,
+                items: invoice.items,
+                docDate: invoice.created_at || invoice.due_date
+            };
+            const result = await complianceService.generateIRN(payload);
+            const ackNo = result.AckNo || result.ackNo;
+            const irn = result.Irn || result.irn;
+            const ackDt = result.AckDt || result.ackDt;
+            const qr = result.SignedQRCode || result.signedQRCode;
+
+            queryClient.invalidateQueries({ queryKey: ['invoices'] });
+
+            if (viewingInvoice && (viewingInvoice.id === invoice.id || viewingInvoice.invoice_number === invoice.invoice_number)) {
+                setViewingInvoice(prev => ({
+                    ...prev,
+                    AckNo: ackNo,
+                    ack_no: ackNo,
+                    AckDt: ackDt,
+                    ack_dt: ackDt,
+                    Irn: irn,
+                    irn: irn,
+                    SignedQRCode: qr,
+                    signed_qr_code: qr,
+                    status: 'IRN Active'
+                }));
+            }
+            alert(`✅ E-Invoice IRN Generated Successfully!\n\nIRN: ${irn}\nAck No: ${ackNo}\nAck Date: ${ackDt}`);
+        } catch (err) {
+            console.error('Failed to generate IRN:', err);
+            alert(`⚠️ Failed to generate E-Invoice: ${err.message || 'Masters India Verification Error'}`);
+        } finally {
+            setGeneratingIrnId(null);
+        }
+    };
 
     // Logistics & Delivery State for Delivery Challan tab
     const [billingDeliveries, setBillingDeliveries] = useState(() => {
@@ -2294,15 +2348,80 @@ const BusinessBilling = () => {
                                             <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(inv.amount)}</span>
                                         </td>
                                         <td style={{ padding: '0.75rem 1.25rem' }}>
-                                            <div style={{ 
-                                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem', 
-                                                padding: '0.25rem 0.5rem', borderRadius: '6px',
-                                                background: inv.status === 'Paid' ? '#D1FAE5' : (inv.status === 'Unpaid' ? '#FEE2E2' : '#FEF3C7'),
-                                                color: inv.status === 'Paid' ? '#065F46' : (inv.status === 'Unpaid' ? '#991B1B' : '#92400E'),
-                                                fontSize: '0.75rem', fontWeight: '800'
-                                            }}>
-                                                {inv.status === 'Paid' ? <CheckCircle2 size={10} /> : (inv.status === 'Overdue' ? <AlertTriangle size={10} /> : <Clock size={10} />)}
-                                                {inv.status.toUpperCase()}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
+                                                <div style={{ 
+                                                    display: 'inline-flex', alignItems: 'center', gap: '0.3rem', 
+                                                    padding: '0.25rem 0.5rem', borderRadius: '6px',
+                                                    background: inv.status === 'Paid' ? '#D1FAE5' : (inv.status === 'Unpaid' ? '#FEE2E2' : '#FEF3C7'),
+                                                    color: inv.status === 'Paid' ? '#065F46' : (inv.status === 'Unpaid' ? '#991B1B' : '#92400E'),
+                                                    fontSize: '0.75rem', fontWeight: '800'
+                                                }}>
+                                                    {inv.status === 'Paid' ? <CheckCircle2 size={10} /> : (inv.status === 'Overdue' ? <AlertTriangle size={10} /> : <Clock size={10} />)}
+                                                    {inv.status.toUpperCase()}
+                                                </div>
+
+                                                {/* E-Invoice IRN Status Pill or Generate Button */}
+                                                {(inv.Irn || inv.AckNo || inv.ack_no || inv.status === 'IRN Active') ? (
+                                                    <div 
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '5px',
+                                                            padding: '3px 8px',
+                                                            borderRadius: '999px',
+                                                            background: '#ECFDF5',
+                                                            border: '1.5px solid #10B981',
+                                                            color: '#065F46',
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: '850',
+                                                            boxShadow: '0 1px 3px rgba(16, 185, 129, 0.15)',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const irnHash = inv.Irn || 'Verified';
+                                                            navigator.clipboard.writeText(irnHash);
+                                                            alert(`✅ IRN Active\n\nIRN Hash: ${irnHash}\nAck No: ${inv.AckNo || inv.ack_no || 'N/A'}\nAck Date: ${inv.AckDt || inv.ack_dt || 'N/A'}\n\n(Copied IRN to clipboard)`);
+                                                        }}
+                                                        title={`Click to copy IRN: ${inv.Irn || ''}\nAck No: ${inv.AckNo || inv.ack_no || ''}`}
+                                                    >
+                                                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }} />
+                                                        <span>IRN Active</span>
+                                                        {(inv.AckNo || inv.ack_no) && (
+                                                            <span style={{ opacity: 0.85, fontWeight: '700', fontSize: '0.65rem' }}>
+                                                                #{String(inv.AckNo || inv.ack_no).slice(-4)}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); handleGenerateIRN(inv); }}
+                                                        disabled={generatingIrnId === (inv.id || inv.invoice_number)}
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px',
+                                                            padding: '3px 8px',
+                                                            borderRadius: '6px',
+                                                            border: '1px solid #10B981',
+                                                            background: '#F0FDF4',
+                                                            color: '#047857',
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: '800',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s',
+                                                            whiteSpace: 'nowrap'
+                                                        }}
+                                                        title="Generate GST e-Invoice IRN with Masters India"
+                                                    >
+                                                        {generatingIrnId === (inv.id || inv.invoice_number) ? (
+                                                            <><Loader2 size={10} className="animate-spin" /> Generating...</>
+                                                        ) : (
+                                                            <><Zap size={10} color="#059669" /> Generate E-Invoice</>
+                                                        )}
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                         <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
@@ -3656,7 +3775,61 @@ const BusinessBilling = () => {
                                     </span>
                                 </div>
                             )}
-                            <div className="billing-preview-modal-header-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+                            <div className="billing-preview-modal-header-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                {/* E-Invoice IRN Status Pill or Action Button */}
+                                {(viewingInvoice.Irn || viewingInvoice.AckNo || viewingInvoice.ack_no || viewingInvoice.status === 'IRN Active') ? (
+                                    <div style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '10px',
+                                        background: '#ECFDF5',
+                                        border: '1.5px solid #10B981',
+                                        color: '#065F46',
+                                        fontSize: '0.8rem',
+                                        fontWeight: '850',
+                                        boxShadow: '0 2px 6px rgba(16, 185, 129, 0.15)'
+                                    }}>
+                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981' }} />
+                                        <span>IRN Active</span>
+                                        <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#047857' }}>
+                                            Ack: {viewingInvoice.AckNo || viewingInvoice.ack_no || 'Verified'}
+                                        </span>
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                const irnVal = viewingInvoice.Irn || viewingInvoice.irn || '';
+                                                navigator.clipboard.writeText(irnVal);
+                                                alert('IRN Hash copied to clipboard:\n' + irnVal);
+                                            }}
+                                            title={`Click to copy IRN Hash: ${viewingInvoice.Irn || ''}`}
+                                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', color: '#047857' }}
+                                        >
+                                            <Copy size={14} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button 
+                                        type="button"
+                                        onClick={() => handleGenerateIRN(viewingInvoice)}
+                                        disabled={generatingIrnId === (viewingInvoice.id || viewingInvoice.invoice_number)}
+                                        style={{ 
+                                            display: 'inline-flex', alignItems: 'center', gap: '6px', 
+                                            padding: '0.6rem 1.25rem', borderRadius: '10px', 
+                                            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', 
+                                            fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
+                                            boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)'
+                                        }}
+                                        title="Generate GST e-Invoice IRN with Masters India"
+                                    >
+                                        {generatingIrnId === (viewingInvoice.id || viewingInvoice.invoice_number) ? (
+                                            <><Loader2 size={16} className="animate-spin" /> Generating IRN...</>
+                                        ) : (
+                                            <><Zap size={16} /> Generate E-Invoice</>
+                                        )}
+                                    </button>
+                                )}
                                 <a 
                                     href="/sales/invoice/preview" 
                                     target="_blank" 

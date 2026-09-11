@@ -24,11 +24,14 @@ import {
     RefreshCw, 
     AlertCircle, 
     ThumbsUp,
-    PenTool
+    PenTool,
+    Zap,
+    Loader2
 } from 'lucide-react';
 import '../App.css';
 import { useQuery } from '@tanstack/react-query';
 import { settingsService } from '../services';
+import { complianceService } from '../services/complianceService';
 import FilterableTableHead from '../components/FilterableTableHead';
 
 const INITIAL_DELIVERIES = [
@@ -319,26 +322,65 @@ const BusinessDelivery = () => {
         challan_date: '2026-05-06',
         linked_invoice_id: '',
         otp_code: Math.floor(1000 + Math.random() * 9000).toString(),
+        generate_eway_bill: false,
+        transport_mode: '1',
+        distance: 50,
+        eway_bill_no: '',
+        valid_upto: '',
+        pdf_url: ''
     }));
+
+    const [isGeneratingEwb, setIsGeneratingEwb] = useState(false);
 
     const saveDeliveries = (updated) => {
         setDeliveries(updated);
         localStorage.setItem('cliks_deliveries', JSON.stringify(updated));
     };
 
-    const handleCreateDelivery = (e) => {
+    const handleCreateDelivery = async (e) => {
         e.preventDefault();
         
         let assignedDriver = '';
-        let assignedVehicle = '';
+        let assignedVehicle = formData.vehicle_number || '';
         let assignedMobile = '';
 
         if (formData.delivery_staff_id) {
             const stf = staff.find(s => s.staff_id === formData.delivery_staff_id);
             if (stf) {
                 assignedDriver = stf.name;
-                assignedVehicle = stf.vehicle;
+                assignedVehicle = assignedVehicle || stf.vehicle;
                 assignedMobile = stf.mobile;
+            }
+        }
+
+        let ewbNumber = formData.eway_bill_no || '';
+        let ewbValidUpto = formData.valid_upto || '';
+        let ewbPdf = formData.pdf_url || '';
+
+        if (formData.generate_eway_bill) {
+            try {
+                setIsGeneratingEwb(true);
+                const ewbPayload = {
+                    challanNumber: formData.challan_number,
+                    invoiceNumber: formData.linked_invoice_id,
+                    customerName: formData.customer_name,
+                    shippingAddress: formData.shipping_address,
+                    buyerPincode: formData.pincode || '411001',
+                    vehicleNumber: assignedVehicle,
+                    transportMode: formData.transport_mode || '1',
+                    distance: formData.distance || 50,
+                    docDate: formData.delivery_date || new Date().toISOString().slice(0, 10)
+                };
+                const ewbRes = await complianceService.generateEWayBill(ewbPayload);
+                ewbNumber = ewbRes.ewayBillNo || ewbRes.EwbNo || '';
+                ewbValidUpto = ewbRes.validUpto || '';
+                ewbPdf = ewbRes.pdfUrl || '';
+                alert(`✅ E-Way Bill Generated Successfully!\n\nE-Way Bill No: ${ewbNumber}\nValid Upto: ${ewbValidUpto}`);
+            } catch (ewbErr) {
+                console.error('Failed to generate E-Way Bill:', ewbErr);
+                alert(`⚠️ E-Way Bill Generation Notice: ${ewbErr.message || 'Validation error'}\nProceeding with local dispatch record.`);
+            } finally {
+                setIsGeneratingEwb(false);
             }
         }
 
@@ -348,6 +390,11 @@ const BusinessDelivery = () => {
             driver_name: assignedDriver,
             vehicle_number: assignedVehicle,
             contact_number: assignedMobile,
+            eway_bill_no: ewbNumber,
+            ewayBillNo: ewbNumber,
+            valid_upto: ewbValidUpto,
+            validUpto: ewbValidUpto,
+            pdf_url: ewbPdf,
             stock_reserved: true,
             dispatch_status: formData.delivery_status === 'Packed' ? 'pending' : 'dispatched',
             dispatch_date: formData.delivery_status !== 'Packed' ? new Date().toISOString().slice(0, 10) + ' 10:00 AM' : '',
@@ -391,9 +438,15 @@ const BusinessDelivery = () => {
             dispatch_by: 'Kiran Mane',
             challan_number: `CHL-2026-${4420 + updated.length + 1}`,
             challan_type: 'GST',
-            challan_date: '2026-05-06',
+            challan_date: new Date().toISOString().slice(0, 10),
             linked_invoice_id: '',
             otp_code: Math.floor(1000 + Math.random() * 9000).toString(),
+            generate_eway_bill: false,
+            transport_mode: '1',
+            distance: 50,
+            eway_bill_no: '',
+            valid_upto: '',
+            pdf_url: ''
         });
     };
 
@@ -672,10 +725,37 @@ const BusinessDelivery = () => {
                                                     {dlv.delivery_status}
                                                 </span>
                                             </div>
-                                            <p style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '500' }}>
+                                            <p style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '500', margin: 0 }}>
                                                 Ref: <strong style={{ color: '#334155' }}>{dlv.delivery_number}</strong> • City: <strong style={{ color: '#334155' }}>{dlv.city}</strong> • Courier: <strong style={{ color: '#334155' }}>{dlv.courier_name}</strong>
                                                 {dlv.tracking_number && <> • Tracking: <span style={{ color: '#1B6B3A', fontWeight: '750' }}>{dlv.tracking_number}</span></>}
                                             </p>
+                                            {(dlv.eway_bill_no || dlv.ewayBillNo) && (
+                                                <div style={{ marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                    <span style={{ 
+                                                        fontSize: '0.72rem', fontWeight: '800', padding: '0.2rem 0.55rem', borderRadius: '6px',
+                                                        background: '#DCF2E4', color: '#166534', border: '1px solid #86EFAC',
+                                                        display: 'inline-flex', alignItems: 'center', gap: '0.35rem'
+                                                    }}>
+                                                        <Zap size={12} style={{ color: '#15803D' }} />
+                                                        E-Way Bill: <strong>{dlv.eway_bill_no || dlv.ewayBillNo}</strong>
+                                                        {(dlv.valid_upto || dlv.validUpto) && (
+                                                            <span style={{ color: '#166534', fontWeight: '600' }}>
+                                                                • Valid: {dlv.valid_upto || dlv.validUpto}
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                    {(dlv.pdf_url || dlv.pdfUrl) && (
+                                                        <a 
+                                                            href={dlv.pdf_url || dlv.pdfUrl} 
+                                                            target="_blank" 
+                                                            rel="noreferrer" 
+                                                            style={{ fontSize: '0.72rem', color: '#2563EB', textDecoration: 'underline', fontWeight: '750' }}
+                                                        >
+                                                            View PDF ↗
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -740,7 +820,14 @@ const BusinessDelivery = () => {
                         <tbody>
                             {deliveries.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((dlv) => (
                                 <tr key={dlv.delivery_id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '0.9rem', color: '#334155' }}>
-                                    <td style={{ padding: '1rem', fontWeight: '750', color: '#0F172A' }}>{dlv.challan_number}</td>
+                                    <td style={{ padding: '1rem', fontWeight: '750', color: '#0F172A' }}>
+                                        {dlv.challan_number}
+                                        {(dlv.eway_bill_no || dlv.ewayBillNo) && (
+                                            <div style={{ fontSize: '0.72rem', color: '#15803D', fontWeight: '700', marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                <Zap size={11} /> EWB: {dlv.eway_bill_no || dlv.ewayBillNo}
+                                            </div>
+                                        )}
+                                    </td>
                                     <td style={{ padding: '1rem' }}>
                                         <span style={{ fontSize: '0.75rem', fontWeight: '800', background: dlv.challan_type === 'GST' ? '#DCF2E4' : '#F1F5F9', color: dlv.challan_type === 'GST' ? '#1B6B3A' : '#475569', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
                                             {dlv.challan_type}
@@ -1031,17 +1118,82 @@ const BusinessDelivery = () => {
                                 </div>
                             </div>
 
+                            {/* SECTION 5: GST E-WAY BILL GENERATION (MASTERS INDIA) */}
+                            <div style={{ background: '#FAFDFB', padding: '1.25rem', borderRadius: '16px', border: '1px solid #DCF2E4' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                    <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+                                        <Zap size={15} style={{ color: '#1B6B3A' }} /> 5. GST E-Way Bill Generation (Masters India)
+                                    </h4>
+                                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '750', color: '#1B6B3A' }}>
+                                        <input 
+                                            type="checkbox"
+                                            checked={formData.generate_eway_bill}
+                                            onChange={e => setFormData({ ...formData, generate_eway_bill: e.target.checked })}
+                                            style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#1B6B3A' }}
+                                        />
+                                        Generate E-Way Bill on Dispatch
+                                    </label>
+                                </div>
+
+                                {formData.generate_eway_bill && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '1rem', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #DCF2E4' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Vehicle Number *</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="e.g. MH12AB1234"
+                                                value={formData.vehicle_number}
+                                                onChange={e => setFormData({ ...formData, vehicle_number: e.target.value.toUpperCase() })}
+                                                style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '700', textTransform: 'uppercase' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Transport Mode</label>
+                                            <select 
+                                                value={formData.transport_mode}
+                                                onChange={e => setFormData({ ...formData, transport_mode: e.target.value })}
+                                                style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600', background: 'white' }}
+                                            >
+                                                <option value="1">1 - Road</option>
+                                                <option value="2">2 - Rail</option>
+                                                <option value="3">3 - Air</option>
+                                                <option value="4">4 - Ship</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Distance (KM) *</label>
+                                            <input 
+                                                type="number" 
+                                                min="1"
+                                                value={formData.distance}
+                                                onChange={e => setFormData({ ...formData, distance: parseInt(e.target.value) || 1 })}
+                                                style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600' }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
                             <button 
                                 type="submit"
+                                disabled={isGeneratingEwb}
                                 style={{ 
                                     width: '100%', padding: '1.1rem', borderRadius: '12px', 
-                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    background: isGeneratingEwb ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
                                     color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', 
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                                    cursor: isGeneratingEwb ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
                                     boxShadow: '0 8px 20px rgba(27, 107, 58, 0.25)', marginTop: '0.5rem'
                                 }}
                             >
-                                <Truck size={18} /> Generate Challan & Dispatch
+                                {isGeneratingEwb ? (
+                                    <>
+                                        <Loader2 size={18} className="animate-spin" /> Generating E-Way Bill & Dispatching...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Truck size={18} /> Generate Challan & Dispatch
+                                    </>
+                                )}
                             </button>
                         </form>
                     </div>

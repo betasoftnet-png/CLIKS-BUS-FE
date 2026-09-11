@@ -49,9 +49,11 @@ import {
     IdCard,
     Store,
     Receipt,
-    Link
+    Link,
+    Loader2
 } from 'lucide-react';
 import '../App.css';
+import { complianceService } from '../services/complianceService';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { validatePhone, validateEmail, validateGstin, validatePan } from '../utils/validationRules';
@@ -596,8 +598,53 @@ const BusinessSuppliers = () => {
         upi_id: ''
     }));
 
+    // GSTIN Compliance Verification States
+    const [isVerifyingGstin, setIsVerifyingGstin] = useState(false);
+    const [gstinVerifiedData, setGstinVerifiedData] = useState(null);
+    const [gstinVerifyError, setGstinVerifyError] = useState('');
+
+    const handleGstinChange = async (rawVal) => {
+        const cleanVal = rawVal.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15);
+        setFormData(prev => ({ ...prev, gstin: cleanVal }));
+        setGstinVerifyError('');
+        if (formErrors.gstin) setFormErrors(prev => ({ ...prev, gstin: null }));
+
+        if (cleanVal.length === 15) {
+            setIsVerifyingGstin(true);
+            try {
+                const data = await complianceService.verifyGstin(cleanVal);
+                setGstinVerifiedData(data);
+                setFormData(prev => ({
+                    ...prev,
+                    gstin: cleanVal,
+                    company_name: prev.company_name || data.tradeName || data.legalName || '',
+                    supplier_name: prev.supplier_name || data.legalName || data.tradeName || '',
+                    pan_number: cleanVal.slice(2, 12),
+                    tax_type: data.registrationType?.toLowerCase().includes('comp') ? 'unregistered' : 'registered',
+                    place_of_supply: data.state || prev.place_of_supply,
+                    billing_address: prev.billing_address || data.address || '',
+                    shipping_address: prev.shipping_address || data.address || '',
+                    city: prev.city || data.city || '',
+                    state: prev.state || data.state || '',
+                    pincode: prev.pincode || data.pincode || ''
+                }));
+            } catch (err) {
+                console.error('Vendor GSTIN verification error:', err);
+                setGstinVerifyError(err.message || 'GSTIN verification failed');
+                setGstinVerifiedData(null);
+            } finally {
+                setIsVerifyingGstin(false);
+            }
+        } else {
+            setGstinVerifiedData(null);
+        }
+    };
+
     const handleOpenCreateModal = () => {
         setEditingSupplier(null);
+        setIsVerifyingGstin(false);
+        setGstinVerifiedData(null);
+        setGstinVerifyError('');
         setFormData({
             supplier_code: `SUP-${Date.now().toString().slice(-4)}`,
             supplier_type: 'local',
@@ -629,8 +676,11 @@ const BusinessSuppliers = () => {
         setIsModalOpen(true);
     };
 
-    const handleEdit = (supplier) => {
+    const handleOpenEditModal = (supplier) => {
         setEditingSupplier(supplier);
+        setIsVerifyingGstin(false);
+        setGstinVerifiedData(null);
+        setGstinVerifyError('');
         setFormData({
             supplier_code: supplier.supplier_code || 'SUP-TEMP',
             supplier_type: supplier.supplier_type || 'local',
@@ -1643,27 +1693,40 @@ const BusinessSuppliers = () => {
                                     <div className="p-5 space-y-4" style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.85rem' }}>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
-                                                    GSTIN ID
-                                                </label>
-                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: (formErrors.gstin || (formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15)) ? '1px solid #EF4444' : '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><CreditCard size={14} /></span>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569' }}>
+                                                        GSTIN ID
+                                                    </label>
+                                                    {isVerifyingGstin && (
+                                                        <span style={{ fontSize: '0.68rem', color: '#2563EB', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                                            <Loader2 size={11} className="animate-spin" /> Verifying...
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: (formErrors.gstin || (formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15)) ? '1px solid #EF4444' : (gstinVerifiedData ? '1.5px solid #10B981' : '1px solid #E2E8F0'), borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', height: '100%', color: gstinVerifiedData ? '#10B981' : '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><CreditCard size={14} /></span>
                                                     <input 
                                                         type="text" 
                                                         maxLength={15} 
                                                         value={formData.gstin} 
-                                                        onChange={(e) => { 
-                                                            const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15); 
-                                                            setFormData({ ...formData, gstin: val }); 
-                                                            if (formErrors.gstin) setFormErrors({ ...formErrors, gstin: null }); 
-                                                        }} 
+                                                        onChange={(e) => handleGstinChange(e.target.value)} 
                                                         style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} 
-                                                        placeholder="e.g. 27AAAAA0000A1Z5" 
+                                                        placeholder="e.g. 27AABCU9603R1ZN" 
                                                     />
                                                 </div>
                                                 {formErrors.gstin && <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>{formErrors.gstin}</span>}
                                                 {formData.gstin && formData.gstin.length > 0 && formData.gstin.length < 15 && (
                                                     <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>GSTIN: 15 characters required</span>
+                                                )}
+                                                {gstinVerifiedData && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#059669', marginTop: '0.2rem', display: 'block', fontWeight: '750' }}>
+                                                        ✓ Verified: {gstinVerifiedData.tradeName || gstinVerifiedData.legalName} ({gstinVerifiedData.registrationType})
+                                                    </span>
+                                                )}
+                                                {gstinVerifyError && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>
+                                                        {gstinVerifyError}
+                                                    </span>
                                                 )}
                                             </div>
                                             <div>
