@@ -12,6 +12,7 @@ import {
 import { accountingService, gstService, contactsService, caService, profileService } from '../services';
 import { useCurrency, useAuth } from '../context';
 import FilterableTableHead from '../components/FilterableTableHead';
+import FinProPracticeSuite from '../components/FinProPracticeSuite';
 import { applyTableFilters } from '../utils/filterUtils';
 
 export default function BusinessCA({ mode }) {
@@ -3082,6 +3083,13 @@ export default function BusinessCA({ mode }) {
                                                         </div>
                                                     )}
                                                 </>
+                                            )}
+
+                                            {/* FIN-PRO ADVISORY & PRACTICE SUITE (DEFAULT WORKSPACE) */}
+                                            {(activeAuditorCategory === "FIN-PRO Advisory Workspace" || 
+                                              activeAuditorCategory === "FIN-PRO Advisory & Practice Suite" ||
+                                              !["Statutory Financial Auditor (ICAI CA)", "Tax Auditor (ICAI CA)", "Internal Auditor (CIA / CA / CMA)", "Cost Auditor (ICMAI CMA)", "Secretarial Auditor (ICSI CS)", "Forensic Auditor (ICAI FAFD / CFE)"].includes(activeAuditorCategory)) && (
+                                                <FinProPracticeSuite activeSuiteTool={activeSuiteTool} setActiveSuiteTool={setActiveSuiteTool} />
                                             )}
 
                                         </div>
