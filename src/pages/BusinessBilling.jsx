@@ -39,7 +39,11 @@ import {
     Wrench,
     Globe,
     Info,
-    Warehouse
+    Warehouse,
+    Award,
+    AlertCircle,
+    Activity,
+    Smartphone
 } from 'lucide-react';
 import { validateEmail, validateGstin, validatePhone, validatePan } from '../utils/validationRules';
 import { 
@@ -77,6 +81,115 @@ const getDaysFromTerms = (termText) => {
     return match ? parseInt(match[0], 10) : 0;
 };
 
+const INITIAL_BILLING_DELIVERIES = [
+    {
+        delivery_id: 'DLV-401',
+        delivery_number: 'CLIKS/DEL/26/101',
+        delivery_status: 'Out For Delivery',
+        delivery_date: '2026-05-06',
+        shipment_id: 'SHP-8802',
+        tracking_number: 'TRK998248102',
+        courier_name: 'CLIKS Logistics',
+        dispatch_date: '2026-05-06 09:30 AM',
+        estimated_delivery_date: '2026-05-06',
+        driver_name: 'Satish Yadav',
+        vehicle_number: 'MH-12-QB-8821',
+        customer_name: 'Aman Deep',
+        shipping_address: 'Flat 402, Green Meadows, Senapati Bapat Road',
+        city: 'Pune',
+        state: 'Maharashtra',
+        pincode: '411016',
+        package_count: 2,
+        package_weight: 4.5,
+        challan_number: 'CHL-2026-4402',
+        challan_type: 'GST',
+        challan_date: '2026-05-06',
+        linked_invoice_id: 'INV-40292',
+        otp_code: '5829'
+    },
+    {
+        delivery_id: 'DLV-402',
+        delivery_number: 'CLIKS/DEL/26/102',
+        delivery_status: 'Delivered',
+        delivery_date: '2026-05-05',
+        shipment_id: 'SHP-8791',
+        tracking_number: 'TRK998248091',
+        courier_name: 'Delhivery',
+        dispatch_date: '2026-05-05 10:15 AM',
+        estimated_delivery_date: '2026-05-05',
+        driver_name: 'Rajesh Patil',
+        vehicle_number: 'MH-14-EU-4592',
+        customer_name: 'Megha Sharma',
+        shipping_address: 'Sector 21, Plot 14, Nigdi Pradhikaran',
+        city: 'Pune',
+        state: 'Maharashtra',
+        pincode: '411044',
+        package_count: 1,
+        package_weight: 1.2,
+        challan_number: 'CHL-2026-4403',
+        challan_type: 'GST',
+        challan_date: '2026-05-05',
+        linked_invoice_id: 'INV-40280',
+        otp_code: '1102'
+    },
+    {
+        delivery_id: 'DLV-403',
+        delivery_number: 'CLIKS/DEL/26/103',
+        delivery_status: 'Failed Attempt',
+        delivery_date: '2026-05-04',
+        shipment_id: 'SHP-8750',
+        tracking_number: 'TRK998248002',
+        courier_name: 'CLIKS Logistics',
+        dispatch_date: '2026-05-04 11:00 AM',
+        estimated_delivery_date: '2026-05-04',
+        driver_name: 'Satish Yadav',
+        vehicle_number: 'MH-12-QB-8821',
+        customer_name: 'Rahul Varma',
+        shipping_address: 'Building B, Apartment 801, Hinjewadi Phase 1',
+        city: 'Pune',
+        state: 'Maharashtra',
+        pincode: '411057',
+        package_count: 3,
+        package_weight: 12.8,
+        challan_number: 'CHL-2026-4390',
+        challan_type: 'GST',
+        challan_date: '2026-05-04',
+        linked_invoice_id: 'INV-40250',
+        otp_code: '4452',
+        failed_delivery_reason: 'Customer out of town / Premises locked'
+    },
+    {
+        delivery_id: 'DLV-404',
+        delivery_number: 'CLIKS/DEL/26/104',
+        delivery_status: 'Packed',
+        delivery_date: '2026-05-07',
+        shipment_id: 'SHP-8820',
+        tracking_number: 'TRK998248220',
+        courier_name: 'CLIKS Logistics',
+        dispatch_date: '2026-05-07 08:30 AM',
+        estimated_delivery_date: '2026-05-07',
+        driver_name: 'Rajesh Patil',
+        vehicle_number: 'MH-14-EU-4592',
+        customer_name: 'Snehal Deshmukh',
+        shipping_address: 'Flat 101, Shivneri Sadan, Kothrud',
+        city: 'Pune',
+        state: 'Maharashtra',
+        pincode: '411038',
+        package_count: 1,
+        package_weight: 2.0,
+        challan_number: 'CHL-2026-4420',
+        challan_type: 'Non-GST',
+        challan_date: '2026-05-06',
+        linked_invoice_id: 'INV-40301',
+        otp_code: '8910'
+    }
+];
+
+const INITIAL_BILLING_STAFF = [
+    { staff_id: 'STF-05', name: 'Satish Yadav', vehicle: 'MH-12-QB-8821', mobile: '+91 98234 56789', status: 'On Delivery', avg_time: '48 mins', delivery_success_rate: 96 },
+    { staff_id: 'STF-02', name: 'Rajesh Patil', vehicle: 'MH-14-EU-4592', mobile: '+91 91234 56711', status: 'Available', avg_time: '42 mins', delivery_success_rate: 98 }
+];
+
 const BusinessBilling = () => {
     const { currency, formatCurrency } = useCurrency();
     const { selectedPlan, user } = useAuth();
@@ -99,6 +212,45 @@ const BusinessBilling = () => {
     const [viewingInvoice, setViewingInvoice] = useState(null); // New state for Viewing full invoice on screen
     const [showLivePreview, setShowLivePreview] = useState(false); // State for split-pane preview during creation
     const barcodeInputRef = React.useRef(null);
+
+    // Logistics & Delivery State for Delivery Challan tab
+    const [billingDeliveries, setBillingDeliveries] = useState(INITIAL_BILLING_DELIVERIES);
+    const [deliverySubTab, setDeliverySubTab] = useState('shipments'); // 'shipments' | 'challans' | 'staff' | 'returns'
+    const [deliverySearch, setDeliverySearch] = useState('');
+    const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('All');
+    const [selectedChallanConfirm, setSelectedChallanConfirm] = useState(null);
+    const [confirmOtp, setConfirmOtp] = useState('');
+
+    const deliveryStats = React.useMemo(() => {
+        const total = billingDeliveries.length;
+        const delivered = billingDeliveries.filter(d => d.delivery_status === 'Delivered').length;
+        const failed = billingDeliveries.filter(d => d.delivery_status === 'Failed Attempt').length;
+        const ongoing = billingDeliveries.filter(d => ['Out For Delivery', 'Packed', 'Dispatched', 'In Transit'].includes(d.delivery_status)).length;
+        const rate = total > 0 ? Math.round((delivered / total) * 100) : 25;
+
+        return {
+            successRate: `${rate}%`,
+            avgSpeed: '52 mins',
+            failedCount: failed,
+            ongoingCount: ongoing
+        };
+    }, [billingDeliveries]);
+
+    const filteredDeliveries = React.useMemo(() => {
+        return billingDeliveries.filter((dlv) => {
+            const matchesSearch = !deliverySearch || 
+                (dlv.customer_name && dlv.customer_name.toLowerCase().includes(deliverySearch.toLowerCase())) ||
+                (dlv.delivery_number && dlv.delivery_number.toLowerCase().includes(deliverySearch.toLowerCase())) ||
+                (dlv.city && dlv.city.toLowerCase().includes(deliverySearch.toLowerCase())) ||
+                (dlv.driver_name && dlv.driver_name.toLowerCase().includes(deliverySearch.toLowerCase())) ||
+                (dlv.tracking_number && dlv.tracking_number.toLowerCase().includes(deliverySearch.toLowerCase())) ||
+                (dlv.challan_number && dlv.challan_number.toLowerCase().includes(deliverySearch.toLowerCase()));
+            
+            const matchesStatus = deliveryStatusFilter === 'All' || dlv.delivery_status === deliveryStatusFilter;
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [billingDeliveries, deliverySearch, deliveryStatusFilter]);
 
     // Supplier View Modal states for B2B Purchase Request confirmation
     const [isSupplierViewModalOpen, setIsSupplierViewModalOpen] = useState(false);
@@ -1546,8 +1698,311 @@ const BusinessBilling = () => {
                 </button>
             </div>
 
-            {/* Invoices List */}
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+            {/* Invoices List / Delivery Section */}
+            {activeMainTab === 'delivery_challan' ? (
+                <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                    {/* 2. KPI SUMMARY CARDS (Top of the Delivery Section) */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                        {[
+                            { label: 'DELIVERY SUCCESS RATE', value: deliveryStats.successRate, icon: Award, color: '#1B6B3A', bg: '#DCF2E4', borderColor: '#1B6B3A' },
+                            { label: 'AVG DELIVERY SPEED', value: deliveryStats.avgSpeed, icon: Clock, color: '#0D9488', bg: '#CCFBF1', borderColor: '#0D9488' },
+                            { label: 'FAILED ATTEMPTS', value: String(deliveryStats.failedCount), icon: AlertCircle, color: '#EF4444', bg: '#FEE2E2', borderColor: '#EF4444' },
+                            { label: 'ONGOING SHIPMENTS', value: String(deliveryStats.ongoingCount), icon: Activity, color: '#3B82F6', bg: '#DBEAFE', borderColor: '#3B82F6' }
+                        ].map((stat, idx) => (
+                            <div key={idx} className="stat-card" style={{ background: 'white', padding: '1.25rem 1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                <div style={{ position: 'absolute', right: '-10px', bottom: '-10px', opacity: 0.06, color: stat.color, transform: 'rotate(-15deg)' }}>
+                                    <stat.icon size={70} />
+                                </div>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '0.85rem', position: 'relative', zIndex: 1 }}>
+                                    <stat.icon size={20} />
+                                </div>
+                                <h3 style={{ fontSize: '1.65rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.03em', margin: '0 0 0.25rem 0', position: 'relative', zIndex: 1 }}>{stat.value}</h3>
+                                <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em', position: 'relative', zIndex: 1 }}>{stat.label}</p>
+                                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px', background: stat.borderColor, opacity: 0.8 }} />
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* 3. SUB-TAB NAVIGATION BAR */}
+                    <div style={{ display: 'flex', gap: '0.75rem', borderBottom: '2px solid #E2E8F0', paddingBottom: '0.25rem', marginBottom: '1.25rem' }}>
+                        <button 
+                            type="button"
+                            onClick={() => setDeliverySubTab('shipments')}
+                            style={{ padding: '0.65rem 1.25rem', background: 'none', border: 'none', color: deliverySubTab === 'shipments' ? '#1B6B3A' : '#64748B', fontWeight: '750', fontSize: '0.9rem', cursor: 'pointer', borderBottom: deliverySubTab === 'shipments' ? '3px solid #1B6B3A' : '3px solid transparent', marginBottom: '-2px', transition: 'all 0.15s' }}
+                        >
+                            📦 Shipments & Real-Time Status
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => setDeliverySubTab('challans')}
+                            style={{ padding: '0.65rem 1.25rem', background: 'none', border: 'none', color: deliverySubTab === 'challans' ? '#1B6B3A' : '#64748B', fontWeight: '750', fontSize: '0.9rem', cursor: 'pointer', borderBottom: deliverySubTab === 'challans' ? '3px solid #1B6B3A' : '3px solid transparent', marginBottom: '-2px', transition: 'all 0.15s' }}
+                        >
+                            📄 Delivery Challans
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => setDeliverySubTab('staff')}
+                            style={{ padding: '0.65rem 1.25rem', background: 'none', border: 'none', color: deliverySubTab === 'staff' ? '#1B6B3A' : '#64748B', fontWeight: '750', fontSize: '0.9rem', cursor: 'pointer', borderBottom: deliverySubTab === 'staff' ? '3px solid #1B6B3A' : '3px solid transparent', marginBottom: '-2px', transition: 'all 0.15s' }}
+                        >
+                            👨💼 Delivery Staff & Driver Performance
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => setDeliverySubTab('returns')}
+                            style={{ padding: '0.65rem 1.25rem', background: 'none', border: 'none', color: deliverySubTab === 'returns' ? '#1B6B3A' : '#64748B', fontWeight: '750', fontSize: '0.9rem', cursor: 'pointer', borderBottom: deliverySubTab === 'returns' ? '3px solid #1B6B3A' : '3px solid transparent', marginBottom: '-2px', transition: 'all 0.15s' }}
+                        >
+                            🔄 Reverse Logistics (Returns)
+                        </button>
+                    </div>
+
+                    {/* 4 & 5. SUB-TAB CONTENT: SHIPMENTS */}
+                    {deliverySubTab === 'shipments' && (
+                        <div>
+                            {/* SEARCH & FILTER CONTROLS */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', background: 'white', padding: '0.85rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', marginBottom: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+                                    <Search size={18} style={{ color: '#94A3B8' }} />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search deliveries by customer name, order number, city, or driver..."
+                                        value={deliverySearch}
+                                        onChange={e => setDeliverySearch(e.target.value)}
+                                        style={{ width: '100%', border: 'none', outline: 'none', fontWeight: '500', fontSize: '0.88rem', color: '#1E293B', background: 'transparent' }}
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: '700', color: '#64748B' }}>Status:</span>
+                                    <select 
+                                        value={deliveryStatusFilter} 
+                                        onChange={e => setDeliveryStatusFilter(e.target.value)}
+                                        style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontWeight: '600', outline: 'none', fontSize: '0.82rem', background: 'white', color: '#334155', cursor: 'pointer' }}
+                                    >
+                                        <option value="All">All Statuses</option>
+                                        <option value="Packed">Packed</option>
+                                        <option value="Dispatched">Dispatched</option>
+                                        <option value="Out For Delivery">Out For Delivery</option>
+                                        <option value="Delivered">Delivered</option>
+                                        <option value="Failed Attempt">Failed Attempt</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* SHIPMENT / CHALLAN DELIVERY CARDS (List Layout) */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                {filteredDeliveries.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '3.5rem 2rem', background: 'white', borderRadius: '20px', border: '1px solid #E2E8F0', color: '#64748B' }}>
+                                        <Package size={44} style={{ margin: '0 auto 0.75rem', color: '#94A3B8' }} />
+                                        <h4 style={{ fontWeight: '800', color: '#1E293B', marginBottom: '0.25rem', fontSize: '1rem' }}>No Deliveries Match Your Search</h4>
+                                        <p style={{ fontSize: '0.82rem', margin: 0 }}>Try clearing the search query or status filter.</p>
+                                    </div>
+                                ) : (
+                                    filteredDeliveries.map((dlv) => (
+                                        <div 
+                                            key={dlv.delivery_id}
+                                            className="rounded-2xl border border-slate-100 p-4 shadow-sm hover:shadow-md transition-all flex items-center justify-between"
+                                            style={{ background: 'white', borderRadius: '1rem', border: '1px solid #F1F5F9', padding: '1.1rem 1.4rem' }}
+                                        >
+                                            {/* Left Side (Status Icon + Details) */}
+                                            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                                                <div style={{ 
+                                                    width: '48px', 
+                                                    height: '48px', 
+                                                    borderRadius: '12px', 
+                                                    background: dlv.delivery_status === 'Delivered' ? '#DCF2E4' : dlv.delivery_status === 'Failed Attempt' ? '#FEE2E2' : '#EFF6FF',
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'center',
+                                                    color: dlv.delivery_status === 'Delivered' ? '#1B6B3A' : dlv.delivery_status === 'Failed Attempt' ? '#EF4444' : '#3B82F6',
+                                                    flexShrink: 0
+                                                }}>
+                                                    <Truck size={24} />
+                                                </div>
+                                                <div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.25rem' }}>
+                                                        <h4 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>{dlv.customer_name}</h4>
+                                                        <span style={{ 
+                                                            fontSize: '0.7rem', 
+                                                            fontWeight: '800', 
+                                                            padding: '0.2rem 0.55rem', 
+                                                            borderRadius: '6px',
+                                                            background: dlv.delivery_status === 'Delivered' ? '#DCF2E4' : dlv.delivery_status === 'Failed Attempt' ? '#FEE2E2' : '#EFF6FF',
+                                                            color: dlv.delivery_status === 'Delivered' ? '#1B6B3A' : dlv.delivery_status === 'Failed Attempt' ? '#EF4444' : '#2563EB'
+                                                        }}>
+                                                            {dlv.delivery_status}
+                                                        </span>
+                                                    </div>
+                                                    <p style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '500', margin: 0 }}>
+                                                        Ref: <strong style={{ color: '#334155' }}>{dlv.delivery_number}</strong> • City: <strong style={{ color: '#334155' }}>{dlv.city}</strong> • Courier: <strong style={{ color: '#334155' }}>{dlv.courier_name}</strong>
+                                                        {dlv.tracking_number && (
+                                                            <> • Tracking: <span style={{ color: '#1B6B3A', fontWeight: '750' }}>{dlv.tracking_number}</span></>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Right Side (Driver Assignment & Action) */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                                                {dlv.driver_name ? (
+                                                    <div style={{ textAlign: 'right', marginRight: '0.5rem' }}>
+                                                        <span className="text-xs text-slate-400" style={{ display: 'block', fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600' }}>Assigned Driver</span>
+                                                        <span className="text-sm font-semibold text-slate-800" style={{ display: 'block', fontSize: '0.88rem', fontWeight: '700', color: '#1E293B' }}>{dlv.driver_name}</span>
+                                                        <span className="text-xs text-slate-500 font-mono" style={{ display: 'block', fontSize: '0.75rem', color: '#64748B', fontFamily: 'monospace' }}>{dlv.vehicle_number}</span>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ textAlign: 'right', marginRight: '0.5rem' }}>
+                                                        <span className="text-xs text-slate-400" style={{ display: 'block', fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600' }}>Assigned Driver</span>
+                                                        <span style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', fontStyle: 'italic' }}>Pending Assignment</span>
+                                                    </div>
+                                                )}
+
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedChallanConfirm(dlv);
+                                                        setConfirmOtp(dlv.otp_code || '');
+                                                    }}
+                                                    className="border border-emerald-700 text-emerald-800 hover:bg-emerald-50 rounded-lg px-4 py-2 text-xs font-semibold"
+                                                    style={{ 
+                                                        border: '1px solid #047857', 
+                                                        color: '#065F46', 
+                                                        background: '#FFFFFF', 
+                                                        borderRadius: '8px', 
+                                                        padding: '0.5rem 1rem', 
+                                                        fontSize: '0.75rem', 
+                                                        fontWeight: '700', 
+                                                        cursor: 'pointer',
+                                                        whiteSpace: 'nowrap',
+                                                        transition: 'all 0.15s'
+                                                    }}
+                                                >
+                                                    Challan & Confirm
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SUB-TAB: CHALLANS */}
+                    {deliverySubTab === 'challans' && (
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.25rem' }}>📄 Generated Delivery Challans (Product Dispatches)</h3>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <thead>
+                                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: '0.75rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Challan No #</th>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Customer / Client</th>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Linked Invoice</th>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Challan Type</th>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Challan Date</th>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Status</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {billingDeliveries.map((chl) => (
+                                        <tr key={chl.delivery_id} style={{ borderBottom: '1px solid #F8FAFC', fontSize: '0.85rem' }}>
+                                            <td style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#0284C7' }}>{chl.challan_number}</td>
+                                            <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#0F172A' }}>{chl.customer_name}</td>
+                                            <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontFamily: 'monospace' }}>{chl.linked_invoice_id || 'N/A'}</td>
+                                            <td style={{ padding: '0.75rem 1rem' }}>
+                                                <span style={{ padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '800', background: chl.challan_type === 'GST' ? '#E0F2FE' : '#F1F5F9', color: chl.challan_type === 'GST' ? '#0369A1' : '#475569' }}>
+                                                    {chl.challan_type}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>{chl.challan_date}</td>
+                                            <td style={{ padding: '0.75rem 1rem' }}>
+                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: chl.delivery_status === 'Delivered' ? '#D1FAE5' : chl.delivery_status === 'Failed Attempt' ? '#FEE2E2' : '#FEF3C7', color: chl.delivery_status === 'Delivered' ? '#065F46' : chl.delivery_status === 'Failed Attempt' ? '#991B1B' : '#92400E' }}>
+                                                    {chl.delivery_status.toUpperCase()}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => { setSelectedChallanConfirm(chl); setConfirmOtp(chl.otp_code || ''); }} 
+                                                    style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}
+                                                >
+                                                    View Details
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    {/* SUB-TAB: STAFF */}
+                    {deliverySubTab === 'staff' && (
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.25rem' }}>👨💼 Delivery Staff Performance & Fleet Assignments</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+                                {INITIAL_BILLING_STAFF.map((stf) => (
+                                    <div key={stf.staff_id} style={{ background: '#FAFDFB', padding: '1.25rem', borderRadius: '18px', border: '1px solid #E8F5EE' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                            <div>
+                                                <h4 style={{ fontWeight: '800', color: '#0F172A', fontSize: '1rem', margin: 0 }}>{stf.name}</h4>
+                                                <span style={{ fontSize: '0.72rem', color: '#64748B' }}>ID: {stf.staff_id}</span>
+                                            </div>
+                                            <span style={{ fontSize: '0.72rem', fontWeight: '800', background: stf.status === 'Available' ? '#DCF2E4' : '#EFF6FF', color: stf.status === 'Available' ? '#1B6B3A' : '#3B82F6', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                                {stf.status}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.82rem', color: '#475569', marginBottom: '0.75rem' }}>
+                                            <div>Vehicle: <strong style={{ color: '#1E293B', fontFamily: 'monospace' }}>{stf.vehicle}</strong></div>
+                                            <div>Mobile: <strong style={{ color: '#1E293B' }}>{stf.mobile}</strong></div>
+                                            <div>Avg Delivery Speed: <strong style={{ color: '#1E293B' }}>{stf.avg_time}</strong></div>
+                                        </div>
+                                        <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '0.65rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: '750' }}>
+                                                <span>Delivery Success Rate</span>
+                                                <span style={{ color: '#1B6B3A' }}>{stf.delivery_success_rate}%</span>
+                                            </div>
+                                            <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '3px', overflow: 'hidden', marginTop: '0.25rem' }}>
+                                                <div style={{ width: `${stf.delivery_success_rate}%`, height: '100%', background: '#1B6B3A' }} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SUB-TAB: RETURNS */}
+                    {deliverySubTab === 'returns' && (
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.25rem' }}>🔄 Reverse Logistics (Return pick-ups & Failures)</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                {billingDeliveries.filter(d => d.delivery_status === 'Failed Attempt' || d.failed_delivery_reason).map((dlv) => (
+                                    <div key={dlv.delivery_id} style={{ background: '#FFFDFD', border: '1px solid #FEE2E2', padding: '1.25rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
+                                                <h4 style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.95rem', margin: 0 }}>{dlv.customer_name}</h4>
+                                                <span style={{ fontSize: '0.7rem', fontWeight: '800', background: '#FEE2E2', color: '#EF4444', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                                    {dlv.delivery_status}
+                                                </span>
+                                            </div>
+                                            <p style={{ fontSize: '0.82rem', color: '#64748B', margin: 0 }}>
+                                                Ref: <strong>{dlv.delivery_number}</strong> • Destination: <strong>{dlv.city}</strong> • Reason: <span style={{ color: '#DC2626', fontWeight: '600' }}>{dlv.failed_delivery_reason || 'Premises locked'}</span>
+                                            </p>
+                                        </div>
+                                        <button 
+                                            type="button"
+                                            onClick={() => alert(`Rescheduling reverse logistics pickup for ${dlv.customer_name}. Assigned Fleet: ${dlv.driver_name}`)}
+                                            style={{ padding: '0.45rem 0.85rem', border: '1px solid #EF4444', background: 'white', color: '#EF4444', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '750', cursor: 'pointer' }}
+                                        >
+                                            Reschedule Pickup
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
                 {/* Search & Filter Bar */}
                 <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', gap: '0.75rem' }}>
                     {/* Search Input */}
@@ -1601,14 +2056,7 @@ const BusinessBilling = () => {
                                 + Create Sales Return
                             </button>
                         )}
-                        {activeMainTab === 'delivery_challan' && (
-                            <button 
-                                onClick={() => alert("Generate Delivery Challan feature active.")} 
-                                style={{ padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
-                            >
-                                + Generate Delivery Challan
-                            </button>
-                        )}
+
                     </div>
                 </div>
 
@@ -1779,80 +2227,6 @@ const BusinessBilling = () => {
                             </tbody>
                         </table>
 
-                    ) : activeMainTab === 'delivery_challan' ? (
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: '0.75rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Challan No #</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Customer / Client</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Linked Invoice</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Challan Type</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Challan Date</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Status</th>
-                                    <th style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(() => {
-                                    const defaultChallans = [
-                                        { id: 'CHL-4402', challan_number: 'CHL-2026-4402', client_name: 'Aman Deep', invoice_number: 'INV-40292', challan_type: 'GST', challan_date: '2026-05-06', status: 'Out For Delivery' },
-                                        { id: 'CHL-4403', challan_number: 'CHL-2026-4403', client_name: 'Megha Sharma', invoice_number: 'INV-40293', challan_type: 'GST', challan_date: '2026-05-05', status: 'Delivered' },
-                                        { id: 'CHL-4390', challan_number: 'CHL-2026-4390', client_name: 'Rajesh Patil', invoice_number: 'INV-40285', challan_type: 'GST', challan_date: '2026-05-04', status: 'Delivered' },
-                                        { id: 'CHL-4420', challan_number: 'CHL-2026-4420', client_name: 'Vikram Mehta', invoice_number: 'INV-40301', challan_type: 'Non-GST', challan_date: '2026-05-06', status: 'In Transit' }
-                                    ];
-                                    const invoiceChallans = (Array.isArray(invoices) ? invoices : []).map(inv => ({
-                                        id: `DC-${inv.id}`,
-                                        challan_number: `DC-${inv.invoice_number || inv.id}`,
-                                        client_name: inv.client_name || 'Client',
-                                        invoice_number: inv.invoice_number || 'N/A',
-                                        challan_type: 'GST',
-                                        challan_date: inv.due_date || '2026-05-06',
-                                        status: inv.status === 'Paid' ? 'Delivered' : 'Dispatched'
-                                    }));
-                                    const allChallans = [...defaultChallans, ...invoiceChallans];
-                                    const filtered = allChallans.filter(c => 
-                                        !searchTerm || 
-                                        c.challan_number.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                        c.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                        c.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())
-                                    );
-
-                                    return filtered.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#94A3B8' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <Truck size={32} opacity={0.4} />
-                                                    <p style={{ margin: 0, fontWeight: '700', fontSize: '0.9rem', color: '#475569' }}>No Delivery Challans Found</p>
-                                                    <span style={{ fontSize: '0.8rem' }}>Generate delivery challans for customer shipments and product dispatches.</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        filtered.map((chl) => (
-                                            <tr key={chl.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                                <td style={{ padding: '0.75rem 1.25rem', fontWeight: '800', color: '#0284C7' }}>{chl.challan_number}</td>
-                                                <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#0F172A' }}>{chl.client_name}</td>
-                                                <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontFamily: 'monospace' }}>{chl.invoice_number}</td>
-                                                <td style={{ padding: '0.75rem 1.25rem' }}>
-                                                    <span style={{ padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '800', background: chl.challan_type === 'GST' ? '#E0F2FE' : '#F1F5F9', color: chl.challan_type === 'GST' ? '#0369A1' : '#475569' }}>
-                                                        {chl.challan_type}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: '0.75rem 1.25rem', color: '#64748B', fontSize: '0.8rem' }}>{chl.challan_date}</td>
-                                                <td style={{ padding: '0.75rem 1.25rem' }}>
-                                                    <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: chl.status === 'Delivered' ? '#D1FAE5' : '#FEF3C7', color: chl.status === 'Delivered' ? '#065F46' : '#92400E' }}>
-                                                        {chl.status.toUpperCase()}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
-                                                    <button onClick={() => alert(`Delivery Challan #${chl.challan_number}\nClient: ${chl.client_name}\nStatus: ${chl.status}`)} style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>View Details</button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    );
-                                })()}
-                            </tbody>
-                        </table>
                     ) : (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
@@ -1951,6 +2325,7 @@ const BusinessBilling = () => {
                     )}
                 </div>
             </div>
+            )}
 
             {/* Create/Edit Modal */}
             {isModalOpen && (
@@ -4107,6 +4482,102 @@ const BusinessBilling = () => {
                                     </button>
                                 );
                             })()}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Challan & Confirm Verification Modal */}
+            {selectedChallanConfirm && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, backdropFilter: 'blur(4px)' }}>
+                    <div style={{ background: 'white', width: '560px', maxWidth: '92vw', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: '0 0 0.2rem 0' }}>Shipment Dispatch & Challan Verification</h3>
+                                <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Challan No: <strong style={{ color: '#047857' }}>{selectedChallanConfirm.challan_number}</strong></span>
+                            </div>
+                            <button onClick={() => setSelectedChallanConfirm(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.45rem', borderRadius: '10px', cursor: 'pointer', color: '#64748B' }}>
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                                    <span style={{ color: '#64748B' }}>Consignee / Customer:</span>
+                                    <strong style={{ color: '#0F172A' }}>{selectedChallanConfirm.customer_name}</strong>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                                    <span style={{ color: '#64748B' }}>Delivery Address:</span>
+                                    <strong style={{ color: '#0F172A', textAlign: 'right', maxWidth: '60%' }}>{selectedChallanConfirm.shipping_address}, {selectedChallanConfirm.city}</strong>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                                    <span style={{ color: '#64748B' }}>Assigned Driver:</span>
+                                    <strong style={{ color: '#0F172A' }}>{selectedChallanConfirm.driver_name || 'Pending'} ({selectedChallanConfirm.vehicle_number || 'N/A'})</strong>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#64748B' }}>Tracking Reference:</span>
+                                    <strong style={{ color: '#047857' }}>{selectedChallanConfirm.tracking_number || 'TRK-DIRECT'}</strong>
+                                </div>
+                            </div>
+
+                            <div style={{ background: '#FAFDFB', border: '1px solid #DCF2E4', padding: '1rem', borderRadius: '14px' }}>
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#166534', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                    <Smartphone size={16} /> OTP Delivery Verification
+                                </h4>
+                                <p style={{ fontSize: '0.78rem', color: '#475569', margin: '0 0 0.75rem 0' }}>
+                                    Verification Code: <strong style={{ background: '#FEF3C7', color: '#92400E', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>{selectedChallanConfirm.otp_code || '5829'}</strong>
+                                </p>
+                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Enter Customer OTP..."
+                                        value={confirmOtp}
+                                        onChange={(e) => setConfirmOtp(e.target.value)}
+                                        style={{ flex: 1, padding: '0.55rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '700' }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setBillingDeliveries(prev => prev.map(d => d.delivery_id === selectedChallanConfirm.delivery_id ? { ...d, delivery_status: 'Delivered' } : d));
+                                            alert(`Delivery Challan #${selectedChallanConfirm.challan_number} confirmed and marked as Delivered!`);
+                                            setSelectedChallanConfirm(null);
+                                        }}
+                                        style={{
+                                            padding: '0.55rem 1.1rem',
+                                            borderRadius: '8px',
+                                            background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)',
+                                            color: 'white',
+                                            border: 'none',
+                                            fontWeight: '750',
+                                            fontSize: '0.82rem',
+                                            cursor: 'pointer',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
+                                        Confirm Delivery ✓
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        window.print();
+                                    }}
+                                    style={{ padding: '0.55rem 1rem', borderRadius: '8px', border: '1px solid #CBD5E1', background: 'white', color: '#334155', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
+                                >
+                                    Print Challan
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedChallanConfirm(null)}
+                                    style={{ padding: '0.55rem 1rem', borderRadius: '8px', border: 'none', background: '#F1F5F9', color: '#475569', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
+                                >
+                                    Close
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
