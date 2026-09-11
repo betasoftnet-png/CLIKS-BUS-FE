@@ -20,6 +20,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ProfileDropdown } from './ProfileDropdown';
 import { CalcPopover } from './common/CalcPopover';
 import ProductLauncher from './ProductLauncher';
+import NotificationBell from './NotificationBell';
+import NotificationDropdown from './NotificationDropdown';
+import { useNotifications } from '../hooks/useNotifications';
 import { caService } from '../services/caService';
 
 
@@ -221,26 +224,12 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
     }, [searchQuery]);
 
     const [isNotificationOpen, setIsNotificationOpen] = React.useState(false);
-    const [notifications, setNotifications] = React.useState([]);
-
-    React.useEffect(() => {
-        let isMounted = true;
-        const fetchNotifs = () => {
-            caService.getNotifications()
-                .then(data => {
-                    if (isMounted && Array.isArray(data)) {
-                        setNotifications(data);
-                    }
-                })
-                .catch(() => {});
-        };
-        fetchNotifs();
-        const interval = setInterval(fetchNotifs, 30000);
-        return () => {
-            isMounted = false;
-            clearInterval(interval);
-        };
-    }, []);
+    const {
+        notifications,
+        unreadCount,
+        markAllRead: handleMarkAllNotificationsRead,
+        setNotifications
+    } = useNotifications(30000);
     const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(false);
     const [isEditingAccess, setIsEditingAccess] = React.useState(false);
     const [isAccessPopoverOpen, setIsAccessPopoverOpen] = React.useState(false);
@@ -624,147 +613,25 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
 
                 {/* Notification Bell Button */}
                 <div style={{ position: 'relative' }}>
-                    <button
+                    <NotificationBell
+                        unreadCount={unreadCount}
+                        isOpen={isNotificationOpen}
                         onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                        title="Notifications"
                         style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
                             width: '36px',
                             height: '36px',
                             borderRadius: '11px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                            cursor: 'pointer',
-                            color: '#FFFFFF',
-                            outline: 'none',
-                            position: 'relative',
-                            transition: 'all 0.2s ease'
+                            backgroundColor: isNotificationOpen ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.18)'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'}
-                    >
-                        {/* Custom bell svg matching screenshot */}
-                        <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            width="18" 
-                            height="18" 
-                            viewBox="0 0 24 24" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="2" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round"
-                        >
-                            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
-                            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
-                        </svg>
-                        
-                        {/* Red Badge */}
-                        {notifications.filter(n => !n.read).length > 0 && (
-                            <div style={{
-                                position: 'absolute',
-                                top: '-3px',
-                                right: '-3px',
-                                backgroundColor: '#EF4444',
-                                color: '#FFFFFF',
-                                borderRadius: '50%',
-                                width: '16px',
-                                height: '16px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '9px',
-                                fontWeight: '900',
-                                border: '2px solid #135029'
-                            }}>
-                                {notifications.filter(n => !n.read).length}
-                            </div>
-                        )}
-                    </button>
-                    
-                    <AnimatePresence>
-                        {isNotificationOpen && (
-                            <>
-                                <div 
-                                    onClick={() => setIsNotificationOpen(false)}
-                                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2008 }}
-                                />
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                    transition={{ duration: 0.15 }}
-                                    style={{
-                                        position: 'absolute',
-                                        top: 'calc(100% + 8px)',
-                                        right: '-10px',
-                                        width: '290px',
-                                        backgroundColor: '#FFFFFF',
-                                        borderRadius: '12px',
-                                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                                        border: '1px solid #E2E8F0',
-                                        zIndex: 2009,
-                                        padding: '10px 12px',
-                                        fontFamily: "'Inter', sans-serif"
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid #F1F5F9', paddingBottom: '6px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <span style={{ fontSize: '13px', fontWeight: '800', color: '#1E293B' }}>Notifications</span>
-                                            {notifications.filter(n => !n.read && !n.isRead).length > 0 && (
-                                                <span style={{ fontSize: '10px', fontWeight: '800', background: '#1B6B3A', color: '#FFFFFF', padding: '1px 6px', borderRadius: '10px' }}>
-                                                    {notifications.filter(n => !n.read && !n.isRead).length}
-                                                </span>
-                                            )}
-                                        </div>
-                                        {notifications.filter(n => !n.read && !n.isRead).length > 0 && (
-                                            <button 
-                                                onClick={() => {
-                                                    caService.markAllNotificationsRead().catch(() => {});
-                                                    setNotifications(notifications.map(n => ({ ...n, read: true, isRead: true })));
-                                                }}
-                                                style={{ background: 'none', border: 'none', color: '#1B6B3A', fontSize: '11px', fontWeight: '750', cursor: 'pointer' }}
-                                            >
-                                                Mark all read
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '260px', overflowY: 'auto', paddingRight: '2px' }}>
-                                        {notifications.length === 0 ? (
-                                            <div style={{ textAlign: 'center', padding: '16px 0', color: '#94A3B8', fontSize: '11.5px', fontStyle: 'italic' }}>
-                                                No new notifications
-                                            </div>
-                                        ) : (
-                                            notifications.map(notification => (
-                                                <div 
-                                                    key={notification.id}
-                                                    style={{
-                                                        padding: '8px 10px',
-                                                        borderRadius: '8px',
-                                                        backgroundColor: (notification.read || notification.isRead) ? 'transparent' : '#F0FDF4',
-                                                        border: (notification.read || notification.isRead) ? '1px solid #F1F5F9' : '1px solid #DCF2E4',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        gap: '2px',
-                                                        transition: 'background-color 0.15s'
-                                                    }}
-                                                >
-                                                    <span style={{ fontSize: '11.5px', color: '#334155', fontWeight: (notification.read || notification.isRead) ? '500' : '650', lineHeight: '1.35' }}>
-                                                        {notification.text || notification.message || notification.title}
-                                                    </span>
-                                                    <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '500' }}>
-                                                        {notification.time || (notification.created_at ? new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '')}
-                                                    </span>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </motion.div>
-                            </>
-                        )}
-                    </AnimatePresence>
+                    />
+                    <NotificationDropdown
+                        isOpen={isNotificationOpen}
+                        onClose={() => setIsNotificationOpen(false)}
+                        notifications={notifications}
+                        unreadCount={unreadCount}
+                        onMarkAllRead={handleMarkAllNotificationsRead}
+                    />
                 </div>
 
                 {/* FIN-PRO Header Option */}
