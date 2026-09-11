@@ -798,182 +798,288 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     </div>
                 )}
  
-                {/* Unified Subscription Conversion Card */}
+                {/* Dynamic Multi-Plan Subscription Status Card (Matching Image 2) */}
                 {(!isAdminMode && !isSalesAgentMode) && (() => {
-                    const displayPlan = selectedPlan;
-                    const displayDays = planDaysRemaining;
-
-                    const isAnnual = ['Starter Plan', 'Growth Plan', 'Elite Suite', 'Yearly Founder'].includes(displayPlan);
-                    const totalDays = isAnnual ? 365 : 30;
-                    const progressPercent = Math.min(100, Math.max(0, (displayDays / totalDays) * 100));
-                    const strokeDashoffset = 113 * (1 - progressPercent / 100);
-
                     const subs = user?.active_subscriptions || {};
-                    const activeBoxes = [];
 
-                    // [1] Business Plan
+                    const calcPlanDays = (planData, fallbackDays = 365) => {
+                        const exp = planData?.expiryDate || planData?.expiry_date || planData?.expires_at || planData?.expirationDate;
+                        if (exp) {
+                            const diff = Math.ceil((new Date(exp).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                            return Math.max(0, diff);
+                        }
+                        if (planData?.daysRemaining !== undefined && planData?.daysRemaining !== null) {
+                            return Math.max(0, Number(planData.daysRemaining));
+                        }
+                        if (planData?.subscription_days_remaining !== undefined && planData?.subscription_days_remaining !== null) {
+                            return Math.max(0, Number(planData.subscription_days_remaining));
+                        }
+                        return fallbackDays;
+                    };
+
+                    const activePlanCards = [];
+
+                    // [1] Plan 1: Books / Business (tier: Starter / Growth / Elite)
                     const hasBusinessPlan = Boolean(
                         subs.business?.active ||
-                        selectedPlan || 
-                        user?.tier || 
-                        user?.plan_type || 
-                        user?.business_plan || 
+                        selectedPlan ||
+                        user?.tier ||
+                        user?.plan_type ||
+                        user?.business_plan ||
                         user?.active_plans?.business
                     );
-                    if (hasBusinessPlan || activeBoxes.length === 0) {
-                        activeBoxes.push({ type: 'business', label: `Business: ${subs.business?.plan || selectedPlan || 'Starter Plan'}` });
+                    if (hasBusinessPlan || activePlanCards.length === 0) {
+                        const rawTier = subs.business?.plan || selectedPlan || user?.tier || 'Starter Plan';
+                        let tierText = 'STARTER';
+                        const upTier = String(rawTier).toUpperCase();
+                        if (upTier.includes('ELITE')) tierText = 'ELITE';
+                        else if (upTier.includes('GROWTH')) tierText = 'GROWTH';
+                        else if (upTier.includes('STARTER')) tierText = 'STARTER';
+                        else if (rawTier && rawTier !== 'Free Plan') tierText = upTier;
+
+                        activePlanCards.push({
+                            id: 'books',
+                            days: calcPlanDays(subs.business, planDaysRemaining || 365),
+                            middleLabel: 'BOOK',
+                            tierText: tierText,
+                            subtext: null
+                        });
                     }
 
-                    // [2] FIN-PRO Plan
+                    // [2] Plan 2: FIN-PRO (tier: Solo / Firm)
                     const hasFinProPlan = Boolean(
                         subs.fin_pro?.active ||
-                        user?.finpro_plan || 
-                        user?.ca_plan || 
-                        user?.active_plans?.finpro || 
+                        subs.ca?.active ||
+                        user?.finpro_plan ||
+                        user?.ca_plan ||
+                        user?.active_plans?.finpro ||
                         localStorage.getItem('cliks_finpro_active') === 'true'
                     );
                     if (hasFinProPlan) {
-                        activeBoxes.push({ type: 'finpro', label: `FIN-PRO: ${subs.fin_pro?.plan || 'Active'}` });
+                        const rawTier = subs.fin_pro?.plan || subs.ca?.plan || user?.finpro_plan || user?.ca_plan || 'Fin-Pro Solo';
+                        let tierText = 'SOLO';
+                        const upTier = String(rawTier).toUpperCase();
+                        if (upTier.includes('FIRM')) tierText = 'FIRM';
+                        else if (upTier.includes('SOLO')) tierText = 'SOLO';
+                        else if (rawTier && rawTier !== 'Active') tierText = upTier;
+
+                        activePlanCards.push({
+                            id: 'finpro',
+                            days: calcPlanDays(subs.fin_pro || subs.ca, 365),
+                            middleLabel: 'FIN-PRO',
+                            tierText: tierText,
+                            subtext: null
+                        });
                     }
 
-                    // [3] Capital Matrix - Investor Club
+                    // [3] Plan 3: PARTNER LAUNCH DESK - Investor (tier: Basic Investor / Pro Investor)
                     const hasInvestorPlan = Boolean(
                         subs.investor?.active ||
-                        user?.investor_plan || 
-                        user?.betaclub_investor_plan || 
-                        user?.active_plans?.investor || 
+                        subs.betaclub_investor?.active ||
+                        user?.investor_plan ||
+                        user?.betaclub_investor_plan ||
+                        user?.active_plans?.investor ||
                         localStorage.getItem('cliks_investor_active') === 'true'
                     );
                     if (hasInvestorPlan) {
-                        activeBoxes.push({ type: 'investor', label: `Investor: ${subs.investor?.plan || 'Active'}` });
+                        const rawTier = subs.investor?.plan || subs.betaclub_investor?.plan || user?.investor_plan || user?.betaclub_investor_plan || 'Basic Investor';
+                        const upTier = String(rawTier).toUpperCase();
+                        const isPro = upTier.includes('PRO');
+
+                        activePlanCards.push({
+                            id: 'investor',
+                            days: calcPlanDays(subs.investor || subs.betaclub_investor, 365),
+                            middleLabel: 'Partner launch desk',
+                            tierText: 'INVESTOR PLAN',
+                            subtext: isPro ? 'PRO' : 'BASIC'
+                        });
                     }
 
-                    // [4] Capital Matrix - Products & Ideas / Poster / Founder
+                    // [4] Plan 4: PARTNER LAUNCH DESK - Products & Ideas (tier: Monthly / Yearly Innovators / Founders)
                     const hasPosterPlan = Boolean(
                         subs.poster?.active ||
-                        user?.poster_plan || 
-                        user?.founder_plan || 
-                        user?.active_plans?.poster || 
+                        subs.product?.active ||
+                        subs.betaclub_product?.active ||
+                        user?.poster_plan ||
+                        user?.founder_plan ||
+                        user?.active_plans?.poster ||
                         localStorage.getItem('cliks_poster_active') === 'true'
                     );
                     if (hasPosterPlan) {
-                        activeBoxes.push({ type: 'poster', label: `Founder: ${subs.poster?.plan || 'Active'}` });
+                        const rawTier = subs.poster?.plan || subs.product?.plan || subs.betaclub_product?.plan || user?.poster_plan || user?.founder_plan || 'Monthly Innovator';
+                        const upTier = String(rawTier).toUpperCase();
+                        let subtext = 'monthly / yearly innovators / founder';
+                        if (upTier.includes('YEARLY') || upTier.includes('FOUNDER')) {
+                            subtext = 'yearly innovators / founder';
+                        } else if (upTier.includes('MONTHLY') || upTier.includes('INNOVATOR')) {
+                            subtext = 'monthly innovators';
+                        }
+
+                        activePlanCards.push({
+                            id: 'products',
+                            days: calcPlanDays(subs.poster || subs.product || subs.betaclub_product, 365),
+                            middleLabel: 'Partner launch desk',
+                            tierText: 'PRODUCTS PLAN',
+                            subtext: subtext
+                        });
                     }
 
-                    const displayCardTitle = activeBoxes.length > 1 ? 'Multi-Suite Active' : displayPlan;
+                    const cardCount = activePlanCards.length;
+                    const gridClass = cardCount === 1 
+                        ? 'flex items-center justify-center w-full'
+                        : cardCount === 2 
+                            ? 'grid grid-cols-2 gap-2 w-full'
+                            : cardCount === 3
+                                ? 'grid grid-cols-3 gap-2 w-full'
+                                : 'grid grid-cols-4 gap-2 w-full';
 
                     return (
-                        <button
+                        <div
                             onClick={() => handleItemClick('Subscription', '/subscription')}
+                            role="button"
+                            tabIndex={0}
+                            title="Click to manage subscriptions"
+                            className={`rounded-2xl p-3 bg-[#172b59] ${gridClass}`}
                             style={{
                                 width: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '0.5rem 0.6rem 0.5rem 0.85rem',
-                                background: 'linear-gradient(135deg, #1E3A8A 0%, #172554 100%)',
-                                color: '#FFFFFF',
-                                border: 'none',
+                                backgroundColor: '#172b59',
+                                borderRadius: '16px',
+                                padding: cardCount >= 4 ? '0.65rem 0.25rem' : (cardCount === 3 ? '0.75rem 0.35rem' : '0.75rem'),
+                                display: cardCount === 1 ? 'flex' : 'grid',
+                                gridTemplateColumns: cardCount > 1 ? `repeat(${cardCount}, minmax(0, 1fr))` : undefined,
+                                gap: cardCount >= 4 ? '4px' : (cardCount === 3 ? '6px' : '8px'),
+                                alignItems: 'stretch',
+                                justifyContent: cardCount === 1 ? 'center' : undefined,
                                 cursor: 'pointer',
-                                fontWeight: '750',
-                                fontSize: '0.85rem',
-                                borderRadius: '12px',
-                                boxShadow: '0 4px 12px rgba(30, 58, 138, 0.25)',
-                                transition: 'all 0.2s ease',
-                                minHeight: '52px'
+                                boxShadow: '0 4px 16px rgba(15, 23, 42, 0.35)',
+                                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                whiteSpace: 'normal',
+                                boxSizing: 'border-box'
                             }}
-                            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                            onMouseOver={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = '0 6px 20px rgba(15, 23, 42, 0.45)';
+                            }}
+                            onMouseOut={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 16px rgba(15, 23, 42, 0.35)';
+                            }}
                         >
-                            <style>{`
-                                @keyframes circular-spin {
-                                    0% { transform: rotate(0deg); }
-                                    100% { transform: rotate(360deg); }
-                                }
-                            `}</style>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#FBBF24', padding: '6px', borderRadius: '8px', display: 'flex' }}>
-                                    <Crown size={18} strokeWidth={2.5} />
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                    {/* Active Subscription Indicator Boxes */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
-                                        {activeBoxes.map((box, idx) => {
-                                            const isRedBox = idx === 3 || box.type === 'poster';
-                                            return (
-                                                <div 
-                                                    key={idx}
-                                                    title={box.label}
-                                                    style={{
-                                                        width: '11px',
-                                                        height: '11px',
-                                                        borderRadius: '2px',
-                                                        border: isRedBox ? '1.5px solid #EF4444' : '1.5px solid #FFFFFF',
-                                                        backgroundColor: isRedBox ? '#EF4444' : 'transparent',
-                                                        boxSizing: 'border-box',
-                                                        transition: 'all 0.2s ease'
-                                                    }}
-                                                />
-                                            );
-                                        })}
-                                    </div>
-                                    <span 
-                                        title={activeBoxes.map(b => b.label).join(' | ')}
-                                        style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)', color: '#FBBF24', fontSize: '0.82rem', fontWeight: '800', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}
-                                    >
-                                        {displayCardTitle}
-                                    </span>
-                                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.62rem', fontWeight: '500' }}>
-                                        {t('managePlan', 'Manage Plan')}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Integrated Dynamic Progress Circle */}
-                            <div style={{
-                                position: 'relative',
-                                width: '40px',
-                                height: '40px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0
-                            }}>
-                                <svg width="40" height="40" viewBox="0 0 40 40" style={{ transform: 'rotate(-90deg)', position: 'absolute', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>
-                                    <circle
-                                        cx="20" cy="20" r="18"
-                                        fill="#FFFFFF"
-                                        stroke="rgba(255,255,255,0.25)"
-                                        strokeWidth="3"
-                                    />
-                                    <circle
-                                        cx="20" cy="20" r="18"
-                                        fill="none"
-                                        stroke="rgba(251, 191, 36, 0.45)"
-                                        strokeWidth="1.5"
-                                        strokeDasharray="4 4"
+                            {activePlanCards.map((plan) => {
+                                return (
+                                    <div
+                                        key={plan.id}
+                                        className="bg-white/5 rounded-xl p-2 flex flex-col items-center text-center"
                                         style={{
-                                            transformOrigin: '20px 20px',
-                                            animation: 'circular-spin 6s linear infinite'
+                                            backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                                            borderRadius: '12px',
+                                            padding: cardCount >= 4 ? '0.45rem 0.2rem' : (cardCount === 3 ? '0.5rem 0.3rem' : '0.65rem 0.5rem'),
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            textAlign: 'center',
+                                            justifyContent: 'space-between',
+                                            minWidth: 0,
+                                            width: cardCount === 1 ? '100%' : undefined
                                         }}
-                                    />
-                                    <circle
-                                        cx="20" cy="20" r="18"
-                                        fill="none"
-                                        stroke="#FBBF24"
-                                        strokeWidth="3"
-                                        strokeDasharray="113"
-                                        strokeDashoffset={strokeDashoffset}
-                                        strokeLinecap="round"
-                                        style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
-                                    />
-                                </svg>
-                                <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, marginTop: '1px' }}>
-                                    <span style={{ color: '#1E3A8A', fontSize: '0.72rem', fontWeight: '900', lineHeight: 1 }}>{displayDays}</span>
-                                    <span style={{ color: '#1E3A8A', fontSize: '0.45rem', fontWeight: '800', textTransform: 'uppercase', opacity: 0.9 }}>Days</span>
-                                </div>
-                            </div>
-                        </button>
+                                    >
+                                        {/* Top Circle Badge */}
+                                        <div
+                                            className="w-12 h-12 rounded-full bg-white border-2 border-amber-400 flex flex-col items-center justify-center shadow-sm"
+                                            style={{
+                                                width: cardCount >= 4 ? '36px' : (cardCount === 3 ? '42px' : '48px'),
+                                                height: cardCount >= 4 ? '36px' : (cardCount === 3 ? '42px' : '48px'),
+                                                borderRadius: '9999px',
+                                                backgroundColor: '#FFFFFF',
+                                                border: '2.5px solid #F59E0B',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.15)',
+                                                flexShrink: 0,
+                                                margin: '0 auto'
+                                            }}
+                                        >
+                                            <span
+                                                className="text-xs font-black text-[#172b59] leading-tight"
+                                                style={{
+                                                    fontSize: cardCount >= 4 ? '0.7rem' : (cardCount === 3 ? '0.78rem' : '0.85rem'),
+                                                    fontWeight: '900',
+                                                    color: '#172b59',
+                                                    lineHeight: 1
+                                                }}
+                                            >
+                                                {plan.days}
+                                            </span>
+                                            <span
+                                                className="text-[9px] font-bold text-[#172b59] tracking-wider leading-none"
+                                                style={{
+                                                    fontSize: cardCount >= 4 ? '0.45rem' : (cardCount === 3 ? '0.5rem' : '0.58rem'),
+                                                    fontWeight: '800',
+                                                    color: '#172b59',
+                                                    letterSpacing: '0.06em',
+                                                    lineHeight: 1,
+                                                    marginTop: '1px'
+                                                }}
+                                            >
+                                                DAYS
+                                            </span>
+                                        </div>
+
+                                        {/* Middle Label (White Text) */}
+                                        <div
+                                            className="text-[11px] font-bold text-white uppercase mt-1 tracking-tight"
+                                            style={{
+                                                fontSize: cardCount >= 4 ? '0.55rem' : (cardCount === 3 ? '0.65rem' : '0.75rem'),
+                                                fontWeight: '800',
+                                                color: '#FFFFFF',
+                                                textTransform: 'uppercase',
+                                                marginTop: '0.35rem',
+                                                letterSpacing: '-0.02em',
+                                                lineHeight: 1.15,
+                                                textAlign: 'center',
+                                                wordBreak: 'break-word',
+                                                maxWidth: '100%'
+                                            }}
+                                        >
+                                            {plan.middleLabel}
+                                        </div>
+
+                                        {/* Bottom Tier Text (Yellow / Gold Highlight) */}
+                                        <div
+                                            className="text-[9px] font-semibold text-amber-300 uppercase leading-tight"
+                                            style={{
+                                                fontSize: cardCount >= 4 ? '0.48rem' : (cardCount === 3 ? '0.56rem' : '0.64rem'),
+                                                fontWeight: '700',
+                                                color: '#FCD34D',
+                                                textTransform: 'uppercase',
+                                                lineHeight: 1.15,
+                                                marginTop: '0.25rem',
+                                                textAlign: 'center',
+                                                wordBreak: 'break-word',
+                                                maxWidth: '100%'
+                                            }}
+                                        >
+                                            <div>{plan.tierText}</div>
+                                            {plan.subtext && (
+                                                <div
+                                                    style={{
+                                                        fontSize: cardCount >= 4 ? '0.42rem' : (cardCount === 3 ? '0.48rem' : '0.54rem'),
+                                                        opacity: 0.9,
+                                                        marginTop: '1px',
+                                                        textTransform: plan.id === 'products' ? 'none' : 'uppercase',
+                                                        lineHeight: 1.1
+                                                    }}
+                                                >
+                                                    {plan.subtext}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     );
                 })()}
 
