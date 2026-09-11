@@ -13,6 +13,7 @@ import { accountingService, gstService, contactsService, caService, profileServi
 import { useCurrency, useAuth } from '../context';
 import FilterableTableHead from '../components/FilterableTableHead';
 import FinProPracticeSuite from '../components/FinProPracticeSuite';
+import TaxAuditSuite from '../components/TaxAuditSuite';
 import { applyTableFilters } from '../utils/filterUtils';
 
 export default function BusinessCA({ mode }) {
@@ -2775,98 +2776,11 @@ export default function BusinessCA({ mode }) {
 
                                             {/* TAX CA TOOLS */}
                                             {activeAuditorCategory === "Tax Auditor (ICAI CA)" && (
-                                                <>
-                                                    {activeSuiteTool === 'tool1' && (
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>🚨 Section 40A(3) Cash Payment Watchdog</h4>
-                                                                <span style={{ fontSize: '11px', background: '#FEF2F2', color: '#DC2626', padding: '4px 10px', borderRadius: '6px', fontWeight: '800' }}>Threshold: &gt; ₹10,000 / Day / Party</span>
-                                                            </div>
-                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Flags aggregate daily cash payments to a single vendor subject to tax disallowance under Sec 40A(3).</p>
-                                                            <div style={{ background: '#FFFFFF', padding: '10px 12px', borderRadius: '8px', border: '1px solid #FECACA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                <div>
-                                                                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#991B1B' }}>Vendor: Sharma Logistics (Cash Payment)</span>
-                                                                    <div style={{ fontSize: '11px', color: '#7F1D1D' }}>Date: 2026-09-02 | Total Cash: ₹18,500 across 2 vouchers</div>
-                                                                </div>
-                                                                <span style={{ fontSize: '12px', fontWeight: '900', color: '#DC2626' }}>DISALLOWED u/s 40A(3)</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {activeSuiteTool === 'tool2' && (
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📋 TDS/TCS Compliance Hub (Clause 34 of Form 3CD)</h4>
-                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Auto-checks Sections 194C, 194J, 194Q, 206C(1H) rates and deposit dates.</p>
-                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', textAlign: 'center' }}>
-                                                                <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                                                                    <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Sec 194C (Contractors)</div>
-                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#16A34A', marginTop: '2px' }}>✓ Compliant</div>
-                                                                </div>
-                                                                <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                                                                    <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Sec 194J (Professional)</div>
-                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#16A34A', marginTop: '2px' }}>✓ Compliant</div>
-                                                                </div>
-                                                                <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                                                                    <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Sec 194Q (Goods Purchase)</div>
-                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#D97706', marginTop: '2px' }}>⚠ 1 Delay Deposit</div>
-                                                                </div>
-                                                                <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                                                                    <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Form 3CD Clause 34</div>
-                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#2563EB', marginTop: '2px' }}>Ready to Export</div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {activeSuiteTool === 'tool3' && (
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>📊 Clause 44 Expenditure Breakdown Matrix</h4>
-                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Mandatory GST expenditure classification matrix for Form 3CD reporting.</p>
-                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                                                                <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                                                                    <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>GST Exempt Supplies</div>
-                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>{formatCurrency(420000)}</div>
-                                                                </div>
-                                                                <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                                                                    <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Composition Scheme</div>
-                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', marginTop: '2px' }}>{formatCurrency(180000)}</div>
-                                                                </div>
-                                                                <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                                                                    <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Registered Entities</div>
-                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#16A34A', marginTop: '2px' }}>{formatCurrency(4560000)}</div>
-                                                                </div>
-                                                                <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                                                                    <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: '700' }}>Non-Registered Entities</div>
-                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: '#D97706', marginTop: '2px' }}>{formatCurrency(810000)}</div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {activeSuiteTool === 'tool4' && (
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                                            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>⏳ Section 43B(h) MSME Payment Tracker</h4>
-                                                            <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>Tracks vendor aging against statutory 15-day / 45-day MSME payment deadlines to prevent disallowances.</p>
-                                                            <div style={{ background: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                <div>
-                                                                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#0F172A' }}>Micro Vendor: Precision Tools Pvt Ltd</span>
-                                                                    <div style={{ fontSize: '11px', color: '#64748B' }}>Invoice Date: 2026-08-01 (40 Days Elapsed) | Limit: 45 Days</div>
-                                                                </div>
-                                                                <span style={{ fontSize: '11.5px', background: '#FEF3C7', color: '#B45309', padding: '4px 10px', borderRadius: '6px', fontWeight: '800' }}>5 Days Remaining</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {activeSuiteTool === 'tool5' && (
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <div>
-                                                                <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0F172A', margin: 0 }}>⏰ Statutory Dues Clock (Section 36(1)(va) & 43B)</h4>
-                                                                <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0' }}>Compares PF/ESI payroll deduction dates against monthly statutory due dates.</p>
-                                                            </div>
-                                                            <span style={{ fontSize: '12px', background: '#DCFCE7', color: '#166534', padding: '6px 14px', borderRadius: '8px', fontWeight: '800' }}>✓ PF/ESI Deposited On-Time</span>
-                                                        </div>
-                                                    )}
-                                                </>
+                                                <TaxAuditSuite
+                                                    activeSuiteTool={activeSuiteTool}
+                                                    setActiveSuiteTool={setActiveSuiteTool}
+                                                    formatCurrency={formatCurrency}
+                                                />
                                             )}
 
                                             {/* INTERNAL AUDITOR TOOLS */}

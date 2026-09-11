@@ -43,4 +43,5 @@ export * from './contactsService';
 export * from './caService';
 export * from './hsnService';
 export * from './finproService';
+export * from './taxAuditService';
 
