@@ -214,12 +214,161 @@ const BusinessBilling = () => {
     const barcodeInputRef = React.useRef(null);
 
     // Logistics & Delivery State for Delivery Challan tab
-    const [billingDeliveries, setBillingDeliveries] = useState(INITIAL_BILLING_DELIVERIES);
+    const [billingDeliveries, setBillingDeliveries] = useState(() => {
+        const local = localStorage.getItem('cliks_deliveries');
+        if (local) {
+            try { return JSON.parse(local); } catch(e) {}
+        }
+        return INITIAL_BILLING_DELIVERIES;
+    });
     const [deliverySubTab, setDeliverySubTab] = useState('shipments'); // 'shipments' | 'challans' | 'staff' | 'returns'
     const [deliverySearch, setDeliverySearch] = useState('');
     const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('All');
     const [selectedChallanConfirm, setSelectedChallanConfirm] = useState(null);
     const [confirmOtp, setConfirmOtp] = useState('');
+    const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+
+    // Form state for creating and dispatching a new shipment / delivery challan
+    const [dispatchFormData, setDispatchFormData] = useState({
+        delivery_number: `CLIKS/DEL/26/${100 + INITIAL_BILLING_DELIVERIES.length + 1}`,
+        delivery_status: 'Packed',
+        delivery_date: new Date().toISOString().split('T')[0],
+        shipment_id: `SHP-${8800 + INITIAL_BILLING_DELIVERIES.length + 1}`,
+        tracking_number: `TRK${Math.floor(100000000 + Math.random() * 900000000)}`,
+        courier_name: 'CLIKS Logistics',
+        dispatch_date: '',
+        estimated_delivery_date: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+        delivery_staff_id: '',
+        driver_name: '',
+        vehicle_number: '',
+        contact_number: '',
+        customer_name: '',
+        shipping_address: '',
+        city: 'Pune',
+        state: 'Maharashtra',
+        pincode: '',
+        package_count: 1,
+        package_weight: 1.0,
+        warehouse_id: 'WH-MAIN-01',
+        dispatch_by: 'Kiran Mane',
+        challan_number: `CHL-2026-${4420 + INITIAL_BILLING_DELIVERIES.length + 1}`,
+        challan_type: 'GST',
+        challan_date: new Date().toISOString().split('T')[0],
+        linked_invoice_id: '',
+        packaging_notes: '',
+        otp_code: Math.floor(1000 + Math.random() * 9000).toString(),
+    });
+
+    const resetDispatchForm = () => {
+        const nextCount = billingDeliveries.length + 1;
+        setDispatchFormData({
+            delivery_number: `CLIKS/DEL/26/${100 + nextCount}`,
+            delivery_status: 'Packed',
+            delivery_date: new Date().toISOString().split('T')[0],
+            shipment_id: `SHP-${8800 + nextCount}`,
+            tracking_number: `TRK${Math.floor(100000000 + Math.random() * 900000000)}`,
+            courier_name: 'CLIKS Logistics',
+            dispatch_date: '',
+            estimated_delivery_date: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+            delivery_staff_id: '',
+            driver_name: '',
+            vehicle_number: '',
+            contact_number: '',
+            customer_name: '',
+            shipping_address: '',
+            city: 'Pune',
+            state: 'Maharashtra',
+            pincode: '',
+            package_count: 1,
+            package_weight: 1.0,
+            warehouse_id: 'WH-MAIN-01',
+            dispatch_by: 'Kiran Mane',
+            challan_number: `CHL-2026-${4420 + nextCount}`,
+            challan_type: 'GST',
+            challan_date: new Date().toISOString().split('T')[0],
+            linked_invoice_id: '',
+            packaging_notes: '',
+            otp_code: Math.floor(1000 + Math.random() * 9000).toString(),
+        });
+    };
+
+    const handleSelectInvoiceForDispatch = (invId) => {
+        const found = (invoices || []).find(inv => String(inv.id) === String(invId) || String(inv.invoice_number) === String(invId));
+        if (found) {
+            let itemCount = 1;
+            try {
+                if (Array.isArray(found.items)) itemCount = found.items.length;
+                else if (typeof found.items === 'string') itemCount = JSON.parse(found.items || '[]').length;
+            } catch (e) {}
+            setDispatchFormData(prev => ({
+                ...prev,
+                linked_invoice_id: found.invoice_number || `INV-${found.id}`,
+                customer_name: found.client_name || prev.customer_name,
+                shipping_address: found.shipping_address || found.billing_address || prev.shipping_address,
+                challan_type: found.invoice_type === 'Non-GST' ? 'Non-GST' : 'GST',
+                package_count: itemCount > 0 ? itemCount : 1,
+                city: found.city || prev.city || 'Pune',
+                state: found.state || prev.state || 'Maharashtra',
+                pincode: found.pincode || prev.pincode || ''
+            }));
+        } else {
+            setDispatchFormData(prev => ({ ...prev, linked_invoice_id: '' }));
+        }
+    };
+
+    const handleSelectStaffForDispatch = (staffId) => {
+        const stf = INITIAL_BILLING_STAFF.find(s => s.staff_id === staffId);
+        if (stf) {
+            setDispatchFormData(prev => ({
+                ...prev,
+                delivery_staff_id: staffId,
+                driver_name: stf.name,
+                vehicle_number: stf.vehicle,
+                contact_number: stf.mobile
+            }));
+        } else {
+            setDispatchFormData(prev => ({
+                ...prev,
+                delivery_staff_id: '',
+                driver_name: '',
+                vehicle_number: '',
+                contact_number: ''
+            }));
+        }
+    };
+
+    const handleCreateDispatch = (e) => {
+        e.preventDefault();
+        if (!dispatchFormData.customer_name?.trim()) {
+            alert('Please enter or select a customer name for the dispatch.');
+            return;
+        }
+
+        const newDlv = {
+            ...dispatchFormData,
+            delivery_id: `DLV-${500 + billingDeliveries.length + 1}`,
+            stock_reserved: true,
+            dispatch_status: dispatchFormData.delivery_status === 'Packed' ? 'pending' : 'dispatched',
+            dispatch_date: dispatchFormData.delivery_status !== 'Packed' ? new Date().toISOString().slice(0, 10) + ' 10:00 AM' : '',
+            customer_signature: '',
+            delivery_photo: '',
+            delivery_feedback: 0,
+            pickup_request_id: '',
+            pickup_status: '',
+            failed_delivery_reason: '',
+            reverse_logistics_status: ''
+        };
+
+        const updated = [newDlv, ...billingDeliveries];
+        setBillingDeliveries(updated);
+        try {
+            localStorage.setItem('cliks_deliveries', JSON.stringify(updated));
+        } catch (err) {}
+
+        setIsDispatchModalOpen(false);
+        resetDispatchForm();
+        alert(`Dispatch Shipment created! Delivery Ref: ${newDlv.delivery_number} under Challan #${newDlv.challan_number}`);
+    };
 
     const deliveryStats = React.useMemo(() => {
         const total = billingDeliveries.length;
@@ -1543,7 +1692,28 @@ const BusinessBilling = () => {
                     </div>
                     <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage client invoices and accounts receivable.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    {activeMainTab === 'delivery_challan' && (
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                resetDispatchForm();
+                                setIsDispatchModalOpen(true);
+                            }}
+                            className="rounded-xl px-4 py-2 text-sm font-semibold hover:bg-emerald-800 transition-colors shadow-sm flex items-center gap-2 bg-[#155e3a] text-white"
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                padding: '0.65rem 1.1rem', borderRadius: '12px', 
+                                background: '#155e3a', color: 'white', border: 'none', 
+                                fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem',
+                                boxShadow: '0 4px 12px rgba(21, 94, 58, 0.25)', transition: 'all 0.2s'
+                            }}
+                            aria-label="+ Dispatch Shipment"
+                        >
+                            <Plus size={15} />
+                            Dispatch Shipment
+                        </button>
+                    )}
                     <button 
                         onClick={() => setIsTemplatesModalOpen(true)}
                         style={{ 
@@ -1784,6 +1954,26 @@ const BusinessBilling = () => {
                                         <option value="Delivered">Delivered</option>
                                         <option value="Failed Attempt">Failed Attempt</option>
                                     </select>
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            resetDispatchForm();
+                                            setIsDispatchModalOpen(true);
+                                        }}
+                                        className="rounded-xl px-4 py-2 text-sm font-semibold hover:bg-emerald-800 transition-colors shadow-sm flex items-center gap-2 bg-[#155e3a] text-white"
+                                        style={{ 
+                                            display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                                            padding: '0.45rem 0.95rem', borderRadius: '10px', 
+                                            background: '#155e3a', color: 'white', border: 'none', 
+                                            fontWeight: '700', cursor: 'pointer', fontSize: '0.82rem',
+                                            boxShadow: '0 4px 10px rgba(21, 94, 58, 0.2)', transition: 'all 0.2s',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                        aria-label="+ Dispatch Shipment"
+                                    >
+                                        <Plus size={15} />
+                                        Dispatch Shipment
+                                    </button>
                                 </div>
                             </div>
 
@@ -4483,6 +4673,257 @@ const BusinessBilling = () => {
                                 );
                             })()}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* DISPATCH SHIPMENT / CREATE DELIVERY CHALLAN MODAL */}
+            {isDispatchModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, backdropFilter: 'blur(8px)' }}>
+                    <div style={{ background: 'white', width: '780px', maxWidth: '94vw', maxHeight: '90vh', borderRadius: '24px', overflowY: 'auto', padding: '2.25rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#DCF2E4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A' }}>
+                                    <Truck size={22} />
+                                </div>
+                                <div>
+                                    <h2 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Dispatch Shipment & Issue Challan</h2>
+                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.15rem 0 0 0' }}>Assign courier/driver, attach sales order, and initiate logistics transit</p>
+                                </div>
+                            </div>
+                            <button 
+                                type="button" 
+                                onClick={() => setIsDispatchModalOpen(false)} 
+                                style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', color: '#64748B' }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateDispatch} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            {/* SECTION 1: LINKED INVOICE & BASIC FIELDS */}
+                            <div style={{ background: '#FAFDFB', padding: '1.25rem', borderRadius: '16px', border: '1px solid #DCF2E4' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                    <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase', margin: 0 }}>
+                                        📌 1. Link Sales Invoice & Basic Details
+                                    </h4>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>Quick auto-fill from current orders</span>
+                                </div>
+                                
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#475569', marginBottom: '0.4rem' }}>
+                                        Select Existing Invoice / Order (Optional)
+                                    </label>
+                                    <select 
+                                        value={dispatchFormData.linked_invoice_id}
+                                        onChange={e => handleSelectInvoiceForDispatch(e.target.value)}
+                                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600', background: 'white' }}
+                                    >
+                                        <option value="">-- Choose Sales Invoice to Auto-populate Consignee & Items --</option>
+                                        {(invoices || []).map(inv => (
+                                            <option key={inv.id} value={inv.invoice_number || inv.id}>
+                                                {inv.invoice_number || `INV-${inv.id}`} • {inv.client_name} ({formatCurrency(inv.total_amount || inv.amount || 0)}) • {inv.status || 'Active'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Delivery Reference No *</label>
+                                        <input 
+                                            type="text" 
+                                            required
+                                            value={dispatchFormData.delivery_number}
+                                            onChange={e => setDispatchFormData({ ...dispatchFormData, delivery_number: e.target.value })}
+                                            style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Dispatch Date *</label>
+                                        <input 
+                                            type="date" 
+                                            required
+                                            value={dispatchFormData.delivery_date}
+                                            onChange={e => setDispatchFormData({ ...dispatchFormData, delivery_date: e.target.value, estimated_delivery_date: e.target.value })}
+                                            style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Initial Status</label>
+                                        <select 
+                                            value={dispatchFormData.delivery_status}
+                                            onChange={e => setDispatchFormData({ ...dispatchFormData, delivery_status: e.target.value })}
+                                            style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600', background: 'white' }}
+                                        >
+                                            <option value="Packed">Packed</option>
+                                            <option value="Dispatched">Dispatched</option>
+                                            <option value="Out For Delivery">Out For Delivery</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* SECTION 2: SHIPPING ADDRESS & RECEIVER */}
+                            <div style={{ background: '#FAFDFB', padding: '1.25rem', borderRadius: '16px', border: '1px solid #DCF2E4' }}>
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase', marginBottom: '0.85rem' }}>📍 2. Shipping Address & Receiver</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem', marginBottom: '0.85rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Receiver / Customer Name *</label>
+                                        <input 
+                                            type="text" 
+                                            required
+                                            placeholder="e.g. Aman Deep"
+                                            value={dispatchFormData.customer_name}
+                                            onChange={e => setDispatchFormData({ ...dispatchFormData, customer_name: e.target.value })}
+                                            style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>City / Pincode *</label>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Pune"
+                                                value={dispatchFormData.city}
+                                                onChange={e => setDispatchFormData({ ...dispatchFormData, city: e.target.value })}
+                                                style={{ width: '60%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600' }}
+                                            />
+                                            <input 
+                                                type="text" 
+                                                placeholder="411016"
+                                                value={dispatchFormData.pincode}
+                                                onChange={e => setDispatchFormData({ ...dispatchFormData, pincode: e.target.value })}
+                                                style={{ width: '40%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Full Shipping Address *</label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        placeholder="Flat / Office / Street address..."
+                                        value={dispatchFormData.shipping_address}
+                                        onChange={e => setDispatchFormData({ ...dispatchFormData, shipping_address: e.target.value })}
+                                        style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600' }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* SECTION 3: WAREHOUSE DISPATCH & CHALLAN */}
+                            <div style={{ background: '#FAFDFB', padding: '1.25rem', borderRadius: '16px', border: '1px solid #DCF2E4' }}>
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase', marginBottom: '0.85rem' }}>📦 3. Packing & Challan Specs</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.85rem', marginBottom: '0.85rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Warehouse</label>
+                                        <select 
+                                            value={dispatchFormData.warehouse_id}
+                                            onChange={e => setDispatchFormData({ ...dispatchFormData, warehouse_id: e.target.value })}
+                                            style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600', background: 'white' }}
+                                        >
+                                            <option value="WH-MAIN-01">WH-MAIN-01 (Pune)</option>
+                                            <option value="WH-TECH-02">WH-TECH-02 (Hinjewadi)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Package Count</label>
+                                        <input 
+                                            type="number" 
+                                            min="1"
+                                            value={dispatchFormData.package_count}
+                                            onChange={e => setDispatchFormData({ ...dispatchFormData, package_count: parseInt(e.target.value) || 1 })}
+                                            style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Total Weight (Kg)</label>
+                                        <input 
+                                            type="number" 
+                                            step="0.1"
+                                            value={dispatchFormData.package_weight}
+                                            onChange={e => setDispatchFormData({ ...dispatchFormData, package_weight: parseFloat(e.target.value) || 1.0 })}
+                                            style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Challan Type</label>
+                                        <select 
+                                            value={dispatchFormData.challan_type}
+                                            onChange={e => setDispatchFormData({ ...dispatchFormData, challan_type: e.target.value })}
+                                            style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600', background: 'white' }}
+                                        >
+                                            <option value="GST">GST Challan</option>
+                                            <option value="Non-GST">Non-GST Challan</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Packaging Remarks</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Fragile items, urgent priority, delivery notes..."
+                                        value={dispatchFormData.packaging_notes}
+                                        onChange={e => setDispatchFormData({ ...dispatchFormData, packaging_notes: e.target.value })}
+                                        style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600' }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* SECTION 4: FLEET & COURIER ASSIGNMENT */}
+                            <div style={{ background: '#FAFDFB', padding: '1.25rem', borderRadius: '16px', border: '1px solid #DCF2E4' }}>
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase', marginBottom: '0.85rem' }}>👨💼 4. Fleet & Courier Assignment</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.85rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Internal Delivery Driver</label>
+                                        <select 
+                                            value={dispatchFormData.delivery_staff_id}
+                                            onChange={e => handleSelectStaffForDispatch(e.target.value)}
+                                            style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600', background: 'white' }}
+                                        >
+                                            <option value="">Select Internal Driver</option>
+                                            {INITIAL_BILLING_STAFF.map(s => (
+                                                <option key={s.staff_id} value={s.staff_id}>{s.name} ({s.vehicle})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Courier Company</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="CLIKS Logistics / Delhivery"
+                                            value={dispatchFormData.courier_name}
+                                            onChange={e => setDispatchFormData({ ...dispatchFormData, courier_name: e.target.value })}
+                                            style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#64748B', marginBottom: '0.4rem' }}>Tracking Reference ID</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="TRK998248102"
+                                            value={dispatchFormData.tracking_number}
+                                            onChange={e => setDispatchFormData({ ...dispatchFormData, tracking_number: e.target.value })}
+                                            style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', fontWeight: '600' }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button 
+                                type="submit"
+                                style={{ 
+                                    width: '100%', padding: '1rem', borderRadius: '12px', 
+                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', 
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                                    boxShadow: '0 8px 20px rgba(27, 107, 58, 0.25)', marginTop: '0.25rem'
+                                }}
+                            >
+                                <Truck size={18} /> Generate Challan & Dispatch Shipment
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}
