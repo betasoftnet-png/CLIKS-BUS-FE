@@ -329,12 +329,13 @@ function AppContent() {
                     <Route path="/sales/returns" element={<BusinessReturns />} />
                     <Route path="/inventory/stock" element={<BusinessStock />} />
                     <Route path="/purchases/suppliers" element={<BusinessSuppliers />} />
-                    <Route path="/payments/transaction" element={<BusinessPayments key="transaction" />} />
-                    <Route path="/payments/wallet" element={<BusinessWallet />} />
-                    <Route path="/payments/segregation" element={<BusinessPurposeWallet />} />
-                    <Route path="/payments/rewards" element={<BusinessRewards />} />
-                    {/* <Route path="/payments/bank-accounts" element={<BusinessBankAccounts />} /> */} {/* Will do in future */}
+                    <Route path="/payments" element={<Navigate to="/payments/people" replace />} />
                     <Route path="/payments/people" element={<BusinessPeople />} />
+                    <Route path="/payments/transaction" element={<BusinessPayments key="transaction" />} />
+                    <Route path="/payments/wallet" element={<Navigate to="/payments/people" replace />} />
+                    <Route path="/payments/segregation" element={<BusinessPurposeWallet />} />
+                    <Route path="/payments/rewards" element={<Navigate to="/payments/people" replace />} />
+                    {/* <Route path="/payments/bank-accounts" element={<BusinessBankAccounts />} /> */} {/* Will do in future */}
                     <Route path="/payments/plan" element={<BusinessPaymentPlan />} />
 
                     <Route path="/finance/expenses" element={<BusinessExpenses />} />

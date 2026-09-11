@@ -242,10 +242,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/finance/purchases/reports')) return 'Purchase Reports';
         if (path.includes('/finance/accounting')) return 'Accounting';
         if (path.includes('/payments/transaction')) return 'Transaction';
-        if (path.includes('/payments/wallet')) return 'Wallet';
         if (path.includes('/payments/segregation')) return 'Segregation';
         if (path.includes('/payments/split-collect')) return 'Split & Collect';
-        if (path.includes('/payments/rewards')) return 'Rewards & Offers';
         if (path.includes('/payments/people')) return 'People';
         if (path.includes('/payments/plan')) return 'Planner';
 
@@ -425,12 +423,10 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         ],
         financeMode: [
             { label: 'People', icon: Users, path: '/payments/people' },
-            { label: 'Wallet', icon: Wallet, path: '/payments/wallet' },
             { label: 'Transaction', icon: CreditCard, path: '/payments/transaction' },
             { label: 'Segregation', icon: Target, path: '/payments/segregation' },
             { label: 'Split & Collect', icon: Split, path: '/payments/split-collect' },
-            { label: 'Planner', icon: Calendar, path: '/payments/plan' },
-            { label: 'Rewards & Offers', icon: Gift, path: '/payments/rewards' }
+            { label: 'Planner', icon: Calendar, path: '/payments/plan' }
         ]
 
     };
@@ -581,7 +577,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             {/* No "Finance" title - removed per user request */}
                             {/* Add Money CTA - shows on all Finance mode pages */}
                             <button
-                                onClick={() => handleItemClick('Wallet', '/payments/wallet?addMoney=true')}
+                                onClick={() => handleItemClick('Transaction', '/payments/transaction')}
                                 style={{
                                     width: 'calc(100% - 2rem)',
                                     margin: '0.5rem 1rem 1.5rem 1rem',

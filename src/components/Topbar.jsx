@@ -29,7 +29,7 @@ import { caService } from '../services/caService';
 const staticPages = [
     // Ranks: 1 = Module, 2 = Submodule, 3 = Page/Utility
     { name: 'Books', path: '/dashboard', module: 'Books', desc: 'Books Main Workspace', icon: 'BookOpen', rank: 1, synonyms: ['books', 'erp', 'business'] },
-    { name: 'Payments', path: '/payments/transaction', module: 'Payments', desc: 'Payments Main Workspace', icon: 'CreditCard', rank: 1, synonyms: ['payments', 'finance', 'billing', 'upi'] },
+    { name: 'Payments', path: '/payments/people', module: 'Payments', desc: 'Payments Main Workspace', icon: 'CreditCard', rank: 1, synonyms: ['payments', 'finance', 'billing', 'upi'] },
     { name: 'Social', path: '/social/betaclub', module: 'Social', desc: 'Social Workspace', icon: 'Users', rank: 1, synonyms: ['social', 'network', 'chat'] },
     { name: 'Beta Products', path: '/beta-launcher', module: 'Beta Products', desc: 'Beta Products Workspace', icon: 'Sliders', rank: 1, synonyms: ['beta products', 'launcher', 'apps', 'utilities'] },
 
@@ -77,12 +77,10 @@ const staticPages = [
 
     // Payments Pages
     { name: 'People', path: '/payments/people', module: 'Payments', desc: 'Send/receive payment contacts', icon: 'Users', rank: 3, synonyms: ['people', 'contacts', 'party'] },
-    { name: 'Wallet', path: '/payments/wallet', module: 'Payments', desc: 'Business bank wallets', icon: 'Wallet', rank: 3, synonyms: ['wallet', 'balance', 'bank account'] },
     { name: 'Transaction', path: '/payments/transaction', module: 'Payments', desc: 'Bank transfer transactions', icon: 'CreditCard', rank: 3, synonyms: ['transaction', 'payment', 'upi', 'card'] },
     { name: 'Segregation', path: '/payments/segregation', module: 'Payments', desc: 'Allocate funds to purpose wallets', icon: 'Target', rank: 3, synonyms: ['segregation', 'purpose wallet'] },
     { name: 'Split & Collect', path: '/payments/split-collect', module: 'Payments', desc: 'Group expense bill splitting', icon: 'Split', rank: 3, synonyms: ['split & collect', 'bill split', 'group'] },
     { name: 'Planner', path: '/payments/plan', module: 'Payments', desc: 'Schedule recurring payments', icon: 'Calendar', rank: 3, synonyms: ['planner', 'reminder', 'recurring'] },
-    { name: 'Rewards & Offers', path: '/payments/rewards', module: 'Payments', desc: 'Loyalty cashback offers', icon: 'Gift', rank: 3, synonyms: ['rewards & offers', 'cashback', 'coupon'] },
 
     // Social Pages
     { name: 'Beta Club', path: '/social/betaclub', module: 'Social', desc: 'BETA Club social feed & startup pitches', icon: 'UsersRound', rank: 3, synonyms: ['beta club', 'social feed', 'pitches', 'startups'] },
