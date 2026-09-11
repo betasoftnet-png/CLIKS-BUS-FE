@@ -19,6 +19,7 @@ import AdminSettings from './pages/admin/AdminSettings';
 import AdminModeration from './pages/admin/AdminModeration';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 import AdminLogin from './pages/admin/AdminLogin';
+import AdminPortal from './pages/AdminPortal';
 import AdminSales from './pages/admin/AdminSales';
 import AdminSalesTeam from './pages/admin/AdminSalesTeam';
 import AdminSalesLeads from './pages/admin/AdminSalesLeads';
@@ -226,6 +227,13 @@ function AppContent() {
             <AdminLogin />
           </Suspense>
         } />
+        <Route path="/adminlogin" element={
+          <Suspense fallback={<PageLoader />}>
+            <AdminPortal />
+          </Suspense>
+        } />
+        <Route path="/social/betaclub/adminlogin" element={<Navigate to="/adminlogin" replace />} />
+        <Route path="/social/betaclub/admin" element={<Navigate to="/adminlogin" replace />} />
 
         <Route path="/sales/login" element={
           <Suspense fallback={<PageLoader />}>
@@ -345,8 +353,8 @@ function AppContent() {
                     <Route path="/subscription" element={<BusinessSubscription />} />
                     <Route path="/social/meetup" element={<Navigate to="/social/betaclub" replace />} />
                     <Route path="/social/betaclub" element={<BusinessPitches />} />
-                    <Route path="/social/betaclub/admin" element={<BusinessPitches openAuthModal="admin" />} />
-                    <Route path="/social/betaclub/adminlogin" element={<BusinessPitches openAuthModal="admin" />} />
+                    <Route path="/social/betaclub/admin" element={<Navigate to="/adminlogin" replace />} />
+                    <Route path="/social/betaclub/adminlogin" element={<Navigate to="/adminlogin" replace />} />
                     <Route path="/social/investors" element={<Navigate to="/social/betaclub" replace />} />
                     <Route path="/auth/founder-login" element={<BusinessPitches openAuthModal="founder" />} />
                     <Route path="/auth/investor-login" element={<BusinessPitches openAuthModal="investor" />} />

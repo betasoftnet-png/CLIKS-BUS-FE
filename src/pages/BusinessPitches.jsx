@@ -76,7 +76,11 @@ export default function BusinessPitches({ openAuthModal = null }) {
         if (email === 'santhoshhhhhhh@bnxmail.com' && password === '1234') {
             alert("Admin credentials verified.");
             setShowAdminAuthModal(false);
-            setActiveTab('admin');
+            if (navigate) {
+                navigate('/adminlogin');
+            } else {
+                setActiveTab('admin');
+            }
         } else {
             alert("Access Violation: Invalid Admin Credentials. Access restricted.");
         }
@@ -1156,9 +1160,9 @@ export default function BusinessPitches({ openAuthModal = null }) {
                             <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                                     <ShieldCheck size={22} color="#DDD6FE" />
-                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', margin: 0 }}>Capital Matrix — Admin Portal</h3>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', margin: 0 }}>Clicks Business — Master Admin Portal</h3>
                                 </div>
-                                <p style={{ fontSize: '0.85rem', color: '#E9D5FF', margin: 0 }}>Platform administration & marketplace oversight</p>
+                                <p style={{ fontSize: '0.85rem', color: '#E9D5FF', margin: 0 }}>Overall platform administration, user management & system oversight</p>
                             </div>
                             <button onClick={() => { setShowAdminAuthModal(false); if (navigate) navigate('/social/betaclub', { replace: true }); }} style={{ border: 'none', background: 'rgba(255,255,255,0.18)', borderRadius: '50%', padding: '0.35rem', cursor: 'pointer', color: 'white' }}><X size={18} /></button>
                         </div>
