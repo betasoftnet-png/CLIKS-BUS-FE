@@ -2425,71 +2425,19 @@ export default function BusinessCA({ mode }) {
 
 
                     {/* Auditor Category Workflow Switch Bar */}
-                    <div style={{
-                        background: '#FFFFFF',
-                        borderRadius: '16px',
-                        border: '1px solid #E2E8F0',
-                        padding: '8px 16px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '12px',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)',
-                        flexWrap: 'wrap'
-                    }}>
-                        <div style={{
-                            display: 'flex',
-                            gap: '8px',
-                            alignItems: 'center',
-                            overflowX: 'auto',
-                            whiteSpace: 'nowrap',
-                            WebkitOverflowScrolling: 'touch',
-                            scrollbarWidth: 'none',
-                            flex: 1
-                        }}>
-                            {auditorCategories.map((category) => {
-                                const isActive = activeAuditorCategory === category;
-                                return (
-                                    <button
-                                        key={category}
-                                        type="button"
-                                        onClick={() => {
-                                            setActiveAuditorCategory(category);
-                                            setActiveSuiteTool('tool1');
-                                            setPersonalTab('auditor_desk');
-                                        }}
-                                        style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            padding: '9px 15px',
-                                            borderRadius: '10px',
-                                            border: isActive ? '1.5px solid #15803d' : '1px solid #E2E8F0',
-                                            background: isActive ? '#F0FDF4' : '#F8FAFC',
-                                            color: isActive ? '#15803d' : '#475569',
-                                            fontWeight: isActive ? '800' : '600',
-                                            fontSize: '12.5px',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.15s ease-in-out',
-                                            boxShadow: isActive ? '0 2px 4px rgba(21, 128, 61, 0.12)' : 'none',
-                                            flexShrink: 0
-                                        }}
-                                    >
-                                        <span style={{
-                                            width: '7px',
-                                            height: '7px',
-                                            borderRadius: '50%',
-                                            background: isActive ? '#16A34A' : '#94A3B8',
-                                            display: 'inline-block'
-                                        }} />
-                                        <span>{category}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Top-Right VERIFY ICAI Dynamic Status Button */}
-                        <div style={{ flexShrink: 0 }}>
+                    <div 
+                        className="flex flex-col gap-3 w-full"
+                        style={{
+                            background: '#FFFFFF',
+                            borderRadius: '16px',
+                            border: '1px solid #E2E8F0',
+                            padding: '12px 16px',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)',
+                            width: '100%'
+                        }}
+                    >
+                        {/* Top Row: VERIFY ICAI Button on Top-Right */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
                             {icaiVerification.status === 'VERIFIED' ? (
                                 <button
                                     type="button"
@@ -2604,6 +2552,58 @@ export default function BusinessCA({ mode }) {
                                     <span>VERIFY ICAI</span>
                                 </button>
                             )}
+                        </div>
+
+                        {/* Bottom Row (Below): 7 Workspace Tabs Full Horizontal Row */}
+                        <div style={{
+                            display: 'flex',
+                            gap: '8px',
+                            alignItems: 'center',
+                            overflowX: 'auto',
+                            whiteSpace: 'nowrap',
+                            WebkitOverflowScrolling: 'touch',
+                            scrollbarWidth: 'none',
+                            width: '100%'
+                        }}>
+                            {auditorCategories.map((category) => {
+                                const isActive = activeAuditorCategory === category;
+                                return (
+                                    <button
+                                        key={category}
+                                        type="button"
+                                        onClick={() => {
+                                            setActiveAuditorCategory(category);
+                                            setActiveSuiteTool('tool1');
+                                            setPersonalTab('auditor_desk');
+                                        }}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            padding: '9px 15px',
+                                            borderRadius: '10px',
+                                            border: isActive ? '1.5px solid #15803d' : '1px solid #E2E8F0',
+                                            background: isActive ? '#F0FDF4' : '#F8FAFC',
+                                            color: isActive ? '#15803d' : '#475569',
+                                            fontWeight: isActive ? '800' : '600',
+                                            fontSize: '12.5px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.15s ease-in-out',
+                                            boxShadow: isActive ? '0 2px 4px rgba(21, 128, 61, 0.12)' : 'none',
+                                            flexShrink: 0
+                                        }}
+                                    >
+                                        <span style={{
+                                            width: '7px',
+                                            height: '7px',
+                                            borderRadius: '50%',
+                                            background: isActive ? '#16A34A' : '#94A3B8',
+                                            display: 'inline-block'
+                                        }} />
+                                        <span>{category}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
