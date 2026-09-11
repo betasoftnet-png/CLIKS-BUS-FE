@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { warehouseService, stockService, settingsService, productsService } from '../services';
 import { apiClient } from '../api/client';
 import FilterableTableHead from '../components/FilterableTableHead';
+import StockMovementHistory from '../components/StockMovementHistory';
 import {
     Warehouse as WarehouseIcon,
     Plus,
@@ -30,6 +31,15 @@ import {
 } from 'lucide-react';
 import '../App.css';
 import { useCurrency, useAuth } from '../context';
+
+export const BNX_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@bnxmail\.com$/;
+
+export const validateBnxEmail = (email) => {
+    if (!email || !BNX_EMAIL_REGEX.test(email.trim())) {
+        return "Only official @bnxmail.com email addresses are allowed";
+    }
+    return null;
+};
 
 const BusinessWarehouse = () => {
     const { formatCurrency } = useCurrency();
@@ -262,27 +272,38 @@ const BusinessWarehouse = () => {
 
     // Goods Inward (Receivings) Logs from actual backend transactions
     const dbInwards = reportsData?.inwards || [];
+    const defaultWarehouse = warehouses.find(w => w.is_primary || w.id === 1) || warehouses[0] || { warehouse_name: 'Main Godown' };
+    const defaultWhName = defaultWarehouse.warehouse_name || 'Main Godown';
+
     const inwards = dbInwards.map((inw) => {
-        let resolvedWhName = inw.warehouse_name;
+        let resolvedWhName = inw.warehouse_name || inw.destination_warehouse?.name || inw.destination_warehouse_name;
         if (!resolvedWhName || resolvedWhName === 'Not Configured') {
             const matchedWh = warehouses.find(w => 
-                String(w.id) === String(inw.warehouse_id) || 
-                (w.warehouse_code && String(w.warehouse_code).toLowerCase() === String(inw.warehouse_id).toLowerCase()) ||
-                (w.warehouse_name && String(w.warehouse_name).toLowerCase() === String(inw.warehouse_id).toLowerCase())
+                String(w.id) === String(inw.warehouse_id || inw.destination_warehouse_id) || 
+                (w.warehouse_code && String(w.warehouse_code).toLowerCase() === String(inw.warehouse_id || inw.destination_warehouse_id).toLowerCase()) ||
+                (w.warehouse_name && String(w.warehouse_name).toLowerCase() === String(inw.warehouse_id || inw.destination_warehouse_id).toLowerCase())
             );
             if (matchedWh) {
                 resolvedWhName = matchedWh.warehouse_name;
+            } else {
+                resolvedWhName = defaultWhName;
             }
         }
+
+        const staffName = (inw.received_by && inw.received_by !== 'Staff') 
+            ? inw.received_by 
+            : (inw.staff_name || user?.name || user?.username || 'Authorized Staff');
 
         return {
             inward_id: `INW-${inw.id}`,
             purchase_id: inw.purchase_bill_ref || 'N/A',
             product_name: inw.product_name || 'Unknown Item',
             received_quantity: inw.quantity || 0,
-            received_by: inw.received_by || 'Staff',
+            received_by: staffName,
+            staff_name: staffName,
             inward_date: inw.created_at ? inw.created_at.split('T')[0] : 'N/A',
-            warehouse_name: resolvedWhName && resolvedWhName !== 'Not Configured' ? resolvedWhName : 'Not Configured'
+            warehouse_name: resolvedWhName || defaultWhName,
+            destination_warehouse: { name: resolvedWhName || defaultWhName }
         };
     });
 
@@ -300,12 +321,17 @@ const BusinessWarehouse = () => {
         email: ''
     });
 
+    const [warehouseEmailError, setWarehouseEmailError] = useState('');
+
     const [newInward, setNewInward] = useState({
         purchase_id: '',
         stock_id: '',
         received_quantity: 0,
         received_by: '',
-        warehouse_id: ''
+        staff_name: '',
+        warehouse_id: '',
+        destination_warehouse_id: '',
+        warehouse_name: ''
     });
 
     const [newTransfer, setNewTransfer] = useState({
@@ -317,14 +343,32 @@ const BusinessWarehouse = () => {
         tracking_number: ''
     });
 
+    // Live Stock History Query for selected stock item
+    const { data: rawStockHistory = [] } = useQuery({
+        queryKey: ['stockHistory', selectedStock?.id],
+        queryFn: () => stockService.getStockHistory(selectedStock?.id),
+        enabled: !!selectedStock?.id,
+        staleTime: 0
+    });
+
     // Set default select values when database lists load
     useEffect(() => {
         const timer = setTimeout(() => {
             if (dbStocks.length > 0 && !newInward.stock_id) {
                 setNewInward(prev => ({ ...prev, stock_id: dbStocks[0].id.toString() }));
             }
-            if (dbWarehouses.length > 0 && !newInward.warehouse_id) {
-                setNewInward(prev => ({ ...prev, warehouse_id: dbWarehouses[0].id.toString() }));
+            if (dbWarehouses.length > 0 && (!newInward.warehouse_id || !newInward.destination_warehouse_id)) {
+                const initialWh = dbWarehouses[0];
+                setNewInward(prev => ({ 
+                    ...prev, 
+                    warehouse_id: initialWh.id.toString(),
+                    destination_warehouse_id: initialWh.id.toString(),
+                    warehouse_name: initialWh.name || initialWh.warehouse_name || 'Main Godown'
+                }));
+            }
+            if (!newInward.received_by && (user?.name || user?.username)) {
+                const defaultStaff = user?.name || user?.username || 'Authorized Staff';
+                setNewInward(prev => ({ ...prev, received_by: defaultStaff, staff_name: defaultStaff }));
             }
             if (dbStocks.length > 0 && !newTransfer.stock_id) {
                 setNewTransfer(prev => ({ ...prev, stock_id: dbStocks[0].id.toString() }));
@@ -337,7 +381,7 @@ const BusinessWarehouse = () => {
             }
         }, 0);
         return () => clearTimeout(timer);
-    }, [dbStocks, dbWarehouses, newInward.stock_id, newInward.warehouse_id, newTransfer.stock_id, newTransfer.source_warehouse_id, newTransfer.destination_warehouse_id]);
+    }, [dbStocks, dbWarehouses, newInward.stock_id, newInward.warehouse_id, newInward.destination_warehouse_id, newInward.received_by, user, newTransfer.stock_id, newTransfer.source_warehouse_id, newTransfer.destination_warehouse_id]);
 
     // Fetch Live Registered Products for Goods Inward Receipt selection
     const { data: dbProducts = [] } = useQuery({
@@ -542,6 +586,15 @@ const BusinessWarehouse = () => {
             return;
         }
 
+        // Strict official @bnxmail.com domain validation
+        const emailErr = validateBnxEmail(newWarehouse.email);
+        if (emailErr) {
+            setWarehouseEmailError(emailErr);
+            alert(emailErr);
+            return;
+        }
+        setWarehouseEmailError('');
+
         // Enforce 10-digit mobile number formatting rule
         const cleanPhone = (newWarehouse.phone_number || '').trim();
         if (cleanPhone && !/^\d{10}$/.test(cleanPhone)) {
@@ -559,7 +612,7 @@ const BusinessWarehouse = () => {
             pincode: newWarehouse.pincode,
             contact_person: newWarehouse.contact_person,
             phone_number: cleanPhone,
-            email: newWarehouse.email
+            email: (newWarehouse.email || '').trim().toLowerCase()
         };
         createWarehouseMutation.mutate(payload);
     };
@@ -569,11 +622,15 @@ const BusinessWarehouse = () => {
             delta: data.quantity,
             purchase_bill_ref: data.purchase_bill_ref,
             received_by: data.received_by,
-            warehouse_id: data.warehouse_id
+            staff_name: data.staff_name,
+            warehouse_id: data.warehouse_id,
+            destination_warehouse_id: data.destination_warehouse_id,
+            warehouse_name: data.warehouse_name
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
             queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
+            queryClient.invalidateQueries({ queryKey: ['stockHistory'] });
             alert('Goods Inward receipt logged! Warehouse inventory adjusted automatically.');
             setIsInwardModalOpen(false);
         }
@@ -581,15 +638,21 @@ const BusinessWarehouse = () => {
 
     const handleLogInward = (e) => {
         e.preventDefault();
-        const rawWhId = newInward.warehouse_id || (warehouses.length > 0 ? warehouses[0].id : null);
+        const rawWhId = newInward.destination_warehouse_id || newInward.warehouse_id || (warehouses.length > 0 ? warehouses[0].id : null);
         const parsedWhId = rawWhId != null && !isNaN(parseInt(rawWhId)) ? parseInt(rawWhId) : rawWhId;
+        const matchedWh = warehouses.find(w => String(w.id) === String(parsedWhId));
+        const finalWhName = newInward.warehouse_name || matchedWh?.warehouse_name || 'Main Godown';
+        const finalStaff = newInward.received_by || newInward.staff_name || user?.name || user?.username || 'Authorized Staff';
 
         createInwardMutation.mutate({
             stock_id: parseInt(newInward.stock_id),
             quantity: parseInt(newInward.received_quantity),
             purchase_bill_ref: newInward.purchase_id,
-            received_by: newInward.received_by,
-            warehouse_id: parsedWhId
+            received_by: finalStaff,
+            staff_name: finalStaff,
+            warehouse_id: parsedWhId,
+            destination_warehouse_id: parsedWhId,
+            warehouse_name: finalWhName
         });
     };
 
@@ -889,9 +952,9 @@ const BusinessWarehouse = () => {
                                         <td style={{ padding: '1rem', color: '#475569', fontWeight: '700' }}>{inw.purchase_id}</td>
                                         <td style={{ padding: '1rem', fontWeight: '700' }}>{inw.product_name}</td>
                                         <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A' }}>{inw.received_quantity} pcs</td>
-                                        <td style={{ padding: '1rem', color: '#475569', fontWeight: '600' }}>{inw.received_by || 'Staff'}</td>
+                                        <td style={{ padding: '1rem', color: '#475569', fontWeight: '600' }}>{inw.received_by || inw.staff_name || user?.name || user?.username || 'Authorized Staff'}</td>
                                         <td style={{ padding: '1rem', color: '#64748B' }}>{inw.inward_date}</td>
-                                        <td style={{ padding: '1rem', color: '#475569', fontWeight: '600' }}>{inw.warehouse_name}</td>
+                                        <td style={{ padding: '1rem', color: '#475569', fontWeight: '600' }}>{inw.warehouse_name || inw.destination_warehouse?.name || 'Main Godown'}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -993,11 +1056,33 @@ const BusinessWarehouse = () => {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Received Quantity</label>
-                                <input required type="number" value={newInward.received_quantity} onChange={(e) => setNewInward({ ...newInward, received_quantity: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
+                                <input required type="number" min="1" value={newInward.received_quantity} onChange={(e) => setNewInward({ ...newInward, received_quantity: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Received By / Staff</label>
+                                <input
+                                    type="text"
+                                    value={newInward.received_by || newInward.staff_name || ''}
+                                    onChange={(e) => setNewInward({ ...newInward, received_by: e.target.value, staff_name: e.target.value })}
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }}
+                                    placeholder={user?.name || user?.username || "Staff Member Name"}
+                                />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Receiving Destination Warehouse</label>
-                                <select value={newInward.warehouse_id} onChange={(e) => setNewInward({ ...newInward, warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
+                                <select 
+                                    value={newInward.destination_warehouse_id || newInward.warehouse_id} 
+                                    onChange={(e) => {
+                                        const selWh = warehouses.find(w => String(w.id) === String(e.target.value));
+                                        setNewInward({ 
+                                            ...newInward, 
+                                            warehouse_id: e.target.value,
+                                            destination_warehouse_id: e.target.value,
+                                            warehouse_name: selWh?.warehouse_name || 'Main Godown'
+                                        });
+                                    }} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                >
                                     {warehouses.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(w => <option key={w.id} value={w.id}>{w.warehouse_name}</option>)}
                                 </select>
                             </div>
@@ -1057,63 +1142,18 @@ const BusinessWarehouse = () => {
                 </div>
             )}
 
-            {/* Stock Item Detail Popup */}
+            {/* Live Stock Movement History Drawer & Ledger Dynamics */}
             {selectedStock && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6,78,59,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '560px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <div>
-                                <h3 style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>📦 {selectedStock.product_name}</h3>
-                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>{selectedStock.product_id} · {selectedStock.warehouse_name}</p>
-                            </div>
-                            <button onClick={() => setSelectedStock(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
-                        </div>
-
-                        {/* Stock Summary Cards */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                            {[['Current Stock', `${selectedStock.current_stock} pcs`, '#15803d', '#D1FAE5'], ['Damaged', `${selectedStock.damaged_stock} pcs`, '#DC2626', '#FEE2E2'], ['In Transit', `${selectedStock.in_transit_stock} pcs`, '#D97706', '#FEF3C7']].map(([label, val, color, bg]) => (
-                                <div key={label} style={{ background: bg, borderRadius: '14px', padding: '1rem', textAlign: 'center' }}>
-                                    <p style={{ fontSize: '0.7rem', fontWeight: '800', color, margin: '0 0 4px 0', textTransform: 'uppercase' }}>{label}</p>
-                                    <p style={{ fontSize: '1.2rem', fontWeight: '900', color, margin: 0 }}>{val}</p>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Location Details */}
-                        <div style={{ background: '#F8FAFC', borderRadius: '14px', padding: '1.25rem', marginBottom: '1.5rem' }}>
-                            <p style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem', margin: '0 0 10px 0' }}>📍 Storage Location</p>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
-                                {[['Zone', selectedStock.zone], ['Rack', selectedStock.rack_number], ['Shelf', selectedStock.shelf_number], ['Bin', selectedStock.bin_number], ['Valuation', formatCurrency(selectedStock.warehouse_stock_value)], ['SKU', selectedStock.product_id]].map(([label, val]) => (
-                                    <div key={label}>
-                                        <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', margin: '0 0 2px 0' }}>{label}</p>
-                                        <p style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.82rem', margin: 0 }}>{val}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Simulated History Timeline */}
-                        <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.85rem', margin: '0 0 12px 0' }}>🕐 Stock Movement History (Recent)</p>
-                        {[
-                            { date: '2026-05-24', event: 'Goods Inward Receipt', qty: `+${Math.round(selectedStock.current_stock * 0.3)} pcs`, color: '#15803d' },
-                            { date: '2026-05-20', event: 'Sales Dispatch', qty: `-${Math.round(selectedStock.current_stock * 0.1)} pcs`, color: '#DC2626' },
-                            { date: '2026-05-15', event: 'Inter-Warehouse Transfer In', qty: `+${Math.round(selectedStock.current_stock * 0.2)} pcs`, color: '#2563EB' },
-                            { date: '2026-05-10', event: 'Damage Write-off', qty: `-${selectedStock.damaged_stock} pcs`, color: '#D97706' },
-                            { date: '2026-05-01', event: 'Opening Stock Audit', qty: `${selectedStock.current_stock} pcs`, color: '#6B21A8' }
-                        ].map((entry, idx, arr) => (
-                            <div key={idx} style={{ display: 'flex', gap: '12px', marginBottom: '10px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: entry.color, flexShrink: 0, marginTop: '4px' }} />
-                                    {idx < arr.length - 1 && <div style={{ width: '2px', flex: 1, background: '#E2E8F0', minHeight: '18px' }} />}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <p style={{ margin: 0, fontWeight: '800', fontSize: '0.82rem', color: '#0F172A' }}>{entry.event} — <span style={{ color: entry.color }}>{entry.qty}</span></p>
-                                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#94A3B8' }}>{entry.date}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                <StockMovementHistory
+                    selectedStock={{
+                        ...selectedStock,
+                        ...(whStocks.find(s => s.id === selectedStock.id) || {})
+                    }}
+                    onClose={() => setSelectedStock(null)}
+                    rawStockHistory={rawStockHistory}
+                    reportsData={reportsData}
+                    formatCurrency={formatCurrency}
+                />
             )}
 
             {/* Edit Warehouse Modal */}
@@ -1227,15 +1267,37 @@ const BusinessWarehouse = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Contact Email Address</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                        Contact Email Address <span style={{ color: '#EF4444' }}>*</span>
+                                    </label>
                                     <input
                                         required
                                         type="email"
                                         value={newWarehouse.email}
-                                        onChange={(e) => setNewWarehouse({ ...newWarehouse, email: e.target.value })}
-                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }}
-                                        placeholder="godown@company.com"
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setNewWarehouse({ ...newWarehouse, email: val });
+                                            if (val && !BNX_EMAIL_REGEX.test(val.trim())) {
+                                                setWarehouseEmailError("Only official @bnxmail.com email addresses are allowed");
+                                            } else {
+                                                setWarehouseEmailError('');
+                                            }
+                                        }}
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '0.8rem', 
+                                            borderRadius: '12px', 
+                                            border: warehouseEmailError ? '2px solid #EF4444' : '1px solid #E2E8F0', 
+                                            outline: 'none',
+                                            background: warehouseEmailError ? '#FEF2F2' : 'white'
+                                        }}
+                                        placeholder="e.g. manager@bnxmail.com"
                                     />
+                                    {warehouseEmailError && (
+                                        <p style={{ margin: '0.35rem 0 0 0', color: '#EF4444', fontSize: '0.72rem', fontWeight: '700' }}>
+                                            {warehouseEmailError}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 
