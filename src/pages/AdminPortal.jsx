@@ -2731,7 +2731,9 @@ export default function AdminPortal() {
                                 </div>
                                 <div>
                                     <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Certificate of Practice (COP)</span>
-                                    <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#047857', marginTop: '3px' }}>{selectedCaDetails.copStatus || 'Full-Time Practice (COP Active)'}</div>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#047857', marginTop: '3px' }}>
+                                        {selectedCaDetails.copStatus === 'ACTIVE' ? 'Active' : (selectedCaDetails.copStatus === 'INACTIVE' ? 'Inactive' : (selectedCaDetails.copStatus || 'Active'))}
+                                    </div>
                                 </div>
                                 <div>
                                     <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Regional Council Chapter</span>

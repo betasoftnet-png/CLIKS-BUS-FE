@@ -61,7 +61,7 @@ export default function BusinessCA({ mode }) {
             firmName: '',
             membershipNo: '',
             email: user?.email || '',
-            copStatus: 'Full-Time COP',
+            copStatus: 'ACTIVE',
             associateFellow: 'Associate (ACA)',
             address: '',
             region: 'Southern',
@@ -77,7 +77,7 @@ export default function BusinessCA({ mode }) {
         firmName: icaiVerification.firmName || '',
         membershipNo: icaiVerification.membershipNo || '',
         email: icaiVerification.email || user?.email || '',
-        copStatus: icaiVerification.copStatus || 'Full-Time COP',
+        copStatus: icaiVerification.copStatus || 'ACTIVE',
         associateFellow: icaiVerification.associateFellow || 'Associate (ACA)',
         address: icaiVerification.address || '',
         region: icaiVerification.region || 'Southern'
@@ -118,7 +118,7 @@ export default function BusinessCA({ mode }) {
                 firmName: icaiVerification.firmName || '',
                 membershipNo: icaiVerification.membershipNo || '',
                 email: icaiVerification.email || user?.email || '',
-                copStatus: icaiVerification.copStatus || 'Holding COP (Full-Time)',
+                copStatus: icaiVerification.copStatus || 'ACTIVE',
                 associateFellow: icaiVerification.associateFellow || 'Associate Member (ACA)',
                 address: icaiVerification.address || '',
                 region: icaiVerification.region || 'Southern India Regional Council (SIRC)'
@@ -133,9 +133,24 @@ export default function BusinessCA({ mode }) {
             return;
         }
 
+        // 1. ICAI Membership / Reg No. Validation: strictly 6 digits
+        if (!/^\d{6}$/.test(icaiFormData.membershipNo.trim())) {
+            alert('ICAI Membership Number must be exactly 6 digits.');
+            return;
+        }
+
+        // 2. Professional Email Validation: strictly enforce @bnxmail.com domain
+        const emailVal = (icaiFormData.email || user?.email || '').trim();
+        if (!/^[a-zA-Z0-9._%+-]+@bnxmail\.com$/.test(emailVal)) {
+            alert('Please enter a valid official email ending with @bnxmail.com.');
+            return;
+        }
+
         const submission = {
             ...icaiFormData,
-            email: icaiFormData.email || user?.email || '',
+            membershipNo: icaiFormData.membershipNo.trim(),
+            email: emailVal,
+            copStatus: icaiFormData.copStatus || 'ACTIVE',
             status: 'PENDING_REVIEW',
             submittedAt: new Date().toISOString().split('T')[0]
         };
@@ -2499,7 +2514,7 @@ export default function BusinessCA({ mode }) {
                                             firmName: icaiVerification.firmName || '',
                                             membershipNo: icaiVerification.membershipNo || '',
                                             email: icaiVerification.email || user?.email || '',
-                                            copStatus: icaiVerification.copStatus || 'Full-Time COP',
+                                            copStatus: icaiVerification.copStatus || 'ACTIVE',
                                             associateFellow: icaiVerification.associateFellow || 'Associate (ACA)',
                                             address: icaiVerification.address || '',
                                             region: icaiVerification.region || 'Southern'
@@ -6475,7 +6490,9 @@ export default function BusinessCA({ mode }) {
                                         </div>
                                         <div>
                                             <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Certificate of Practice (COP)</span>
-                                            <div style={{ fontSize: '13px', fontWeight: '650', color: '#334155', marginTop: '3px' }}>{icaiVerification.copStatus || '—'}</div>
+                                            <div style={{ fontSize: '13px', fontWeight: '650', color: '#334155', marginTop: '3px' }}>
+                                                {icaiVerification.copStatus === 'ACTIVE' ? 'Active' : (icaiVerification.copStatus === 'INACTIVE' ? 'Inactive' : (icaiVerification.copStatus || '—'))}
+                                            </div>
                                         </div>
                                         <div>
                                             <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Designation</span>
@@ -6601,10 +6618,12 @@ export default function BusinessCA({ mode }) {
                                             </label>
                                             <input
                                                 type="text"
+                                                inputMode="numeric"
+                                                maxLength={6}
                                                 required
-                                                placeholder="e.g. ICAI-M-508219"
+                                                placeholder="e.g. 508219"
                                                 value={icaiFormData.membershipNo}
-                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, membershipNo: e.target.value }))}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, membershipNo: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
                                                 style={{
                                                     width: '100%',
                                                     padding: '10px 14px',
@@ -6626,7 +6645,7 @@ export default function BusinessCA({ mode }) {
                                             <input
                                                 type="email"
                                                 required
-                                                placeholder="e.g. ca.rajesh@icai.org"
+                                                placeholder="e.g. ca.practice@bnxmail.com"
                                                 value={icaiFormData.email}
                                                 onChange={(e) => setIcaiFormData(prev => ({ ...prev, email: e.target.value }))}
                                                 style={{
@@ -6658,9 +6677,8 @@ export default function BusinessCA({ mode }) {
                                                     background: '#FFFFFF'
                                                 }}
                                             >
-                                                <option value="Holding COP (Full-Time)">Holding COP (Full-Time)</option>
-                                                <option value="Holding COP (Part-Time)">Holding COP (Part-Time)</option>
-                                                <option value="Not Holding COP">Not Holding COP</option>
+                                                <option value="ACTIVE">Active</option>
+                                                <option value="INACTIVE">Inactive</option>
                                             </select>
                                         </div>
 
