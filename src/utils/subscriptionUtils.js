@@ -248,6 +248,21 @@ export const isPlanLimitExceeded = (planName, limitKey, currentCount) => {
 };
 
 /**
+ * Calculates remaining days between an expiry timestamp and now.
+ * 
+ * @param {string|Date} expiryDate - Expiry ISO timestamp or Date object
+ * @returns {number} Days remaining (0 if expired)
+ */
+export const calculateDaysRemaining = (expiryDate) => {
+    if (!expiryDate) return 0;
+    const now = new Date();
+    const target = new Date(expiryDate);
+    const diffTime = target.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+};
+
+/**
  * Get the total subscription duration (in days) based on the plan type.
  * Annual plans get 365 days, monthly plans get 30 days.
  * 

@@ -40,6 +40,7 @@ import { pitchesService } from '../services/pitchesService';
 import { supportService } from '../services/supportService';
 import { caService } from '../services/caService';
 import { useAuth } from '../context';
+import { calculateDaysRemaining } from '../utils/subscriptionUtils';
 
 export default function AdminPortal() {
     const navigate = useNavigate();
@@ -1560,19 +1561,20 @@ export default function AdminPortal() {
                                         </tr>
                                     ) : (
                                         filteredSubscriptions.map(sub => {
+                                            const actualDays = sub.expiryDate ? calculateDaysRemaining(sub.expiryDate) : (sub.daysRemaining ?? 0);
                                             // Days remaining badge styling
                                             let badgeBg = '#DCFCE7';
                                             let badgeCol = '#15803D';
-                                            let badgeText = `${sub.daysRemaining} DAYS LEFT`;
+                                            let badgeText = `${actualDays} DAYS LEFT`;
 
-                                            if (sub.daysRemaining === 0 || sub.status === 'Expired') {
+                                            if (actualDays === 0 || sub.status === 'Expired') {
                                                 badgeBg = '#FEE2E2';
                                                 badgeCol = '#B91C1C';
                                                 badgeText = 'EXPIRED';
-                                            } else if (sub.daysRemaining <= 30) {
+                                            } else if (actualDays <= 30) {
                                                 badgeBg = '#FEF3C7';
                                                 badgeCol = '#B45309';
-                                                badgeText = `${sub.daysRemaining} DAYS LEFT`;
+                                                badgeText = `${actualDays} DAYS LEFT`;
                                             }
 
                                             return (

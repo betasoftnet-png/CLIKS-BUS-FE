@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { Tooltip } from './common';
-import { isFeatureAllowed, getRequiredPlanForFeature } from '../utils/subscriptionUtils';
+import { isFeatureAllowed, getRequiredPlanForFeature, calculateDaysRemaining, getPlanDuration } from '../utils/subscriptionUtils';
+import SubscriptionBadge from './SubscriptionBadge';
 
 const ROUTE_FEATURE_MAP = {
     '/inventory/warehouse': 'multi-warehouse',
@@ -798,21 +799,6 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 {(!isAdminMode && !isSalesAgentMode) && (() => {
                     const subs = user?.active_subscriptions || {};
 
-                    const calcPlanDays = (planData, fallbackDays = 365) => {
-                        const exp = planData?.expiryDate || planData?.expiry_date || planData?.expires_at || planData?.expirationDate;
-                        if (exp) {
-                            const diff = Math.ceil((new Date(exp).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                            return Math.max(0, diff);
-                        }
-                        if (planData?.daysRemaining !== undefined && planData?.daysRemaining !== null) {
-                            return Math.max(0, Number(planData.daysRemaining));
-                        }
-                        if (planData?.subscription_days_remaining !== undefined && planData?.subscription_days_remaining !== null) {
-                            return Math.max(0, Number(planData.subscription_days_remaining));
-                        }
-                        return fallbackDays;
-                    };
-
                     const activePlanCards = [];
 
                     // [1] Plan 1: Books / Business (tier: Starter / Growth / Elite)
@@ -833,9 +819,18 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         else if (upTier.includes('STARTER')) tierText = 'STARTER';
                         else if (rawTier && rawTier !== 'Free Plan') tierText = upTier;
 
+                        const businessSub = subs.business || {};
+                        const businessExp = businessSub.expiryDate || businessSub.valid_until || businessSub.expiry_date || (
+                            businessSub.startDate || user?.created_at
+                                ? new Date(new Date(businessSub.startDate || user?.created_at).getTime() + (getPlanDuration(rawTier) || 365) * 86400000).toISOString()
+                                : new Date(Date.now() + (planDaysRemaining || 365) * 86400000).toISOString()
+                        );
+
                         activePlanCards.push({
                             id: 'books',
-                            days: calcPlanDays(subs.business, planDaysRemaining || 365),
+                            expiryDate: businessExp,
+                            valid_until: businessExp,
+                            days: calculateDaysRemaining(businessExp),
                             middleLabel: 'BOOK',
                             tierText: tierText,
                             subtext: null
@@ -859,9 +854,18 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         else if (upTier.includes('SOLO')) tierText = 'SOLO';
                         else if (rawTier && rawTier !== 'Active') tierText = upTier;
 
+                        const finproSub = subs.fin_pro || subs.ca || {};
+                        const finproExp = finproSub.expiryDate || finproSub.valid_until || finproSub.expiry_date || (
+                            finproSub.startDate || finproSub.updated_at || user?.created_at
+                                ? new Date(new Date(finproSub.startDate || finproSub.updated_at || user?.created_at).getTime() + 365 * 86400000).toISOString()
+                                : new Date(Date.now() + 365 * 86400000).toISOString()
+                        );
+
                         activePlanCards.push({
                             id: 'finpro',
-                            days: calcPlanDays(subs.fin_pro || subs.ca, 365),
+                            expiryDate: finproExp,
+                            valid_until: finproExp,
+                            days: calculateDaysRemaining(finproExp),
                             middleLabel: 'FIN-PRO',
                             tierText: tierText,
                             subtext: null
@@ -882,9 +886,18 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         const upTier = String(rawTier).toUpperCase();
                         const isPro = upTier.includes('PRO');
 
+                        const investorSub = subs.investor || subs.betaclub_investor || {};
+                        const investorExp = investorSub.expiryDate || investorSub.valid_until || investorSub.expiry_date || (
+                            investorSub.startDate || investorSub.updated_at || user?.created_at
+                                ? new Date(new Date(investorSub.startDate || investorSub.updated_at || user?.created_at).getTime() + 365 * 86400000).toISOString()
+                                : new Date(Date.now() + 365 * 86400000).toISOString()
+                        );
+
                         activePlanCards.push({
                             id: 'investor',
-                            days: calcPlanDays(subs.investor || subs.betaclub_investor, 365),
+                            expiryDate: investorExp,
+                            valid_until: investorExp,
+                            days: calculateDaysRemaining(investorExp),
                             middleLabel: 'Partner launch desk',
                             tierText: 'INVESTOR PLAN',
                             subtext: isPro ? 'PRO' : 'BASIC'
@@ -911,9 +924,18 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             subtext = 'monthly innovators';
                         }
 
+                        const posterSub = subs.poster || subs.product || subs.betaclub_product || {};
+                        const posterExp = posterSub.expiryDate || posterSub.valid_until || posterSub.expiry_date || (
+                            posterSub.startDate || posterSub.updated_at || user?.created_at
+                                ? new Date(new Date(posterSub.startDate || posterSub.updated_at || user?.created_at).getTime() + (upTier.includes('MONTHLY') ? 30 : 365) * 86400000).toISOString()
+                                : new Date(Date.now() + (upTier.includes('MONTHLY') ? 30 : 365) * 86400000).toISOString()
+                        );
+
                         activePlanCards.push({
                             id: 'products',
-                            days: calcPlanDays(subs.poster || subs.product || subs.betaclub_product, 365),
+                            expiryDate: posterExp,
+                            valid_until: posterExp,
+                            days: calculateDaysRemaining(posterExp),
                             middleLabel: 'Partner launch desk',
                             tierText: 'PRODUCTS PLAN',
                             subtext: subtext
@@ -1006,7 +1028,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                                     lineHeight: 1
                                                 }}
                                             >
-                                                {plan.days}
+                                                {calculateDaysRemaining(plan.expiryDate || plan.valid_until)}
                                             </span>
                                             <span
                                                 className="text-[9px] font-bold text-[#172b59] tracking-wider leading-none"

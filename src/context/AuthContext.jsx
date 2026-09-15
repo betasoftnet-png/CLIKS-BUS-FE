@@ -5,7 +5,7 @@ import { adminService } from '../services/adminService';
 import { supportService } from '../services/supportService';
 import { profileService } from '../services/profileService';
 import { caService } from '../services/caService';
-import { isFeatureAllowed, getPlanDuration } from '../utils/subscriptionUtils';
+import { isFeatureAllowed, getPlanDuration, calculateDaysRemaining } from '../utils/subscriptionUtils';
 import { AuthContext } from './auth-context';
 
 export const AuthProvider = ({ children }) => {
@@ -40,13 +40,18 @@ export const AuthProvider = ({ children }) => {
                 return;
             }
             if (token === 'mock-test-token') {
+                const now = new Date();
+                const mockExpiry = new Date(now.getTime() + 342 * 24 * 60 * 60 * 1000).toISOString();
                 setUser({
                     id: 'mock-id',
                     name: 'Test User',
                     email: 'test@example.com',
                     role: 'business',
                     tier: 'Free Plan',
-                    subscription_days_remaining: 0
+                    subscription_days_remaining: 342,
+                    active_subscriptions: {
+                        business: { active: true, plan: 'Starter Plan', startDate: now.toISOString(), expiryDate: mockExpiry, valid_until: mockExpiry }
+                    }
                 });
                 setLoading(false);
                 return;
@@ -93,19 +98,20 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         if (user) {
-            let totalDays = getPlanDuration(user.tier || 'Elite Suite');
-            let remaining = totalDays;
-            
-            if (user.subscription_days_remaining !== undefined && user.subscription_days_remaining !== null && user.subscription_days_remaining !== 0) {
+            let remaining;
+            const businessSub = user.active_subscriptions?.business;
+            const businessExp = businessSub?.expiryDate || businessSub?.valid_until;
+            if (businessExp) {
+                remaining = calculateDaysRemaining(businessExp);
+            } else if (user.subscription_days_remaining !== undefined && user.subscription_days_remaining !== null && user.subscription_days_remaining !== 0) {
                 remaining = user.subscription_days_remaining;
             } else if (user.created_at) {
+                const totalDays = getPlanDuration(user.tier || 'Elite Suite');
                 const start = new Date(user.created_at);
                 const now = new Date();
                 const diffTime = now.getTime() - start.getTime();
                 const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                
-                remaining = totalDays - diffDays;
-                if (remaining < 0) remaining = 0;
+                remaining = Math.max(0, totalDays - diffDays);
             } else {
                 remaining = 342;
             }
@@ -141,6 +147,9 @@ export const AuthProvider = ({ children }) => {
             }
         }
 
+        const now = new Date();
+        const expiryDate = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000).toISOString();
+
         const existingSubs = user?.active_subscriptions || {
             business: { active: true, plan: user?.tier || 'Starter Plan' },
             fin_pro: { active: Boolean(localStorage.getItem('cliks_finpro_active') === 'true'), plan: null },
@@ -150,7 +159,14 @@ export const AuthProvider = ({ children }) => {
 
         const updatedSubs = {
             ...existingSubs,
-            [cat]: { active: true, plan: newPlanName, updated_at: new Date().toISOString() }
+            [cat]: {
+                active: true,
+                plan: newPlanName,
+                startDate: now.toISOString(),
+                expiryDate: expiryDate,
+                valid_until: expiryDate,
+                updated_at: now.toISOString()
+            }
         };
 
         if (cat === 'fin_pro') localStorage.setItem('cliks_finpro_active', 'true');
