@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { gstService, billingService, crmService, inventoryService } from '../services';
+import { gstService, billingService, crmService, inventoryService, complianceService } from '../services';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency } from '../context';
 import { 
@@ -26,7 +26,8 @@ import {
     Sliders,
     Award,
     Trash2,
-    Download
+    Download,
+    Eye
 } from 'lucide-react';
 import '../App.css';
 
@@ -149,8 +150,8 @@ const BusinessGST = () => {
     });
 
     const createEwayMutation = useMutation({
-        mutationFn: (data) => gstService.createEway(data),
-        onSuccess: () => {
+        mutationFn: (data) => complianceService.generateEWayBill(data),
+        onSuccess: (resData) => {
             queryClient.invalidateQueries({ queryKey: ['gstEways'] });
             queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
             setIsEwayModalOpen(false);
@@ -174,7 +175,15 @@ const BusinessGST = () => {
                 goods_items: []
             });
             setValidationErrors({});
-            alert('Government e-Way Bill generated successfully.');
+            const results = resData?.results?.message || resData?.results || resData || {};
+            const ewbNumber = results.ewayBillNo || resData?.ewayBillNo || 'N/A';
+            const pdfUrl = results.url || resData?.url || resData?.pdfUrl || '';
+            alert(`Government e-Way Bill generated successfully.\n\ne-Way Bill No: ${ewbNumber}${pdfUrl ? `\nPrint PDF: ${pdfUrl}` : ''}`);
+        },
+        onError: (err) => {
+            const responseData = err?.response?.data || {};
+            const errorMsg = responseData.message || responseData.error || err.message || 'Failed to generate e-Way Bill';
+            console.error('Failed to generate e-Way Bill:', errorMsg);
         }
     });
 
@@ -299,7 +308,8 @@ const BusinessGST = () => {
         .filter(item => !locallyDeletedIds.includes(String(item.id)))
         .map(item => ({
         id: item.id,
-        eway_bill_number: item.eway_bill_number,
+        ewayBillNo: item.ewayBillNo || item.eway_bill_number,
+        eway_bill_number: item.ewayBillNo || item.eway_bill_number,
         transporter_name: item.transporter_name || '',
         vehicle_number: item.vehicle_number || '',
         transport_distance: parseInt(item.transport_distance) || 0,
@@ -308,7 +318,9 @@ const BusinessGST = () => {
         status: item.status || 'Active',
         reference_invoice: item.reference_invoice || '',
         transport_mode: item.transport_mode || '',
-        transporter_gstin: item.transporter_gstin || ''
+        transporter_gstin: item.transporter_gstin || '',
+        validUpto: item.valid_upto || item.validUpto || '',
+        url: item.pdf_url || item.url || (item.ewayBillNo || item.eway_bill_number ? `https://sandb-api.mastersindia.co/api/v1/detailPrintPdf/${item.ewayBillNo || item.eway_bill_number}` : '')
     }));
 
     // Form inputs states
@@ -1221,7 +1233,7 @@ const BusinessGST = () => {
                             <tbody>
                                 {eways.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ew) => (
                                     <tr key={ew.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', fontSize: '0.85rem', color: '#0F172A' }}>{ew.eway_bill_number}</td>
+                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', fontSize: '0.85rem', color: '#0F172A' }}>{ew.ewayBillNo || ew.eway_bill_number}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem' }}>{ew.transporter_name}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: '#475569' }}>{ew.vehicle_number}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '800', fontSize: '0.85rem', color: '#1D4ED8' }}>{ew.transport_distance} Kms</td>
@@ -1230,31 +1242,56 @@ const BusinessGST = () => {
                                             <span style={{ padding: '0.2rem 0.4rem', borderRadius: '6px', background: '#E6F4EA', color: '#137333', fontWeight: '800', fontSize: '0.75rem' }}>{ew.status.toUpperCase()}</span>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
-                                            {confirmingDeleteId === ew.id ? (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', justifyContent: 'flex-end' }}>
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); deleteInvoiceMutation.mutate(ew.id); setConfirmingDeleteId(null); }} 
-                                                        style={{ border: 'none', background: '#EF4444', color: 'white', padding: '0.25rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '800' }}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                {(ew.url || ew.pdf_url) && (
+                                                    <a 
+                                                        href={ew.url || ew.pdf_url} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        title="View / Print Official Government PDF"
+                                                        style={{ 
+                                                            display: 'inline-flex', 
+                                                            alignItems: 'center', 
+                                                            justifyContent: 'center', 
+                                                            width: '28px', 
+                                                            height: '28px', 
+                                                            borderRadius: '8px', 
+                                                            background: '#EFF6FF', 
+                                                            color: '#1D4ED8', 
+                                                            border: '1px solid #BFDBFE',
+                                                            textDecoration: 'none',
+                                                            cursor: 'pointer'
+                                                        }}
                                                     >
-                                                        Delete
-                                                    </button>
+                                                        <Eye size={15} />
+                                                    </a>
+                                                )}
+                                                {confirmingDeleteId === ew.id ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); deleteInvoiceMutation.mutate(ew.id); setConfirmingDeleteId(null); }} 
+                                                            style={{ border: 'none', background: '#EF4444', color: 'white', padding: '0.25rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '800' }}
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(null); }} 
+                                                            style={{ border: '1px solid #E2E8F0', background: 'white', color: '#64748B', padding: '0.25rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '600' }}
+                                                        >
+                                                            No
+                                                        </button>
+                                                    </div>
+                                                ) : (
                                                     <button 
-                                                        onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(null); }} 
-                                                        style={{ border: '1px solid #E2E8F0', background: 'white', color: '#64748B', padding: '0.25rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: '600' }}
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(ew.id); }}
+                                                        style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', padding: '0.25rem' }}
+                                                        title="Delete Record"
                                                     >
-                                                        No
+                                                        <Trash2 size={15} />
                                                     </button>
-                                                </div>
-                                            ) : (
-                                                <button 
-                                                    type="button"
-                                                    onClick={(e) => { e.stopPropagation(); setConfirmingDeleteId(ew.id); }}
-                                                    style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', padding: '0.25rem' }}
-                                                    title="Delete Record"
-                                                >
-                                                    <Trash2 size={15} />
-                                                </button>
-                                            )}
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
