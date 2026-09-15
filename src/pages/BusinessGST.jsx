@@ -181,9 +181,9 @@ const BusinessGST = () => {
             alert(`Government e-Way Bill generated successfully.\n\ne-Way Bill No: ${ewbNumber}${pdfUrl ? `\nPrint PDF: ${pdfUrl}` : ''}`);
         },
         onError: (err) => {
-            const responseData = err?.response?.data || {};
-            const errorMsg = responseData.message || responseData.error || err.message || 'Failed to generate e-Way Bill';
-            console.error('Failed to generate e-Way Bill:', errorMsg);
+            const apiError = err?.response?.data?.results?.message || err?.response?.data?.message || err?.response?.data?.error?.message || err?.message || "Failed to generate e-Way Bill";
+            console.error('Failed to generate e-Way Bill:', apiError);
+            alert(apiError);
         }
     });
 
@@ -306,10 +306,17 @@ const BusinessGST = () => {
 
     const eways = (Array.isArray(dbEways) ? dbEways : [])
         .filter(item => !locallyDeletedIds.includes(String(item.id)))
+        .filter(item => {
+            const rawNo = item.ewayBillNo || item.eway_bill_no || item.eway_bill_number;
+            const cleanNo = String(rawNo || '').trim();
+            // Only render rows where a valid 12-digit government number exists
+            return /^\d{12}$/.test(cleanNo);
+        })
         .map(item => ({
         id: item.id,
-        ewayBillNo: item.ewayBillNo || item.eway_bill_number,
-        eway_bill_number: item.ewayBillNo || item.eway_bill_number,
+        ewayBillNo: item.ewayBillNo || item.eway_bill_no || item.eway_bill_number,
+        eway_bill_no: item.ewayBillNo || item.eway_bill_no || item.eway_bill_number,
+        eway_bill_number: item.ewayBillNo || item.eway_bill_no || item.eway_bill_number,
         transporter_name: item.transporter_name || '',
         vehicle_number: item.vehicle_number || '',
         transport_distance: parseInt(item.transport_distance) || 0,
@@ -320,7 +327,7 @@ const BusinessGST = () => {
         transport_mode: item.transport_mode || '',
         transporter_gstin: item.transporter_gstin || '',
         validUpto: item.valid_upto || item.validUpto || '',
-        url: item.pdf_url || item.url || (item.ewayBillNo || item.eway_bill_number ? `https://sandb-api.mastersindia.co/api/v1/detailPrintPdf/${item.ewayBillNo || item.eway_bill_number}` : '')
+        url: item.pdf_url || item.url || (item.ewayBillNo || item.eway_bill_no || item.eway_bill_number ? `https://sandb-api.mastersindia.co/api/v1/detailPrintPdf/${item.ewayBillNo || item.eway_bill_no || item.eway_bill_number}` : '')
     }));
 
     // Form inputs states
@@ -1233,7 +1240,9 @@ const BusinessGST = () => {
                             <tbody>
                                 {eways.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ew) => (
                                     <tr key={ew.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', fontSize: '0.85rem', color: '#0F172A' }}>{ew.ewayBillNo || ew.eway_bill_number}</td>
+                                        <td className="font-mono font-semibold" style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: '#0F172A' }}>
+                                            {ew.ewayBillNo || ew.eway_bill_no || ew.eway_bill_number || "—"}
+                                        </td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem' }}>{ew.transporter_name}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: '#475569' }}>{ew.vehicle_number}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '800', fontSize: '0.85rem', color: '#1D4ED8' }}>{ew.transport_distance} Kms</td>
