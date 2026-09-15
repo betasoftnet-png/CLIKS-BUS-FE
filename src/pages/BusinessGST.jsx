@@ -152,7 +152,7 @@ const BusinessGST = () => {
 
     const createEwayMutation = useMutation({
         mutationFn: (data) => complianceService.generateEWayBill(data),
-        onSuccess: (resData) => {
+        onSuccess: (resData, variables) => {
             queryClient.invalidateQueries({ queryKey: ['gstEways'] });
             queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
             setIsEwayModalOpen(false);
@@ -176,10 +176,47 @@ const BusinessGST = () => {
                 goods_items: []
             });
             setValidationErrors({});
-            const results = resData?.results?.message || resData?.results || resData || {};
-            const ewbNumber = results.ewayBillNo || resData?.ewayBillNo || 'N/A';
-            const pdfUrl = results.url || resData?.url || resData?.pdfUrl || '';
-            alert(`Government e-Way Bill generated successfully.\n\ne-Way Bill No: ${ewbNumber}${pdfUrl ? `\nPrint PDF: ${pdfUrl}` : ''}`);
+
+            const res = resData?._isAxiosResponse ? resData : { data: resData, ...resData };
+            const formData = variables || {};
+
+            // Safe extraction from Masters India API response structure
+            const apiMessage = res?.data?.results?.message || res?.results?.message || res?.data?.message || res?.message || {};
+
+            const ewayBillNo = 
+              apiMessage.ewayBillNo || 
+              apiMessage.eway_bill_number || 
+              res?.data?.ewayBillNo || 
+              res?.ewayBillNo || 
+              "—";
+
+            const validUpto = 
+              apiMessage.validUpto || 
+              apiMessage.eway_bill_valid_date || 
+              apiMessage.valid_upto || 
+              res?.data?.validUpto || 
+              res?.validUpto || 
+              "—";
+
+            const ewbPdfUrl = 
+              apiMessage.url || 
+              res?.data?.url || 
+              res?.url || 
+              null;
+
+            // Construct the new record using the safely extracted variables
+            const newEwayRecord = {
+              ewayBillNo: ewayBillNo,
+              carrierName: formData.transport_name || formData.transport_company_name || formData.transporter_name || "—",
+              vehicleNo: formData.vehicle_number || "—",
+              distance: `${formData.distance || formData.transport_distance || 0} Kms`,
+              sourceDestination: `${formData.dispatch_location || "—"} → ${formData.delivery_destination || formData.delivery_location || "—"}`,
+              status: "ACTIVE",
+              validUpto: validUpto,
+              url: ewbPdfUrl,
+            };
+
+            alert(`Government e-Way Bill generated successfully.\n\ne-Way Bill No: ${ewayBillNo}\nValid Upto: ${validUpto}${ewbPdfUrl ? `\nPrint PDF: ${ewbPdfUrl}` : ''}`);
         },
         onError: (err) => {
             const apiError = err?.response?.data?.results?.message || err?.response?.data?.message || err?.response?.data?.error?.message || err?.message || "Failed to generate e-Way Bill";
