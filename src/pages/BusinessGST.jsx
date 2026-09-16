@@ -104,6 +104,7 @@ const BusinessGST = () => {
     const [selectedQrInvoice, setSelectedQrInvoice] = useState(null);
     const [ewayBills, setEwayBills] = useState([]);
     const [customerList, setCustomerList] = useState([]);
+    const [successModalData, setSuccessModalData] = useState(null);
 
     const queryClient = useQueryClient();
 
@@ -331,7 +332,11 @@ const BusinessGST = () => {
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
             queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
 
-            alert(`Government e-Way Bill generated successfully.\n\ne-Way Bill No: ${newRecord.ewayBillNo || '—'}\nValid Upto: ${newRecord.validUpto}${newRecord.url ? `\nPrint PDF: ${getSafePdfUrl(newRecord.url)}` : ''}`);
+            setSuccessModalData({
+                ewayBillNo: newRecord.ewayBillNo || '—',
+                validUpto: newRecord.validUpto || '—',
+                pdfUrl: newRecord.url ? getSafePdfUrl(newRecord.url) : null
+            });
 
         },
         onError: (err) => {
@@ -2676,6 +2681,67 @@ const BusinessGST = () => {
                     </div>
                 );
             })()}
+
+            {/* E-Way Bill Success Modal */}
+            {successModalData && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', padding: '2rem'
+                }}>
+                    <div style={{
+                        background: 'white', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: '420px',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid #E2E8F0',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+                            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3B82F6' }}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#1E293B', textAlign: 'center', marginBottom: '1rem' }}>
+                            Government e-Way Bill generated successfully.
+                        </h3>
+
+                        <div className="text-center space-y-2 text-sm text-gray-700">
+                          <p className="font-semibold text-gray-900">
+                            e-Way Bill No: <span className="text-indigo-600">{successModalData?.ewayBillNo}</span>
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Valid Upto: {successModalData?.validUpto}
+                          </p>
+                          
+                          {successModalData?.pdfUrl && (
+                            <div className="pt-2">
+                              <a
+                                href={successModalData.pdfUrl.startsWith('http') ? successModalData.pdfUrl : `https://${successModalData.pdfUrl}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                              >
+                                <span>📄 View / Print Official PDF</span>
+                              </a>
+                            </div>
+                          )}
+                        </div>
+
+                        <button 
+                            type="button"
+                            onClick={() => setSuccessModalData(null)}
+                            style={{
+                                width: '100%', padding: '0.85rem', marginTop: '1.5rem', borderRadius: '14px', border: 'none',
+                                background: '#3B82F6', color: 'white', fontWeight: '800', fontSize: '1rem', cursor: 'pointer',
+                                boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)'
+                            }}
+                        >
+                            Got It
+                        </button>
+                    </div>
+                </div>
+            )}
             </div>
         </div>
     );

@@ -123,7 +123,7 @@ const GlobalAlert = () => {
              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </div>
         </div>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1E293B', textAlign: 'center', marginBottom: '0.75rem', lineHeight: '1.4', whiteSpace: 'pre-wrap' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1E293B', textAlign: 'center', marginBottom: '0.75rem', lineHeight: '1.4', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
           {String(message)}
         </h3>
         <button 
