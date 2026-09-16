@@ -44,11 +44,15 @@ const BusinessPurchases = () => {
     const { currency, formatCurrency } = useCurrency();
     const { selectedPlan, user } = useAuth();
     const business = user?.business;
-    const isStarterPlan = 
-        (selectedPlan || user?.tier) === 'Starter Plan' ||
-        user?.subscription?.plan_key?.toLowerCase() === 'starter' || 
-        user?.plan_type?.toLowerCase() === 'starter' ||
-        business?.plan?.toLowerCase() === 'starter';
+    const currentPlan = (
+        user?.subscription?.plan_key || 
+        user?.plan_type || 
+        business?.plan || 
+        selectedPlan ||
+        user?.tier ||
+        ""
+    ).toLowerCase();
+    const isStarterPlan = currentPlan === 'starter' || currentPlan === 'mini_shop' || currentPlan === 'starter plan';
     const [bankAccounts, setBankAccounts] = useState([]);
     React.useEffect(() => {
         paymentsStore.getBankAccounts().then(res => setBankAccounts(Array.isArray(res) ? res : []));
