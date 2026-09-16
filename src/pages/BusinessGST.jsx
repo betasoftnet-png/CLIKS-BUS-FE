@@ -30,7 +30,15 @@ import {
     Eye,
     Printer
 } from 'lucide-react';
-import '../App.css';
+// Helper function to sanitize and ensure all PDF URLs start with https://
+const getSafePdfUrl = (url) => {
+  if (!url) return "#";
+  const trimmed = String(url).trim();
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
 
 const BusinessGST = () => {
     const { currency, formatCurrency } = useCurrency();
@@ -208,7 +216,7 @@ const BusinessGST = () => {
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
             queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
 
-            alert(`Government e-Way Bill generated successfully.\n\ne-Way Bill No: ${newRecord.ewayBillNo || '—'}\nValid Upto: ${newRecord.validUpto}${newRecord.url ? `\nPrint PDF: ${newRecord.url}` : ''}`);
+            alert(`Government e-Way Bill generated successfully.\n\ne-Way Bill No: ${newRecord.ewayBillNo || '—'}\nValid Upto: ${newRecord.validUpto}${newRecord.url ? `\nPrint PDF: ${getSafePdfUrl(newRecord.url)}` : ''}`);
 
         },
         onError: (err) => {
@@ -1335,10 +1343,11 @@ const BusinessGST = () => {
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
                                                 {(ew.url || ew.print_url || ew.pdf_url) && (
                                                     <a 
-                                                        href={ew.url || ew.print_url || ew.pdf_url} 
+                                                        href={getSafePdfUrl(ew.url || ew.print_url || ew.pdf_url)} 
                                                         target="_blank" 
                                                         rel="noopener noreferrer"
-                                                        title="View / Print Official Government PDF"
+                                                        title="View Official Government PDF"
+                                                        className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition inline-flex items-center"
                                                         style={{ 
                                                             display: 'inline-flex', 
                                                             alignItems: 'center', 
@@ -1353,7 +1362,7 @@ const BusinessGST = () => {
                                                             cursor: 'pointer'
                                                         }}
                                                     >
-                                                        <Eye className="text-blue-600 hover:text-blue-800 cursor-pointer" size={16} />
+                                                        <Eye size={16} />
                                                     </a>
                                                 )}
                                                 {confirmingDeleteId === ew.id ? (
