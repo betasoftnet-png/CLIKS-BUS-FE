@@ -2433,6 +2433,56 @@ const BusinessGST = () => {
             {/* Government e-Invoice QR Code & Details Modal */}
             {selectedQrInvoice && (() => {
                 const data = selectedQrInvoice;
+                const generatedInvoiceData = selectedQrInvoice;
+
+                // Helper to extract and sanitize the official Masters India PDF URL
+                const getSafeInvoicePdfUrl = () => {
+                  let pdfUrl = 
+                    generatedInvoiceData?.EinvoicePdf || 
+                    generatedInvoiceData?.results?.message?.EinvoicePdf || 
+                    generatedInvoiceData?.einvoice_pdf_url ||
+                    generatedInvoiceData?.pdf_url || 
+                    generatedInvoiceData?.url;
+
+                  if (!pdfUrl) {
+                    alert("Official government PDF URL is not available yet.");
+                    return null;
+                  }
+
+                  // Prepend https:// if Masters India returned a protocol-relative link
+                  if (!pdfUrl.startsWith("http://") && !pdfUrl.startsWith("https://")) {
+                    pdfUrl = `https://${pdfUrl}`;
+                  }
+
+                  return pdfUrl;
+                };
+
+                // Download action: opens the official PDF directly in a new tab
+                const handleDownloadInvoicePdf = () => {
+                  const pdfUrl = getSafeInvoicePdfUrl();
+                  if (pdfUrl) {
+                    window.open(pdfUrl, "_blank", "noopener,noreferrer");
+                  }
+                };
+
+                // Print action: opens the official PDF and triggers the browser's print dialog
+                const handlePrintInvoice = () => {
+                  const pdfUrl = getSafeInvoicePdfUrl();
+                  if (!pdfUrl) return;
+
+                  const printWindow = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+                  if (printWindow) {
+                    printWindow.addEventListener("load", () => {
+                      try {
+                        printWindow.focus();
+                        printWindow.print();
+                      } catch (err) {
+                        console.warn("Auto-print preview prevented by browser security:", err);
+                      }
+                    });
+                  }
+                };
+
                 const irnHash = data.results?.message?.Irn || data.irn || data.irn_number || 'N/A';
                 const ackNo = data.results?.message?.AckNo || data.ack_no || data.AckNo || '—';
                 const ackDate = data.results?.message?.AckDt || data.ack_date || data.AckDt || data.date || '—';
@@ -2582,21 +2632,20 @@ const BusinessGST = () => {
                                     </button>
                                     <button 
                                         type="button"
-                                        onClick={() => window.print()} 
+                                        onClick={handlePrintInvoice} 
                                         style={{ border: '1px solid #CBD5E1', background: 'white', color: '#475569', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.85rem', borderRadius: '14px' }}
                                     >
                                         <Printer size={15} />
                                         Print Invoice
                                     </button>
-                                    <a 
-                                        href={pdfDownloadLink} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.85rem', borderRadius: '14px', border: 'none', background: '#4338CA', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 10px rgba(67, 56, 202, 0.2)' }}
+                                    <button 
+                                        type="button"
+                                        onClick={handleDownloadInvoicePdf} 
+                                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.85rem', borderRadius: '14px', border: 'none', background: '#4338CA', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 10px rgba(67, 56, 202, 0.2)' }}
                                     >
                                         <Download size={15} />
                                         Download PDF
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                         </div>
