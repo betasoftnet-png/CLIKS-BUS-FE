@@ -103,8 +103,29 @@ const BusinessGST = () => {
     const [validationErrors, setValidationErrors] = useState({});
     const [selectedQrInvoice, setSelectedQrInvoice] = useState(null);
     const [ewayBills, setEwayBills] = useState([]);
+    const [customerList, setCustomerList] = useState([]);
 
     const queryClient = useQueryClient();
+
+    // Fetch existing customers on component / modal mount
+    useEffect(() => {
+        const fetchCustomers = async () => {
+            try {
+                const res = await crmService.getCustomers();
+                const list = Array.isArray(res) 
+                    ? res 
+                    : (Array.isArray(res?.data) 
+                        ? res.data 
+                        : (Array.isArray(res?.customers) 
+                            ? res.customers 
+                            : []));
+                setCustomerList(list);
+            } catch (err) {
+                console.error('[BusinessGST] Failed to fetch customerList:', err);
+            }
+        };
+        fetchCustomers();
+    }, [isInvoiceModalOpen]);
 
     // Queries
     const { data: dbSalesInvoices = [] } = useQuery({
@@ -117,11 +138,17 @@ const BusinessGST = () => {
         queryFn: () => inventoryService.getInventory()
     });
 
-    const { data: dbCustomersResponse = { data: [] } } = useQuery({
+    const { data: dbCustomersResponse = [] } = useQuery({
         queryKey: ['customers'],
         queryFn: () => crmService.getCustomers()
     });
-    const dbCustomers = dbCustomersResponse?.data || [];
+    const dbCustomers = customerList.length > 0 
+        ? customerList 
+        : (Array.isArray(dbCustomersResponse) 
+            ? dbCustomersResponse 
+            : (Array.isArray(dbCustomersResponse?.data) 
+                ? dbCustomersResponse.data 
+                : []));
 
     // Queries
     const { data: dbInvoices = [] } = useQuery({
