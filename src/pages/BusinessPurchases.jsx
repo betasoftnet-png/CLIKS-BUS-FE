@@ -43,7 +43,12 @@ import { useCurrency, useAuth } from '../context';
 const BusinessPurchases = () => {
     const { currency, formatCurrency } = useCurrency();
     const { selectedPlan, user } = useAuth();
-    const isStarterPlan = (selectedPlan || user?.tier) === 'Starter Plan';
+    const business = user?.business;
+    const isStarterPlan = 
+        (selectedPlan || user?.tier) === 'Starter Plan' ||
+        user?.subscription?.plan_key?.toLowerCase() === 'starter' || 
+        user?.plan_type?.toLowerCase() === 'starter' ||
+        business?.plan?.toLowerCase() === 'starter';
     const [bankAccounts, setBankAccounts] = useState([]);
     React.useEffect(() => {
         paymentsStore.getBankAccounts().then(res => setBankAccounts(Array.isArray(res) ? res : []));
@@ -654,6 +659,7 @@ const BusinessPurchases = () => {
 
         const docPayload = {
             ...formHeader,
+            warehouse_id: formHeader.warehouse_id || 'Main Godown',
             doc_type: createDocType,
             items: formItems.map(i => ({
                 ...i,
@@ -1539,7 +1545,7 @@ const BusinessPurchases = () => {
                             </div>
 
                             {/* Document Meta Section */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: isStarterPlan ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Tax Mode</label>
                                     <select value={formHeader.purchase_type} onChange={(e) => setFormHeader({ ...formHeader, purchase_type: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
@@ -1555,10 +1561,12 @@ const BusinessPurchases = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Due Date</label>
                                     <input required type="date" value={formHeader.due_date} onChange={(e) => setFormHeader({ ...formHeader, due_date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Target Warehouse</label>
-                                    <input type="text" value={formHeader.warehouse_id} onChange={(e) => setFormHeader({ ...formHeader, warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Main Godown" />
-                                </div>
+                                {!isStarterPlan && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Target Warehouse</label>
+                                        <input type="text" value={formHeader.warehouse_id} onChange={(e) => setFormHeader({ ...formHeader, warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Main Godown" />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Itemized Grid Section */}
