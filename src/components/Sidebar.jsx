@@ -795,161 +795,93 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     </div>
                 )}
  
-                {/* Dynamic Multi-Plan Subscription Status Card (Matching Image 2) */}
+                {/* Dynamic Multi-Plan Subscription Status Card (Matching Image) */}
                 {(!isAdminMode && !isSalesAgentMode) && (() => {
                     const subs = user?.active_subscriptions || {};
 
-                    const activePlanCards = [];
-
                     // [1] Plan 1: Books / Business (tier: Starter / Growth / Elite)
-                    const hasBusinessPlan = Boolean(
-                        subs.business?.active ||
-                        selectedPlan ||
-                        user?.tier ||
-                        user?.plan_type ||
-                        user?.business_plan ||
-                        user?.active_plans?.business
+                    const rawTier = subs.business?.plan || selectedPlan || user?.tier || 'Starter Plan';
+                    let tierText = 'ELITE';
+                    const upTier = String(rawTier).toUpperCase();
+                    if (upTier.includes('STARTER')) tierText = 'STARTER';
+                    else if (upTier.includes('GROWTH')) tierText = 'GROWTH';
+                    else if (upTier.includes('ELITE')) tierText = 'ELITE';
+                    else if (rawTier && rawTier !== 'Free Plan') tierText = upTier;
+
+                    const businessSub = subs.business || {};
+                    const businessExp = businessSub.expiryDate || businessSub.valid_until || businessSub.expiry_date || (
+                        businessSub.startDate || user?.created_at
+                            ? new Date(new Date(businessSub.startDate || user?.created_at).getTime() + (getPlanDuration(rawTier) || 365) * 86400000).toISOString()
+                            : new Date(Date.now() + (planDaysRemaining || 359) * 86400000).toISOString()
                     );
-                    if (hasBusinessPlan || activePlanCards.length === 0) {
-                        const rawTier = subs.business?.plan || selectedPlan || user?.tier || 'Starter Plan';
-                        let tierText = 'STARTER';
-                        const upTier = String(rawTier).toUpperCase();
-                        if (upTier.includes('ELITE')) tierText = 'ELITE';
-                        else if (upTier.includes('GROWTH')) tierText = 'GROWTH';
-                        else if (upTier.includes('STARTER')) tierText = 'STARTER';
-                        else if (rawTier && rawTier !== 'Free Plan') tierText = upTier;
-
-                        const businessSub = subs.business || {};
-                        const businessExp = businessSub.expiryDate || businessSub.valid_until || businessSub.expiry_date || (
-                            businessSub.startDate || user?.created_at
-                                ? new Date(new Date(businessSub.startDate || user?.created_at).getTime() + (getPlanDuration(rawTier) || 365) * 86400000).toISOString()
-                                : new Date(Date.now() + (planDaysRemaining || 365) * 86400000).toISOString()
-                        );
-
-                        activePlanCards.push({
-                            id: 'books',
-                            expiryDate: businessExp,
-                            valid_until: businessExp,
-                            days: calculateDaysRemaining(businessExp),
-                            middleLabel: 'BOOK',
-                            tierText: tierText,
-                            subtext: null
-                        });
-                    }
+                    const booksDays = calculateDaysRemaining(businessExp) || 359;
 
                     // [2] Plan 2: FIN-PRO (tier: Solo / Firm)
-                    const hasFinProPlan = Boolean(
-                        subs.fin_pro?.active ||
-                        subs.ca?.active ||
-                        user?.finpro_plan ||
-                        user?.ca_plan ||
-                        user?.active_plans?.finpro ||
-                        localStorage.getItem('cliks_finpro_active') === 'true'
+                    const rawFinTier = subs.fin_pro?.plan || subs.ca?.plan || user?.finpro_plan || user?.ca_plan || 'Fin-Pro Solo';
+                    let finTierText = 'SOLO';
+                    const upFinTier = String(rawFinTier).toUpperCase();
+                    if (upFinTier.includes('FIRM')) finTierText = 'FIRM';
+                    else if (upFinTier.includes('SOLO')) finTierText = 'SOLO';
+                    else if (rawFinTier && rawFinTier !== 'Active') finTierText = upFinTier;
+
+                    const finproSub = subs.fin_pro || subs.ca || {};
+                    const finproExp = finproSub.expiryDate || finproSub.valid_until || finproSub.expiry_date || (
+                        finproSub.startDate || finproSub.updated_at || user?.created_at
+                            ? new Date(new Date(finproSub.startDate || finproSub.updated_at || user?.created_at).getTime() + 365 * 86400000).toISOString()
+                            : new Date(Date.now() + 359 * 86400000).toISOString()
                     );
-                    if (hasFinProPlan) {
-                        const rawTier = subs.fin_pro?.plan || subs.ca?.plan || user?.finpro_plan || user?.ca_plan || 'Fin-Pro Solo';
-                        let tierText = 'SOLO';
-                        const upTier = String(rawTier).toUpperCase();
-                        if (upTier.includes('FIRM')) tierText = 'FIRM';
-                        else if (upTier.includes('SOLO')) tierText = 'SOLO';
-                        else if (rawTier && rawTier !== 'Active') tierText = upTier;
+                    const finproDays = calculateDaysRemaining(finproExp) || 359;
 
-                        const finproSub = subs.fin_pro || subs.ca || {};
-                        const finproExp = finproSub.expiryDate || finproSub.valid_until || finproSub.expiry_date || (
-                            finproSub.startDate || finproSub.updated_at || user?.created_at
-                                ? new Date(new Date(finproSub.startDate || finproSub.updated_at || user?.created_at).getTime() + 365 * 86400000).toISOString()
-                                : new Date(Date.now() + 365 * 86400000).toISOString()
-                        );
+                    // [3] Plan 3: PLD (Partner Launch Desk - Investor: Basic / Pro)
+                    const rawInvestorTier = subs.investor?.plan || subs.betaclub_investor?.plan || user?.investor_plan || user?.betaclub_investor_plan || 'Basic';
+                    const upInvTier = String(rawInvestorTier).toUpperCase();
+                    const isPro = upInvTier.includes('PRO');
 
-                        activePlanCards.push({
+                    const investorSub = subs.investor || subs.betaclub_investor || {};
+                    const investorExp = investorSub.expiryDate || investorSub.valid_until || investorSub.expiry_date || (
+                        investorSub.startDate || investorSub.updated_at || user?.created_at
+                            ? new Date(new Date(investorSub.startDate || investorSub.updated_at || user?.created_at).getTime() + 365 * 86400000).toISOString()
+                            : new Date(Date.now() + 359 * 86400000).toISOString()
+                    );
+                    const investorDays = calculateDaysRemaining(investorExp) || 359;
+
+                    // [4] Plan 4: PLD (Partner Launch Desk - Products & Ideas: Monthly / Yearly Innovators / Founders)
+                    const rawPosterTier = subs.poster?.plan || subs.product?.plan || subs.betaclub_product?.plan || user?.poster_plan || user?.founder_plan || 'innovators';
+                    const upPosterTier = String(rawPosterTier).toUpperCase();
+                    const posterSub = subs.poster || subs.product || subs.betaclub_product || {};
+                    const posterExp = posterSub.expiryDate || posterSub.valid_until || posterSub.expiry_date || (
+                        posterSub.startDate || posterSub.updated_at || user?.created_at
+                            ? new Date(new Date(posterSub.startDate || posterSub.updated_at || user?.created_at).getTime() + 30 * 86400000).toISOString()
+                            : new Date(Date.now() + 24 * 86400000).toISOString()
+                    );
+                    const posterDays = calculateDaysRemaining(posterExp) || 24;
+
+                    const activePlanCards = [
+                        {
+                            id: 'books',
+                            days: booksDays,
+                            middleLabel: 'BOOK',
+                            tierText: tierText
+                        },
+                        {
                             id: 'finpro',
-                            expiryDate: finproExp,
-                            valid_until: finproExp,
-                            days: calculateDaysRemaining(finproExp),
+                            days: finproDays,
                             middleLabel: 'FIN-PRO',
-                            tierText: tierText,
-                            subtext: null
-                        });
-                    }
-
-                    // [3] Plan 3: PARTNER LAUNCH DESK - Investor (tier: Basic Investor / Pro Investor)
-                    const hasInvestorPlan = Boolean(
-                        subs.investor?.active ||
-                        subs.betaclub_investor?.active ||
-                        user?.investor_plan ||
-                        user?.betaclub_investor_plan ||
-                        user?.active_plans?.investor ||
-                        localStorage.getItem('cliks_investor_active') === 'true'
-                    );
-                    if (hasInvestorPlan) {
-                        const rawTier = subs.investor?.plan || subs.betaclub_investor?.plan || user?.investor_plan || user?.betaclub_investor_plan || 'Basic Investor';
-                        const upTier = String(rawTier).toUpperCase();
-                        const isPro = upTier.includes('PRO');
-
-                        const investorSub = subs.investor || subs.betaclub_investor || {};
-                        const investorExp = investorSub.expiryDate || investorSub.valid_until || investorSub.expiry_date || (
-                            investorSub.startDate || investorSub.updated_at || user?.created_at
-                                ? new Date(new Date(investorSub.startDate || investorSub.updated_at || user?.created_at).getTime() + 365 * 86400000).toISOString()
-                                : new Date(Date.now() + 365 * 86400000).toISOString()
-                        );
-
-                        activePlanCards.push({
+                            tierText: finTierText
+                        },
+                        {
                             id: 'investor',
-                            expiryDate: investorExp,
-                            valid_until: investorExp,
-                            days: calculateDaysRemaining(investorExp),
-                            middleLabel: 'Partner launch desk',
-                            tierText: 'INVESTOR PLAN',
-                            subtext: isPro ? 'PRO' : 'BASIC'
-                        });
-                    }
-
-                    // [4] Plan 4: PARTNER LAUNCH DESK - Products & Ideas (tier: Monthly / Yearly Innovators / Founders)
-                    const hasPosterPlan = Boolean(
-                        subs.poster?.active ||
-                        subs.product?.active ||
-                        subs.betaclub_product?.active ||
-                        user?.poster_plan ||
-                        user?.founder_plan ||
-                        user?.active_plans?.poster ||
-                        localStorage.getItem('cliks_poster_active') === 'true'
-                    );
-                    if (hasPosterPlan) {
-                        const rawTier = subs.poster?.plan || subs.product?.plan || subs.betaclub_product?.plan || user?.poster_plan || user?.founder_plan || 'Monthly Innovator';
-                        const upTier = String(rawTier).toUpperCase();
-                        let subtext = 'monthly / yearly innovators / founder';
-                        if (upTier.includes('YEARLY') || upTier.includes('FOUNDER')) {
-                            subtext = 'yearly innovators / founder';
-                        } else if (upTier.includes('MONTHLY') || upTier.includes('INNOVATOR')) {
-                            subtext = 'monthly innovators';
-                        }
-
-                        const posterSub = subs.poster || subs.product || subs.betaclub_product || {};
-                        const posterExp = posterSub.expiryDate || posterSub.valid_until || posterSub.expiry_date || (
-                            posterSub.startDate || posterSub.updated_at || user?.created_at
-                                ? new Date(new Date(posterSub.startDate || posterSub.updated_at || user?.created_at).getTime() + (upTier.includes('MONTHLY') ? 30 : 365) * 86400000).toISOString()
-                                : new Date(Date.now() + (upTier.includes('MONTHLY') ? 30 : 365) * 86400000).toISOString()
-                        );
-
-                        activePlanCards.push({
+                            days: investorDays,
+                            middleLabel: 'PLD',
+                            tierText: isPro ? 'PRO' : 'BASIC'
+                        },
+                        {
                             id: 'products',
-                            expiryDate: posterExp,
-                            valid_until: posterExp,
-                            days: calculateDaysRemaining(posterExp),
-                            middleLabel: 'Partner launch desk',
-                            tierText: 'PRODUCTS PLAN',
-                            subtext: subtext
-                        });
-                    }
-
-                    const cardCount = activePlanCards.length;
-                    const gridClass = cardCount === 1 
-                        ? 'flex items-center justify-center w-full'
-                        : cardCount === 2 
-                            ? 'grid grid-cols-2 gap-2 w-full'
-                            : cardCount === 3
-                                ? 'grid grid-cols-3 gap-2 w-full'
-                                : 'grid grid-cols-4 gap-2 w-full';
+                            days: posterDays,
+                            middleLabel: 'PLD',
+                            tierText: upPosterTier.includes('FOUNDER') ? 'founders' : 'innovators'
+                        }
+                    ];
 
                     return (
                         <div
@@ -957,146 +889,124 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             role="button"
                             tabIndex={0}
                             title="Click to manage subscriptions"
-                            className={`rounded-2xl p-3 bg-[#172b59] ${gridClass}`}
                             style={{
                                 width: '100%',
-                                backgroundColor: '#172b59',
+                                backgroundColor: '#101c36',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
                                 borderRadius: '16px',
-                                padding: cardCount >= 4 ? '0.65rem 0.25rem' : (cardCount === 3 ? '0.75rem 0.35rem' : '0.75rem'),
-                                display: cardCount === 1 ? 'flex' : 'grid',
-                                gridTemplateColumns: cardCount > 1 ? `repeat(${cardCount}, minmax(0, 1fr))` : undefined,
-                                gap: cardCount >= 4 ? '4px' : (cardCount === 3 ? '6px' : '8px'),
+                                padding: '6px 4px',
+                                margin: '0.65rem 0',
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                                gap: '4px',
                                 alignItems: 'stretch',
-                                justifyContent: cardCount === 1 ? 'center' : undefined,
                                 cursor: 'pointer',
-                                boxShadow: '0 4px 16px rgba(15, 23, 42, 0.35)',
+                                boxShadow: '0 4px 16px rgba(10, 20, 45, 0.35)',
                                 transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                                 whiteSpace: 'normal',
                                 boxSizing: 'border-box'
                             }}
                             onMouseOver={(e) => {
                                 e.currentTarget.style.transform = 'translateY(-1px)';
-                                e.currentTarget.style.boxShadow = '0 6px 20px rgba(15, 23, 42, 0.45)';
+                                e.currentTarget.style.boxShadow = '0 6px 20px rgba(10, 20, 45, 0.45)';
                             }}
                             onMouseOut={(e) => {
                                 e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 4px 16px rgba(15, 23, 42, 0.35)';
+                                e.currentTarget.style.boxShadow = '0 4px 16px rgba(10, 20, 45, 0.35)';
                             }}
                         >
-                            {activePlanCards.map((plan) => {
-                                return (
+                            {activePlanCards.map((plan) => (
+                                <div
+                                    key={plan.id}
+                                    style={{
+                                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                        borderRadius: '12px',
+                                        padding: '5px 2px 7px 2px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        textAlign: 'center',
+                                        justifyContent: 'flex-start',
+                                        minWidth: 0
+                                    }}
+                                >
+                                    {/* Top Circle Badge */}
                                     <div
-                                        key={plan.id}
-                                        className="bg-white/5 rounded-xl p-2 flex flex-col items-center text-center"
                                         style={{
-                                            backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                                            borderRadius: '12px',
-                                            padding: cardCount >= 4 ? '0.45rem 0.2rem' : (cardCount === 3 ? '0.5rem 0.3rem' : '0.65rem 0.5rem'),
+                                            width: '35px',
+                                            height: '35px',
+                                            borderRadius: '9999px',
+                                            backgroundColor: '#FFFFFF',
+                                            border: '2.5px solid #F59E0B',
                                             display: 'flex',
                                             flexDirection: 'column',
                                             alignItems: 'center',
-                                            textAlign: 'center',
-                                            justifyContent: 'space-between',
-                                            minWidth: 0,
-                                            width: cardCount === 1 ? '100%' : undefined
+                                            justifyContent: 'center',
+                                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)',
+                                            flexShrink: 0,
+                                            margin: '0 auto'
                                         }}
                                     >
-                                        {/* Top Circle Badge */}
-                                        <div
-                                            className="w-12 h-12 rounded-full bg-white border-2 border-amber-400 flex flex-col items-center justify-center shadow-sm"
+                                        <span
                                             style={{
-                                                width: cardCount >= 4 ? '36px' : (cardCount === 3 ? '42px' : '48px'),
-                                                height: cardCount >= 4 ? '36px' : (cardCount === 3 ? '42px' : '48px'),
-                                                borderRadius: '9999px',
-                                                backgroundColor: '#FFFFFF',
-                                                border: '2.5px solid #F59E0B',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.15)',
-                                                flexShrink: 0,
-                                                margin: '0 auto'
+                                                fontSize: '0.70rem',
+                                                fontWeight: '900',
+                                                color: '#101c36',
+                                                lineHeight: 1
                                             }}
                                         >
-                                            <span
-                                                className="text-xs font-black text-[#172b59] leading-tight"
-                                                style={{
-                                                    fontSize: cardCount >= 4 ? '0.7rem' : (cardCount === 3 ? '0.78rem' : '0.85rem'),
-                                                    fontWeight: '900',
-                                                    color: '#172b59',
-                                                    lineHeight: 1
-                                                }}
-                                            >
-                                                {calculateDaysRemaining(plan.expiryDate || plan.valid_until)}
-                                            </span>
-                                            <span
-                                                className="text-[9px] font-bold text-[#172b59] tracking-wider leading-none"
-                                                style={{
-                                                    fontSize: cardCount >= 4 ? '0.45rem' : (cardCount === 3 ? '0.5rem' : '0.58rem'),
-                                                    fontWeight: '800',
-                                                    color: '#172b59',
-                                                    letterSpacing: '0.06em',
-                                                    lineHeight: 1,
-                                                    marginTop: '1px'
-                                                }}
-                                            >
-                                                DAYS
-                                            </span>
-                                        </div>
-
-                                        {/* Middle Label (White Text) */}
-                                        <div
-                                            className="text-[11px] font-bold text-white uppercase mt-1 tracking-tight"
+                                            {plan.days}
+                                        </span>
+                                        <span
                                             style={{
-                                                fontSize: cardCount >= 4 ? '0.55rem' : (cardCount === 3 ? '0.65rem' : '0.75rem'),
+                                                fontSize: '0.40rem',
                                                 fontWeight: '800',
-                                                color: '#FFFFFF',
-                                                textTransform: 'uppercase',
-                                                marginTop: '0.35rem',
-                                                letterSpacing: '-0.02em',
-                                                lineHeight: 1.15,
-                                                textAlign: 'center',
-                                                wordBreak: 'break-word',
-                                                maxWidth: '100%'
+                                                color: '#101c36',
+                                                letterSpacing: '0.04em',
+                                                lineHeight: 1,
+                                                marginTop: '1px'
                                             }}
                                         >
-                                            {plan.middleLabel}
-                                        </div>
-
-                                        {/* Bottom Tier Text (Yellow / Gold Highlight) */}
-                                        <div
-                                            className="text-[9px] font-semibold text-amber-300 uppercase leading-tight"
-                                            style={{
-                                                fontSize: cardCount >= 4 ? '0.48rem' : (cardCount === 3 ? '0.56rem' : '0.64rem'),
-                                                fontWeight: '700',
-                                                color: '#FCD34D',
-                                                textTransform: 'uppercase',
-                                                lineHeight: 1.15,
-                                                marginTop: '0.25rem',
-                                                textAlign: 'center',
-                                                wordBreak: 'break-word',
-                                                maxWidth: '100%'
-                                            }}
-                                        >
-                                            <div>{plan.tierText}</div>
-                                            {plan.subtext && (
-                                                <div
-                                                    style={{
-                                                        fontSize: cardCount >= 4 ? '0.42rem' : (cardCount === 3 ? '0.48rem' : '0.54rem'),
-                                                        opacity: 0.9,
-                                                        marginTop: '1px',
-                                                        textTransform: plan.id === 'products' ? 'none' : 'uppercase',
-                                                        lineHeight: 1.1
-                                                    }}
-                                                >
-                                                    {plan.subtext}
-                                                </div>
-                                            )}
-                                        </div>
+                                            DAYS
+                                        </span>
                                     </div>
-                                );
-                            })}
+
+                                    {/* Middle Label (White Text) */}
+                                    <div
+                                        style={{
+                                            fontSize: '0.62rem',
+                                            fontWeight: '850',
+                                            color: '#FFFFFF',
+                                            marginTop: '5px',
+                                            letterSpacing: '-0.01em',
+                                            lineHeight: 1.15,
+                                            textAlign: 'center',
+                                            wordBreak: 'break-word',
+                                            maxWidth: '100%',
+                                            textTransform: 'uppercase'
+                                        }}
+                                    >
+                                        {plan.middleLabel}
+                                    </div>
+
+                                    {/* Bottom Tier Text (Gold Highlight) */}
+                                    <div
+                                        style={{
+                                            fontSize: '0.54rem',
+                                            fontWeight: '800',
+                                            color: '#FBBF24',
+                                            marginTop: '2px',
+                                            lineHeight: 1.15,
+                                            textAlign: 'center',
+                                            wordBreak: 'break-word',
+                                            maxWidth: '100%',
+                                            textTransform: plan.id === 'products' ? 'none' : 'uppercase'
+                                        }}
+                                    >
+                                        {plan.tierText}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     );
                 })()}
