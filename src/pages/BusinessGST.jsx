@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { gstService, billingService, crmService, inventoryService, complianceService } from '../services';
+import { gstService, billingService, crmService, inventoryService, complianceService, profileService } from '../services';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency } from '../context';
 import { 
@@ -307,13 +307,31 @@ const BusinessGST = () => {
         queryFn: () => gstService.getSettings()
     });
 
+    const { data: businessProfileRaw } = useQuery({
+        queryKey: ['profile'],
+        queryFn: () => profileService.getProfile()
+    });
+    const businessProfile = businessProfileRaw?.data || businessProfileRaw;
+
+    const activeProfile = businessProfile || JSON.parse(localStorage.getItem('cliks_org_profile') || localStorage.getItem('cliks_business_config') || '{}');
+
+    const defaultSender = {
+      legal_name: activeProfile.business_name || activeProfile.legal_name || activeProfile.companyName || "Welton Consignor",
+      gstin: activeProfile.gstin || activeProfile.gstinRef || "05AAAPG7885R002",
+      state: activeProfile.state_registered || activeProfile.stateRegistered || "Uttarakhand",
+      state_code: (activeProfile.gstin ? activeProfile.gstin.slice(0, 2) : (activeProfile.gstinRef ? activeProfile.gstinRef.slice(0, 2) : "05")),
+      address: activeProfile.address || activeProfile.registeredAddress || "Dehradun Central Road",
+      location: activeProfile.city || (activeProfile.address ? activeProfile.address.split(',')[0]?.trim() : "Dehradun") || "Dehradun",
+      pincode: activeProfile.pincode || 248001
+    };
+
     // Business GST registration metadata
     const gstProfile = {
-        gstin: dbSettings.gstin || '',
-        legal_name: dbSettings.legal_name || '',
-        business_type: dbSettings.business_type || '',
-        place_of_business: dbSettings.place_of_business || '',
-        state_code: dbSettings.state_code || ''
+        gstin: defaultSender.gstin,
+        legal_name: defaultSender.legal_name,
+        business_type: dbSettings.business_type || 'Private Limited',
+        place_of_business: defaultSender.state,
+        state_code: defaultSender.state_code
     };
 
     // fallbacks mapping
@@ -559,7 +577,15 @@ const BusinessGST = () => {
             lut_uploaded_at: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_uploaded_at : '',
             lut_uploaded_by: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_uploaded_by : '',
             sender_product_name: invoiceForm.sender_product_name,
-            receiver_product_name: invoiceForm.receiver_product_name
+            receiver_product_name: invoiceForm.receiver_product_name,
+            user_gstin: defaultSender.gstin,
+            seller_name: defaultSender.legal_name,
+            seller_gstin: defaultSender.gstin,
+            seller_address: defaultSender.address,
+            seller_location: defaultSender.location,
+            seller_pincode: defaultSender.pincode,
+            seller_state: defaultSender.state,
+            seller_state_code: defaultSender.state_code
         });
     };
 
@@ -639,10 +665,17 @@ const BusinessGST = () => {
             vehicle_number: ewayForm.transport_mode === 'Road' ? ewayForm.vehicle_number : (ewayForm.vehicle_number || 'UK07AB1234'),
             distance: ewayForm.transport_distance,
             transport_distance: parseInt(ewayForm.transport_distance),
-            dispatch_location: ewayForm.dispatch_location,
+            dispatch_location: ewayForm.dispatch_location || defaultSender.location || 'Dehradun',
             delivery_location: ewayForm.delivery_location,
             delivery_destination: ewayForm.delivery_location,
-            client_name: ewayForm.client_name || ewayForm.customer_name || ewayForm.delivery_location || 'General Customer'
+            client_name: ewayForm.client_name || ewayForm.customer_name || ewayForm.delivery_location || 'General Customer',
+            user_gstin: defaultSender.gstin,
+            consignor_name: defaultSender.legal_name,
+            consignor_gstin: defaultSender.gstin,
+            consignor_state: defaultSender.state,
+            consignor_state_code: defaultSender.state_code,
+            consignor_address: defaultSender.address,
+            consignor_pincode: defaultSender.pincode
         };
 
         if (ewayForm.is_invoice_selected) {
@@ -1462,9 +1495,10 @@ const BusinessGST = () => {
                                 <div>
                                     <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#475569', marginTop: 0, marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Sender (From)</h4>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.82rem', color: '#0F172A' }}>
-                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>Company Name:</span> <span style={{ fontWeight: '750' }}>{gstProfile.legal_name || 'Saravana Stores Pvt Ltd'}</span></div>
-                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>GSTIN:</span> <span style={{ fontWeight: '750', fontFamily: 'monospace' }}>{gstProfile.gstin || '33ABCDE1234F1Z5'}</span></div>
-                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>State:</span> <span style={{ fontWeight: '750' }}>{gstProfile.place_of_business || 'Tamil Nadu'}</span></div>
+                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>Company Name:</span> <span style={{ fontWeight: '750' }}>{defaultSender.legal_name}</span></div>
+                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>GSTIN:</span> <span style={{ fontWeight: '750', fontFamily: 'monospace' }}>{defaultSender.gstin}</span></div>
+                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>State:</span> <span style={{ fontWeight: '750' }}>{defaultSender.state_code} - {defaultSender.state}</span></div>
+                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>Address:</span> <span style={{ fontWeight: '600', color: '#475569' }}>{defaultSender.address}, {defaultSender.location} - {defaultSender.pincode}</span></div>
                                     </div>
                                 </div>
                                 <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '0.5rem' }}>
@@ -2004,6 +2038,16 @@ const BusinessGST = () => {
                         </div>
 
                         <form onSubmit={handleCreateEway} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            {/* Consignor / Sender (From) Section */}
+                            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#475569', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Consignor / Sender (From)</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.4rem', fontSize: '0.82rem', color: '#0F172A' }}>
+                                    <div><span style={{ color: '#64748B', fontWeight: '600' }}>Legal Name:</span> <span style={{ fontWeight: '750' }}>{defaultSender.legal_name}</span></div>
+                                    <div><span style={{ color: '#64748B', fontWeight: '600' }}>GSTIN:</span> <span style={{ fontWeight: '750', fontFamily: 'monospace' }}>{defaultSender.gstin}</span></div>
+                                    <div><span style={{ color: '#64748B', fontWeight: '600' }}>Dispatch From:</span> <span style={{ fontWeight: '750' }}>{defaultSender.location} ({defaultSender.state_code} - {defaultSender.state}) - {defaultSender.pincode}</span></div>
+                                </div>
+                            </div>
+
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>AUTO-FILL FROM SALES INVOICE (OPTIONAL)</label>
                                 <select 
@@ -2342,9 +2386,9 @@ const BusinessGST = () => {
                 const pdfDownloadLink = data.results?.message?.EinvoicePdf || data.einvoice_pdf_url || data.pdf_url || (data.id ? `${window.location.origin}/public/invoice/${data.id}` : '#');
                 
                 // Seller Details
-                const sellerName = "MastersIndia UP";
-                const sellerGstin = "05AAAPG7885R002";
-                const sellerState = "05 - Uttarakhand";
+                const sellerName = defaultSender.legal_name || "Welton Consignor";
+                const sellerGstin = defaultSender.gstin || "05AAAPG7885R002";
+                const sellerState = `${defaultSender.state_code} - ${defaultSender.state}`;
                 
                 // Buyer Details
                 const buyerName = data.customer_name || data.client_name || "Buyer / Client Name";

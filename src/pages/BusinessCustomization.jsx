@@ -197,6 +197,9 @@ const BusinessCustomization = () => {
                 const localConfig = localStorage.getItem('cliks_business_config');
                 const parsedLocal = localConfig ? JSON.parse(localConfig) : {};
 
+                const localOrg = localStorage.getItem('cliks_org_profile');
+                const parsedOrg = localOrg ? JSON.parse(localOrg) : {};
+
                 setConfig(prev => {
                     const merged = {
                         ...prev,
@@ -204,6 +207,22 @@ const BusinessCustomization = () => {
                         ...dbSettings,
                         ...(dbSettings.settings || {})
                     };
+                    
+                    if (parsedOrg.business_name && (!merged.companyName || merged.companyName === 'My Primary Firm')) {
+                        merged.companyName = parsedOrg.business_name;
+                    }
+                    if (parsedOrg.gstin && !merged.gstinRef) {
+                        merged.gstinRef = parsedOrg.gstin;
+                    }
+                    if (parsedOrg.state_registered && !merged.stateRegistered) {
+                        merged.stateRegistered = parsedOrg.state_registered;
+                    }
+                    if (parsedOrg.address && !merged.registeredAddress) {
+                        merged.registeredAddress = parsedOrg.address;
+                    }
+                    if (parsedOrg.pincode && !merged.pincode) {
+                        merged.pincode = parsedOrg.pincode;
+                    }
                     
                     if (dbSettings.deliveryChallan !== undefined) {
                         merged.deliveryChallan = Boolean(dbSettings.deliveryChallan);
@@ -480,16 +499,50 @@ const BusinessCustomization = () => {
         }
 
         setIsSaving(true);
+        const orgProfile = {
+            business_name: config.companyName || 'Welton Consignor',
+            legal_name: config.companyName || 'Welton Consignor',
+            gstin: config.gstinRef || '05AAAPG7885R002',
+            state_registered: config.stateRegistered || 'Uttarakhand',
+            state: config.stateRegistered || 'Uttarakhand',
+            address: config.registeredAddress || 'Dehradun Central Road',
+            city: config.registeredAddress ? (config.registeredAddress.split(',')[0]?.trim() || 'Dehradun') : 'Dehradun',
+            pincode: config.pincode || '248001',
+            phone: config.phone || '',
+            email: config.email || ''
+        };
+
+        // 1. Immediately persist to localStorage fallbacks
+        localStorage.setItem('cliks_org_profile', JSON.stringify(orgProfile));
+        localStorage.setItem('cliks_business_config', JSON.stringify(config));
+        localStorage.setItem('cliks_active_config', JSON.stringify(config));
+
+        // 2. Update active React Query cache/store
+        queryClient.setQueryData(['profile'], (old) => ({ ...(old || {}), ...orgProfile }));
+        queryClient.setQueryData(['businessProfile'], (old) => ({ ...(old || {}), ...orgProfile }));
+
         try {
-            await settingsService.updateSettings(config);
-            localStorage.setItem('cliks_business_config', JSON.stringify(config));
-            localStorage.setItem('cliks_active_config', JSON.stringify(config));
+            await Promise.allSettled([
+                settingsService.updateSettings(config),
+                profileService.updateProfile({
+                    name: orgProfile.business_name,
+                    business_name: orgProfile.business_name,
+                    gstin: orgProfile.gstin,
+                    state_registered: orgProfile.state_registered,
+                    address: orgProfile.address,
+                    pincode: orgProfile.pincode
+                })
+            ]);
+            queryClient.invalidateQueries({ queryKey: ['profile'] });
+            queryClient.invalidateQueries({ queryKey: ['businessProfile'] });
+            queryClient.invalidateQueries({ queryKey: ['settings'] });
+            queryClient.invalidateQueries({ queryKey: ['gstSettings'] });
+            window.dispatchEvent(new CustomEvent('cliksOrgProfileUpdated', { detail: orgProfile }));
             window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: config }));
             alert('✅ Engine parameters & master configuration synchronized successfully!');
         } catch (err) {
-            console.warn('[Sync Router] Network sync error, saving locally:', err);
-            localStorage.setItem('cliks_business_config', JSON.stringify(config));
-            localStorage.setItem('cliks_active_config', JSON.stringify(config));
+            console.warn('[Sync Router] Network sync error, saved locally:', err);
+            window.dispatchEvent(new CustomEvent('cliksOrgProfileUpdated', { detail: orgProfile }));
             window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: config }));
             alert('✅ Deployment parameters saved to local workspace configuration!');
         } finally {
