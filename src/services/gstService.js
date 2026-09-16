@@ -12,7 +12,19 @@ export const gstService = {
         }
         return apiClient.post('/gst/einvoice', data);
     }).then(res => res.data.data || res.data),
-    getEways: () => apiClient.get('/compliance/ewaybills').then(res => res.data?.data || res.data?.results?.ewayBills || res.data || []).catch(() => apiClient.get('/gst/ewaybill').then(res => res.data?.data || res.data || [])),
+    getEways: () => apiClient.get('/compliance/ewaybills').then(res => {
+        if (Array.isArray(res)) return res;
+        if (Array.isArray(res?.data)) return res.data;
+        if (Array.isArray(res?.data?.data)) return res.data.data;
+        if (Array.isArray(res?.results?.ewayBills)) return res.results.ewayBills;
+        if (Array.isArray(res?.results?.message)) return res.results.message;
+        return [];
+    }).catch(() => apiClient.get('/gst/ewaybill').then(res => {
+        if (Array.isArray(res)) return res;
+        if (Array.isArray(res?.data)) return res.data;
+        if (Array.isArray(res?.data?.data)) return res.data.data;
+        return [];
+    })),
     createEway: (data) => apiClient.post('/compliance/generate-ewaybill', data).catch(() => apiClient.post('/gst/ewaybill', data)).then(res => res.data?.data || res.data),
 
     getReconciliations: () => apiClient.get('/gst/reconciliation').then(res => res.data.data || res.data),

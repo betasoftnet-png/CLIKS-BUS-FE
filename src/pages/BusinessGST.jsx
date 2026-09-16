@@ -454,9 +454,19 @@ const BusinessGST = () => {
         queryFn: () => gstService.getEways()
     });
 
+    const resolvedDbEways = Array.isArray(dbEways)
+        ? dbEways
+        : (Array.isArray(dbEways?.data)
+            ? dbEways.data
+            : (Array.isArray(dbEways?.results?.ewayBills)
+                ? dbEways.results.ewayBills
+                : (Array.isArray(dbEways?.results?.message)
+                    ? dbEways.results.message
+                    : [])));
+
     const combinedEways = [
         ...(Array.isArray(ewayBills) ? ewayBills : []),
-        ...(Array.isArray(dbEways) ? dbEways : [])
+        ...resolvedDbEways
     ];
 
     const seenEwayKeys = new Set();
