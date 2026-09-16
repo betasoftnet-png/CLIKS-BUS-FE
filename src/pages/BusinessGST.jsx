@@ -132,17 +132,8 @@ const BusinessGST = () => {
                 receiver_product_name: ''
             });
             
-            const invoiceNo = resData.invoice_number || 'N/A';
-            const status = resData.status || 'Generated';
-            const irnVal = resData.irn || 'N/A';
-            
-            alert(
-                `e-Invoice Generated Successfully\n\n` +
-                `Invoice No : ${invoiceNo}\n` +
-                `Status : ${status}\n` +
-                `IRN : ${irnVal}\n` +
-                `QR Code Generated`
-            );
+            // Hydrate and immediately open the Government e-Invoice Portal preview modal
+            setSelectedQrInvoice(resData?.data || resData);
         },
         onError: (err, variables) => {
             const responseData = err?.response?.data || {};
@@ -498,14 +489,22 @@ const BusinessGST = () => {
             }
         }
 
+        const today = new Date();
+        const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+        const generatedDocNumber = `CLK-INV-${Math.floor(1000 + Math.random() * 9000)}`;
+
         generateInvoiceMutation.mutate({
+            document_number: generatedDocNumber,
+            document_date: formattedDate,
             invoice_type: invoiceForm.invoice_type,
             place_of_supply: invoiceForm.place_of_supply,
             taxable_value: parseFloat(invoiceForm.taxable_value) || 0,
-            gst_percentage: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? 0 : (parseInt(invoiceForm.gst_percentage) || 12),
+            gst_percentage: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? 0 : (parseInt(invoiceForm.gst_percentage) || 18),
             reverse_charge: invoiceForm.reverse_charge,
             client_name: invoiceForm.client_name,
             customer_gstin: invoiceForm.customer_gstin,
+            product_name: invoiceForm.sender_product_name || invoiceForm.receiver_product_name || 'Wheat',
+            hsn_code: '100199',
             export_under_lut: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? 'true' : 'false',
             lut_document_path: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_document_path : '',
             lut_file_name: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_file_name : '',

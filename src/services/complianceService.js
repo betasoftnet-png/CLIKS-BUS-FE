@@ -27,7 +27,16 @@ export const complianceService = {
    * @param {Object} invoiceData Invoice payload
    */
   generateIRN: async (invoiceData) => {
-    const res = await apiClient.post('/compliance/generate-irn', invoiceData);
+    const res = await apiClient.post('/compliance/generate-einvoice', invoiceData);
+    return res.data?.data || res.data || res;
+  },
+
+  /**
+   * Generate Government E-Invoice (IRN)
+   * @param {Object} invoiceData Invoice payload
+   */
+  generateEInvoice: async (invoiceData) => {
+    const res = await apiClient.post('/compliance/generate-einvoice', invoiceData);
     return res.data?.data || res.data || res;
   },
 
