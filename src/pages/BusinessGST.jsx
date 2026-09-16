@@ -576,11 +576,8 @@ const BusinessGST = () => {
                 alert('Please upload a valid LUT document.');
             }
         }
-        if (!invoiceForm.sender_product_name || !invoiceForm.sender_product_name.trim()) {
-            errors.sender_product_name = 'Product Name is required.';
-        }
         if (!invoiceForm.receiver_product_name || !invoiceForm.receiver_product_name.trim()) {
-            errors.receiver_product_name = 'Product Name is required.';
+            errors.receiver_product_name = 'Product Name / Description is required.';
         }
         
         if (Object.keys(errors).length > 0) {
@@ -1555,24 +1552,6 @@ const BusinessGST = () => {
                                         <div><span style={{ color: '#64748B', fontWeight: '600' }}>Address:</span> <span style={{ fontWeight: '600', color: '#475569' }}>{defaultSender.address}, {defaultSender.location} - {defaultSender.pincode}</span></div>
                                     </div>
                                 </div>
-                                <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '0.5rem' }}>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Product Name *</label>
-                                    <input 
-                                        list="sender-inventory-products"
-                                        required 
-                                        type="text" 
-                                        value={invoiceForm.sender_product_name} 
-                                        onChange={(e) => setInvoiceForm({ ...invoiceForm, sender_product_name: e.target.value })} 
-                                        placeholder="Select or enter Product Name"
-                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.sender_product_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
-                                    />
-                                    <datalist id="sender-inventory-products">
-                                        {dbInventory.map(item => (
-                                            <option key={item.id} value={item.name} />
-                                        ))}
-                                    </datalist>
-                                    {validationErrors.sender_product_name && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.sender_product_name}</span>}
-                                </div>
                             </div>
 
                             {/* Receiver (To) Section */}
@@ -1711,14 +1690,14 @@ const BusinessGST = () => {
                                         </div>
                                     )}
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Product Name *</label>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Product Name / Description *</label>
                                         <input 
                                             list="receiver-inventory-products"
                                             required 
                                             type="text" 
                                             value={invoiceForm.receiver_product_name} 
                                             onChange={(e) => setInvoiceForm({ ...invoiceForm, receiver_product_name: e.target.value, sender_product_name: e.target.value })} 
-                                            placeholder="Select or enter Product Name"
+                                            placeholder="Select or enter Product Name / Description"
                                             style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.receiver_product_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
                                         />
                                         <datalist id="receiver-inventory-products">
