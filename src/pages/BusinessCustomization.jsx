@@ -14,7 +14,47 @@ import { settingsService, profileService } from '../services';
 import { customPrompt } from '../utils/customConfirm';
 import { useCurrency, useLanguage } from '../context';
 
-const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+export const GSTIN_REGEX = /^[0-9]{2}[A-Z0-9]{13}$/i;
+
+export const INDIAN_STATES = [
+    { code: "01", name: "Jammu and Kashmir" },
+    { code: "02", name: "Himachal Pradesh" },
+    { code: "03", name: "Punjab" },
+    { code: "04", name: "Chandigarh" },
+    { code: "05", name: "Uttarakhand" },
+    { code: "06", name: "Haryana" },
+    { code: "07", name: "Delhi" },
+    { code: "08", name: "Rajasthan" },
+    { code: "09", name: "Uttar Pradesh" },
+    { code: "10", name: "Bihar" },
+    { code: "11", name: "Sikkim" },
+    { code: "12", name: "Arunachal Pradesh" },
+    { code: "13", name: "Nagaland" },
+    { code: "14", name: "Manipur" },
+    { code: "15", name: "Mizoram" },
+    { code: "16", name: "Tripura" },
+    { code: "17", name: "Meghalaya" },
+    { code: "18", name: "Assam" },
+    { code: "19", name: "West Bengal" },
+    { code: "20", name: "Jharkhand" },
+    { code: "21", name: "Odisha" },
+    { code: "22", name: "Chhattisgarh" },
+    { code: "23", name: "Madhya Pradesh" },
+    { code: "24", name: "Gujarat" },
+    { code: "26", name: "Dadra and Nagar Haveli and Daman and Diu" },
+    { code: "27", name: "Maharashtra" },
+    { code: "29", name: "Karnataka" },
+    { code: "30", name: "Goa" },
+    { code: "31", name: "Lakshadweep" },
+    { code: "32", name: "Kerala" },
+    { code: "33", name: "Tamil Nadu" },
+    { code: "34", name: "Puducherry" },
+    { code: "35", name: "Andaman and Nicobar Islands" },
+    { code: "36", name: "Telangana" },
+    { code: "37", name: "Andhra Pradesh" },
+    { code: "38", name: "Ladakh" },
+    { code: "97", name: "Other Territory" }
+];
 
 const BusinessCustomization = () => {
     const navigate = useNavigate();
@@ -236,8 +276,20 @@ const BusinessCustomization = () => {
     const handleTextChange = (key, val) => {
         if (key === 'gstinRef') {
             const sanitized = val.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 15);
+            let stateAuto = null;
+            if (sanitized.length >= 2) {
+                const statePrefix = sanitized.slice(0, 2);
+                const matched = INDIAN_STATES.find(s => s.code === statePrefix);
+                if (matched) {
+                    stateAuto = matched.name;
+                }
+            }
             setConfig(prev => {
-                const updated = { ...prev, gstinRef: sanitized };
+                const updated = { 
+                    ...prev, 
+                    gstinRef: sanitized,
+                    ...(stateAuto ? { stateRegistered: stateAuto } : {})
+                };
                 localStorage.setItem('cliks_business_config', JSON.stringify(updated));
                 window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
                 return updated;
@@ -423,7 +475,7 @@ const BusinessCustomization = () => {
 
     const handleSave = async () => {
         if (config.gstinRef && config.gstinRef.trim() && !GSTIN_REGEX.test(config.gstinRef.trim())) {
-            alert('GSTIN Validation Error: The GSTIN Reference entered is invalid. Standard format: 27AAAAA0000A1Z5 (15 alphanumeric characters).');
+            alert('GSTIN Validation Error: The GSTIN Reference entered is invalid. Standard format: 2-digit state code + 13 alphanumeric chars (e.g. 05AAAPG7885R002 or 27AAAAA0000A1Z5).');
             return;
         }
 
@@ -645,18 +697,18 @@ const BusinessCustomization = () => {
                             <ProfileInputField 
                                 label="GSTIN Reference" 
                                 icon={ShieldCheck} 
-                                placeholder="E.g. 27AAAAA0000A1Z5" 
+                                placeholder="E.g. 05AAAPG7885R002" 
                                 value={config.gstinRef || ''} 
                                 maxLength={15}
                                 error={isGstinTyped && !isGstinValid}
                                 onChange={(e) => handleTextChange('gstinRef', e.target.value)} 
                                 helper={
                                     !isGstinTyped ? (
-                                        <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Format: 15-character GSTIN (e.g. 27AAAAA0000A1Z5)</span>
+                                        <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Format: 15-character GSTIN (e.g. 05AAAPG7885R002 or 27AAAAA0000A1Z5)</span>
                                     ) : isGstinValid ? (
                                         <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: '800' }}>✓ Valid 15-digit GSTIN</span>
                                     ) : (
-                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', fontWeight: '750' }}>⚠️ Invalid GSTIN ({config.gstinRef.length}/15 chars). Example: 27AAAAA0000A1Z5</span>
+                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', fontWeight: '750' }}>⚠️ Invalid GSTIN ({config.gstinRef.length}/15 chars). Example: 05AAAPG7885R002</span>
                                     )
                                 }
                             />
@@ -709,15 +761,20 @@ const BusinessCustomization = () => {
                                 <label style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>State Registered</label>
                                 <select 
                                     style={selectStyle} 
-                                    value={config.stateRegistered} 
+                                    value={
+                                        INDIAN_STATES.find(s => 
+                                            s.name.toLowerCase() === (config.stateRegistered || '').toLowerCase() ||
+                                            s.code === config.stateRegistered ||
+                                            `${s.code} - ${s.name}`.toLowerCase() === (config.stateRegistered || '').toLowerCase()
+                                        )?.name || config.stateRegistered || 'Maharashtra'
+                                    } 
                                     onChange={(e) => handleTextChange('stateRegistered', e.target.value)}
                                 >
-                                    <option>Maharashtra</option>
-                                    <option>Karnataka</option>
-                                    <option>Delhi</option>
-                                    <option>Tamil Nadu</option>
-                                    <option>Gujarat</option>
-                                    <option>West Bengal</option>
+                                    {INDIAN_STATES.map((s) => (
+                                        <option key={s.code} value={s.name}>
+                                            {s.code} - {s.name}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                             <ProfileInputField 
