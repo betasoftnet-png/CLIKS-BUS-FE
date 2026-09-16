@@ -147,11 +147,61 @@ const BusinessGST = () => {
     // Mutations
     const generateInvoiceMutation = useMutation({
         mutationFn: (data) => gstService.generateInvoice(data),
-        onSuccess: (resData) => {
+        onSuccess: (resData, variables) => {
+            const rawMsg = resData?.results?.message || resData?.data?.results?.message || resData?.data || resData || {};
+            const irnVal = rawMsg.Irn || rawMsg.irn || resData?.irn || null;
+            const ackNoVal = rawMsg.AckNo || rawMsg.ack_no || resData?.ack_no || null;
+            const ackDtVal = rawMsg.AckDt || rawMsg.ack_date || resData?.ack_date || null;
+            const pdfVal = getSafePdfUrl(rawMsg.EinvoicePdf || rawMsg.QRCodeUrl || resData?.pdf_url || null);
+            const taxable = parseFloat(variables?.taxable_value || 1000);
+            const gstPct = parseFloat(variables?.gst_percentage || 18);
+            const totalTax = taxable * (gstPct / 100);
+            const totalAmt = taxable + totalTax;
+
+            const newRecord = {
+                id: resData?.id || rawMsg.id || Date.now(),
+                invoice_number: variables?.document_number || rawMsg.document_number || `CLK-INV-${Math.floor(1000 + Math.random() * 9000)}`,
+                date: new Date().toISOString().split('T')[0],
+                created_at: new Date().toISOString(),
+                client_name: variables?.client_name || variables?.customer_name || 'Sthuthya Consignee',
+                customer_name: variables?.client_name || variables?.customer_name || 'Sthuthya Consignee',
+                customer_gstin: variables?.customer_gstin || '09AAAPG7885R002',
+                invoice_type: variables?.invoice_type || 'B2B',
+                place_of_supply: variables?.place_of_supply || '09-Uttar Pradesh',
+                taxable_value: taxable,
+                taxable_amount: taxable,
+                gst_percentage: gstPct,
+                cgst_amount: variables?.place_of_supply?.startsWith(defaultSender.state_code) ? totalTax / 2 : 0,
+                sgst_amount: variables?.place_of_supply?.startsWith(defaultSender.state_code) ? totalTax / 2 : 0,
+                igst_amount: !variables?.place_of_supply?.startsWith(defaultSender.state_code) ? totalTax : 0,
+                total_tax: totalTax,
+                amount: totalAmt,
+                total_amount: totalAmt,
+                total_invoice: totalAmt,
+                irn_number: irnVal,
+                irn: irnVal,
+                ack_no: ackNoVal,
+                ack_date: ackDtVal,
+                qr_status: 'Signed',
+                pdf_url: pdfVal,
+                url: pdfVal,
+                SignedQRCode: rawMsg.SignedQRCode || rawMsg.signed_qr_code,
+                status: 'GENERATED'
+            };
+
+            // Immediately hydrate React Query cache so the table immediately shows the invoice
+            queryClient.setQueryData(['gstInvoices'], (old = []) => [newRecord, ...(Array.isArray(old) ? old : [])]);
+            queryClient.setQueryData(['invoices'], (old = []) => [newRecord, ...(Array.isArray(old) ? old : [])]);
+            queryClient.setQueryData(['salesInvoices'], (old = []) => [newRecord, ...(Array.isArray(old) ? old : [])]);
+
+            // Background invalidate queries to sync DB
             queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
+            queryClient.invalidateQueries({ queryKey: ['invoices'] });
+            queryClient.invalidateQueries({ queryKey: ['salesInvoices'] });
             queryClient.invalidateQueries({ queryKey: ['gstr3bReport'] });
             queryClient.invalidateQueries({ queryKey: ['gstr9Report'] });
             queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
+
             setIsInvoiceModalOpen(false);
             setCustomerMode('existing');
             setSaveCustomerForFuture(false);
@@ -176,7 +226,11 @@ const BusinessGST = () => {
             });
             
             // Hydrate and immediately open the Government e-Invoice Portal preview modal
-            setSelectedQrInvoice(resData?.data || resData);
+            setSelectedQrInvoice({
+                ...newRecord,
+                ...(resData?.data || resData),
+                results: resData?.results || resData?.data?.results || { message: rawMsg }
+            });
         },
         onError: (err, variables) => {
             const responseData = err?.response?.data || {};
