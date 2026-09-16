@@ -202,8 +202,14 @@ const BusinessGST = () => {
               url: res.data?.results?.message?.url || res.results?.message?.url || res.data?.url || res.url
             };
             setEwayBills(prev => [newRecord, ...(Array.isArray(prev) ? prev : [])]);
+            queryClient.invalidateQueries({ queryKey: ['gstEways'] });
+            queryClient.invalidateQueries({ queryKey: ['eway-bills'] });
+            queryClient.invalidateQueries({ queryKey: ['salesInvoices'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['gstInvoices'] });
 
             alert(`Government e-Way Bill generated successfully.\n\ne-Way Bill No: ${newRecord.ewayBillNo || '—'}\nValid Upto: ${newRecord.validUpto}${newRecord.url ? `\nPrint PDF: ${newRecord.url}` : ''}`);
+
         },
         onError: (err) => {
             const apiError = err?.response?.data?.results?.message || err?.response?.data?.message || err?.response?.data?.error?.message || err?.message || "Failed to generate e-Way Bill";

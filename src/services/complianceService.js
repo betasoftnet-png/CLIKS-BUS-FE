@@ -38,7 +38,16 @@ export const complianceService = {
   generateEWayBill: async (shipmentData) => {
     const res = await apiClient.post('/compliance/generate-ewaybill', shipmentData);
     return res.data?.data || res.data || res;
+  },
+
+  /**
+   * Fetch generated E-Way Bills
+   */
+  getEWayBills: async () => {
+    const res = await apiClient.get('/compliance/ewaybills');
+    return res.data?.data || res.data?.results?.ewayBills || res.data || [];
   }
 };
 
 export default complianceService;
+
