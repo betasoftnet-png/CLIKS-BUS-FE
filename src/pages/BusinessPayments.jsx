@@ -27,6 +27,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '../services/paymentService';
 import { suppliersService } from '../services/suppliersService';
+import { accountingService } from '../services/accountingService';
 import '../App.css';
 import { useCurrency } from '../context';
 
@@ -47,6 +48,60 @@ const BusinessPayments = () => {
         queryKey: ['paymentReports'],
         queryFn: () => paymentService.getReports()
     });
+
+    const { data: dbLedger = [] } = useQuery({
+        queryKey: ['ledger'],
+        queryFn: () => accountingService.getLedger()
+    });
+
+    const handleTemplateVisibility = () => {
+        alert("Cash in Hand Template Visibility: Displaying default standard ledger format.");
+    };
+
+    const handleAttachTransaction = () => {
+        alert("Attach Transaction Detail: Please select a transaction or upload attachment.");
+    };
+
+    const cashLedgerData = React.useMemo(() => {
+        const cashTxs = (Array.isArray(dbLedger) ? dbLedger : [])
+            .filter(tx => {
+                const m = String(tx.mode || tx.payment_mode || '').trim().toLowerCase();
+                return m === 'cash' || m.includes('cash in hand') || m.includes('hand') || !tx.mode;
+            })
+            .sort((a, b) => (new Date(a.date || a.created_at) - new Date(b.date || b.created_at)) || (a.id - b.id));
+
+        let runningBal = 0;
+        const mapped = cashTxs.map(tx => {
+            const isIncome = tx.entry_type === 'income' || tx.type === 'income' || tx.type === 'credit';
+            const amt = parseFloat(tx.amount) || 0;
+            if (isIncome) {
+                runningBal += amt;
+            } else {
+                runningBal -= amt;
+            }
+            return {
+                date: tx.date ? new Date(tx.date).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'),
+                description: tx.notes || tx.category || tx.description || 'Cash Transaction',
+                type: isIncome ? 'Credit' : 'Debit',
+                amount: amt.toLocaleString('en-IN'),
+                balanceAfter: runningBal.toLocaleString('en-IN')
+            };
+        });
+
+        if (mapped.length === 0) {
+            return [
+                {
+                    date: new Date().toLocaleDateString('en-GB'),
+                    description: 'Default Opening Cash Balance',
+                    type: 'Credit',
+                    amount: '0',
+                    balanceAfter: '0'
+                }
+            ];
+        }
+
+        return mapped.reverse();
+    }, [dbLedger]);
 
     const { data: suppliersList = [] } = useQuery({
         queryKey: ['suppliersList'],
@@ -476,27 +531,116 @@ const BusinessPayments = () => {
 
             {/* Tab 3: Bank registers */}
             {activeTab === 'bank' && (
-                <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', paddingBottom: '1.5rem' }}>
-                    {accounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => (
-                        <div key={acc.bank_account_id} style={{ background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', padding: '2rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                                <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F0F9F4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{acc.bank_account_id}</span>
-                                <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{(acc.type || 'ACCOUNT').toUpperCase()}</span>
-                            </div>
+                <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '1.5rem' }}>
+                    {/* Existing Bank & Cash Registers top grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                        {accounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => (
+                            <div key={acc.bank_account_id} className="border rounded-2xl p-6 bg-white shadow-sm" style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '1.75rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                    <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F0F9F4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{acc.bank_account_id}</span>
+                                    <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{(acc.type || 'ACCOUNT').toUpperCase()}</span>
+                                </div>
 
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.5rem' }}>{acc.bank_account_name}</h3>
-                            <p style={{ color: '#64748B', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Account No: {acc.account_number || acc.bank_account_id}</p>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.5rem' }}>{acc.bank_account_name}</h3>
+                                <p style={{ color: '#64748B', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Account No: {acc.account_number || acc.bank_account_id}</p>
 
-                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B' }}>Current Balance:</span>
-                                <span style={{ fontSize: '1.5rem', fontWeight: '950', color: '#1B6B3A' }}>{formatCurrency(acc.current_balance)}</span>
+                                <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B' }}>Current Balance:</span>
+                                    <span style={{ fontSize: '1.5rem', fontWeight: '950', color: '#1B6B3A' }}>{formatCurrency(acc.current_balance)}</span>
+                                </div>
                             </div>
+                        ))}
+                        <div className="border border-dashed rounded-2xl p-6 bg-white flex flex-col items-center justify-center" style={{ background: 'white', borderRadius: '24px', border: '1px dashed #DDD6FE', padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }} onClick={() => setIsTransferModalOpen(true)}>
+                            <ArrowUpRight size={32} style={{ color: '#1B6B3A', marginBottom: '0.75rem' }} />
+                            <h4 style={{ fontWeight: '800', color: '#064E3B' }}>Internal Transfer Funds</h4>
+                            <p style={{ fontSize: '0.8rem', color: '#64748B' }}>Move money between Cash-In-Hand and Bank accounts</p>
                         </div>
-                    ))}
-                    <div style={{ background: 'white', borderRadius: '28px', border: '1px dashed #DDD6FE', padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }} onClick={() => setIsTransferModalOpen(true)}>
-                        <ArrowUpRight size={32} style={{ color: '#1B6B3A', marginBottom: '0.75rem' }} />
-                        <h4 style={{ fontWeight: '800', color: '#064E3B' }}>Internal Transfer Funds</h4>
-                        <p style={{ fontSize: '0.8rem', color: '#64748B' }}>Move money between Cash-In-Hand and Bank accounts</p>
+                    </div>
+
+                    {/* Relocated Transaction Ledger: Cash in Hand */}
+                    <div className="bg-white border rounded-2xl shadow-sm p-6 mt-6" style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', marginTop: '1.5rem' }}>
+                      {/* Header */}
+                      <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-gray-100 gap-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem', borderBottom: '1px solid #F1F5F9', flexWrap: 'wrap', gap: '1rem' }}>
+                        <div className="flex items-center gap-2" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span className="text-blue-600 text-lg">🗂️</span>
+                          <h3 className="font-semibold text-gray-900 text-base" style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>
+                            Transaction Ledger: Cash in Hand
+                          </h3>
+                        </div>
+
+                        <div className="flex items-center gap-2" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <button 
+                            type="button" 
+                            onClick={handleTemplateVisibility}
+                            className="px-3 py-1.5 text-xs font-semibold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+                            style={{ padding: '0.45rem 0.85rem', fontSize: '0.75rem', fontWeight: '750', color: '#2563EB', border: '1px solid #BFDBFE', borderRadius: '8px', background: 'white', cursor: 'pointer' }}
+                          >
+                            CASH IN HAND TEMPLATE VISIBILITY
+                          </button>
+
+                          <button 
+                            type="button" 
+                            onClick={handleAttachTransaction}
+                            className="px-3 py-1.5 text-xs font-semibold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center gap-1 transition-colors"
+                            style={{ padding: '0.45rem 0.85rem', fontSize: '0.75rem', fontWeight: '750', color: '#2563EB', border: '1px solid #BFDBFE', borderRadius: '8px', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                          >
+                            <span>👁️</span> attach your transaction detail
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Table */}
+                      <div className="overflow-x-auto mt-4" style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                        <table className="w-full text-left text-sm" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                          <thead>
+                            <tr className="text-xs font-semibold text-gray-500 uppercase border-b border-gray-100" style={{ borderBottom: '1px solid #F1F5F9', color: '#64748B', fontSize: '0.75rem', fontWeight: '750' }}>
+                              <th className="py-3 px-4" style={{ padding: '0.75rem 1rem' }}>Date</th>
+                              <th className="py-3 px-4" style={{ padding: '0.75rem 1rem' }}>Description</th>
+                              <th className="py-3 px-4" style={{ padding: '0.75rem 1rem' }}>Type</th>
+                              <th className="py-3 px-4 text-right" style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Amount</th>
+                              <th className="py-3 px-4 text-right" style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Balance After</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {cashLedgerData.map((row, idx) => (
+                              <tr key={idx} className="hover:bg-gray-50/60 transition-colors" style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                <td className="py-3 px-4 text-xs text-gray-600" style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: '#64748B' }}>{row.date}</td>
+                                <td className="py-3 px-4 font-medium text-gray-900" style={{ padding: '0.75rem 1rem', fontWeight: '600', color: '#1E293B' }}>{row.description}</td>
+                                <td className="py-3 px-4" style={{ padding: '0.75rem 1rem' }}>
+                                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                    row.type?.toLowerCase() === 'credit' 
+                                      ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' 
+                                      : 'bg-red-50 text-red-600 border border-red-200'
+                                  }`} style={{
+                                    padding: '0.2rem 0.6rem',
+                                    borderRadius: '9999px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '700',
+                                    background: row.type?.toLowerCase() === 'credit' ? '#ECFDF5' : '#FEF2F2',
+                                    color: row.type?.toLowerCase() === 'credit' ? '#059669' : '#DC2626',
+                                    border: `1px solid ${row.type?.toLowerCase() === 'credit' ? '#A7F3D0' : '#FECACA'}`
+                                  }}>
+                                    {row.type}
+                                  </span>
+                                </td>
+                                <td className={`py-3 px-4 text-right font-semibold ${
+                                  row.type?.toLowerCase() === 'credit' ? 'text-emerald-600' : 'text-red-600'
+                                }`} style={{
+                                  padding: '0.75rem 1rem',
+                                  textAlign: 'right',
+                                  fontWeight: '750',
+                                  color: row.type?.toLowerCase() === 'credit' ? '#059669' : '#DC2626'
+                                }}>
+                                  {row.type?.toLowerCase() === 'credit' ? `+₹${row.amount}` : `-₹${row.amount}`}
+                                </td>
+                                <td className="py-3 px-4 text-right font-medium text-gray-800" style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: '600', color: '#1E293B' }}>
+                                  ₹{row.balanceAfter}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                 </div>
             )}

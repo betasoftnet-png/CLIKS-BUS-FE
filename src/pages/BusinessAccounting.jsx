@@ -1954,8 +1954,8 @@ const BusinessAccounting = () => {
                                 )}
                             </div>
 
-                            {/* Transaction Ledger Table */}
-                            {selectedAccount && (
+                            {/* Transaction Ledger Table (Cash in Hand relocated to Payments) */}
+                            {selectedAccount && selectedAccount.account_name !== 'Cash in Hand' && (
                                 <div style={{ marginTop: '1.5rem', background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                                         <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '850', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
