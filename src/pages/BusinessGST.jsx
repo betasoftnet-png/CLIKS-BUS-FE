@@ -177,19 +177,23 @@ const BusinessGST = () => {
         mutationFn: (data) => gstService.generateInvoice(data),
         onSuccess: (resData, variables) => {
             const rawMsg = resData?.results?.message || resData?.data?.results?.message || resData?.data || resData || {};
-            const irnVal = rawMsg.Irn || rawMsg.irn || resData?.irn || null;
-            const ackNoVal = rawMsg.AckNo || rawMsg.ack_no || resData?.ack_no || null;
-            const ackDtVal = rawMsg.AckDt || rawMsg.ack_date || resData?.ack_date || null;
-            const pdfVal = getSafePdfUrl(rawMsg.EinvoicePdf || rawMsg.QRCodeUrl || resData?.pdf_url || null);
-            const taxable = parseFloat(variables?.taxable_value || 1000);
-            const gstPct = parseFloat(variables?.gst_percentage || 18);
+            const irnVal = rawMsg.Irn || rawMsg.irn || resData?.irn || resData?.irn_number || null;
+            const ackNoVal = rawMsg.AckNo || rawMsg.ack_no || resData?.ack_no || resData?.AckNo || null;
+            const ackDtVal = rawMsg.AckDt || rawMsg.ack_date || resData?.ack_date || resData?.AckDt || null;
+            const pdfVal = getSafePdfUrl(rawMsg.EinvoicePdf || rawMsg.QRCodeUrl || resData?.pdf_url || resData?.einvoice_pdf_url || null);
+            const qrVal = rawMsg.SignedQRCode || rawMsg.signed_qr_code || resData?.SignedQRCode || resData?.signed_qr_code || null;
+            const invoiceNum = resData?.invoice_number || resData?.document_number || rawMsg.document_number || variables?.document_number || `CLK-INV-${Math.floor(1000 + Math.random() * 9000)}`;
+
+            const taxable = parseFloat(variables?.taxable_value || resData?.taxable_value || resData?.taxable_amount || 1000);
+            const gstPct = parseFloat(variables?.gst_percentage || resData?.gst_percentage || 18);
             const totalTax = taxable * (gstPct / 100);
             const totalAmt = taxable + totalTax;
 
             const newRecord = {
                 id: resData?.id || rawMsg.id || Date.now(),
-                invoice_number: variables?.document_number || rawMsg.document_number || `CLK-INV-${Math.floor(1000 + Math.random() * 9000)}`,
-                date: new Date().toISOString().split('T')[0],
+                invoice_number: invoiceNum,
+                document_number: invoiceNum,
+                date: ackDtVal || new Date().toISOString().split('T')[0],
                 created_at: new Date().toISOString(),
                 client_name: variables?.client_name || variables?.customer_name || 'Sthuthya Consignee',
                 customer_name: variables?.client_name || variables?.customer_name || 'Sthuthya Consignee',
@@ -199,9 +203,9 @@ const BusinessGST = () => {
                 taxable_value: taxable,
                 taxable_amount: taxable,
                 gst_percentage: gstPct,
-                cgst_amount: variables?.place_of_supply?.startsWith(defaultSender.state_code) ? totalTax / 2 : 0,
-                sgst_amount: variables?.place_of_supply?.startsWith(defaultSender.state_code) ? totalTax / 2 : 0,
-                igst_amount: !variables?.place_of_supply?.startsWith(defaultSender.state_code) ? totalTax : 0,
+                cgst_amount: 0,
+                sgst_amount: 0,
+                igst_amount: totalTax,
                 total_tax: totalTax,
                 amount: totalAmt,
                 total_amount: totalAmt,
@@ -213,7 +217,8 @@ const BusinessGST = () => {
                 qr_status: 'Signed',
                 pdf_url: pdfVal,
                 url: pdfVal,
-                SignedQRCode: rawMsg.SignedQRCode || rawMsg.signed_qr_code,
+                SignedQRCode: qrVal,
+                signed_qr_code: qrVal,
                 status: 'GENERATED'
             };
 
@@ -241,7 +246,7 @@ const BusinessGST = () => {
                 reverse_charge: 'No',
                 client_name: '',
                 customer_gstin: '',
-                hsn_code: '1001',
+                hsn_code: '100190',
                 unit: 'BOX',
                 quantity: 1,
                 export_under_lut: 'No',
@@ -257,6 +262,16 @@ const BusinessGST = () => {
             setSelectedQrInvoice({
                 ...newRecord,
                 ...(resData?.data || resData),
+                irn: irnVal,
+                irn_number: irnVal,
+                AckNo: ackNoVal,
+                ack_no: ackNoVal,
+                AckDt: ackDtVal,
+                ack_date: ackDtVal,
+                SignedQRCode: qrVal,
+                signed_qr_code: qrVal,
+                EinvoicePdf: pdfVal,
+                pdf_url: pdfVal,
                 results: resData?.results || resData?.data?.results || { message: rawMsg }
             });
         },
@@ -546,7 +561,7 @@ const BusinessGST = () => {
         reverse_charge: 'No',
         client_name: '',
         customer_gstin: '',
-        hsn_code: '1001',
+        hsn_code: '100190',
         unit: 'BOX',
         quantity: 1,
         export_under_lut: 'No',
@@ -661,7 +676,7 @@ const BusinessGST = () => {
             client_name: invoiceForm.client_name,
             customer_gstin: invoiceForm.customer_gstin,
             product_name: invoiceForm.sender_product_name || invoiceForm.receiver_product_name || 'Wheat',
-            hsn_code: invoiceForm.hsn_code || '1001',
+            hsn_code: invoiceForm.hsn_code || '100190',
             unit: invoiceForm.unit || 'BOX',
             quantity: Number(invoiceForm.quantity || 1),
             export_under_lut: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? 'true' : 'false',
@@ -1757,11 +1772,11 @@ const BusinessGST = () => {
                                         <input
                                           type="text"
                                           name="hsn_code"
-                                          value={invoiceForm.hsn_code || "1001"}
+                                          value={invoiceForm.hsn_code || "100190"}
                                           onChange={(e) => setInvoiceForm(prev => ({ ...prev, hsn_code: e.target.value }))}
                                           className="w-full text-xs p-2 border rounded-lg"
                                           style={{ width: '100%', fontSize: '0.75rem', padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '0.5rem', outline: 'none', boxSizing: 'border-box' }}
-                                          placeholder="1001"
+                                          placeholder="100190"
                                           required
                                         />
                                       </div>
