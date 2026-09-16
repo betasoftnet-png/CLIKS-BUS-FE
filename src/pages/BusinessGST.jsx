@@ -2414,41 +2414,49 @@ const BusinessGST = () => {
                 const data = selectedQrInvoice;
                 const generatedInvoiceData = selectedQrInvoice;
 
-                // Helper to extract and sanitize the official Masters India PDF URL
-                const getSafeInvoicePdfUrl = () => {
-                  let pdfUrl = 
-                    generatedInvoiceData?.EinvoicePdf || 
-                    generatedInvoiceData?.results?.message?.EinvoicePdf || 
-                    generatedInvoiceData?.einvoice_pdf_url ||
-                    generatedInvoiceData?.pdf_url || 
-                    generatedInvoiceData?.url;
+                const getSafeInvoicePdfUrl = (data) => {
+                  if (!data) return null;
 
-                  if (!pdfUrl) {
-                    alert("Official government PDF URL is not available yet.");
+                  // Extract from all possible response nesting paths
+                  let rawUrl = 
+                    data?.EinvoicePdf || 
+                    data?.results?.message?.EinvoicePdf || 
+                    data?.results?.EinvoicePdf || 
+                    data?.message?.EinvoicePdf || 
+                    data?.pdf_url || 
+                    data?.pdfUrl || 
+                    null;
+
+                  // If empty, dummy "#", or invalid, return null immediately
+                  if (!rawUrl || typeof rawUrl !== 'string' || rawUrl.trim() === '' || rawUrl.trim() === '#' || rawUrl.includes('localhost') && rawUrl.includes('/#')) {
                     return null;
                   }
 
-                  // Prepend https:// if Masters India returned a protocol-relative link
-                  if (!pdfUrl.startsWith("http://") && !pdfUrl.startsWith("https://")) {
-                    pdfUrl = `https://${pdfUrl}`;
+                  let cleanUrl = rawUrl.trim();
+
+                  // Prepend https:// only if it looks like a valid domain and lacks protocol
+                  if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+                    cleanUrl = `https://${cleanUrl}`;
                   }
 
-                  return pdfUrl;
+                  return cleanUrl;
                 };
 
-                // Download action: opens the official PDF directly in a new tab
                 const handleDownloadInvoicePdf = () => {
-                  const pdfUrl = getSafeInvoicePdfUrl();
-                  if (pdfUrl) {
-                    window.open(pdfUrl, "_blank", "noopener,noreferrer");
+                  const pdfUrl = getSafeInvoicePdfUrl(generatedInvoiceData);
+                  if (!pdfUrl) {
+                    alert("Official government PDF URL is not available for this record. Please re-generate with live credentials.");
+                    return;
                   }
+                  window.open(pdfUrl, "_blank", "noopener,noreferrer");
                 };
 
-                // Print action: opens the official PDF and triggers the browser's print dialog
                 const handlePrintInvoice = () => {
-                  const pdfUrl = getSafeInvoicePdfUrl();
-                  if (!pdfUrl) return;
-
+                  const pdfUrl = getSafeInvoicePdfUrl(generatedInvoiceData);
+                  if (!pdfUrl) {
+                    alert("Official government PDF URL is not available for this record. Please re-generate with live credentials.");
+                    return;
+                  }
                   const printWindow = window.open(pdfUrl, "_blank", "noopener,noreferrer");
                   if (printWindow) {
                     printWindow.addEventListener("load", () => {
@@ -2456,7 +2464,7 @@ const BusinessGST = () => {
                         printWindow.focus();
                         printWindow.print();
                       } catch (err) {
-                        console.warn("Auto-print preview prevented by browser security:", err);
+                        console.warn("Print preview prevented by browser:", err);
                       }
                     });
                   }
