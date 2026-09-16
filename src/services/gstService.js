@@ -6,7 +6,12 @@ import { apiClient } from '../api/client';
 export const gstService = {
     getSettings: () => apiClient.get('/gst/settings').then(res => res.data.data || res.data),
     getInvoices: () => apiClient.get('/compliance/invoices').then(res => res.data?.data || res.data?.results?.invoices || res.data || []).catch(() => apiClient.get('/gst/invoices').then(res => res.data?.data || res.data || [])),
-    generateInvoice: (data) => apiClient.post('/compliance/generate-einvoice', data).catch(() => apiClient.post('/gst/einvoice', data)).then(res => res.data.data || res.data),
+    generateInvoice: (data) => apiClient.post('/compliance/generate-einvoice', data).catch((err) => {
+        if (err.response?.status >= 400 && (err.response?.data?.errorMessage || err.response?.data?.message)) {
+            throw err;
+        }
+        return apiClient.post('/gst/einvoice', data);
+    }).then(res => res.data.data || res.data),
     getEways: () => apiClient.get('/compliance/ewaybills').then(res => res.data?.data || res.data?.results?.ewayBills || res.data || []).catch(() => apiClient.get('/gst/ewaybill').then(res => res.data?.data || res.data || [])),
     createEway: (data) => apiClient.post('/compliance/generate-ewaybill', data).catch(() => apiClient.post('/gst/ewaybill', data)).then(res => res.data?.data || res.data),
 

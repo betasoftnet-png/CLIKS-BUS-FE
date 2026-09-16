@@ -234,10 +234,10 @@ const BusinessGST = () => {
         },
         onError: (err, variables) => {
             const responseData = err?.response?.data || {};
-            const message = responseData.message || responseData.error || err.message || 'Server error';
+            const message = responseData.errorMessage || responseData.message || responseData.error || err.message || 'Server error';
             
             console.error('========== E-INVOICE GENERATION FAILURE ==========');
-            console.error('API URL: /api/v1/gst/einvoice');
+            console.error('API URL: /api/v1/compliance/generate-einvoice');
             console.error('Request Payload:', variables);
             console.error('Exact Backend Response:', responseData);
             console.error('Network Status:', err?.response?.status || 'N/A');
