@@ -40,6 +40,46 @@ const getSafePdfUrl = (url) => {
   return `https://${trimmed}`;
 };
 
+// 2-digit GST state code to state name mapping for auto-selection
+const GST_STATE_MAP = {
+  "01": "01-Jammu and Kashmir",
+  "02": "02-Himachal Pradesh",
+  "03": "03-Punjab",
+  "04": "04-Chandigarh",
+  "05": "05-Uttarakhand",
+  "06": "06-Haryana",
+  "07": "07-Delhi",
+  "08": "08-Rajasthan",
+  "09": "09-Uttar Pradesh",
+  "10": "10-Bihar",
+  "11": "11-Sikkim",
+  "12": "12-Arunachal Pradesh",
+  "13": "13-Nagaland",
+  "14": "14-Manipur",
+  "15": "15-Mizoram",
+  "16": "16-Tripura",
+  "17": "17-Meghalaya",
+  "18": "18-Assam",
+  "19": "19-West Bengal",
+  "20": "20-Jharkhand",
+  "21": "21-Odisha",
+  "22": "22-Chhattisgarh",
+  "23": "23-Madhya Pradesh",
+  "24": "24-Gujarat",
+  "26": "26-Dadra & Nagar Haveli & Daman & Diu",
+  "27": "27-Maharashtra",
+  "29": "29-Karnataka",
+  "30": "30-Goa",
+  "31": "31-Lakshadweep",
+  "32": "32-Kerala",
+  "33": "33-Tamil Nadu",
+  "34": "34-Puducherry",
+  "35": "35-Andaman & Nicobar",
+  "36": "36-Telangana",
+  "37": "37-Andhra Pradesh",
+  "38": "38-Ladakh"
+};
+
 const BusinessGST = () => {
     const { currency, formatCurrency } = useCurrency();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -117,12 +157,15 @@ const BusinessGST = () => {
             setSaveCustomerForFuture(false);
             setInvoiceForm({
                 invoice_type: 'B2B',
-                place_of_supply: '33-Tamil Nadu',
+                place_of_supply: '05-Uttarakhand',
                 taxable_value: '',
-                gst_percentage: 12,
+                gst_percentage: 18,
                 reverse_charge: 'No',
                 client_name: '',
                 customer_gstin: '',
+                hsn_code: '1001',
+                unit: 'BOX',
+                quantity: 1,
                 export_under_lut: 'No',
                 lut_document_path: '',
                 lut_file_name: '',
@@ -383,12 +426,15 @@ const BusinessGST = () => {
     // Form inputs states
     const [invoiceForm, setInvoiceForm] = useState({
         invoice_type: 'B2B',
-        place_of_supply: '33-Tamil Nadu',
+        place_of_supply: '05-Uttarakhand',
         taxable_value: '',
-        gst_percentage: 12,
+        gst_percentage: 18,
         reverse_charge: 'No',
         client_name: '',
         customer_gstin: '',
+        hsn_code: '1001',
+        unit: 'BOX',
+        quantity: 1,
         export_under_lut: 'No',
         lut_document_path: '',
         lut_file_name: '',
@@ -442,9 +488,9 @@ const BusinessGST = () => {
             if (!invoiceForm.customer_gstin || !invoiceForm.customer_gstin.trim()) {
                 errors.customer_gstin = 'Customer GSTIN is required for B2B invoices.';
             } else {
-                const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i;
+                const gstinRegex = /^[0-9]{2}[A-Z0-9]{13}$/i;
                 if (!gstinRegex.test(invoiceForm.customer_gstin.trim())) {
-                    errors.customer_gstin = 'Invalid GSTIN format (15-characters, e.g. 33ABCDE1234F1Z5).';
+                    errors.customer_gstin = 'Invalid GSTIN format (15-characters, e.g. 05AAAPG7885R002).';
                 }
             }
         }
@@ -504,7 +550,9 @@ const BusinessGST = () => {
             client_name: invoiceForm.client_name,
             customer_gstin: invoiceForm.customer_gstin,
             product_name: invoiceForm.sender_product_name || invoiceForm.receiver_product_name || 'Wheat',
-            hsn_code: '100199',
+            hsn_code: invoiceForm.hsn_code || '1001',
+            unit: invoiceForm.unit || 'BOX',
+            quantity: Number(invoiceForm.quantity || 1),
             export_under_lut: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? 'true' : 'false',
             lut_document_path: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_document_path : '',
             lut_file_name: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? invoiceForm.lut_file_name : '',
@@ -1514,8 +1562,17 @@ const BusinessGST = () => {
                                             <input 
                                                 type="text" 
                                                 value={invoiceForm.customer_gstin} 
-                                                onChange={(e) => setInvoiceForm({ ...invoiceForm, customer_gstin: e.target.value })} 
-                                                placeholder="Enter GSTIN"
+                                                onChange={(e) => {
+                                                    const val = e.target.value.toUpperCase();
+                                                    const prefix = val.slice(0, 2);
+                                                    const autoState = GST_STATE_MAP[prefix];
+                                                    setInvoiceForm(prev => ({
+                                                        ...prev,
+                                                        customer_gstin: val,
+                                                        ...(autoState ? { place_of_supply: autoState } : {})
+                                                    }));
+                                                }} 
+                                                placeholder="Enter GSTIN (e.g. 05AAAPG7885R002)"
                                                 style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.customer_gstin ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
                                             />
                                             {validationErrors.customer_gstin && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.customer_gstin}</span>}
@@ -1527,9 +1584,27 @@ const BusinessGST = () => {
                                                 onChange={(e) => setInvoiceForm({ ...invoiceForm, place_of_supply: e.target.value })} 
                                                 style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
                                             >
+                                                <option value="05-Uttarakhand">05 - Uttarakhand</option>
+                                                <option value="09-Uttar Pradesh">09 - Uttar Pradesh</option>
+                                                <option value="07-Delhi">07 - Delhi</option>
                                                 <option value="33-Tamil Nadu">33 - Tamil Nadu</option>
                                                 <option value="27-Maharashtra">27 - Maharashtra</option>
                                                 <option value="29-Karnataka">29 - Karnataka</option>
+                                                <option value="24-Gujarat">24 - Gujarat</option>
+                                                <option value="19-West Bengal">19 - West Bengal</option>
+                                                <option value="08-Rajasthan">08 - Rajasthan</option>
+                                                <option value="06-Haryana">06 - Haryana</option>
+                                                <option value="03-Punjab">03 - Punjab</option>
+                                                <option value="10-Bihar">10 - Bihar</option>
+                                                <option value="36-Telangana">36 - Telangana</option>
+                                                <option value="37-Andhra Pradesh">37 - Andhra Pradesh</option>
+                                                <option value="32-Kerala">32 - Kerala</option>
+                                                <option value="23-Madhya Pradesh">23 - Madhya Pradesh</option>
+                                                <option value="21-Odisha">21 - Odisha</option>
+                                                <option value="18-Assam">18 - Assam</option>
+                                                <option value="20-Jharkhand">20 - Jharkhand</option>
+                                                <option value="22-Chhattisgarh">22 - Chhattisgarh</option>
+                                                <option value="30-Goa">30 - Goa</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1554,7 +1629,7 @@ const BusinessGST = () => {
                                             required 
                                             type="text" 
                                             value={invoiceForm.receiver_product_name} 
-                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, receiver_product_name: e.target.value })} 
+                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, receiver_product_name: e.target.value, sender_product_name: e.target.value })} 
                                             placeholder="Select or enter Product Name"
                                             style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.receiver_product_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
                                         />
@@ -1564,6 +1639,50 @@ const BusinessGST = () => {
                                             ))}
                                         </datalist>
                                         {validationErrors.receiver_product_name && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.receiver_product_name}</span>}
+                                    </div>
+
+                                    {/* Missing Mandatory E-Invoice Fields (HSN, Unit, Quantity) */}
+                                    <div className="grid grid-cols-3 gap-3 my-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.75rem', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                                      <div>
+                                        <label className="text-[11px] font-semibold text-gray-600" style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#4B5563', marginBottom: '0.25rem' }}>HSN/SAC Code *</label>
+                                        <input
+                                          type="text"
+                                          name="hsn_code"
+                                          value={invoiceForm.hsn_code || "1001"}
+                                          onChange={(e) => setInvoiceForm(prev => ({ ...prev, hsn_code: e.target.value }))}
+                                          className="w-full text-xs p-2 border rounded-lg"
+                                          style={{ width: '100%', fontSize: '0.75rem', padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '0.5rem', outline: 'none', boxSizing: 'border-box' }}
+                                          placeholder="1001"
+                                          required
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="text-[11px] font-semibold text-gray-600" style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#4B5563', marginBottom: '0.25rem' }}>Unit *</label>
+                                        <select
+                                          name="unit"
+                                          value={invoiceForm.unit || "BOX"}
+                                          onChange={(e) => setInvoiceForm(prev => ({ ...prev, unit: e.target.value }))}
+                                          className="w-full text-xs p-2 border rounded-lg bg-white"
+                                          style={{ width: '100%', fontSize: '0.75rem', padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '0.5rem', outline: 'none', background: 'white', boxSizing: 'border-box' }}
+                                        >
+                                          <option value="BOX">BOX</option>
+                                          <option value="KGS">KGS</option>
+                                          <option value="NOS">NOS</option>
+                                        </select>
+                                      </div>
+                                      <div>
+                                        <label className="text-[11px] font-semibold text-gray-600" style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#4B5563', marginBottom: '0.25rem' }}>Quantity *</label>
+                                        <input
+                                          type="number"
+                                          name="quantity"
+                                          min="1"
+                                          value={invoiceForm.quantity || 1}
+                                          onChange={(e) => setInvoiceForm(prev => ({ ...prev, quantity: e.target.value }))}
+                                          className="w-full text-xs p-2 border rounded-lg"
+                                          style={{ width: '100%', fontSize: '0.75rem', padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '0.5rem', outline: 'none', boxSizing: 'border-box' }}
+                                          required
+                                        />
+                                      </div>
                                     </div>
                                 </div>
                             </div>
