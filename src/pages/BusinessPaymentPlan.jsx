@@ -30,6 +30,7 @@ const BusinessPaymentPlan = () => {
     const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState('ALL'); // ALL, SEND, RECEIVE
     const filterType = activeFilter;
     const setFilterType = setActiveFilter;
