@@ -24,7 +24,8 @@ import {
     Download,
     Pin,
     MoreVertical,
-    Pencil
+    Pencil,
+    ExternalLink
 } from 'lucide-react';
 import '../App.css';
 import splitExpenseService from '../services/splitExpenseService';
@@ -37,29 +38,26 @@ const INITIAL_SPLITS = [];
 const resolveAttachmentUrl = (filePath) => {
     if (!filePath) return '';
 
-    // 1. If it's already a complete absolute URL
+    // 1. If it's already a complete absolute URL pointing to http:// or https://
     if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        // If it mistakenly points to the frontend domain, redirect to real backend asset host
+        if (filePath.includes('cliksbusiness.com/uploads/')) {
+            return filePath.replace('https://cliksbusiness.com', 'https://cliks.beta-softnet.com')
+                           .replace('http://cliksbusiness.com', 'https://cliks.beta-softnet.com');
+        }
         return filePath;
     }
 
-    // 2. Base upload endpoint (use active backend host or fallback to beta-softnet)
-    const envApiUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) ||
-        (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) ||
-        (typeof config !== 'undefined' && config.api?.baseUrl) ||
-        '';
+    // 2. Base upload endpoint:
+    // Strictly resolve against real backend host (cliks.beta-softnet.com) or localhost during local dev
+    let baseOrigin = 'https://cliks.beta-softnet.com';
 
-    const baseOrigin = envApiUrl 
-        ? envApiUrl.replace(/\/api.*$/, '')
-        : 'https://cliks.beta-softnet.com';
-
-    const cleanPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
-
-    // If path doesn't already contain /uploads/
-    if (!cleanPath.startsWith('/uploads')) {
-        return `${baseOrigin}/uploads${cleanPath}`;
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        baseOrigin = 'http://localhost:3000';
     }
 
-    return `${baseOrigin}${cleanPath}`;
+    const cleanPath = filePath.replace(/^\/?(uploads\/)?/, '');
+    return `${baseOrigin}/uploads/${cleanPath}`;
 };
 
 const BusinessSplitCollect = () => {
@@ -1845,6 +1843,26 @@ const BusinessSplitCollect = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <a 
                                         href={previewAttachment.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        style={{ 
+                                            display: 'inline-flex', 
+                                            alignItems: 'center', 
+                                            gap: '4px', 
+                                            padding: '0.45rem 0.85rem', 
+                                            borderRadius: '10px', 
+                                            background: '#EFF6FF', 
+                                            color: '#2563EB', 
+                                            textDecoration: 'none', 
+                                            fontSize: '0.78rem', 
+                                            fontWeight: '800',
+                                            border: '1px solid #BFDBFE'
+                                        }}
+                                    >
+                                        <ExternalLink size={14} /> Open in New Tab
+                                    </a>
+                                    <a 
+                                        href={previewAttachment.url} 
                                         download={previewAttachment.name}
                                         target="_blank" 
                                         rel="noopener noreferrer"
@@ -1905,11 +1923,56 @@ const BusinessSplitCollect = () => {
                                         }}
                                     />
                                 ) : previewAttachment.isPdf ? (
-                                    <iframe 
-                                        src={previewAttachment.url} 
-                                        title={previewAttachment.name}
-                                        style={{ width: '100%', height: '70vh', border: 'none', borderRadius: '12px', background: 'white' }}
-                                    />
+                                    <div style={{ width: '100%', height: '72vh', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+                                        <div style={{ padding: '0.6rem 1rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                                            <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <FileText size={15} color="#2563EB" /> {previewAttachment.name}
+                                            </span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <a 
+                                                    href={previewAttachment.url} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    style={{ fontSize: '0.75rem', fontWeight: '800', color: '#2563EB', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '6px', background: '#EFF6FF', border: '1px solid #BFDBFE' }}
+                                                >
+                                                    <ExternalLink size={12} /> Open in New Tab
+                                                </a>
+                                                <a 
+                                                    href={previewAttachment.url} 
+                                                    download={previewAttachment.name}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '6px', background: '#DCFCE7', border: '1px solid #BBF7D0' }}
+                                                >
+                                                    <Download size={12} /> Direct Download
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <object 
+                                            data={previewAttachment.url} 
+                                            type="application/pdf"
+                                            style={{ width: '100%', flex: 1, border: 'none' }}
+                                        >
+                                            <iframe 
+                                                src={previewAttachment.url} 
+                                                title={previewAttachment.name}
+                                                style={{ width: '100%', height: '100%', border: 'none' }}
+                                            >
+                                                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                                                    <p style={{ fontWeight: '700', color: '#475569', marginBottom: '1rem' }}>Unable to display PDF preview inline.</p>
+                                                    <a 
+                                                        href={previewAttachment.url} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer" 
+                                                        download={previewAttachment.name}
+                                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '0.6rem 1.25rem', background: '#2563EB', color: 'white', borderRadius: '10px', textDecoration: 'none', fontWeight: '800' }}
+                                                    >
+                                                        <Download size={16} /> Download PDF
+                                                    </a>
+                                                </div>
+                                            </iframe>
+                                        </object>
+                                    </div>
                                 ) : (
                                     <div style={{ textAlign: 'center', padding: '2rem' }}>
                                         <FileText size={48} color="#64748B" style={{ marginBottom: '1rem' }} />
