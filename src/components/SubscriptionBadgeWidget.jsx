@@ -399,9 +399,23 @@ export const SubscriptionBadgeWidget = ({
                 );
             })()}
 
-            {/* CASE 2: Two Plans (Matches reference screenshot) */}
+            {/* CASE 2: Two Plans (Matches reference screenshot strictly) */}
             {planCount === 2 && (
-                <div className="flex items-center gap-2 w-full" style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
+                <div
+                    className="w-full bg-[#0A101D] border border-[#142038] rounded-2xl p-1.5 flex items-center gap-2 shadow-lg"
+                    style={{
+                        width: '100%',
+                        backgroundColor: '#0A101D',
+                        border: '1px solid #142038',
+                        borderRadius: '16px',
+                        padding: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        boxSizing: 'border-box',
+                        boxShadow: '0 4px 16px rgba(10, 20, 45, 0.4)'
+                    }}
+                >
                     {displayPlans.map((plan, idx) => {
                         const moduleName = (plan.moduleTitle || plan.module || plan.name || 'BOOK').toUpperCase();
                         const tierName = (plan.tierTitle || plan.tier || plan.plan || 'ELITE').toUpperCase();
@@ -411,58 +425,166 @@ export const SubscriptionBadgeWidget = ({
                         return (
                             <div
                                 key={plan.id || idx}
-                                className="flex-1 bg-[#090D16] border border-[#1E293B] hover:border-slate-600 transition-all rounded-xl p-2 flex flex-col justify-between h-[82px] shadow-sm"
+                                className="flex-1 bg-[#060913] border border-[#1E293B] hover:border-slate-600 transition-all rounded-xl p-2.5 flex flex-col justify-between h-[88px] shadow-sm"
                                 style={{
                                     flex: 1,
-                                    backgroundColor: '#090D16',
-                                    border: '1px solid #1E293B',
-                                    borderRadius: '12px',
-                                    padding: '8px',
+                                    backgroundColor: '#060913',
+                                    border: '1.5px solid #1E293B',
+                                    borderRadius: '13px',
+                                    padding: '8px 8px 10px 8px',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     justifyContent: 'space-between',
-                                    height: '82px',
-                                    minHeight: '82px',
-                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+                                    height: '88px',
+                                    minHeight: '88px',
+                                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.35)',
                                     boxSizing: 'border-box',
                                     minWidth: 0
                                 }}
                             >
                                 {/* Top Row: Icon on left, Days circle on right */}
-                                <div className="flex items-center justify-between" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                <div
+                                    className="flex items-center justify-between"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        width: '100%'
+                                    }}
+                                >
                                     {/* Icon Container */}
-                                    <div className="w-6 h-6 rounded-md bg-[#1E293B] border border-slate-700/60 flex items-center justify-center" style={{ width: '24px', height: '24px', borderRadius: '6px', backgroundColor: '#1E293B', border: '1px solid rgba(51, 65, 85, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <div
+                                        className="w-7 h-7 rounded-md bg-[#111827] border border-slate-700/60 flex items-center justify-center"
+                                        style={{
+                                            width: '28px',
+                                            height: '28px',
+                                            borderRadius: '7px',
+                                            backgroundColor: '#111827',
+                                            border: '1px solid rgba(51, 65, 85, 0.6)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0
+                                        }}
+                                    >
                                         {isFinPro ? (
                                             // Ribbon / Medal icon for FIN-PRO
-                                            <svg className="w-3.5 h-3.5 text-sky-400" style={{ width: '14px', height: '14px', color: '#38bdf8' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <svg
+                                                className="w-4 h-4 text-sky-400"
+                                                style={{ width: '16px', height: '16px', color: '#38bdf8' }}
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2.2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            >
                                                 <circle cx="12" cy="8" r="5" />
                                                 <path d="M8.21 13.89L7 21l5-3 5 3-1.21-7.11" />
                                             </svg>
                                         ) : (
-                                            // Shield icon for BOOK
-                                            <svg className="w-3.5 h-3.5 text-sky-400" style={{ width: '14px', height: '14px', color: '#38bdf8' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                            // Shield icon with checkmark for BOOK
+                                            <svg
+                                                className="w-4 h-4 text-sky-400"
+                                                style={{ width: '16px', height: '16px', color: '#38bdf8' }}
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2.2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            >
+                                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                                <path d="m9 12 2 2 4-4" />
                                             </svg>
                                         )}
                                     </div>
 
                                     {/* Days Counter Circle */}
-                                    <div className="w-8 h-8 rounded-full bg-white border-[2px] border-[#F59E0B] flex flex-col items-center justify-center shadow-xs" style={{ width: '32px', height: '32px', borderRadius: '9999px', backgroundColor: '#FFFFFF', border: '2px solid #F59E0B', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                        <span className="text-[#0F172A] font-black text-[10px] leading-none" style={{ color: '#0F172A', fontWeight: '900', fontSize: '10px', lineHeight: 1 }}>
+                                    <div
+                                        className="w-9 h-9 rounded-full bg-white border-[2.5px] border-[#F59E0B] flex flex-col items-center justify-center shadow-sm"
+                                        style={{
+                                            width: '36px',
+                                            height: '36px',
+                                            borderRadius: '9999px',
+                                            backgroundColor: '#FFFFFF',
+                                            border: '2.5px solid #F59E0B',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25)',
+                                            flexShrink: 0
+                                        }}
+                                    >
+                                        <span
+                                            className="text-[#0F172A] font-black text-[11px] leading-none"
+                                            style={{
+                                                color: '#0F172A',
+                                                fontWeight: '900',
+                                                fontSize: '11px',
+                                                lineHeight: 1
+                                            }}
+                                        >
                                             {days}
                                         </span>
-                                        <span className="text-[6.5px] font-bold text-slate-500 uppercase tracking-tight leading-none mt-0.5" style={{ fontSize: '6.5px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1, marginTop: '2px' }}>
+                                        <span
+                                            className="text-[6.5px] font-bold text-[#0F172A] uppercase tracking-tight leading-none mt-0.5"
+                                            style={{
+                                                fontSize: '6.5px',
+                                                fontWeight: '800',
+                                                color: '#0F172A',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.02em',
+                                                lineHeight: 1,
+                                                marginTop: '2px'
+                                            }}
+                                        >
                                             DAYS
                                         </span>
                                     </div>
                                 </div>
 
                                 {/* Bottom Row: Text labels */}
-                                <div className="text-center mt-1" style={{ textAlign: 'center', marginTop: '4px', width: '100%' }}>
-                                    <div className="text-white text-[11px] font-black uppercase tracking-wider leading-none" style={{ color: '#FFFFFF', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <div
+                                    className="text-center mt-1"
+                                    style={{
+                                        textAlign: 'center',
+                                        marginTop: '4px',
+                                        width: '100%'
+                                    }}
+                                >
+                                    <div
+                                        className="text-white text-[12px] font-black uppercase tracking-wider leading-none"
+                                        style={{
+                                            color: '#FFFFFF',
+                                            fontSize: '12px',
+                                            fontWeight: '900',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.04em',
+                                            lineHeight: 1,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
                                         {moduleName}
                                     </div>
-                                    <div className="text-[#F59E0B] text-[9px] font-extrabold uppercase tracking-wide leading-none mt-1" style={{ color: '#F59E0B', fontSize: '9px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.025em', lineHeight: 1, marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    <div
+                                        className="text-[#F59E0B] text-[10px] font-extrabold uppercase tracking-wide leading-none mt-1"
+                                        style={{
+                                            color: '#F59E0B',
+                                            fontSize: '10px',
+                                            fontWeight: '900',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.03em',
+                                            lineHeight: 1,
+                                            marginTop: '3px',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
                                         {tierName}
                                     </div>
                                 </div>
