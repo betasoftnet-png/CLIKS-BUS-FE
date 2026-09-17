@@ -47,6 +47,7 @@ export default function BusinessPitches({ openAuthModal = null }) {
     const [showInvestorAuthModal, setShowInvestorAuthModal] = useState(openAuthModal === 'investor');
     const [showAdminAuthModal, setShowAdminAuthModal] = useState(openAuthModal === 'admin');
     const [selectedConnectPitch, setSelectedConnectPitch] = useState(null);
+    const [selectedPitchModal, setSelectedPitchModal] = useState(null);
 
     // Quota & Unlocked Pitches State
     const [unlockedMap, setUnlockedMap] = useState({});
@@ -306,8 +307,11 @@ export default function BusinessPitches({ openAuthModal = null }) {
 
     // Quota & Unlock Trigger
     const handleConnectTrigger = async (pitch) => {
+        setSelectedPitchModal(pitch);
         if (unlockedMap[pitch.id]) {
-            setSelectedConnectPitch({ ...pitch, ...unlockedMap[pitch.id] });
+            const merged = { ...pitch, ...unlockedMap[pitch.id] };
+            setSelectedConnectPitch(merged);
+            setSelectedPitchModal(merged);
             return;
         }
 
@@ -316,16 +320,12 @@ export default function BusinessPitches({ openAuthModal = null }) {
             if (res.success && res.unlocked) {
                 setUnlockedMap(prev => ({ ...prev, [pitch.id]: res.data }));
                 refetchQuota();
-                setSelectedConnectPitch({ ...pitch, ...res.data });
-            } else {
-                setShowUpgradeModal(true);
+                const merged = { ...pitch, ...res.data };
+                setSelectedConnectPitch(merged);
+                setSelectedPitchModal(merged);
             }
         } catch (error) {
-            if (error.response?.data?.status === 'QUOTA_EXCEEDED' || error.response?.status === 403) {
-                setShowUpgradeModal(true);
-            } else {
-                setSelectedConnectPitch(pitch);
-            }
+            setSelectedPitchModal(pitch);
         }
     };
 
@@ -646,64 +646,57 @@ export default function BusinessPitches({ openAuthModal = null }) {
                         </div>
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
-                            {marketplacePitches.map(pitch => {
-                                const isUnlocked = !!unlockedMap[pitch.id];
-                                return (
-                                    <div 
-                                        key={pitch.id}
-                                        style={{
-                                            background: 'white',
-                                            borderRadius: '16px',
-                                            padding: '1.25rem',
-                                            border: '1px solid #e2e8f0',
-                                            boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            justifyContent: 'space-between'
-                                        }}
-                                    >
-                                        <div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                                <span style={{ padding: '0.25rem 0.6rem', borderRadius: '999px', background: '#eff6ff', color: '#2563eb', fontSize: '0.75rem', fontWeight: '800' }}>
-                                                    {pitch.sector || pitch.industry || 'Technology'}
-                                                </span>
-                                                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600' }}>
-                                                    📍 {pitch.location || 'India'}
-                                                </span>
-                                            </div>
-
-                                            <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', marginBottom: '0.35rem' }}>
-                                                {pitch.title || pitch.company_name}
-                                            </h3>
-                                            <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5, marginBottom: '1.25rem', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                                {pitch.description || pitch.headline_pitch || pitch.headline || pitch.problem || 'Verified SME venture seeking capital expansion.'}
-                                            </p>
+                            {marketplacePitches.map(deal => (
+                                <div
+                                    key={deal.id}
+                                    className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                                    style={{
+                                        background: 'white',
+                                        borderRadius: '16px',
+                                        padding: '1.25rem',
+                                        border: '1px solid #e2e8f0',
+                                        boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'space-between'
+                                    }}
+                                >
+                                    {/* Top Badge Row */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100" style={{ padding: '0.25rem 0.6rem', borderRadius: '999px', background: '#eff6ff', color: '#2563eb', fontSize: '0.75rem', fontWeight: '800', border: '1px solid #dbeafe' }}>
+                                                {deal.sector || deal.industry || 'General'}
+                                            </span>
+                                            <span className="flex items-center gap-1 text-xs text-gray-500 font-medium" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#64748b', fontWeight: '500' }}>
+                                                <span className="text-red-500" style={{ color: '#ef4444' }}>📍</span> {deal.location || 'India'}
+                                            </span>
                                         </div>
 
-                                        <button 
-                                            onClick={() => handleConnectTrigger(pitch)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.75rem',
-                                                borderRadius: '12px',
-                                                background: isUnlocked ? '#059669' : '#1E3A8A',
-                                                color: 'white',
-                                                fontWeight: '800',
-                                                fontSize: '0.875rem',
-                                                border: 'none',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '0.5rem'
-                                            }}
-                                        >
-                                            {isUnlocked ? <CheckCircle2 size={16} /> : <Lock size={15} />}
-                                            <span>{isUnlocked ? 'Unlocked — View Deal' : 'Connect / View Pitch (1 Quota)'}</span>
-                                        </button>
+                                        {/* Venture Title */}
+                                        <h3 className="text-lg font-bold text-gray-900 mb-4" style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', marginBottom: '1rem' }}>
+                                            {deal.venture_name || deal.title || deal.company_name}
+                                        </h3>
+
+                                        {/* DESCRIPTION IS DELIBERATELY OMITTED / HIDDEN HERE */}
                                     </div>
-                                );
-                            })}
+
+                                    {/* Action Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedPitchModal(deal);
+                                            handleConnectTrigger(deal);
+                                        }}
+                                        className="w-full mt-2 py-2.5 px-4 bg-[#1E3A8A] hover:bg-[#172554] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
+                                        style={{ width: '100%', marginTop: '0.5rem', padding: '0.75rem 1rem', background: '#1E3A8A', color: 'white', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: 'none', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                                    >
+                                        <svg className="w-4 h-4" style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                        Connect / View Pitch (1 Quota)
+                                    </button>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
@@ -1062,6 +1055,194 @@ export default function BusinessPitches({ openAuthModal = null }) {
                                     </div>
                                 ))
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Detail Modal Popup for Venture Details */}
+            {selectedPitchModal && (
+                <div 
+                    onClick={() => setSelectedPitchModal(null)}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(15, 23, 42, 0.65)',
+                        backdropFilter: 'blur(8px)',
+                        zIndex: 1000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '1.5rem'
+                    }}
+                >
+                    <div 
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            background: 'white',
+                            borderRadius: '24px',
+                            width: '100%',
+                            maxWidth: '680px',
+                            maxHeight: '88vh',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                            overflow: 'hidden',
+                            border: '1px solid #e2e8f0'
+                        }}
+                    >
+                        {/* Header */}
+                        <div style={{
+                            padding: '1.5rem 2rem',
+                            borderBottom: '1px solid #f1f5f9',
+                            background: '#f8fafc',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start'
+                        }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                    <span style={{ padding: '0.25rem 0.65rem', borderRadius: '999px', background: '#eff6ff', color: '#2563eb', fontSize: '0.75rem', fontWeight: '800', border: '1px solid #dbeafe' }}>
+                                        {selectedPitchModal.sector || selectedPitchModal.industry || 'General'}
+                                    </span>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600' }}>
+                                        📍 {selectedPitchModal.location || 'India'}
+                                    </span>
+                                </div>
+                                <h2 style={{ fontSize: '1.4rem', fontWeight: '850', color: '#0f172a', margin: 0 }}>
+                                    {selectedPitchModal.venture_name || selectedPitchModal.title || selectedPitchModal.company_name}
+                                </h2>
+                                {(selectedPitchModal.headline_pitch || selectedPitchModal.headline) && (
+                                    <p style={{ fontSize: '0.9rem', color: '#475569', fontWeight: '600', marginTop: '0.35rem', marginBottom: 0 }}>
+                                        "{selectedPitchModal.headline_pitch || selectedPitchModal.headline}"
+                                    </p>
+                                )}
+                            </div>
+                            <button 
+                                type="button"
+                                onClick={() => setSelectedPitchModal(null)}
+                                style={{
+                                    background: '#f1f5f9',
+                                    border: 'none',
+                                    borderRadius: '50%',
+                                    width: '36px',
+                                    height: '36px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    color: '#64748b'
+                                }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Scrollable Content */}
+                        <div style={{ padding: '2rem', overflowY: 'auto', flex: 1 }}>
+                            {/* 300-word Full Description */}
+                            <div style={{ marginBottom: '1.75rem' }}>
+                                <h4 style={{ fontSize: '0.85rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '0.65rem' }}>
+                                    Venture Description
+                                </h4>
+                                <div style={{
+                                    background: '#f8fafc',
+                                    borderRadius: '16px',
+                                    padding: '1.25rem',
+                                    border: '1px solid #e2e8f0',
+                                    fontSize: '0.925rem',
+                                    color: '#334155',
+                                    lineHeight: 1.65,
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word'
+                                }}>
+                                    {selectedPitchModal.description || selectedPitchModal.headline_pitch || 'No detailed description provided for this venture.'}
+                                </div>
+                            </div>
+
+                            {/* Key Details Grid: Sector, Founder Email */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: '750', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                                        Founder / Contact
+                                    </div>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#0f172a' }}>
+                                        {selectedPitchModal.founder_name || 'Founder'}
+                                    </div>
+                                    <div style={{ fontSize: '0.825rem', color: '#2563eb', wordBreak: 'break-all' }}>
+                                        {selectedPitchModal.founder_email || selectedPitchModal.email || 'founder@cliksbusiness.com'}
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: '750', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                                        Industry Sector
+                                    </div>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#0f172a' }}>
+                                        {selectedPitchModal.sector || selectedPitchModal.industry || 'Technology'}
+                                    </div>
+                                    <div style={{ fontSize: '0.825rem', color: '#64748b' }}>
+                                        Location: {selectedPitchModal.location || 'India'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Pitch Deck Link */}
+                            {selectedPitchModal.pitch_deck_url ? (
+                                <div style={{ background: '#eff6ff', borderRadius: '14px', padding: '1.25rem', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                                    <div>
+                                        <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1e3a8a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            📑 Pitch Deck Attached
+                                        </div>
+                                        <div style={{ fontSize: '0.78rem', color: '#3b82f6', marginTop: '2px', wordBreak: 'break-all' }}>
+                                            {selectedPitchModal.pitch_deck_url}
+                                        </div>
+                                    </div>
+                                    <a
+                                        href={selectedPitchModal.pitch_deck_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            padding: '0.65rem 1.25rem',
+                                            borderRadius: '10px',
+                                            background: '#1e3a8a',
+                                            color: 'white',
+                                            textDecoration: 'none',
+                                            fontWeight: '750',
+                                            fontSize: '0.85rem'
+                                        }}
+                                    >
+                                        Open Pitch Deck ↗
+                                    </a>
+                                </div>
+                            ) : (
+                                <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1rem', border: '1px dashed #cbd5e1', fontSize: '0.825rem', color: '#64748b', textAlign: 'center' }}>
+                                    No external pitch deck URL attached for this deal.
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div style={{ padding: '1rem 2rem', borderTop: '1px solid #f1f5f9', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedPitchModal(null)}
+                                style={{
+                                    padding: '0.65rem 1.5rem',
+                                    borderRadius: '10px',
+                                    background: '#e2e8f0',
+                                    color: '#334155',
+                                    fontWeight: '750',
+                                    fontSize: '0.85rem',
+                                    border: 'none',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Close
+                            </button>
                         </div>
                     </div>
                 </div>
