@@ -133,7 +133,12 @@ export default function BusinessPitches({ openAuthModal = null }) {
         queryKey: ['marketplace-pitches', searchTerm, selectedSector],
         queryFn: () => pitchesService.getMarketplacePitches({ search: searchTerm, sector: selectedSector })
     });
-    const marketplacePitches = Array.isArray(rawMarketplacePitches) ? rawMarketplacePitches : (rawMarketplacePitches?.pitches || rawMarketplacePitches?.data || []);
+    const allMarketplacePitches = Array.isArray(rawMarketplacePitches) ? rawMarketplacePitches : (rawMarketplacePitches?.pitches || rawMarketplacePitches?.data || []);
+    // Filter deals shown in "Active Deals Marketplace" (Only Admin-approved / published deals)
+    const marketplacePitches = allMarketplacePitches.filter(deal => {
+        const status = (deal.review_status || deal.status || '').toLowerCase();
+        return status === 'published' || status === 'accepted' || status === 'approved';
+    });
 
     const { data: rawStudioPitches = [], isLoading: isStudioLoading } = useQuery({
         queryKey: ['studio-pitches'],
@@ -291,7 +296,8 @@ export default function BusinessPitches({ openAuthModal = null }) {
             founder_phone: formData.founder_phone || user?.phone || '',
             founder_email: founderEmail,
             location: formData.location || (cityName ? `${cityName}, ${gpsState}` : 'Chennai, Tamil Nadu'),
-            review_status: 'Published',
+            review_status: 'Under Review',
+            status: 'Under Review',
             created_at: new Date().toISOString()
         };
 
@@ -329,28 +335,26 @@ export default function BusinessPitches({ openAuthModal = null }) {
     ];
 
     const getStatusBadge = (status) => {
-        switch(status) {
-            case 'ACCEPTED':
-            case 'ACTIVE':
-                return (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#dcfce7', color: '#15803d', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' }}>
-                        <CheckCircle2 size={13} /> Accepted / Published
-                    </span>
-                );
-            case 'REJECTED':
-                return (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fee2e2', color: '#b91c1c', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' }}>
-                        <AlertTriangle size={13} /> Needs Revision
-                    </span>
-                );
-            case 'PENDING_REVIEW':
-            default:
-                return (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef3c7', color: '#b45309', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' }}>
-                        <Clock size={13} /> Under Admin Review
-                    </span>
-                );
+        const normalized = (status || '').toUpperCase();
+        if (normalized === 'ACCEPTED' || normalized === 'PUBLISHED' || normalized === 'ACTIVE' || normalized === 'APPROVED') {
+            return (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#dcfce7', color: '#15803d', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' }}>
+                    <CheckCircle2 size={13} /> Accepted / Published
+                </span>
+            );
         }
+        if (normalized === 'REJECTED' || normalized === 'NEEDS REVISION') {
+            return (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fee2e2', color: '#b91c1c', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' }}>
+                    <AlertTriangle size={13} /> Needs Revision
+                </span>
+            );
+        }
+        return (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef3c7', color: '#b45309', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' }}>
+                <Clock size={13} /> Pending for Admin Review
+            </span>
+        );
     };
 
     return (
@@ -666,24 +670,9 @@ export default function BusinessPitches({ openAuthModal = null }) {
                                             <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', marginBottom: '0.35rem' }}>
                                                 {pitch.title || pitch.company_name}
                                             </h3>
-                                            <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.4, marginBottom: '1rem', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                                {pitch.description || pitch.problem || 'Verified SME venture seeking capital expansion.'}
+                                            <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5, marginBottom: '1.25rem', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                {pitch.description || pitch.headline_pitch || pitch.headline || pitch.problem || 'Verified SME venture seeking capital expansion.'}
                                             </p>
-
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '12px', marginBottom: '1rem' }}>
-                                                <div>
-                                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700' }}>GOAL TARGET</div>
-                                                    <div style={{ fontSize: '1rem', fontWeight: '850', color: '#059669' }}>
-                                                        ₹{(pitch.goal_amount || pitch.funding_target || 0).toLocaleString()}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700' }}>EQUITY OFFERED</div>
-                                                    <div style={{ fontSize: '1rem', fontWeight: '850', color: '#1e40af' }}>
-                                                        {pitch.equity_offered || 0}%
-                                                    </div>
-                                                </div>
-                                            </div>
                                         </div>
 
                                         <button 
@@ -756,8 +745,8 @@ export default function BusinessPitches({ openAuthModal = null }) {
                                         <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', marginBottom: '0.35rem' }}>
                                             {pitch.title || pitch.company_name}
                                         </h3>
-                                        <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.4, marginBottom: '0.75rem' }}>
-                                            {pitch.description || pitch.use_of_funds}
+                                        <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.5, marginBottom: '1rem', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                            {pitch.description || pitch.headline_pitch || pitch.headline || pitch.use_of_funds || 'Verified SME venture.'}
                                         </p>
 
                                         {/* Admin Remarks Display if Rejected */}
@@ -767,25 +756,10 @@ export default function BusinessPitches({ openAuthModal = null }) {
                                                     ⚠️ Admin Audit Remarks:
                                                 </div>
                                                 <p style={{ fontSize: '0.825rem', color: '#7f1d1d', margin: 0 }}>
-                                                    {pitch.admin_remarks || 'Please update your funding target and deck details.'}
+                                                    {pitch.admin_remarks || 'Please update your pitch details.'}
                                                 </p>
                                             </div>
                                         )}
-
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '12px', marginBottom: '1rem' }}>
-                                            <div>
-                                                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700' }}>GOAL TARGET</div>
-                                                <div style={{ fontSize: '1rem', fontWeight: '850', color: '#059669' }}>
-                                                    ₹{(pitch.goal_amount || pitch.funding_target || 0).toLocaleString()}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700' }}>EQUITY OFFERED</div>
-                                                <div style={{ fontSize: '1rem', fontWeight: '850', color: '#1e40af' }}>
-                                                    {pitch.equity_offered || 0}%
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
 
                                     {pitch.status === 'REJECTED' && (

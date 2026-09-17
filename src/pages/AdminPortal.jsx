@@ -737,10 +737,17 @@ export default function AdminPortal() {
     }, [ticketsList, ticketSearch, ticketCategoryFilter, ticketStatusFilter]);
 
     // ── 5. ADMIN ACTIONS ──────────────────────────────────────────────────────
-    const handleUpdatePitchStatus = (pitchId, newStatus) => {
+    const handleUpdatePitchStatus = async (pitchId, newStatus) => {
+        try {
+            await pitchesService.reviewPitch(pitchId, { review_status: newStatus, status: newStatus, admin_remarks: pitchRemarkInput }).catch(async () => {
+                await pitchesService.verifyPitch(pitchId, { review_status: newStatus }).catch(() => {});
+            });
+        } catch (e) {
+            console.error('Failed to update pitch status via API:', e);
+        }
         setPitchesList(prev => prev.map(p => {
             if (p.id === pitchId) {
-                return { ...p, status: newStatus, admin_remarks: pitchRemarkInput || p.admin_remarks };
+                return { ...p, status: newStatus, review_status: newStatus, admin_remarks: pitchRemarkInput || p.admin_remarks };
             }
             return p;
         }));
@@ -1841,25 +1848,49 @@ export default function AdminPortal() {
                                                     </span>
                                                 </td>
                                                 <td style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>
-                                                    <button 
-                                                        onClick={() => setActiveDeckPitch(pitch)}
-                                                        style={{
-                                                            background: '#1E3A8A',
-                                                            color: 'white',
-                                                            border: 'none',
-                                                            padding: '0.4rem 0.75rem',
-                                                            borderRadius: '8px',
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: '800',
-                                                            cursor: 'pointer',
-                                                            display: 'inline-flex',
-                                                            alignItems: 'center',
-                                                            gap: '0.35rem'
-                                                        }}
-                                                    >
-                                                        <Eye size={13} />
-                                                        <span>Inspect Deck</span>
-                                                    </button>
+                                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                        <button 
+                                                            onClick={() => setActiveDeckPitch(pitch)}
+                                                            style={{
+                                                                background: '#1E3A8A',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                padding: '0.4rem 0.65rem',
+                                                                borderRadius: '8px',
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: '800',
+                                                                cursor: 'pointer',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.35rem'
+                                                            }}
+                                                        >
+                                                            <Eye size={13} />
+                                                            <span>Inspect</span>
+                                                        </button>
+                                                        {pitch.status !== 'Published' && pitch.status !== 'Accepted' && (
+                                                            <button 
+                                                                onClick={() => handleUpdatePitchStatus(pitch.id, 'Published')}
+                                                                style={{
+                                                                    background: '#059669',
+                                                                    color: 'white',
+                                                                    border: 'none',
+                                                                    padding: '0.4rem 0.65rem',
+                                                                    borderRadius: '8px',
+                                                                    fontSize: '0.75rem',
+                                                                    fontWeight: '800',
+                                                                    cursor: 'pointer',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '0.35rem'
+                                                                }}
+                                                                title="Publish / Approve to Active Deals Marketplace"
+                                                            >
+                                                                <CheckCircle2 size={13} />
+                                                                <span>Approve</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
