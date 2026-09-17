@@ -344,12 +344,12 @@ const BusinessPeople = () => {
     });
 
     const createReminderMutation = useMutation({
-        mutationFn: (data) => peopleService.createReminder(data.person_id, data),
+        mutationFn: (data) => peopleService.createReminder(data),
         onSuccess: () => {
             queryClient.invalidateQueries(['people-reminders-all']);
             setIsReminderModalOpen(false);
             setReminderForm({ person_id: '', title: '', amount: '', due_date: new Date().toISOString().split('T')[0], notes: '' });
-            alert('Reminder dispatched successfully.');
+            alert('Repayment alert dispatched successfully.');
         }
     });
 
@@ -465,6 +465,62 @@ const BusinessPeople = () => {
         }
     };
 
+    const handleAmountChange = (e) => {
+        let val = e.target.value;
+
+        // Remove any character that is not a digit or decimal point
+        val = val.replace(/[^0-9.]/g, '');
+
+        // Prevent multiple decimal points
+        const parts = val.split('.');
+        if (parts.length > 2) {
+            val = parts[0] + '.' + parts.slice(1).join('');
+        }
+
+        // Restrict integer part strictly to 12 digits
+        let integerPart = parts[0] || '';
+        if (integerPart.length > 12) {
+            integerPart = integerPart.slice(0, 12);
+        }
+
+        // Restrict decimal part to 2 digits (if entered)
+        let decimalPart = parts[1] !== undefined ? '.' + parts[1].slice(0, 2) : '';
+
+        const finalValue = integerPart + decimalPart;
+
+        setTxAmountError('');
+        setTxForm(prev => ({
+            ...prev,
+            amount: finalValue
+        }));
+    };
+
+    const handleInlineTxAmountChange = (e) => {
+        let val = e.target.value;
+
+        val = val.replace(/[^0-9.]/g, '');
+
+        const parts = val.split('.');
+        if (parts.length > 2) {
+            val = parts[0] + '.' + parts.slice(1).join('');
+        }
+
+        let integerPart = parts[0] || '';
+        if (integerPart.length > 12) {
+            integerPart = integerPart.slice(0, 12);
+        }
+
+        let decimalPart = parts[1] !== undefined ? '.' + parts[1].slice(0, 2) : '';
+
+        const finalValue = integerPart + decimalPart;
+
+        setInlineTxAmountError('');
+        setInlineTxForm(prev => ({
+            ...prev,
+            amount: finalValue
+        }));
+    };
+
     const handleSaveTx = (e) => {
         e.preventDefault();
         setTxAmountError('');
@@ -529,7 +585,8 @@ const BusinessPeople = () => {
     const handleSaveReminder = (e) => {
         e.preventDefault();
         setReminderAmountError('');
-        if (!reminderForm.person_id) return alert('Please select a contact.');
+        if (!reminderForm.person_id) return alert('Please select a target contact.');
+        if (!reminderForm.due_date) return alert('Please select a maturity / due date.');
 
         const amt = parseFloat(reminderForm.amount);
         if (!isNaN(amt) && amt < 0) {
@@ -537,7 +594,24 @@ const BusinessPeople = () => {
             return;
         }
 
-        createReminderMutation.mutate(reminderForm);
+        const selectedPerson = people.find(p => String(p.id) === String(reminderForm.person_id));
+
+        const payload = {
+            contact_id: reminderForm.person_id,
+            person_id: reminderForm.person_id,
+            target_contact: selectedPerson ? selectedPerson.name : 'Contact',
+            person_name: selectedPerson ? selectedPerson.name : 'Contact',
+            contact_phone: selectedPerson ? selectedPerson.phone : '',
+            maturity_date: reminderForm.due_date,
+            due_date: reminderForm.due_date,
+            memo_label: reminderForm.title || 'Repayment Alert',
+            title: reminderForm.title || 'Repayment Alert',
+            claim_cap: !isNaN(amt) && amt >= 0 ? amt : 0,
+            amount: !isNaN(amt) && amt >= 0 ? amt : 0,
+            status: 'Pending'
+        };
+
+        createReminderMutation.mutate(payload);
     };
 
     const renderAvatar = (name, size = 42) => {
@@ -1054,10 +1128,10 @@ const BusinessPeople = () => {
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead 
                                 columns={[
-                                    { key: 'due_date', label: 'Maturity / Due Date', placeholder: 'Due Date...' },
-                                    { key: 'person_name', label: 'Target Contact', placeholder: 'Contact...' },
-                                    { key: 'title', label: 'Memo Label', placeholder: 'Memo...' },
-                                    { key: 'amount', label: 'Claim Cap', placeholder: 'Claim...', align: 'right' },
+                                    { key: 'due_date', label: 'MATURITY / DUE DATE', placeholder: 'Due Date...' },
+                                    { key: 'person_name', label: 'TARGET CONTACT', placeholder: 'Contact...' },
+                                    { key: 'title', label: 'MEMO LABEL', placeholder: 'Memo...' },
+                                    { key: 'amount', label: 'CLAIM CAP', placeholder: 'Claim...', align: 'right' },
                                     { key: '_actions', label: '', noFilter: true }
                                 ]} 
                                 onFilterChange={setColFilters} 
@@ -1073,16 +1147,16 @@ const BusinessPeople = () => {
                                         <td style={{ padding: '1.5rem 2rem', color: '#E11D48', fontWeight: '800' }}>
                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                                 <Calendar size={14} />
-                                                {new Date(r.due_date).toLocaleDateString('en-IN')}
+                                                {new Date(r.maturity_date || r.due_date).toLocaleDateString('en-IN')}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1E293B' }}>{r.person_name}</td>
-                                        <td style={{ padding: '1.5rem 2rem', color: '#475569', fontWeight: '650' }}>{r.title}</td>
-                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right', fontWeight: '900', color: '#0F172A' }}>{formatCurr(r.amount)}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1E293B' }}>{r.target_contact || r.person_name}</td>
+                                        <td style={{ padding: '1.5rem 2rem', color: '#475569', fontWeight: '650' }}>{r.memo_label || r.title}</td>
+                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right', fontWeight: '900', color: '#0F172A' }}>{formatCurr(r.claim_cap !== undefined ? r.claim_cap : r.amount)}</td>
                                         <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                                                 <button 
-                                                    onClick={() => alert(`Dispatched WhatsApp alert reminder to client.`)}
+                                                    onClick={() => alert(`Dispatched WhatsApp alert reminder to ${r.target_contact || r.person_name}.`)}
                                                     style={{ border: 'none', background: '#F0FDF4', padding: '0.5rem 0.75rem', borderRadius: '8px', color: '#1B6B3A', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem' }}
                                                 >
                                                     Alert
@@ -1347,20 +1421,12 @@ const BusinessPeople = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Value Cap Amount ({currency.symbol})</label>
                                     <input 
                                         required 
-                                        type="number" 
-                                        min="0"
+                                        type="text" 
+                                        inputMode="decimal"
+                                        maxLength={15}
                                         placeholder="0.00" 
                                         value={txForm.amount} 
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            const amt = parseFloat(val);
-                                            if (!isNaN(amt) && amt < 0) {
-                                                setTxAmountError('Value cap amount cannot be negative.');
-                                            } else {
-                                                setTxAmountError('');
-                                            }
-                                            setTxForm({ ...txForm, amount: val });
-                                        }} 
+                                        onChange={handleAmountChange} 
                                         style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: txAmountError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '1.1rem', fontWeight: '900' }} 
                                     />
                                     {txAmountError && (
@@ -1382,43 +1448,43 @@ const BusinessPeople = () => {
                 )}
             </AnimatePresence>
 
-            {/* Modal 3: Setup Alert / Reminder */}
+            {/* Modal 3: Setup Alert / Repayment Alert */}
             <AnimatePresence>
                 {isReminderModalOpen && (
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)' }}>
                         <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Schedule Return Reminder</h3>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Schedule Repayment Alert</h3>
                                 <button onClick={() => setIsReminderModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                             </div>
                             <form onSubmit={handleSaveReminder} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Dispatch to Contact</label>
-                                    <select required value={reminderForm.person_id} onChange={(e) => setReminderForm({ ...reminderForm, person_id: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white' }}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Target Contact <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <select required value={reminderForm.person_id} onChange={(e) => setReminderForm({ ...reminderForm, person_id: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
                                         <option value="">Select contact...</option>
                                         {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                     </select>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr', gap: '0.75rem' }}>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reminder Title</label>
-                                        <input required placeholder="Repayment of Friendly Loan" type="text" value={reminderForm.title} onChange={(e) => setReminderForm({ ...reminderForm, title: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Memo Label <span style={{ color: '#EF4444' }}>*</span></label>
+                                        <input required placeholder="e.g. Loan Repayment Due" type="text" value={reminderForm.title} onChange={(e) => setReminderForm({ ...reminderForm, title: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Cap Value</label>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Claim Cap (₹)</label>
                                         <input 
-                                            type="number" 
-                                            min="0"
+                                            type="text" 
+                                            inputMode="decimal"
                                             placeholder="0.00" 
                                             value={reminderForm.amount} 
                                             onChange={(e) => {
-                                                const val = e.target.value;
-                                                const amt = parseFloat(val);
-                                                if (!isNaN(amt) && amt < 0) {
-                                                    setReminderAmountError('Cap value cannot be negative.');
-                                                } else {
-                                                    setReminderAmountError('');
-                                                }
+                                                let val = e.target.value.replace(/[^0-9.]/g, '');
+                                                const parts = val.split('.');
+                                                if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+                                                const intPart = parts[0].slice(0, 12);
+                                                const decPart = parts.length > 1 ? '.' + parts[1].slice(0, 2) : '';
+                                                val = intPart + decPart;
+                                                setReminderAmountError('');
                                                 setReminderForm({ ...reminderForm, amount: val });
                                             }} 
                                             style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: reminderAmountError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontWeight: '900' }} 
@@ -1431,11 +1497,11 @@ const BusinessPeople = () => {
                                     </div>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Execution Maturity Date</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Maturity / Due Date <span style={{ color: '#EF4444' }}>*</span></label>
                                     <input required type="date" value={reminderForm.due_date} onChange={(e) => setReminderForm({ ...reminderForm, due_date: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
-                                <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer' }}>
-                                    Commit Reminder Flow
+                                <button type="submit" disabled={createReminderMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer' }}>
+                                    {createReminderMutation.isPending ? 'Scheduling Alert...' : 'Dispatch Repayment Alert'}
                                 </button>
                             </form>
                         </Motion.div>
@@ -1942,20 +2008,12 @@ const BusinessPeople = () => {
                                                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>AMOUNT ({currency.symbol})</label>
                                                                     <input 
                                                                         required 
-                                                                        type="number" 
-                                                                        min="0"
+                                                                        type="text" 
+                                                                        inputMode="decimal"
+                                                                        maxLength={15}
                                                                         placeholder="0.00" 
                                                                         value={inlineTxForm.amount} 
-                                                                        onChange={(e) => {
-                                                                            const val = e.target.value;
-                                                                            const amt = parseFloat(val);
-                                                                            if (!isNaN(amt) && amt < 0) {
-                                                                                setInlineTxAmountError('Value cap amount cannot be negative.');
-                                                                            } else {
-                                                                                setInlineTxAmountError('');
-                                                                            }
-                                                                            setInlineTxForm({ ...inlineTxForm, amount: val });
-                                                                        }} 
+                                                                        onChange={handleInlineTxAmountChange} 
                                                                         style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: inlineTxAmountError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontWeight: '800', fontSize: '0.9rem' }} 
                                                                     />
                                                                     {inlineTxAmountError && (

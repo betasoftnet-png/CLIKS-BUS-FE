@@ -21,11 +21,22 @@ export const peopleService = {
     updateTransaction: async (personId, transactionId, data) => await apiClient.patch(`/people/${personId}/transactions/${transactionId}`, data).then(res => res.data.data || res.data),
     deleteTransaction: async (personId, transactionId) => await apiClient.delete(`/people/${personId}/transactions/${transactionId}`).then(res => res.data.data || res.data),
 
-    // Nested Reminders
+    // Nested Reminders & Repayment Alerts
     getReminders: async (personId) => await apiClient.get(`/people/${personId}/reminders`).then(res => res.data.data || res.data),
-    createReminder: async (personId, data) => await apiClient.post(`/people/${personId}/reminders`, data).then(res => res.data.data || res.data),
+    createReminder: async (personIdOrData, maybeData) => {
+        let payload;
+        if (typeof personIdOrData === 'object' && personIdOrData !== null) {
+            payload = personIdOrData;
+        } else {
+            payload = { ...maybeData, person_id: personIdOrData, contact_id: personIdOrData };
+        }
+        return await apiClient.post('/people/reminders', payload).then(res => res.data.data || res.data);
+    },
     updateReminder: async (personId, reminderId, data) => await apiClient.patch(`/people/${personId}/reminders/${reminderId}`, data).then(res => res.data.data || res.data),
-    deleteReminder: async (personId, reminderId) => await apiClient.delete(`/people/${personId}/reminders/${reminderId}`).then(res => res.data.data || res.data),
+    deleteReminder: async (personIdOrId, reminderId) => {
+        const targetId = reminderId !== undefined ? reminderId : (typeof personIdOrId === 'object' ? personIdOrId.id : personIdOrId);
+        return await apiClient.delete(`/people/reminders/${targetId}`).then(res => res.data.data || res.data);
+    },
 
     // Nested Records
     getRecords: async (personId) => await apiClient.get(`/people/${personId}/records`).then(res => res.data.data || res.data),
