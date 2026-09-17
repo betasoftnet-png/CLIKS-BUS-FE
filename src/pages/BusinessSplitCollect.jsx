@@ -33,6 +33,35 @@ import { config } from '../lib/config';
 // Initial Seed Data for Split Groups
 const INITIAL_SPLITS = [];
 
+// Strict URL normalizer using real backend asset origin
+const resolveAttachmentUrl = (filePath) => {
+    if (!filePath) return '';
+
+    // 1. If it's already a complete absolute URL
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        return filePath;
+    }
+
+    // 2. Base upload endpoint (use active backend host or fallback to beta-softnet)
+    const envApiUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) ||
+        (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) ||
+        (typeof config !== 'undefined' && config.api?.baseUrl) ||
+        '';
+
+    const baseOrigin = envApiUrl 
+        ? envApiUrl.replace(/\/api.*$/, '')
+        : 'https://cliks.beta-softnet.com';
+
+    const cleanPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
+
+    // If path doesn't already contain /uploads/
+    if (!cleanPath.startsWith('/uploads')) {
+        return `${baseOrigin}/uploads${cleanPath}`;
+    }
+
+    return `${baseOrigin}${cleanPath}`;
+};
+
 const BusinessSplitCollect = () => {
     const { currency } = useCurrency();
     // ── State Management ───────────────────────────────────────────────────
@@ -1247,10 +1276,7 @@ const BusinessSplitCollect = () => {
                                                                         <Calendar size={12} /> {e.date}
                                                                     </span>
                                                                     {e.attachment && (() => {
-                                                                        const cleanAttachment = e.attachment.startsWith('/') ? e.attachment : `/uploads/${e.attachment}`;
-                                                                        const serverBaseUrl = (config.api?.baseUrl || '').replace(/\/api\/v1\/?$/, '');
-                                                                        const host = serverBaseUrl || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin);
-                                                                        const fileUrl = e.attachment.startsWith('http') ? e.attachment : `${host}${cleanAttachment}`;
+                                                                        const fileUrl = resolveAttachmentUrl(e.attachment);
                                                                         const isPdf = e.attachment.toLowerCase().endsWith('.pdf');
                                                                         const isImage = /\.(jpe?g|png|webp|gif|svg)$/i.test(e.attachment);
                                                                         return (
@@ -1629,10 +1655,7 @@ const BusinessSplitCollect = () => {
                                                     onClick={(ev) => {
                                                         ev.stopPropagation();
                                                         const att = expenseForm.attachmentName;
-                                                        const cleanAtt = att.startsWith('/') ? att : `/uploads/${att}`;
-                                                        const serverBaseUrl = (config.api?.baseUrl || '').replace(/\/api\/v1\/?$/, '');
-                                                        const host = serverBaseUrl || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin);
-                                                        const fileUrl = att.startsWith('http') ? att : `${host}${cleanAtt}`;
+                                                        const fileUrl = resolveAttachmentUrl(att);
                                                         setPreviewAttachment({
                                                             url: fileUrl,
                                                             name: att,
@@ -1866,8 +1889,16 @@ const BusinessSplitCollect = () => {
                                     <img 
                                         src={previewAttachment.url} 
                                         alt={previewAttachment.name} 
+                                        crossOrigin="anonymous"
                                         style={{ maxWidth: '100%', maxHeight: '72vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', background: 'white' }} 
                                         onError={(e) => {
+                                            const currentSrc = e.currentTarget.src || '';
+                                            const cleanFileName = previewAttachment.name.replace(/^\/?(uploads\/)?/, '');
+                                            const fallbackSrc = `https://cliks.beta-softnet.com/uploads/${cleanFileName}`;
+                                            if (!currentSrc.includes('cliks.beta-softnet.com')) {
+                                                e.currentTarget.src = fallbackSrc;
+                                                return;
+                                            }
                                             e.currentTarget.style.display = 'none';
                                             const fb = document.getElementById('preview-fallback-box');
                                             if (fb) fb.style.display = 'flex';
