@@ -204,11 +204,11 @@ export const SubscriptionBadgeWidget = ({
     if (Array.isArray(rawPlans) && rawPlans.length > 0) {
         activePlans = rawPlans.map((p, idx) => normalizePlan(p, idx, planDaysRemaining || 346));
     } else {
-        // Fallback safely to user active subscriptions state
+        // Fallback safely to user active subscriptions state (strictly scoped to auth profile)
         const subs = user?.active_subscriptions || {};
-        const isFinProActive = Boolean(subs.fin_pro?.active || subs.fin_pro?.plan || subs.ca?.active || localStorage.getItem('cliks_finpro_active') === 'true');
-        const isInvestorActive = Boolean(subs.investor?.active || subs.investor?.plan || subs.betaclub_investor?.active || localStorage.getItem('cliks_investor_active') === 'true');
-        const isPosterActive = Boolean(subs.poster?.active || subs.poster?.plan || subs.betaclub_product?.active || localStorage.getItem('cliks_poster_active') === 'true');
+        const isFinProActive = Boolean(subs.fin_pro?.active === true && subs.fin_pro?.plan);
+        const isInvestorActive = Boolean(subs.investor?.active === true && subs.investor?.plan);
+        const isPosterActive = Boolean(subs.poster?.active === true && subs.poster?.plan);
 
         // Plan 1: Books / Business
         const rawTier = subs.business?.plan || selectedPlan || user?.tier || 'Growth Plan';

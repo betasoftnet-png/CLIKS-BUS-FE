@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { Tooltip } from './common';
-import { isFeatureAllowed, getRequiredPlanForFeature } from '../utils/subscriptionUtils';
+import { isFeatureAllowed, getRequiredPlanForFeature, calculateDaysRemaining } from '../utils/subscriptionUtils';
 import SubscriptionBadge from './SubscriptionBadge';
 import SubscriptionBadgeWidget from './SubscriptionBadgeWidget';
 
@@ -207,7 +207,69 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { selectedPlan, planDaysRemaining, user } = useAuth();
+    const business = user?.business;
     const { t } = useLanguage();
+
+    // Safely resolve the user's real subscriptions strictly from auth user profile / session
+    const userSubscriptions = React.useMemo(() => {
+        // Check if active_plans exists on the user object
+        if (Array.isArray(user?.active_plans) && user.active_plans.length > 0) {
+            return user.active_plans.filter(p => p && p.status !== 'inactive' && p.active !== false);
+        }
+
+        // Check if subscriptions exists on the user object
+        if (Array.isArray(user?.subscriptions) && user.subscriptions.length > 0) {
+            return user.subscriptions.filter(p => p && (p.is_active === true || p.status === 'active'));
+        }
+
+        // If active_subscriptions object exists on user with active keys
+        if (user?.active_subscriptions && typeof user.active_subscriptions === 'object') {
+            const list = [];
+            const subs = user.active_subscriptions;
+            if (subs.business && (subs.business.active || subs.business.plan)) {
+                list.push({
+                    module: 'BOOK',
+                    tier: subs.business.plan || user?.tier || 'STARTER',
+                    daysRemaining: subs.business.expiryDate ? calculateDaysRemaining(subs.business.expiryDate) : (user?.subscription_days_remaining ?? user?.days_remaining ?? 365)
+                });
+            }
+            if (subs.fin_pro && subs.fin_pro.active === true && subs.fin_pro.plan) {
+                list.push({
+                    module: 'FIN-PRO',
+                    tier: subs.fin_pro.plan,
+                    daysRemaining: subs.fin_pro.expiryDate ? calculateDaysRemaining(subs.fin_pro.expiryDate) : (user?.subscription_days_remaining ?? 365)
+                });
+            }
+            if (subs.investor && subs.investor.active === true && subs.investor.plan) {
+                list.push({
+                    module: 'PLD',
+                    tier: subs.investor.plan,
+                    daysRemaining: subs.investor.expiryDate ? calculateDaysRemaining(subs.investor.expiryDate) : (user?.subscription_days_remaining ?? 365)
+                });
+            }
+            if (subs.poster && subs.poster.active === true && subs.poster.plan) {
+                list.push({
+                    module: 'PLD',
+                    tier: subs.poster.plan,
+                    daysRemaining: subs.poster.expiryDate ? calculateDaysRemaining(subs.poster.expiryDate) : 30
+                });
+            }
+            if (list.length > 0) return list;
+        }
+
+        // If user has a singular plan structure on user or business:
+        const activeModule = user?.active_module || 'BOOK';
+        const planTier = user?.subscription_tier || user?.plan_type || user?.tier || business?.plan || 'STARTER';
+
+        // Return ONLY the actual plan the user owns:
+        return [
+            {
+                module: activeModule,
+                tier: planTier,
+                daysRemaining: user?.days_remaining ?? user?.days_left ?? user?.subscription_days_remaining ?? planDaysRemaining ?? 365
+            }
+        ];
+    }, [user, business, planDaysRemaining]);
 
     const getActiveItemFromPath = (path) => {
         if (path.includes('/admin/dashboard')) return 'Admin Console';
@@ -800,6 +862,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 {(!isAdminMode && !isSalesAgentMode) && (
                     <div style={{ margin: '0.25rem 0' }}>
                         <SubscriptionBadgeWidget
+                            plans={userSubscriptions}
                             user={user}
                             selectedPlan={selectedPlan}
                             planDaysRemaining={planDaysRemaining}

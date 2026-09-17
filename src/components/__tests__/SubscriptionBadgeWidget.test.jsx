@@ -115,4 +115,25 @@ describe('SubscriptionBadgeWidget Component', () => {
         expect(screen.getByText('GROWTH')).toBeInTheDocument();
         expect(screen.getByText('346')).toBeInTheDocument();
     });
+
+    it('Strict Scoping: renders ONLY 1 badge for a user with only 1 active plan, ignoring any legacy localStorage keys', () => {
+        localStorage.setItem('cliks_finpro_active', 'true');
+        localStorage.setItem('cliks_investor_active', 'true');
+        localStorage.setItem('cliks_poster_active', 'true');
+
+        const singlePlanUser = {
+            active_plans: [
+                { module: 'BOOK', tier: 'GROWTH', days: 346 }
+            ]
+        };
+
+        render(<SubscriptionBadgeWidget user={singlePlanUser} />);
+
+        expect(screen.getByText('BOOK')).toBeInTheDocument();
+        expect(screen.getByText('GROWTH')).toBeInTheDocument();
+        expect(screen.queryByText('FIN-PRO')).not.toBeInTheDocument();
+        expect(screen.queryByText('PLD')).not.toBeInTheDocument();
+
+        localStorage.clear();
+    });
 });
