@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { pitchesService } from '../services/pitchesService';
-import { useCurrency } from '../context';
+import { useCurrency, useAuth } from '../context';
 import { 
     TrendingUp, 
     ShieldCheck, 
@@ -37,6 +37,7 @@ import { useNavigate } from 'react-router-dom';
 export default function BusinessPitches({ openAuthModal = null }) {
     const navigate = useNavigate();
     const { currency, formatCurrency } = useCurrency();
+    const { user, business } = useAuth();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('directory'); // 'directory' | 'studio' | 'admin'
     const [searchTerm, setSearchTerm] = useState('');
@@ -267,6 +268,9 @@ export default function BusinessPitches({ openAuthModal = null }) {
             return;
         }
 
+        const founderEmail = user?.email || business?.email || user?.settings?.email || formData.founder_email || "";
+        const founderName = user?.name || user?.full_name || business?.name || user?.business_name || formData.business_name || "Innovator Founder";
+
         const payload = {
             title: formData.business_name,
             business_name: formData.business_name,
@@ -280,10 +284,19 @@ export default function BusinessPitches({ openAuthModal = null }) {
             equity_offered: 0,
             use_of_funds: formData.description.trim(),
             pitch_deck_url: formData.pitch_deck_url,
-            founder_phone: formData.founder_phone,
-            founder_email: formData.founder_email,
-            location: formData.location || (cityName ? `${cityName}, ${gpsState}` : 'Chennai, Tamil Nadu')
+            founder_name: founderName,
+            founder_phone: formData.founder_phone || user?.phone || '',
+            founder_email: founderEmail,
+            location: formData.location || (cityName ? `${cityName}, ${gpsState}` : 'Chennai, Tamil Nadu'),
+            created_at: new Date().toISOString()
         };
+
+        // Cache locally for instant availability in Admin Portal / Directory
+        try {
+            const existing = JSON.parse(localStorage.getItem('cliks_submitted_pitches') || '[]');
+            localStorage.setItem('cliks_submitted_pitches', JSON.stringify([payload, ...existing]));
+        } catch (err) {}
+
         createMutation.mutate(payload);
     };
 

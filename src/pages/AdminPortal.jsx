@@ -279,6 +279,13 @@ export default function AdminPortal() {
                 fetchedPitches = Array.isArray(pRes) ? pRes : (Array.isArray(pRes?.data) ? pRes.data : []);
             } catch (err) {}
 
+            try {
+                const localSubmissions = JSON.parse(localStorage.getItem('cliks_submitted_pitches') || '[]');
+                if (Array.isArray(localSubmissions) && localSubmissions.length > 0) {
+                    fetchedPitches = [...localSubmissions, ...fetchedPitches];
+                }
+            } catch (e) {}
+
             const defaultPitches = [
                 {
                     id: 1,
@@ -286,6 +293,7 @@ export default function AdminPortal() {
                     founder_email: 'arun@aeropulse.ai',
                     title: 'AeroPulse AI Drone Logistics',
                     pitch_summary: 'Autonomous middle-mile drone deliveries for medical suppliers across Tier-2 Indian hubs.',
+                    description: 'Autonomous middle-mile drone deliveries for medical suppliers across Tier-2 Indian hubs. Cold-chain vaccine logistics take 14+ hours via congested mountain routes. Heavy-lift autonomous EVTOL drones with real-time temperature telemetry ensure rapid life-saving deliveries.',
                     submitted_date: '2026-09-02',
                     sector: 'Technology',
                     target_funding: 7500000,
@@ -302,6 +310,7 @@ export default function AdminPortal() {
                     founder_email: 'pooja@cleanwave.tech',
                     title: 'CleanWave Industrial Microfiltration',
                     pitch_summary: 'Closed-loop effluent treatment and water recovery modules for textile dyeing units.',
+                    description: 'Closed-loop effluent treatment and water recovery modules for textile dyeing units. Nanofiltration membranes with 94% water recovery and 40% lower OPEX overcome strict zero liquid discharge regulations.',
                     submitted_date: '2026-09-08',
                     sector: 'Manufacturing',
                     target_funding: 12000000,
@@ -318,6 +327,7 @@ export default function AdminPortal() {
                     founder_email: 'rohan@payrural.in',
                     title: 'PayRural Offline Merchant Rail',
                     pitch_summary: 'NFC soundbox and offline UPI mesh protocol for remote agri-markets without cellular grid.',
+                    description: 'NFC soundbox and offline UPI mesh protocol for remote agri-markets without cellular grid. Store-and-forward cryptographically verified offline soundboxes solve transaction drop issues in rural mandis.',
                     submitted_date: '2026-08-28',
                     sector: 'Finance & FinTech',
                     target_funding: 5000000,
@@ -334,6 +344,7 @@ export default function AdminPortal() {
                     founder_email: 'sneha@mediguard.co',
                     title: 'MediGuard Cold-Chain Sensor Mesh',
                     pitch_summary: 'BLE ambient data loggers with automated regulatory audit compliance reports.',
+                    description: 'BLE ambient data loggers with automated regulatory audit compliance reports. Tamper-proof BLE tags syncing with Clicks Business books automatically prevent pharma batch spoilage.',
                     submitted_date: '2026-09-10',
                     sector: 'Healthcare',
                     target_funding: 3500000,
@@ -350,6 +361,7 @@ export default function AdminPortal() {
                     founder_email: 'vikram@krishidhan.agri',
                     title: 'KrishiDhan Micro-Warehouse Network',
                     pitch_summary: 'Modular climate-controlled grain silos with warehouse receipt collateralization.',
+                    description: 'Modular climate-controlled grain silos with warehouse receipt collateralization. Decentralized IoT solar-cooled storage units prevent post-harvest grain wastage exceeding 18% annually.',
                     submitted_date: '2026-07-15',
                     sector: 'Other',
                     target_funding: 9000000,
@@ -365,21 +377,32 @@ export default function AdminPortal() {
             if (fetchedPitches.length > 0) {
                 const formattedApiPitches = fetchedPitches.map((p, idx) => ({
                     id: p.id || 50 + idx,
-                    founder_name: p.founder_name || p.user_biz_name || 'Innovator Founder',
-                    founder_email: p.founder_email || 'founder@cliks.com',
+                    founder_name: p.founder_name || p.user_biz_name || p.business_name || 'Innovator Founder',
+                    founder_email: p.founder_email || p.email || 'founder@cliks.com',
                     title: p.business_name || p.title || 'Venture Title',
                     pitch_summary: p.headline || p.problem || 'Innovative scalable enterprise solution.',
-                    submitted_date: p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : '2026-09-01',
-                    sector: p.industry || 'Technology',
-                    target_funding: Number(p.funding_target) || 5000000,
+                    description: p.description || p.use_of_funds || p.headline || 'Comprehensive venture roadmap and operational plan.',
+                    submitted_date: p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : '2026-09-17',
+                    sector: p.sector || p.industry || 'Technology',
+                    target_funding: Number(p.funding_target) || 0,
                     currency: 'INR',
-                    equity_offered: Number(p.equity_offered) || 10,
+                    equity_offered: Number(p.equity_offered) || 0,
                     status: p.listing_status === 'ACTIVE' ? 'Published' : (p.is_verified ? 'Published' : 'Under Review'),
                     pitch_deck_url: p.pitch_deck_url || '',
                     problem: p.problem || 'Market efficiency challenge in supply chain.',
                     solution: p.solution || 'Direct AI-powered automated workflow platform.'
                 }));
-                setPitchesList([...formattedApiPitches, ...defaultPitches]);
+                // Deduplicate so submitted pitch appears at the top
+                const deduped = [];
+                const seen = new Set();
+                formattedApiPitches.forEach(item => {
+                    const key = `${item.title}-${item.founder_email}`;
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        deduped.push(item);
+                    }
+                });
+                setPitchesList([...deduped, ...defaultPitches]);
             } else {
                 setPitchesList(defaultPitches);
             }
@@ -1755,10 +1778,10 @@ export default function AdminPortal() {
                                     <tr style={{ background: '#F8FAFC', borderBottom: '1.5px solid #E2E8F0', color: '#475569', fontWeight: '800' }}>
                                         <th style={{ padding: '0.85rem 1rem' }}>Founder Name</th>
                                         <th style={{ padding: '0.85rem 1rem' }}>Startup / Venture Title</th>
-                                        <th style={{ padding: '0.85rem 1rem', width: '28%' }}>Pitch Summary</th>
+                                        <th style={{ padding: '0.85rem 1rem', width: '22%' }}>Pitch Summary</th>
                                         <th style={{ padding: '0.85rem 1rem' }}>Submitted Date</th>
                                         <th style={{ padding: '0.85rem 1rem' }}>Sector</th>
-                                        <th style={{ padding: '0.85rem 1rem' }}>Target Funding</th>
+                                        <th style={{ padding: '0.85rem 1rem', width: '26%' }}>Description</th>
                                         <th style={{ padding: '0.85rem 1rem' }}>Review Status</th>
                                         <th style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>Action</th>
                                     </tr>
@@ -1775,7 +1798,7 @@ export default function AdminPortal() {
                                             <tr key={pitch.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                 <td style={{ padding: '0.85rem 1rem' }}>
                                                     <div style={{ fontWeight: '800', color: '#0F172A' }}>{pitch.founder_name}</div>
-                                                    <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{pitch.founder_email}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#1E40AF', fontWeight: '600' }}>{pitch.founder_email}</div>
                                                 </td>
                                                 <td style={{ padding: '0.85rem 1rem', fontWeight: '750', color: '#1E3A8A' }}>
                                                     {pitch.title}
@@ -1798,8 +1821,10 @@ export default function AdminPortal() {
                                                         {pitch.sector}
                                                     </span>
                                                 </td>
-                                                <td style={{ padding: '0.85rem 1rem', fontWeight: '850', color: '#0F172A', whiteSpace: 'nowrap' }}>
-                                                    ₹{pitch.target_funding.toLocaleString()} ({pitch.equity_offered}%)
+                                                <td style={{ padding: '0.85rem 1rem', color: '#334155', lineHeight: 1.4 }}>
+                                                    <div style={{ maxHeight: '4.5rem', overflowY: 'auto', fontSize: '0.8rem', color: '#334155' }}>
+                                                        {pitch.description || pitch.pitch_summary || 'No description provided.'}
+                                                    </div>
                                                 </td>
                                                 <td style={{ padding: '0.85rem 1rem' }}>
                                                     <span style={{
