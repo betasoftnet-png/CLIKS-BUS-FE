@@ -335,24 +335,29 @@ export default function BusinessPitches({ openAuthModal = null }) {
     ];
 
     const getStatusBadge = (status) => {
-        const normalized = (status || '').toUpperCase();
-        if (normalized === 'ACCEPTED' || normalized === 'PUBLISHED' || normalized === 'ACTIVE' || normalized === 'APPROVED') {
+        const normalized = (status || '').toLowerCase();
+        const isAccepted = normalized === 'published' || normalized === 'accepted' || normalized === 'approved' || normalized === 'active';
+        if (isAccepted) {
             return (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#dcfce7', color: '#15803d', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' }}>
-                    <CheckCircle2 size={13} /> Accepted / Published
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                    <svg className="w-3.5 h-3.5 text-emerald-600" style={{ width: '14px', height: '14px', color: '#059669' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    admin accepted your idea
                 </span>
             );
         }
-        if (normalized === 'REJECTED' || normalized === 'NEEDS REVISION') {
+        if (normalized === 'rejected' || normalized === 'needs revision') {
             return (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fee2e2', color: '#b91c1c', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' }}>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
                     <AlertTriangle size={13} /> Needs Revision
                 </span>
             );
         }
         return (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef3c7', color: '#b45309', padding: '0.25rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' }}>
-                <Clock size={13} /> Pending for Admin Review
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" style={{ width: '8px', height: '8px', borderRadius: '9999px', background: '#fbbf24', display: 'inline-block' }}></span>
+                Pending for Admin Review
             </span>
         );
     };
@@ -736,7 +741,37 @@ export default function BusinessPitches({ openAuthModal = null }) {
                                 >
                                     <div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                            {getStatusBadge(pitch.status)}
+                                            {/* Dynamic Status Badge */}
+                                            {(() => {
+                                                const status = (pitch.review_status || pitch.status || '').toLowerCase();
+                                                const isAccepted = status === 'published' || status === 'accepted' || status === 'approved' || status === 'active';
+
+                                                if (isAccepted) {
+                                                    return (
+                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                            <svg className="w-3.5 h-3.5 text-emerald-600" style={{ width: '14px', height: '14px', color: '#059669' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            admin accepted your idea
+                                                        </span>
+                                                    );
+                                                }
+
+                                                if (status === 'rejected' || status === 'needs revision') {
+                                                    return (
+                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                            <AlertTriangle size={13} /> Needs Revision
+                                                        </span>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" style={{ width: '8px', height: '8px', borderRadius: '9999px', background: '#fbbf24', display: 'inline-block' }}></span>
+                                                        Pending for Admin Review
+                                                    </span>
+                                                );
+                                            })()}
                                             <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
                                                 {pitch.sector || 'Technology'}
                                             </span>
