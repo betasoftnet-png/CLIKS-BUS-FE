@@ -40,8 +40,8 @@ export default function BusinessPitches({ openAuthModal = null }) {
     const { user, business } = useAuth();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('directory'); // 'directory' | 'studio' | 'admin'
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedSector, setSelectedSector] = useState('ALL');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedSector, setSelectedSector] = useState('All Sectors');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showFounderAuthModal, setShowFounderAuthModal] = useState(openAuthModal === 'founder');
     const [showInvestorAuthModal, setShowInvestorAuthModal] = useState(openAuthModal === 'investor');
@@ -131,14 +131,54 @@ export default function BusinessPitches({ openAuthModal = null }) {
 
     // ── Queries & Mutations ──────────────────────────────────────────────────
     const { data: rawMarketplacePitches = [], isLoading: isMarketplaceLoading } = useQuery({
-        queryKey: ['marketplace-pitches', searchTerm, selectedSector],
-        queryFn: () => pitchesService.getMarketplacePitches({ search: searchTerm, sector: selectedSector })
+        queryKey: ['marketplace-pitches', searchQuery, selectedSector],
+        queryFn: () => pitchesService.getMarketplacePitches({ search: searchQuery, sector: selectedSector })
     });
     const allMarketplacePitches = Array.isArray(rawMarketplacePitches) ? rawMarketplacePitches : (rawMarketplacePitches?.pitches || rawMarketplacePitches?.data || []);
-    // Filter deals shown in "Active Deals Marketplace" (Only Admin-approved / published deals)
+    
+    // Filter deals shown in "Active Deals Marketplace"
+    // 1. Only Admin-approved / published deals
+    // 2. Sector Filter (matches selectedSector when not 'All Sectors' / 'ALL')
+    // 3. Search Query Filter (matches venture title, sector, headline, description, keywords)
     const marketplacePitches = allMarketplacePitches.filter(deal => {
         const status = (deal.review_status || deal.status || '').toLowerCase();
-        return status === 'published' || status === 'accepted' || status === 'approved';
+        const isApproved = status === 'published' || status === 'accepted' || status === 'approved';
+        if (!isApproved) return false;
+
+        // Sector Filter
+        if (selectedSector && selectedSector !== 'All Sectors' && selectedSector !== 'ALL') {
+            const dealSector = (deal.sector || deal.industry || '').trim().toLowerCase();
+            const targetSector = selectedSector.trim().toLowerCase();
+            if (dealSector !== targetSector && !dealSector.includes(targetSector)) {
+                return false;
+            }
+        }
+
+        // Search Query Filter
+        if (searchQuery && searchQuery.trim()) {
+            const q = searchQuery.trim().toLowerCase();
+            const searchableText = [
+                deal.venture_name,
+                deal.title,
+                deal.company_name,
+                deal.business_name,
+                deal.sector,
+                deal.industry,
+                deal.headline_pitch,
+                deal.headline,
+                deal.pitch_summary,
+                deal.description,
+                deal.problem,
+                deal.solution,
+                deal.location
+            ].filter(Boolean).join(' ').toLowerCase();
+
+            if (!searchableText.includes(q)) {
+                return false;
+            }
+        }
+
+        return true;
     });
 
     const { data: rawStudioPitches = [], isLoading: isStudioLoading } = useQuery({
@@ -330,7 +370,7 @@ export default function BusinessPitches({ openAuthModal = null }) {
     };
 
     const industryOptions = [
-        'ALL', 'Technology', 'Retail & Commerce', 'Healthcare', 'Finance & FinTech', 
+        'All Sectors', 'Technology', 'Retail & Commerce', 'Healthcare', 'Finance & FinTech', 
         'Manufacturing', 'Food & Beverage', 'Real Estate', 'Other'
     ];
 
@@ -528,7 +568,7 @@ export default function BusinessPitches({ openAuthModal = null }) {
             <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', gap: '0.25rem', background: '#e2e8f0', padding: '0.25rem', borderRadius: '12px' }}>
                     <button 
-                        onClick={() => { setActiveTab('directory'); setSearchTerm(''); }}
+                        onClick={() => { setActiveTab('directory'); setSearchQuery(''); }}
                         style={{
                             padding: '0.5rem 1.25rem',
                             borderRadius: '9px',
@@ -544,7 +584,7 @@ export default function BusinessPitches({ openAuthModal = null }) {
                         Active Deals Marketplace
                     </button>
                     <button 
-                        onClick={() => { setActiveTab('studio'); setSearchTerm(''); }}
+                        onClick={() => { setActiveTab('studio'); setSearchQuery(''); }}
                         style={{
                             padding: '0.5rem 1.25rem',
                             borderRadius: '9px',
@@ -561,7 +601,7 @@ export default function BusinessPitches({ openAuthModal = null }) {
                     </button>
                     {(openAuthModal === 'admin' || activeTab === 'admin') && (
                         <button 
-                            onClick={() => { setActiveTab('admin'); setSearchTerm(''); }}
+                            onClick={() => { setActiveTab('admin'); setSearchQuery(''); }}
                             style={{
                                 padding: '0.5rem 1.25rem',
                                 borderRadius: '9px',
@@ -599,8 +639,8 @@ export default function BusinessPitches({ openAuthModal = null }) {
                     <input 
                         type="text" 
                         placeholder="Search deals by title, sector, problem, or keywords..." 
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         style={{
                             width: '100%',
                             padding: '0.65rem 1rem 0.65rem 2.5rem',
@@ -639,10 +679,27 @@ export default function BusinessPitches({ openAuthModal = null }) {
                     {isMarketplaceLoading ? (
                         <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>Loading verified SME deal marketplace...</div>
                     ) : marketplacePitches.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '4rem', background: 'white', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                            <Building size={44} style={{ margin: '0 auto 0.75rem', color: '#94a3b8' }} />
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#334155' }}>No Active Published Deals</h3>
-                            <p style={{ color: '#64748b', fontSize: '0.875rem' }}>Only Admin-accepted pitches appear in the active marketplace.</p>
+                        <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'white', borderRadius: '16px', border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+                                <Building size={28} style={{ color: '#94a3b8' }} />
+                            </div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b', marginBottom: '0.5rem' }}>
+                                Not Available
+                            </h3>
+                            <p style={{ color: '#64748b', fontSize: '0.875rem', maxWidth: '420px', margin: '0 auto 1.25rem' }}>
+                                {searchQuery.trim() || (selectedSector && selectedSector !== 'All Sectors' && selectedSector !== 'ALL')
+                                    ? `No matching deals found for your current filter criteria${selectedSector && selectedSector !== 'All Sectors' && selectedSector !== 'ALL' ? ` in ${selectedSector}` : ''}${searchQuery.trim() ? ` matching "${searchQuery.trim()}"` : ''}. Try resetting your search or selecting another sector.`
+                                    : 'No active published deals are currently available in the marketplace.'}
+                            </p>
+                            {(searchQuery.trim() || (selectedSector && selectedSector !== 'All Sectors' && selectedSector !== 'ALL')) && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setSearchQuery(''); setSelectedSector('All Sectors'); }}
+                                    style={{ padding: '0.5rem 1.25rem', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '700', color: '#334155', cursor: 'pointer' }}
+                                >
+                                    Reset Filters
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
@@ -919,7 +976,7 @@ export default function BusinessPitches({ openAuthModal = null }) {
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#475569', marginBottom: '0.4rem' }}>Sector *</label>
                                     <select value={formData.industry} onChange={e => setFormData({ ...formData, industry: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', background: 'white', boxSizing: 'border-box' }}>
-                                        {industryOptions.filter(o => o !== 'ALL').map(i => <option key={i} value={i}>{i}</option>)}
+                                        {industryOptions.filter(o => o !== 'ALL' && o !== 'All Sectors').map(i => <option key={i} value={i}>{i}</option>)}
                                     </select>
                                 </div>
                             </div>
