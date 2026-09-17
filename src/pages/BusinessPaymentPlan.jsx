@@ -161,34 +161,88 @@ const BusinessPaymentPlan = () => {
         }
     };
 
-    const filteredPlans = plans.filter(p => {
-        const matchesSearch = !searchTerm || 
-                             p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             p.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             p.person_name?.toLowerCase().includes(searchTerm.toLowerCase());
-        const planType = (p.type || p.direction || '').toUpperCase();
-        const active = (activeFilter || 'ALL').toUpperCase();
-        const matchesType = active === 'ALL' || planType === active;
-        return matchesSearch && matchesType;
-    });
+    const metrics = React.useMemo(() => {
+        const schedulesList = plans || [];
+        let totalScheduled = schedulesList.length;
+        let toSendTotal = 0;
+        let toReceiveTotal = 0;
+        let pendingCount = 0;
+
+        schedulesList.forEach((item) => {
+            // 1. Sanitize amount safely
+            const rawAmt = item.amount ?? item.value ?? item.total_amount ?? 0;
+            const amount = typeof rawAmt === 'string' 
+                ? parseFloat(rawAmt.replace(/[^0-9.]/g, '')) || 0 
+                : Number(rawAmt) || 0;
+
+            // 2. Normalize direction / transaction type
+            const direction = String(item.direction || item.type || item.entry_type || item.flow || item.category || '').toUpperCase();
+            const isReceive = 
+                direction === 'RECEIVE' || 
+                direction === 'INWARD' || 
+                direction === 'INCOMING' || 
+                direction === 'IN' ||
+                item.is_receive === true ||
+                String(item.flow || '').toLowerCase() === 'in';
+
+            const isSend = 
+                direction === 'SEND' || 
+                direction === 'OUTWARD' || 
+                direction === 'OUTGOING' || 
+                direction === 'OUT' ||
+                item.is_send === true ||
+                String(item.flow || '').toLowerCase() === 'out';
+
+            // 3. Status checks
+            const status = String(item.status || '').toUpperCase();
+            if (status === 'PENDING') {
+                pendingCount += 1;
+            }
+
+            // 4. Accumulate totals
+            if (isReceive) {
+                toReceiveTotal += amount;
+            } else if (isSend) {
+                toSendTotal += amount;
+            }
+        });
+
+        return {
+            totalScheduled,
+            toSendTotal,
+            toReceiveTotal,
+            pendingCount
+        };
+    }, [plans]);
 
     const stats = {
-        totalScheduled: plans.length,
-        toSend: plans
-            .filter(p => {
-                const dir = (p.type || p.direction || '').toUpperCase();
-                const isNotPaid = (p.status || '').toLowerCase() !== 'paid';
-                return dir === 'SEND' && isNotPaid;
-            })
-            .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0),
-        toReceive: plans
-            .filter(p => {
-                const dir = (p.type || p.direction || '').toUpperCase();
-                return dir === 'RECEIVE';
-            })
-            .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0),
-        pendingCount: plans.filter(p => (p.status || '').toLowerCase() !== 'paid').length
+        totalScheduled: metrics.totalScheduled,
+        toSend: metrics.toSendTotal,
+        toSendTotal: metrics.toSendTotal,
+        toReceive: metrics.toReceiveTotal,
+        toReceiveTotal: metrics.toReceiveTotal,
+        pendingCount: metrics.pendingCount
     };
+
+    const filteredPlans = React.useMemo(() => {
+        const schedulesList = plans || [];
+        return schedulesList.filter(p => {
+            const matchesSearch = !searchTerm || 
+                p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                p.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                p.person_name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+            const direction = String(p.direction || p.type || p.entry_type || p.flow || '').toUpperCase();
+            const isReceive = direction === 'RECEIVE' || direction === 'INWARD' || direction === 'INCOMING' || p.is_receive === true || String(p.flow || '').toLowerCase() === 'in';
+            const isSend = direction === 'SEND' || direction === 'OUTWARD' || direction === 'OUTGOING' || p.is_send === true || String(p.flow || '').toLowerCase() === 'out';
+
+            const active = (activeFilter || 'ALL').toUpperCase();
+            if (active === 'ALL') return matchesSearch;
+            if (active === 'SEND') return matchesSearch && isSend;
+            if (active === 'RECEIVE') return matchesSearch && isReceive;
+            return matchesSearch;
+        });
+    }, [plans, searchTerm, activeFilter]);
 
     return (
         <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
@@ -305,16 +359,19 @@ const BusinessPaymentPlan = () => {
                         </div>
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
-                            {filteredPlans.map(plan => (
+                            {filteredPlans.map(plan => {
+                                const direction = String(plan.direction || plan.type || plan.entry_type || '').toUpperCase();
+                                const isSend = direction === 'SEND' || direction === 'OUTWARD' || direction === 'OUTGOING' || plan.is_send === true || String(plan.flow || '').toLowerCase() === 'out';
+                                return (
                                 <div key={plan.id} style={{ padding: '1.25rem', background: '#F8FAFC', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                                         <div style={{ 
                                             width: '50px', height: '50px', borderRadius: '15px', 
-                                            background: plan.type === 'SEND' ? '#FEE2E2' : '#DCF2E4',
-                                            color: plan.type === 'SEND' ? '#EF4444' : '#1B6B3A',
+                                            background: isSend ? '#FEE2E2' : '#DCF2E4',
+                                            color: isSend ? '#EF4444' : '#1B6B3A',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center'
                                         }}>
-                                            {plan.type === 'SEND' ? <ArrowUpRight size={24} /> : <ArrowDownRight size={24} />}
+                                            {isSend ? <ArrowUpRight size={24} /> : <ArrowDownRight size={24} />}
                                         </div>
                                         <div>
                                             <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#1E293B' }}>{plan.name}</h4>
@@ -336,7 +393,7 @@ const BusinessPaymentPlan = () => {
                                     <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '2rem' }}>
                                         <div>
                                             <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Amount</p>
-                                            <h4 style={{ margin: '0.1rem 0 0 0', fontSize: '1.25rem', fontWeight: '900', color: plan.type === 'SEND' ? '#EF4444' : '#10B981' }}>
+                                            <h4 style={{ margin: '0.1rem 0 0 0', fontSize: '1.25rem', fontWeight: '900', color: isSend ? '#EF4444' : '#10B981' }}>
                                                 {formatCurrency(plan.amount)}
                                             </h4>
                                         </div>
@@ -360,7 +417,8 @@ const BusinessPaymentPlan = () => {
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                            );
+                        })}
                         </div>
                     )}
                 </div>

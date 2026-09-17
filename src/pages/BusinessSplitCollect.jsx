@@ -87,6 +87,8 @@ const BusinessSplitCollect = () => {
         shares: {} // Custom shares per participant
     });
 
+    const [previewAttachment, setPreviewAttachment] = useState(null);
+
     // Fetch splits from backend on mount
     useEffect(() => {
         const loadSplits = async () => {
@@ -1245,23 +1247,46 @@ const BusinessSplitCollect = () => {
                                                                         <Calendar size={12} /> {e.date}
                                                                     </span>
                                                                     {e.attachment && (() => {
-                                                                        const serverBaseUrl = (config.api.baseUrl || '').replace('/api/v1', '');
-                                                                        const fileUrl = `${serverBaseUrl}/uploads/${e.attachment}`;
+                                                                        const cleanAttachment = e.attachment.startsWith('/') ? e.attachment : `/uploads/${e.attachment}`;
+                                                                        const serverBaseUrl = (config.api?.baseUrl || '').replace(/\/api\/v1\/?$/, '');
+                                                                        const host = serverBaseUrl || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin);
+                                                                        const fileUrl = e.attachment.startsWith('http') ? e.attachment : `${host}${cleanAttachment}`;
+                                                                        const isPdf = e.attachment.toLowerCase().endsWith('.pdf');
+                                                                        const isImage = /\.(jpe?g|png|webp|gif|svg)$/i.test(e.attachment);
                                                                         return (
                                                                             <>
                                                                                 <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#CBD5E1' }} />
-                                                                                <a 
-                                                                                    href={fileUrl}
-                                                                                    target="_blank"
-                                                                                    rel="noopener noreferrer"
-                                                                                    title={`View Document: ${e.attachment}`}
-                                                                                    onClick={(evt) => evt.stopPropagation()}
-                                                                                    style={{ textDecoration: 'none', fontSize: '0.65rem', fontWeight: '850', color: '#2563EB', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '5px', display: 'inline-flex', alignItems: 'center', gap: '3px', transition: 'background 0.2s' }}
+                                                                                <button 
+                                                                                    type="button"
+                                                                                    title={`Preview Document: ${e.attachment}`}
+                                                                                    onClick={(evt) => {
+                                                                                        evt.stopPropagation();
+                                                                                        setPreviewAttachment({
+                                                                                            url: fileUrl,
+                                                                                            name: e.attachment,
+                                                                                            isPdf,
+                                                                                            isImage
+                                                                                        });
+                                                                                    }}
+                                                                                    style={{ 
+                                                                                        border: '1px solid #BFDBFE', 
+                                                                                        fontSize: '0.65rem', 
+                                                                                        fontWeight: '850', 
+                                                                                        color: '#2563EB', 
+                                                                                        background: '#EFF6FF', 
+                                                                                        padding: '2px 8px', 
+                                                                                        borderRadius: '6px', 
+                                                                                        display: 'inline-flex', 
+                                                                                        alignItems: 'center', 
+                                                                                        gap: '4px', 
+                                                                                        cursor: 'pointer', 
+                                                                                        transition: 'all 0.2s' 
+                                                                                    }}
                                                                                     onMouseOver={(evt) => evt.currentTarget.style.background = '#DBEAFE'}
                                                                                     onMouseOut={(evt) => evt.currentTarget.style.background = '#EFF6FF'}
                                                                                 >
-                                                                                    <FileText size={10} /> {e.attachment.length > 20 ? e.attachment.substring(0, 17) + '...' : e.attachment}
-                                                                                </a>
+                                                                                    <FileText size={11} /> {e.attachment.length > 20 ? e.attachment.substring(0, 17) + '...' : e.attachment}
+                                                                                </button>
                                                                             </>
                                                                         );
                                                                     })()}
@@ -1593,12 +1618,48 @@ const BusinessSplitCollect = () => {
                                         onMouseOver={(e) => e.currentTarget.style.borderColor = '#1B6B3A'}
                                         onMouseOut={(e) => e.currentTarget.style.borderColor = '#CBD5E1'}
                                     >
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                                            <Upload size={16} />
-                                            <span style={{ fontSize: '0.78rem', fontWeight: '750' }}>
-                                                {expenseForm.attachmentName ? expenseForm.attachmentName : 'Click to upload invoice / receipt copy'}
-                                            </span>
-                                        </div>
+                                        {expenseForm.attachmentName ? (
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <FileText size={16} color="#2563EB" />
+                                                <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1E293B' }}>
+                                                    {expenseForm.attachmentName}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={(ev) => {
+                                                        ev.stopPropagation();
+                                                        const att = expenseForm.attachmentName;
+                                                        const cleanAtt = att.startsWith('/') ? att : `/uploads/${att}`;
+                                                        const serverBaseUrl = (config.api?.baseUrl || '').replace(/\/api\/v1\/?$/, '');
+                                                        const host = serverBaseUrl || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin);
+                                                        const fileUrl = att.startsWith('http') ? att : `${host}${cleanAtt}`;
+                                                        setPreviewAttachment({
+                                                            url: fileUrl,
+                                                            name: att,
+                                                            isPdf: att.toLowerCase().endsWith('.pdf'),
+                                                            isImage: /\.(jpe?g|png|webp|gif|svg)$/i.test(att)
+                                                        });
+                                                    }}
+                                                    style={{
+                                                        background: '#EFF6FF',
+                                                        border: '1px solid #BFDBFE',
+                                                        borderRadius: '6px',
+                                                        padding: '2px 8px',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: '800',
+                                                        color: '#2563EB',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    Preview
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                                <Upload size={16} />
+                                                <span style={{ fontSize: '0.78rem', fontWeight: '750' }}>Click to upload invoice / receipt copy</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1704,6 +1765,150 @@ const BusinessSplitCollect = () => {
                                     {editingExpenseId ? 'Save Changes' : 'Log Expense'}
                                 </button>
                             </form>
+                        </Motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* ──────── MODAL: ATTACHMENT PREVIEW ──────── */}
+            <AnimatePresence>
+                {previewAttachment && (
+                    <div 
+                        style={{ 
+                            position: 'fixed', 
+                            inset: 0, 
+                            background: 'rgba(15, 23, 42, 0.75)', 
+                            backdropFilter: 'blur(8px)', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            zIndex: 2000,
+                            padding: '1.5rem'
+                        }}
+                        onClick={() => setPreviewAttachment(null)}
+                    >
+                        <Motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ 
+                                background: 'white', 
+                                width: '100%', 
+                                maxWidth: '850px', 
+                                maxHeight: '90vh', 
+                                borderRadius: '24px', 
+                                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                overflow: 'hidden' 
+                            }}
+                        >
+                            {/* Header */}
+                            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                    <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <FileText size={18} />
+                                    </div>
+                                    <div>
+                                        <h3 style={{ fontSize: '0.95rem', fontWeight: '850', color: '#1E293B', margin: 0, maxWidth: '400px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {previewAttachment.name}
+                                        </h3>
+                                        <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '700' }}>
+                                            {previewAttachment.isPdf ? 'PDF Document Preview' : (previewAttachment.isImage ? 'Image Preview' : 'Document Attachment')}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <a 
+                                        href={previewAttachment.url} 
+                                        download={previewAttachment.name}
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        style={{ 
+                                            display: 'inline-flex', 
+                                            alignItems: 'center', 
+                                            gap: '4px', 
+                                            padding: '0.45rem 0.85rem', 
+                                            borderRadius: '10px', 
+                                            background: '#F1F5F9', 
+                                            color: '#334155', 
+                                            textDecoration: 'none', 
+                                            fontSize: '0.78rem', 
+                                            fontWeight: '800',
+                                            border: '1px solid #CBD5E1'
+                                        }}
+                                    >
+                                        <Download size={14} /> Download
+                                    </a>
+                                    <button 
+                                        onClick={() => setPreviewAttachment(null)}
+                                        style={{ 
+                                            background: '#F1F5F9', 
+                                            border: 'none', 
+                                            borderRadius: '10px', 
+                                            padding: '0.45rem', 
+                                            cursor: 'pointer', 
+                                            color: '#475569',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Viewer */}
+                            <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9', minHeight: '380px' }}>
+                                {previewAttachment.isImage ? (
+                                    <img 
+                                        src={previewAttachment.url} 
+                                        alt={previewAttachment.name} 
+                                        style={{ maxWidth: '100%', maxHeight: '72vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', background: 'white' }} 
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                            const fb = document.getElementById('preview-fallback-box');
+                                            if (fb) fb.style.display = 'flex';
+                                        }}
+                                    />
+                                ) : previewAttachment.isPdf ? (
+                                    <iframe 
+                                        src={previewAttachment.url} 
+                                        title={previewAttachment.name}
+                                        style={{ width: '100%', height: '70vh', border: 'none', borderRadius: '12px', background: 'white' }}
+                                    />
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: '2rem' }}>
+                                        <FileText size={48} color="#64748B" style={{ marginBottom: '1rem' }} />
+                                        <p style={{ fontWeight: '800', color: '#1E293B', marginBottom: '0.5rem' }}>{previewAttachment.name}</p>
+                                        <a 
+                                            href={previewAttachment.url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            download={previewAttachment.name}
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '0.6rem 1.25rem', background: '#2563EB', color: 'white', borderRadius: '10px', textDecoration: 'none', fontWeight: '850', fontSize: '0.85rem' }}
+                                        >
+                                            <Download size={16} /> Download File
+                                        </a>
+                                    </div>
+                                )}
+                                <div id="preview-fallback-box" style={{ display: 'none', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
+                                    <AlertCircle size={40} color="#EF4444" style={{ marginBottom: '0.75rem' }} />
+                                    <p style={{ fontWeight: '800', color: '#1E293B', marginBottom: '0.25rem' }}>Unable to preview file inline</p>
+                                    <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '1rem' }}>The file may not be directly viewable or requires direct download.</p>
+                                    <a 
+                                        href={previewAttachment.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        download={previewAttachment.name}
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '0.5rem 1rem', background: '#2563EB', color: 'white', borderRadius: '10px', textDecoration: 'none', fontWeight: '800', fontSize: '0.8rem' }}
+                                    >
+                                        <Download size={14} /> Download Attachment
+                                    </a>
+                                </div>
+                            </div>
                         </Motion.div>
                     </div>
                 )}
