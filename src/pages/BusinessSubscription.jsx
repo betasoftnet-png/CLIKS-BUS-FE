@@ -791,6 +791,31 @@ const BusinessSubscription = () => {
                                 >
                                     Currently Active Plan
                                 </button>
+                            ) : activeCategory === 'betaclub' ? (
+                                <button 
+                                    type="button"
+                                    disabled
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                    }}
+                                    className="w-full py-2.5 px-4 border border-purple-400 text-purple-600 bg-white rounded-xl text-sm font-semibold cursor-default select-none transition-none shadow-none"
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '0.85rem', 
+                                        borderRadius: '16px', 
+                                        border: `1px solid ${tier.color || '#a855f7'}`,
+                                        background: 'white',
+                                        color: tier.color || '#7c3aed',
+                                        fontWeight: '800',
+                                        cursor: 'default',
+                                        pointerEvents: 'none',
+                                        userSelect: 'none',
+                                        marginBottom: '1.25rem'
+                                    }}
+                                >
+                                    Upgrade Plan
+                                </button>
                             ) : (
                                 <button 
                                     className="upgrade-btn"
