@@ -295,6 +295,34 @@ const BusinessSplitCollect = () => {
         reader.readAsDataURL(file);
     };
 
+    const handleAmountChange = (e) => {
+        let val = e.target.value;
+
+        // Remove non-numeric characters except single decimal point
+        val = val.replace(/[^0-9.]/g, '');
+
+        const parts = val.split('.');
+        if (parts.length > 2) {
+            val = parts[0] + '.' + parts.slice(1).join('');
+        }
+
+        // Enforce max 12 digits on integer part
+        let integerPart = parts[0] || '';
+        if (integerPart.length > 12) {
+            integerPart = integerPart.slice(0, 12);
+        }
+
+        // Cap decimals to 2 places
+        let decimalPart = parts[1] !== undefined ? '.' + parts[1].slice(0, 2) : '';
+
+        const cleanAmount = integerPart + decimalPart;
+
+        setExpenseForm((prev) => ({
+            ...prev,
+            amount: cleanAmount
+        }));
+    };
+
     const handleAddExpense = async (e) => {
         e.preventDefault();
         if (!expenseForm.title.trim()) return alert('Please enter expense title.');
@@ -1516,10 +1544,11 @@ const BusinessSplitCollect = () => {
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>Amount ({activeSplit.currencySymbol})</label>
                                         <input 
                                             required
-                                            type="number" 
+                                            type="text" 
+                                            inputMode="decimal"
                                             placeholder="0.00"
                                             value={expenseForm.amount}
-                                            onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                                            onChange={handleAmountChange}
                                             style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box', fontWeight: '900', color: '#1B6B3A', fontSize: '0.95rem' }}
                                         />
                                     </div>
@@ -1618,22 +1647,29 @@ const BusinessSplitCollect = () => {
                                                     
                                                     {expenseForm.splitType === 'equal' ? (
                                                         <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#1E293B' }}>
-                                                            {activeSplit.currencySymbol}{Math.round(equalShare * 100) / 100}
+                                                            {activeSplit.currencySymbol}{Number.isFinite(equalShare) ? equalShare.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                                                         </span>
                                                     ) : (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                             <span style={{ fontSize: '0.85rem', fontWeight: '850', color: '#64748B' }}>{activeSplit.currencySymbol}</span>
                                                             <input 
                                                                 required
-                                                                type="number"
+                                                                type="text"
+                                                                inputMode="decimal"
                                                                 placeholder="0.00"
                                                                 value={expenseForm.shares[p] || ''}
                                                                 onChange={(e) => {
+                                                                    let val = e.target.value.replace(/[^0-9.]/g, '');
+                                                                    const parts = val.split('.');
+                                                                    if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+                                                                    let intPart = parts[0] || '';
+                                                                    if (intPart.length > 12) intPart = intPart.slice(0, 12);
+                                                                    let decPart = parts[1] !== undefined ? '.' + parts[1].slice(0, 2) : '';
                                                                     const newShares = { ...expenseForm.shares };
-                                                                    newShares[p] = e.target.value;
+                                                                    newShares[p] = intPart + decPart;
                                                                     setExpenseForm({ ...expenseForm, shares: newShares });
                                                                 }}
-                                                                style={{ width: '80px', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontWeight: '900', textAlign: 'right', fontSize: '0.82rem', color: '#1B6B3A' }}
+                                                                style={{ width: '100px', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontWeight: '900', textAlign: 'right', fontSize: '0.82rem', color: '#1B6B3A' }}
                                                             />
                                                         </div>
                                                     )}
@@ -1653,7 +1689,7 @@ const BusinessSplitCollect = () => {
                                                 <span style={{ fontSize: '0.75rem', fontWeight: '800' }}>
                                                     {Math.abs(difference) < 0.1 
                                                         ? 'All allocations match total perfectly!' 
-                                                        : `Allocated: ${activeSplit.currencySymbol}${sum.toFixed(2)} (${difference > 0 ? 'Remaining' : 'Over'}: ${activeSplit.currencySymbol}${Math.abs(difference).toFixed(2)})`
+                                                        : `Allocated: ${activeSplit.currencySymbol}${Number.isFinite(sum) ? sum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'} (${difference > 0 ? 'Remaining' : 'Over'}: ${activeSplit.currencySymbol}${Number.isFinite(difference) ? Math.abs(difference).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'})`
                                                     }
                                                 </span>
                                             </div>
