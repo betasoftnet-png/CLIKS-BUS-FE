@@ -92,6 +92,7 @@ export default function BusinessPitches({ openAuthModal = null }) {
         business_name: '',
         industry: 'Technology',
         headline: '',
+        description: '',
         funding_target: '',
         equity_offered: '',
         use_of_funds: '',
@@ -169,6 +170,7 @@ export default function BusinessPitches({ openAuthModal = null }) {
                 business_name: '',
                 industry: 'Technology',
                 headline: '',
+                description: '',
                 funding_target: '',
                 equity_offered: '',
                 use_of_funds: '',
@@ -238,27 +240,30 @@ export default function BusinessPitches({ openAuthModal = null }) {
         );
     };
 
-    // Validation Rules
-    const validateFundingTarget = (val) => {
-        const num = Number(val);
-        if (val === '' || isNaN(num) || num < 0) return 'Funding target must be a non-negative number.';
-        return null;
+    // Helper to count words and enforce the 300-word limit
+    const getWordCount = (text = '') => {
+        const trimmed = text.trim();
+        return trimmed ? trimmed.split(/\s+/).length : 0;
     };
 
-    const validateEquityOffered = (val) => {
-        const num = Number(val);
-        if (val === '' || isNaN(num) || num < 0 || num > 100) return 'Equity offered must be between 0% and 100%.';
-        return null;
+    const handleDescriptionChange = (e) => {
+        const text = e.target.value;
+        const words = text.trim() ? text.trim().split(/\s+/) : [];
+
+        if (words.length <= 300) {
+            setFormData(prev => ({ ...prev, description: text }));
+        } else {
+            // Keep only the first 300 words
+            const truncated = words.slice(0, 300).join(' ');
+            setFormData(prev => ({ ...prev, description: truncated }));
+        }
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        const fundingErr = validateFundingTarget(formData.funding_target);
-        const equityErr = validateEquityOffered(formData.equity_offered);
 
-        if (fundingErr || equityErr || !formData.business_name || !formData.headline) {
-            setFormErrors({ funding_target: fundingErr, equity_offered: equityErr });
-            alert(fundingErr || equityErr || "Please supply all required venture details.");
+        if (!formData.business_name || !formData.headline || !formData.description?.trim()) {
+            alert("Please supply all required venture details including description.");
             return;
         }
 
@@ -267,13 +272,13 @@ export default function BusinessPitches({ openAuthModal = null }) {
             business_name: formData.business_name,
             sector: formData.industry,
             headline: formData.headline,
-            description: formData.use_of_funds || formData.headline,
+            description: formData.description.trim(),
             problem: formData.problem,
             solution: formData.solution,
-            funding_target: Number(formData.funding_target),
-            goal_amount: Number(formData.funding_target),
-            equity_offered: Number(formData.equity_offered),
-            use_of_funds: formData.use_of_funds,
+            funding_target: 0,
+            goal_amount: 0,
+            equity_offered: 0,
+            use_of_funds: formData.description.trim(),
             pitch_deck_url: formData.pitch_deck_url,
             founder_phone: formData.founder_phone,
             founder_email: formData.founder_email,
@@ -955,17 +960,21 @@ export default function BusinessPitches({ openAuthModal = null }) {
                                 <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#475569', marginBottom: '0.4rem' }}>Headline Pitch *</label>
                                 <input type="text" required value={formData.headline} onChange={e => setFormData({ ...formData, headline: e.target.value })} placeholder="e.g. Next-gen AI inventory platform for retail SMEs" style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#475569', marginBottom: '0.4rem' }}>Funding Goal Target (₹) *</label>
-                                    <input type="number" min="0" required value={formData.funding_target} onChange={e => setFormData({ ...formData, funding_target: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
-                                    {formErrors.funding_target && <span style={{ color: '#ef4444', fontSize: '0.75rem' }}>{formErrors.funding_target}</span>}
+                            <div style={{ marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#475569' }}>Description *</label>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '600', color: getWordCount(formData.description) >= 300 ? '#ef4444' : '#64748b' }}>
+                                        {getWordCount(formData.description)} / 300 words
+                                    </span>
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#475569', marginBottom: '0.4rem' }}>Equity Offered (0-100%) *</label>
-                                    <input type="number" min="0" max="100" required value={formData.equity_offered} onChange={e => setFormData({ ...formData, equity_offered: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
-                                    {formErrors.equity_offered && <span style={{ color: '#ef4444', fontSize: '0.75rem' }}>{formErrors.equity_offered}</span>}
-                                </div>
+                                <textarea
+                                    required
+                                    rows={4}
+                                    value={formData.description || ''}
+                                    onChange={handleDescriptionChange}
+                                    placeholder="Enter venture description (maximum 300 words)..."
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
+                                />
                             </div>
                             <div style={{ marginBottom: '1.25rem' }}>
                                 <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: '750', color: '#475569', marginBottom: '0.4rem' }}>Pitch Deck URL</label>
