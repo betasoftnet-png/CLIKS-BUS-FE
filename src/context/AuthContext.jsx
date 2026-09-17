@@ -153,8 +153,8 @@ export const AuthProvider = ({ children }) => {
         const existingSubs = user?.active_subscriptions || {
             business: { active: true, plan: user?.tier || 'Starter Plan' },
             fin_pro: { active: Boolean(localStorage.getItem('cliks_finpro_active') === 'true'), plan: null },
-            investor: { active: Boolean(localStorage.getItem('cliks_investor_active') === 'true'), plan: null },
-            poster: { active: Boolean(localStorage.getItem('cliks_poster_active') === 'true'), plan: null }
+            investor: { active: false, plan: null },
+            poster: { active: false, plan: null }
         };
 
         const updatedSubs = {
@@ -170,8 +170,10 @@ export const AuthProvider = ({ children }) => {
         };
 
         if (cat === 'fin_pro') localStorage.setItem('cliks_finpro_active', 'true');
-        if (cat === 'investor') localStorage.setItem('cliks_investor_active', 'true');
-        if (cat === 'poster') localStorage.setItem('cliks_poster_active', 'true');
+        try {
+            localStorage.removeItem('cliks_investor_active');
+            localStorage.removeItem('cliks_poster_active');
+        } catch (e) {}
 
         const updatePayload = {
             active_subscriptions: updatedSubs

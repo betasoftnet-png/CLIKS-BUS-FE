@@ -196,19 +196,33 @@ export const SubscriptionBadgeWidget = ({
     planDaysRemaining,
     onNavigate
 }) => {
+    // Ensure any legacy PLD flags in localStorage are removed
+    try {
+        localStorage.removeItem('cliks_investor_active');
+        localStorage.removeItem('cliks_poster_active');
+    } catch (e) {}
+
     // 1. Extract active plans directly from props or auth/user state
     const rawPlans = plansProp || user?.active_plans || user?.subscriptions || business?.plans;
+
+    const isPldPlan = (p) => {
+        if (!p) return false;
+        const mod = String(p.module || p.moduleTitle || p.name || p.middleLabel || p.category || p.id || '').toUpperCase();
+        const tier = String(p.tier || p.tierTitle || p.plan || p.plan_name || '').toUpperCase();
+        return mod.includes('PLD') || mod.includes('INVESTOR') || mod.includes('POSTER') || mod.includes('BETACLUB') || mod.includes('PARTNER') ||
+               tier.includes('INVESTOR') || tier.includes('INNOVATOR') || tier.includes('FOUNDER');
+    };
 
     let activePlans = [];
 
     if (Array.isArray(rawPlans) && rawPlans.length > 0) {
-        activePlans = rawPlans.map((p, idx) => normalizePlan(p, idx, planDaysRemaining || 346));
+        activePlans = rawPlans
+            .filter(p => !isPldPlan(p))
+            .map((p, idx) => normalizePlan(p, idx, planDaysRemaining || 346));
     } else {
         // Fallback safely to user active subscriptions state (strictly scoped to auth profile)
         const subs = user?.active_subscriptions || {};
         const isFinProActive = Boolean(subs.fin_pro?.active === true && subs.fin_pro?.plan);
-        const isInvestorActive = Boolean(subs.investor?.active === true && subs.investor?.plan);
-        const isPosterActive = Boolean(subs.poster?.active === true && subs.poster?.plan);
 
         // Plan 1: Books / Business
         const rawTier = subs.business?.plan || selectedPlan || user?.tier || 'Growth Plan';
@@ -255,39 +269,7 @@ export const SubscriptionBadgeWidget = ({
             });
         }
 
-        // Plan 3: PLD Investor (if active)
-        if (isInvestorActive) {
-            const rawInvTier = subs.investor?.plan || subs.betaclub_investor?.plan || user?.investor_plan || 'Basic';
-            const isPro = String(rawInvTier).toUpperCase().includes('PRO');
-            const invSub = subs.investor || subs.betaclub_investor || {};
-            const invExp = invSub.expiryDate || invSub.valid_until || invSub.expiry_date;
-            const days3 = invExp ? calculateDaysRemaining(invExp) : 346;
-
-            activePlans.push({
-                id: 'investor',
-                moduleTitle: 'PLD',
-                tierTitle: isPro ? 'PRO' : 'BASIC',
-                days: days3,
-                iconType: 'shield'
-            });
-        }
-
-        // Plan 4: PLD Innovators / Founders (if active)
-        if (isPosterActive) {
-            const rawPosterTier = subs.poster?.plan || subs.product?.plan || subs.betaclub_product?.plan || user?.poster_plan || 'innovators';
-            const isFounder = String(rawPosterTier).toUpperCase().includes('FOUNDER');
-            const postSub = subs.poster || subs.product || subs.betaclub_product || {};
-            const postExp = postSub.expiryDate || postSub.valid_until || postSub.expiry_date;
-            const days4 = postExp ? calculateDaysRemaining(postExp) : 11;
-
-            activePlans.push({
-                id: 'poster',
-                moduleTitle: 'PLD',
-                tierTitle: isFounder ? 'founders' : 'innovators',
-                days: days4,
-                iconType: 'shield'
-            });
-        }
+        // PLD plans (Investor Club / Products & Ideas) are deactivated and removed
     }
 
     // Limit to max 4 plans

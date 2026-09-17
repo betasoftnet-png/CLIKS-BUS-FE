@@ -210,16 +210,32 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
     const business = user?.business;
     const { t } = useLanguage();
 
-    // Safely resolve the user's real subscriptions strictly from auth user profile / session
+    // Safely resolve the user's real subscriptions strictly from auth user profile / session (PLD deactivated)
     const userSubscriptions = React.useMemo(() => {
+        const filterOutPld = (list) => {
+            if (!Array.isArray(list)) return [];
+            return list.filter(item => {
+                if (!item) return false;
+                const mod = String(item.module || item.moduleTitle || item.name || item.category || '').toUpperCase();
+                const tier = String(item.tier || item.tierTitle || item.plan || '').toUpperCase();
+                if (mod === 'PLD' || mod.includes('INVESTOR') || mod.includes('POSTER') || mod.includes('BETACLUB') || mod.includes('PARTNER')) return false;
+                if (tier.includes('INVESTOR') || tier.includes('INNOVATOR') || tier.includes('FOUNDER')) return false;
+                return true;
+            });
+        };
+
         // Check if active_plans exists on the user object
         if (Array.isArray(user?.active_plans) && user.active_plans.length > 0) {
-            return user.active_plans.filter(p => p && p.status !== 'inactive' && p.active !== false);
+            const valid = user.active_plans.filter(p => p && p.status !== 'inactive' && p.active !== false);
+            const filtered = filterOutPld(valid);
+            if (filtered.length > 0) return filtered;
         }
 
         // Check if subscriptions exists on the user object
         if (Array.isArray(user?.subscriptions) && user.subscriptions.length > 0) {
-            return user.subscriptions.filter(p => p && (p.is_active === true || p.status === 'active'));
+            const valid = user.subscriptions.filter(p => p && (p.is_active === true || p.status === 'active'));
+            const filtered = filterOutPld(valid);
+            if (filtered.length > 0) return filtered;
         }
 
         // If active_subscriptions object exists on user with active keys
@@ -240,20 +256,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     daysRemaining: subs.fin_pro.expiryDate ? calculateDaysRemaining(subs.fin_pro.expiryDate) : (user?.subscription_days_remaining ?? 365)
                 });
             }
-            if (subs.investor && subs.investor.active === true && subs.investor.plan) {
-                list.push({
-                    module: 'PLD',
-                    tier: subs.investor.plan,
-                    daysRemaining: subs.investor.expiryDate ? calculateDaysRemaining(subs.investor.expiryDate) : (user?.subscription_days_remaining ?? 365)
-                });
-            }
-            if (subs.poster && subs.poster.active === true && subs.poster.plan) {
-                list.push({
-                    module: 'PLD',
-                    tier: subs.poster.plan,
-                    daysRemaining: subs.poster.expiryDate ? calculateDaysRemaining(subs.poster.expiryDate) : 30
-                });
-            }
+            // PLD subscriptions (investor / poster) are removed/deactivated from active subscriptions
             if (list.length > 0) return list;
         }
 
