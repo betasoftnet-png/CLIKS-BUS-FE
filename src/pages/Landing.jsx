@@ -13,6 +13,7 @@ import {
 import { Loader } from '../components/common';
 import logoPng from '../assets/cliks.png';
 import { useAuth } from '../context';
+import referralService from '../services/referralService';
 
 // Scroll-triggered animation observer
 const useScrollAnimation = (loading) => {
@@ -132,6 +133,17 @@ const Landing = () => {
 
             // 2. Perform SSO Login with AuthContext
             await ssoLogin(bnxToken, 'BUSINESS');
+
+            // Apply referral code if present
+            const pendingRef = localStorage.getItem('cliks_referral_code') || sessionStorage.getItem('cliks_pending_ref');
+            if (pendingRef) {
+                try {
+                    referralService.validateAndApplyReferralCode(pendingRef, 'user@cliks.in');
+                } catch (e) {
+                    console.warn('[Landing] Referral apply notice:', e);
+                }
+            }
+
             navigate('/dashboard', { replace: true });
         } catch (err) {
             console.error('SSO Exchange error:', err);
@@ -140,6 +152,17 @@ const Landing = () => {
             setIsProcessingAuth(false);
         }
     }, [ssoLogin, navigate]);
+
+    // Capture referral code immediately if user arrives at landing with ?ref=
+    useEffect(() => {
+        const urlParams = new URLSearchParams(location.search);
+        const refParam = urlParams.get('ref') || urlParams.get('referral');
+        if (refParam && refParam.trim()) {
+            const clean = refParam.trim().toUpperCase();
+            localStorage.setItem('cliks_referral_code', clean);
+            sessionStorage.setItem('cliks_pending_ref', clean);
+        }
+    }, [location]);
 
     // Guard: Redirect to dashboard if authenticated
     useEffect(() => {

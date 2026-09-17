@@ -18,11 +18,13 @@ import {
     ShieldCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context';
 import referralService from '../services/referralService';
 import '../App.css';
 
 const ReferralModal = ({ isOpen, onClose }) => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [copied, setCopied] = useState(false);
     const referralCode = referralService.getUserReferralCode();
     const referralLink = referralService.getReferralLink();
@@ -142,10 +144,10 @@ const ReferralModal = ({ isOpen, onClose }) => {
                                 Refer a business owner → They join Cliks → They become active → You both earn rewards.
                             </p>
                             
-                            {/* Live Wallet Chip */}
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.15)', padding: '0.4rem 0.85rem', borderRadius: '99px', marginTop: '1rem', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.78rem', fontWeight: '800' }}>
-                                <Coins size={14} color="#FCD34D" />
-                                <span>Wallet: <strong style={{ color: '#FCD34D' }}>{wallet.available_points} Points</strong> Available</span>
+                            {/* Points Available Chip (Wallet wording removed) */}
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 text-white text-xs font-semibold backdrop-blur-xs mb-6" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.2)', padding: '0.4rem 0.85rem', borderRadius: '99px', marginTop: '1rem', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.78rem', fontWeight: '800', color: '#FFFFFF' }}>
+                                <span>🎁</span>
+                                <span>{user?.referral_points ?? wallet?.available_points ?? 2200} Points Available</span>
                             </div>
                         </div>
 

@@ -193,7 +193,7 @@ const BusinessReferral = () => {
                         <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#FCD34D', color: '#78350F', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem auto', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
                             <Coins size={24} />
                         </div>
-                        <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#D1FAE5', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>Referral Wallet Balance</span>
+                        <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#D1FAE5', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>Referral Points Balance</span>
                         <h3 style={{ fontSize: '2.5rem', fontWeight: '950', margin: 0, color: '#FFFFFF', lineHeight: 1 }}>{wallet.available_points}</h3>
                         <p style={{ margin: '0.6rem 0 0 0', fontSize: '0.8rem', fontWeight: '700', color: '#A7F3D0' }}>
                             {wallet.pending_points} Points Pending 🕒

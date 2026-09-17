@@ -80,6 +80,8 @@ import VerifyPass from './pages/VerifyPass';
 import PublicInvoiceDetails from './pages/PublicInvoiceDetails';
 import BusinessCalculator from './pages/BusinessCalculator';
 import BusinessLauncher from './pages/BusinessLauncher';
+import Join from './pages/Join';
+import Register from './pages/Register';
 
 import './App.css';
 
@@ -250,6 +252,10 @@ function AppContent() {
         {/* Public Pass Verification Gate */}
         <Route path="/verify-pass" element={<VerifyPass />} />
         <Route path="/public/invoice/:id" element={<PublicInvoiceDetails />} />
+        
+        {/* Referral Onboarding & Registration */}
+        <Route path="/join" element={<Join />} />
+        <Route path="/register" element={<Register />} />
         
         {/* Protected Routes - All routes within MainLayout require authentication */}
         <Route path="*" element={
