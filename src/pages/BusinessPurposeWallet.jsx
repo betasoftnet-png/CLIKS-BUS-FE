@@ -356,19 +356,9 @@ const BusinessPurposeWallet = () => {
                         <Wallet size={36} />
                     </div>
                     <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#1F2937', marginBottom: '0.5rem' }}>No Segregated Wallets</h3>
-                    <p style={{ color: '#6B7280', maxWidth: '460px', margin: '0 auto 2rem auto', fontWeight: '500', lineHeight: 1.5 }}>
+                    <p style={{ color: '#6B7280', maxWidth: '460px', margin: '0 auto', fontWeight: '500', lineHeight: 1.5 }}>
                         Setup isolated purpose-driven buckets! For example, reserve money sequentially to buy future equipment, specialized stationery, or tax deposits.
                     </p>
-                    <button 
-                        onClick={() => setIsCreateModalOpen(true)}
-                        style={{ 
-                            padding: '0.85rem 1.75rem', borderRadius: '12px', border: 'none', 
-                            background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', 
-                            fontWeight: '800', cursor: 'pointer', boxShadow: '0 8px 16px rgba(27,107,58,0.2)' 
-                        }}
-                    >
-                        Create First Segregated Wallet
-                    </button>
                 </div>
             ) : filteredWallets.length === 0 ? (
                 <div style={{ 
