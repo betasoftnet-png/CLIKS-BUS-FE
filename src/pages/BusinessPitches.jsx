@@ -683,11 +683,8 @@ export default function BusinessPitches({ openAuthModal = null }) {
                                     {/* Action Button */}
                                     <button
                                         type="button"
-                                        onClick={() => {
-                                            setSelectedPitchModal(deal);
-                                            handleConnectTrigger(deal);
-                                        }}
-                                        className="w-full mt-2 py-2.5 px-4 bg-[#1E3A8A] hover:bg-[#172554] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
+                                        onClick={(e) => e.preventDefault()}
+                                        className="w-full mt-2 py-2.5 px-4 bg-[#1E3A8A] hover:bg-[#172554] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer"
                                         style={{ width: '100%', marginTop: '0.5rem', padding: '0.75rem 1rem', background: '#1E3A8A', color: 'white', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: 'none', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
                                     >
                                         <svg className="w-4 h-4" style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
