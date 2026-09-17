@@ -2,7 +2,7 @@ import React from 'react';
 import { calculateDaysRemaining } from '../utils/subscriptionUtils';
 import SubscriptionBadgeWidget from './SubscriptionBadgeWidget';
 
-export { calculateDaysRemaining, SubscriptionBadgeWidget };
+export { calculateDaysRemaining, SubscriptionBadgeWidget, SubscriptionBadgeWidget as DynamicSubscriptionWidget };
 
 /**
  * SubscriptionBadge Component
