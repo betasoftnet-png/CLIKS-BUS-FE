@@ -479,57 +479,13 @@ export default function BusinessPitches({ openAuthModal = null }) {
 
                 {/* Banner Right Buttons */}
                 <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    
                     <button 
                         type="button"
-                        onClick={() => { if (navigate) navigate('/auth/founder-login'); setShowFounderAuthModal(true); }}
-                        style={{
-                            padding: '0.75rem 1.25rem',
-                            borderRadius: '12px',
-                            background: 'rgba(255, 255, 255, 0.12)',
-                            color: '#FFFFFF',
-                            fontWeight: '700',
-                            fontSize: '0.875rem',
-                            border: '1px solid rgba(255, 255, 255, 0.25)',
-                            backdropFilter: 'blur(8px)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem'
-                        }}
-                    >
-                        <User size={15} />
-                        <span>FOUNDER login</span>
-                    </button>
-
-                    <button 
-                        type="button"
-                        onClick={() => { if (navigate) navigate('/auth/investor-login'); setShowInvestorAuthModal(true); }}
-                        style={{
-                            padding: '0.75rem 1.25rem',
-                            borderRadius: '12px',
-                            background: 'rgba(255, 255, 255, 0.12)',
-                            color: '#FFFFFF',
-                            fontWeight: '700',
-                            fontSize: '0.875rem',
-                            border: '1px solid rgba(255, 255, 255, 0.25)',
-                            backdropFilter: 'blur(8px)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem'
-                        }}
-                    >
-                        <TrendingUp size={15} />
-                        <span>INVESTOR login</span>
-                    </button>
-
-                    <button 
                         onClick={() => setShowCreateModal(true)}
                         style={{
                             padding: '0.75rem 1.25rem',
                             borderRadius: '12px',
-                            background: '#10b981',
+                            background: '#059669',
                             color: 'white',
                             fontWeight: '700',
                             fontSize: '0.875rem',
@@ -538,7 +494,8 @@ export default function BusinessPitches({ openAuthModal = null }) {
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
-                            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                            boxShadow: '0 4px 14px rgba(5, 150, 105, 0.3)',
+                            transition: 'all 0.2s'
                         }}
                     >
                         <Rocket size={15} />
