@@ -272,19 +272,17 @@ export default function AdminPortal() {
                 setUsersList(defaultSubscribers);
             }
 
-            // 2. Fetch Pitches
+            // 2. Fetch Pitches directly from central PostgreSQL database
             let fetchedPitches = [];
             try {
                 const pRes = await pitchesService.getPitches();
                 fetchedPitches = Array.isArray(pRes) ? pRes : (Array.isArray(pRes?.data) ? pRes.data : []);
-            } catch (err) {}
-
-            try {
-                const localSubmissions = JSON.parse(localStorage.getItem('cliks_submitted_pitches') || '[]');
-                if (Array.isArray(localSubmissions) && localSubmissions.length > 0) {
-                    fetchedPitches = [...localSubmissions, ...fetchedPitches];
-                }
-            } catch (e) {}
+            } catch (err) {
+                try {
+                    const aRes = await pitchesService.getAdminPitches();
+                    fetchedPitches = Array.isArray(aRes) ? aRes : (Array.isArray(aRes?.data) ? aRes.data : []);
+                } catch (adminErr) {}
+            }
 
             const defaultPitches = [
                 {
@@ -379,15 +377,15 @@ export default function AdminPortal() {
                     id: p.id || 50 + idx,
                     founder_name: p.founder_name || p.user_biz_name || p.business_name || 'Innovator Founder',
                     founder_email: p.founder_email || p.email || 'founder@cliks.com',
-                    title: p.business_name || p.title || 'Venture Title',
-                    pitch_summary: p.headline || p.problem || 'Innovative scalable enterprise solution.',
+                    title: p.venture_name || p.business_name || p.title || 'Venture Title',
+                    pitch_summary: p.headline_pitch || p.headline || p.problem || 'Innovative scalable enterprise solution.',
                     description: p.description || p.use_of_funds || p.headline || 'Comprehensive venture roadmap and operational plan.',
-                    submitted_date: p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : '2026-09-17',
+                    submitted_date: p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : (p.submitted_date || '2026-09-17'),
                     sector: p.sector || p.industry || 'Technology',
                     target_funding: Number(p.funding_target) || 0,
                     currency: 'INR',
                     equity_offered: Number(p.equity_offered) || 0,
-                    status: p.listing_status === 'ACTIVE' ? 'Published' : (p.is_verified ? 'Published' : 'Under Review'),
+                    status: p.review_status || (p.listing_status === 'ACTIVE' ? 'Published' : (p.is_verified ? 'Published' : 'Under Review')),
                     pitch_deck_url: p.pitch_deck_url || '',
                     problem: p.problem || 'Market efficiency challenge in supply chain.',
                     solution: p.solution || 'Direct AI-powered automated workflow platform.'

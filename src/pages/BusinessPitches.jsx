@@ -274,8 +274,11 @@ export default function BusinessPitches({ openAuthModal = null }) {
         const payload = {
             title: formData.business_name,
             business_name: formData.business_name,
+            venture_name: formData.business_name,
             sector: formData.industry,
+            industry: formData.industry,
             headline: formData.headline,
+            headline_pitch: formData.headline,
             description: formData.description.trim(),
             problem: formData.problem,
             solution: formData.solution,
@@ -288,14 +291,9 @@ export default function BusinessPitches({ openAuthModal = null }) {
             founder_phone: formData.founder_phone || user?.phone || '',
             founder_email: founderEmail,
             location: formData.location || (cityName ? `${cityName}, ${gpsState}` : 'Chennai, Tamil Nadu'),
+            review_status: 'Published',
             created_at: new Date().toISOString()
         };
-
-        // Cache locally for instant availability in Admin Portal / Directory
-        try {
-            const existing = JSON.parse(localStorage.getItem('cliks_submitted_pitches') || '[]');
-            localStorage.setItem('cliks_submitted_pitches', JSON.stringify([payload, ...existing]));
-        } catch (err) {}
 
         createMutation.mutate(payload);
     };
