@@ -30,8 +30,9 @@ const BusinessPaymentPlan = () => {
     const { currency, formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterType, setFilterType] = useState('all'); // all, send, receive
+    const [activeFilter, setActiveFilter] = useState('ALL'); // ALL, SEND, RECEIVE
+    const filterType = activeFilter;
+    const setFilterType = setActiveFilter;
 
     const [formData, setFormData] = useState({
         person_id: '',
@@ -161,17 +162,32 @@ const BusinessPaymentPlan = () => {
     };
 
     const filteredPlans = plans.filter(p => {
-        const matchesSearch = p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             p.description?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesType = filterType === 'all' || p.type === filterType;
+        const matchesSearch = !searchTerm || 
+                             p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             p.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             p.person_name?.toLowerCase().includes(searchTerm.toLowerCase());
+        const planType = (p.type || p.direction || '').toUpperCase();
+        const active = (activeFilter || 'ALL').toUpperCase();
+        const matchesType = active === 'ALL' || planType === active;
         return matchesSearch && matchesType;
     });
 
     const stats = {
         totalScheduled: plans.length,
-        toSend: plans.filter(p => p.type === 'SEND' && p.status !== 'paid').reduce((sum, p) => sum + (p.amount || 0), 0),
-        toReceive: plans.filter(p => p.type === 'RECEIVE' && p.status !== 'paid').reduce((sum, p) => sum + (p.amount || 0), 0),
-        pendingCount: plans.filter(p => p.status !== 'paid').length
+        toSend: plans
+            .filter(p => {
+                const dir = (p.type || p.direction || '').toUpperCase();
+                const isNotPaid = (p.status || '').toLowerCase() !== 'paid';
+                return dir === 'SEND' && isNotPaid;
+            })
+            .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0),
+        toReceive: plans
+            .filter(p => {
+                const dir = (p.type || p.direction || '').toUpperCase();
+                return dir === 'RECEIVE';
+            })
+            .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0),
+        pendingCount: plans.filter(p => (p.status || '').toLowerCase() !== 'paid').length
     };
 
     return (
@@ -228,23 +244,45 @@ const BusinessPaymentPlan = () => {
             {/* Filters and List */}
             <div style={{ flex: 1, minHeight: 0, background: 'white', borderRadius: '28px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div style={{ padding: '1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        {['all', 'SEND', 'RECEIVE'].map(type => (
-                            <button 
-                                key={type}
-                                onClick={() => setFilterType(type)}
-                                style={{ 
-                                    padding: '0.5rem 1.25rem', borderRadius: '10px', 
-                                    background: filterType === type ? '#F0FDF4' : 'transparent',
-                                    color: filterType === type ? '#16A34A' : '#64748B',
-                                    border: '1px solid',
-                                    borderColor: filterType === type ? '#BBF7D0' : 'transparent',
-                                    fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem'
-                                }}
-                            >
-                                {type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()}
-                            </button>
-                        ))}
+                    {/* Subtab Filter Switcher */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setActiveFilter('ALL')}
+                            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                                activeFilter === 'ALL'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold'
+                                    : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200'
+                            }`}
+                        >
+                            All
+                        </button>
+
+                        {/* Send Filter Button */}
+                        <button
+                            type="button"
+                            onClick={() => setActiveFilter('SEND')}
+                            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                                activeFilter === 'SEND'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold'
+                                    : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200'
+                            }`}
+                        >
+                            Send
+                        </button>
+
+                        {/* Receive Filter Button */}
+                        <button
+                            type="button"
+                            onClick={() => setActiveFilter('RECEIVE')}
+                            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                                activeFilter === 'RECEIVE'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold'
+                                    : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200'
+                            }`}
+                        >
+                            Receive
+                        </button>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', background: '#F8FAFC', padding: '0.5rem 1rem', borderRadius: '12px', width: '300px' }}>
                         <Search size={18} color="#94A3B8" />

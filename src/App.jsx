@@ -335,8 +335,8 @@ function AppContent() {
                     <Route path="/payments/wallet" element={<Navigate to="/payments/people" replace />} />
                     <Route path="/payments/segregation" element={<BusinessPurposeWallet />} />
                     <Route path="/payments/rewards" element={<Navigate to="/payments/people" replace />} />
-                    {/* <Route path="/payments/bank-accounts" element={<BusinessBankAccounts />} /> */} {/* Will do in future */}
                     <Route path="/payments/plan" element={<BusinessPaymentPlan />} />
+                    <Route path="/payments/planner" element={<BusinessPaymentPlan />} />
 
                     <Route path="/finance/expenses" element={<BusinessExpenses />} />
                     <Route path="/inventory/warehouse" element={<FeatureGate feature="multi-warehouse" requiredPlanName="Growth Plan"><BusinessWarehouse /></FeatureGate>} />
