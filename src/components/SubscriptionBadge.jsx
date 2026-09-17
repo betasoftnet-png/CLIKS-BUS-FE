@@ -1,7 +1,8 @@
 import React from 'react';
 import { calculateDaysRemaining } from '../utils/subscriptionUtils';
+import SubscriptionBadgeWidget from './SubscriptionBadgeWidget';
 
-export { calculateDaysRemaining };
+export { calculateDaysRemaining, SubscriptionBadgeWidget };
 
 /**
  * SubscriptionBadge Component
