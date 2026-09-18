@@ -684,21 +684,21 @@ const BusinessSubscription = () => {
                             <h4 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#1E293B', marginBottom: '0.5rem' }}>{tier.name}</h4>
                             <p style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '500', marginBottom: '1.25rem', minHeight: '34px' }}>{tier.desc}</p>
                             
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginBottom: '1.25rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                                     <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#94A3B8', textDecoration: 'line-through' }}>{formatCurrency(originalPrice)}</span>
                                     <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1B6B3A', background: '#DCF2E4', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Save {formatCurrency(originalPrice - price)}</span>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem' }}>
-                                    <span style={{ fontSize: '2.25rem', fontWeight: '900', color: '#1E293B' }}>{formatCurrency(price)}</span>
-                                    <span style={{ color: '#64748B', fontWeight: '600', fontSize: '0.9rem' }}>/ {tier.period || 'year'}</span>
+                                <div className="flex items-baseline gap-1.5" style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
+                                    <span className="leading-none" style={{ fontSize: '2.25rem', fontWeight: '900', color: '#1E293B', lineHeight: 1 }}>{formatCurrency(price)}</span>
+                                    <span style={{ color: '#64748B', fontWeight: '600', fontSize: '0.9rem', lineHeight: 1 }}>/ {tier.period || 'year'}</span>
                                 </div>
                                 {(!tier.period || tier.period === 'year') ? (
-                                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748B' }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748B', marginTop: '0.15rem' }}>
                                         (Equivalent to {formatCurrency(Math.round(price / 12))} per month)
                                     </span>
                                 ) : (
-                                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748B' }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748B', marginTop: '0.15rem' }}>
                                         (Billed every month)
                                     </span>
                                 )}

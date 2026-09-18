@@ -393,24 +393,24 @@ export const SubscriptionBadgeWidget = ({
                             return (
                                 <div
                                     key={plan.id || idx}
-                                    className="flex items-center gap-2 bg-[#101b38] border border-black/60 rounded-xl px-2.5 py-2"
+                                    className="flex items-center gap-1.5 bg-[#101b38] border border-black/60 rounded-xl px-2 py-1.5 min-w-0"
                                 >
                                     {/* Circular Day Badge */}
-                                    <div className="w-10 h-10 min-w-[40px] rounded-full bg-white border-2 border-[#f59e0b] flex flex-col items-center justify-center leading-none shadow-xs">
-                                        <span className="text-[11px] font-black text-[#0b1329] tracking-tight">
+                                    <div className="w-8 h-8 min-w-[32px] shrink-0 rounded-full bg-white border-2 border-[#f59e0b] flex flex-col items-center justify-center leading-none shadow-xs">
+                                        <span className="text-[10px] font-black text-[#0b1329] tracking-tight leading-none">
                                             {daysLeft}
                                         </span>
-                                        <span className="text-[7px] font-extrabold text-[#0b1329] tracking-tighter uppercase mt-0.5">
+                                        <span className="text-[6px] font-extrabold text-[#0b1329] tracking-tighter uppercase leading-none mt-0.5">
                                             DAYS
                                         </span>
                                     </div>
 
                                     {/* Module & Tier Text */}
                                     <div className="flex flex-col justify-center min-w-0">
-                                        <span className="text-xs font-black text-white uppercase tracking-tight truncate leading-tight">
+                                        <span className="text-[11px] font-black text-white uppercase tracking-tight whitespace-nowrap leading-tight">
                                             {moduleName}
                                         </span>
-                                        <span className="text-[11px] font-black text-[#f59e0b] uppercase tracking-wide truncate leading-tight">
+                                        <span className="text-[10px] font-black text-[#f59e0b] uppercase tracking-wide whitespace-nowrap leading-tight">
                                             {tierName}
                                         </span>
                                     </div>
