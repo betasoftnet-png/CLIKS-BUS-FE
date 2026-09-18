@@ -713,9 +713,12 @@ const BusinessGST = () => {
         if (!ewayForm.transporter_name.trim()) {
             errors.transporter_name = "Transporter company name is required";
         }
-        if (ewayForm.transporter_gstin.trim()) {
+        const cleanTransporterGstin = (ewayForm.transporter_gstin || '').trim().toUpperCase();
+        if (!cleanTransporterGstin) {
+            errors.transporter_gstin = "Transporter GSTIN is required";
+        } else {
             const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-            if (!gstinRegex.test(ewayForm.transporter_gstin.toUpperCase())) {
+            if (!gstinRegex.test(cleanTransporterGstin)) {
                 errors.transporter_gstin = "Invalid Indian GSTIN format (e.g. 27AAAAA1111A1Z1)";
             }
         }
@@ -769,7 +772,9 @@ const BusinessGST = () => {
             transport_mode: ewayForm.transport_mode,
             transport_company_name: ewayForm.transporter_name,
             transporter_name: ewayForm.transporter_name,
-            transporter_gstin: ewayForm.transporter_gstin,
+            transporter_id: cleanTransporterGstin,
+            transporterGstin: cleanTransporterGstin,
+            transporter_gstin: cleanTransporterGstin,
             vehicle_number: ewayForm.transport_mode === 'Road' ? ewayForm.vehicle_number : (ewayForm.vehicle_number || 'UK07AB1234'),
             distance: ewayForm.transport_distance,
             transport_distance: parseInt(ewayForm.transport_distance),
@@ -2294,8 +2299,8 @@ const BusinessGST = () => {
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>TRANSPORTER GSTIN (OPTIONAL)</label>
-                                    <input type="text" value={ewayForm.transporter_gstin} onChange={(e) => setEwayForm({ ...ewayForm, transporter_gstin: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.transporter_gstin ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="27AAAAA1111A1Z1" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>TRANSPORTER GSTIN *</label>
+                                    <input required type="text" value={ewayForm.transporter_gstin} onChange={(e) => setEwayForm({ ...ewayForm, transporter_gstin: e.target.value.toUpperCase() })} onBlur={(e) => setEwayForm({ ...ewayForm, transporter_gstin: e.target.value.trim().toUpperCase() })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.transporter_gstin ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="27AAAAA1111A1Z1" />
                                     {validationErrors.transporter_gstin && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.transporter_gstin}</span>}
                                 </div>
                                 <div>
