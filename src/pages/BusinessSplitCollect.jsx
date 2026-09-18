@@ -130,6 +130,13 @@ export const getViewableUrl = (rawFilePath) => {
     return absoluteFileUrl;
 };
 
+// Pure calculation function to compute total outlay across both list cards and details view
+export const calculateGroupOutlay = (expenses) => {
+    return (expenses || [])
+        .filter(item => !item.isSettlement && item.type !== 'SETTLEMENT' && item.type !== 'REPAYMENT' && (!item.title || !item.title.toLowerCase().startsWith('settlement:')))
+        .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+};
+
 const BusinessSplitCollect = () => {
     const { currency } = useCurrency();
     // ── State Management ───────────────────────────────────────────────────
@@ -599,9 +606,7 @@ const BusinessSplitCollect = () => {
 
         // Exclude settlement transactions when calculating total group outlay:
         // Debt settlements are internal balance transfers, not new group expenses.
-        const totalGroupOutlay = (activeSplit.expenses || [])
-            .filter(exp => !exp.isSettlement && exp.type !== 'SETTLEMENT' && exp.type !== 'REPAYMENT' && (!exp.title || !exp.title.toLowerCase().startsWith('settlement:')))
-            .reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+        const totalGroupOutlay = calculateGroupOutlay(activeSplit.expenses);
         const totalSpent = totalGroupOutlay;
 
         activeSplit.expenses.forEach(exp => {
@@ -726,9 +731,7 @@ const BusinessSplitCollect = () => {
 
     const handleShareGroup = () => {
         if (!activeSplit) return;
-        const groupTotal = (activeSplit.expenses || [])
-            .filter(exp => !exp.isSettlement && exp.type !== 'SETTLEMENT' && exp.type !== 'REPAYMENT' && (!exp.title || !exp.title.toLowerCase().startsWith('settlement:')))
-            .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+        const groupTotal = calculateGroupOutlay(activeSplit.expenses);
         let summaryText = `📊 SPLITWISE STATEMENT: ${activeSplit.title}\n`;
         summaryText += `Total Spent: ${activeSplit.currencySymbol}${groupTotal.toLocaleString()}\n\n`;
         summaryText += `👥 NET BALANCES:\n`;
@@ -751,9 +754,7 @@ const BusinessSplitCollect = () => {
 
     const handleDownloadPDF = () => {
         if (!activeSplit) return;
-        const groupTotal = (activeSplit.expenses || [])
-            .filter(exp => !exp.isSettlement && exp.type !== 'SETTLEMENT' && exp.type !== 'REPAYMENT' && (!exp.title || !exp.title.toLowerCase().startsWith('settlement:')))
-            .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+        const groupTotal = calculateGroupOutlay(activeSplit.expenses);
         
         const printWindow = window.open('', '_blank');
         if (!printWindow) {
@@ -1010,7 +1011,7 @@ const BusinessSplitCollect = () => {
                                             return 0;
                                         })
                                         .map(s => {
-                                            const groupTotal = s.expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+                                            const groupTotal = calculateGroupOutlay(s.expenses);
                                             const isPinned = pinnedSplitIds.includes(s.id);
                                             return (
                                                 <div 

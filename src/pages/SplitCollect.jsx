@@ -1,6 +1,6 @@
-import BusinessSplitCollect, { getDirectAttachmentUrl, resolveFileUrl, resolveAttachmentUrl, isPdfFile, isImageFile, getViewableUrl, openAttachmentInNewTab } from './BusinessSplitCollect';
+import BusinessSplitCollect, { getDirectAttachmentUrl, resolveFileUrl, resolveAttachmentUrl, isPdfFile, isImageFile, getViewableUrl, openAttachmentInNewTab, calculateGroupOutlay } from './BusinessSplitCollect';
 
 export default BusinessSplitCollect;
-export { getDirectAttachmentUrl, resolveFileUrl, resolveAttachmentUrl, isPdfFile, isImageFile, getViewableUrl, openAttachmentInNewTab };
+export { getDirectAttachmentUrl, resolveFileUrl, resolveAttachmentUrl, isPdfFile, isImageFile, getViewableUrl, openAttachmentInNewTab, calculateGroupOutlay };
 
 
