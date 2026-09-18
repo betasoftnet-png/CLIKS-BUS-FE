@@ -134,7 +134,19 @@ const BusinessPurposeWallet = () => {
         setFormData({ name: '', target_amount: '', description: '' });
     };
 
+    const isWalletClaimed = (wallet) => Boolean(
+        wallet?.isClaimed || 
+        wallet?.status === 'completed' || 
+        wallet?.status === 'claimed' || 
+        wallet?.status === 'FULLY CLAIMED' || 
+        String(wallet?.status || '').toLowerCase() === 'completed' ||
+        String(wallet?.status || '').toLowerCase() === 'claimed'
+    );
+
     const openEditModal = (wallet) => {
+        if (isWalletClaimed(wallet)) {
+            return alert("Fully claimed wallets cannot be edited.");
+        }
         setEditingWalletId(wallet.id);
         setFormData({
             name: wallet.name,
@@ -145,6 +157,9 @@ const BusinessPurposeWallet = () => {
     };
 
     const openAddMoneyModal = (wallet) => {
+        if (isWalletClaimed(wallet)) {
+            return alert("Funds cannot be added to a fully claimed wallet.");
+        }
         setSelectedWallet(wallet);
         setIsAddMoneyModalOpen(true);
     };
@@ -168,8 +183,9 @@ const BusinessPurposeWallet = () => {
 
     const handleAddSubmit = (e) => {
         e.preventDefault();
+        if (!addAmount || Number(addAmount) <= 0) return alert("Enter a valid allocation amount greater than 0.");
         const amt = parseFloat(addAmount);
-        if (isNaN(amt) || amt <= 0) return alert("Enter a valid allocation amount.");
+        if (isNaN(amt) || amt <= 0) return alert("Enter a valid allocation amount greater than 0.");
         addMoneyMutation.mutate({ id: selectedWallet.id, amount: amt });
     };
 
@@ -390,7 +406,15 @@ const BusinessPurposeWallet = () => {
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.75rem' }}>
                     {filteredWallets.map((wallet) => {
-                        const isCompleted = wallet.status === 'completed';
+                        const isClaimed = Boolean(
+                            wallet.isClaimed || 
+                            wallet.status === 'completed' || 
+                            wallet.status === 'claimed' || 
+                            wallet.status === 'FULLY CLAIMED' || 
+                            String(wallet.status || '').toLowerCase() === 'completed' ||
+                            String(wallet.status || '').toLowerCase() === 'claimed'
+                        );
+                        const isCompleted = isClaimed;
                         const current = parseFloat(wallet.current_amount || 0);
                         const target = parseFloat(wallet.target_amount || 1);
                         const pct = Math.min(Math.round((current / target) * 100), 100);
@@ -474,33 +498,60 @@ const BusinessPurposeWallet = () => {
                                                         textAlign: 'left',
                                                         marginTop: '4px'
                                                     }}>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                openEditModal(wallet);
-                                                                setActiveMenuId(null);
-                                                            }}
-                                                            style={{
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '8px',
-                                                                width: '100%',
-                                                                padding: '8px 12px',
-                                                                border: 'none',
-                                                                background: 'none',
-                                                                color: '#334155',
-                                                                fontSize: '0.82rem',
-                                                                fontWeight: '700',
-                                                                cursor: 'pointer',
-                                                                borderRadius: '8px',
-                                                                transition: 'background 0.2s'
-                                                            }}
-                                                            onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
-                                                            onMouseOut={(e) => e.currentTarget.style.background = 'none'}
-                                                        >
-                                                            <Edit2 size={13} style={{ color: '#059669' }} />
-                                                            Edit Wallet
-                                                        </button>
+                                                        {!isClaimed ? (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openEditModal(wallet);
+                                                                    setActiveMenuId(null);
+                                                                }}
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '8px',
+                                                                    width: '100%',
+                                                                    padding: '8px 12px',
+                                                                    border: 'none',
+                                                                    background: 'none',
+                                                                    color: '#334155',
+                                                                    fontSize: '0.82rem',
+                                                                    fontWeight: '700',
+                                                                    cursor: 'pointer',
+                                                                    borderRadius: '8px',
+                                                                    transition: 'background 0.2s'
+                                                                }}
+                                                                onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                                                                onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                                            >
+                                                                <Edit2 size={13} style={{ color: '#059669' }} />
+                                                                Edit Wallet
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                disabled
+                                                                className="opacity-50 cursor-not-allowed pointer-events-none"
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '8px',
+                                                                    width: '100%',
+                                                                    padding: '8px 12px',
+                                                                    border: 'none',
+                                                                    background: 'none',
+                                                                    color: '#94A3B8',
+                                                                    fontSize: '0.82rem',
+                                                                    fontWeight: '700',
+                                                                    cursor: 'not-allowed',
+                                                                    borderRadius: '8px',
+                                                                    opacity: 0.5,
+                                                                    pointerEvents: 'none'
+                                                                }}
+                                                                title="Claimed wallets cannot be edited"
+                                                            >
+                                                                <Edit2 size={13} style={{ color: '#94A3B8' }} />
+                                                                Edit (Locked)
+                                                            </button>
+                                                        )}
                                                         
                                                         <button
                                                             onClick={async (e) => {
@@ -574,17 +625,20 @@ const BusinessPurposeWallet = () => {
                                     {/* Interactive Controls */}
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <button
-                                            disabled={isCompleted}
+                                            disabled={isClaimed}
                                             onClick={() => openAddMoneyModal(wallet)}
+                                            className={isClaimed ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
                                             style={{ 
                                                 padding: '0.85rem', 
                                                 borderRadius: '12px', 
                                                 border: '1px solid #D1FAE5', 
-                                                background: isCompleted ? '#F1F5F9' : '#ECFDF5', 
-                                                color: isCompleted ? '#94A3B8' : '#065F46', 
+                                                background: isClaimed ? '#F1F5F9' : '#ECFDF5', 
+                                                color: isClaimed ? '#94A3B8' : '#065F46', 
                                                 fontWeight: '800', 
                                                 fontSize: '0.88rem',
-                                                cursor: isCompleted ? 'not-allowed' : 'pointer',
+                                                cursor: isClaimed ? 'not-allowed' : 'pointer',
+                                                opacity: isClaimed ? 0.5 : 1,
+                                                pointerEvents: isClaimed ? 'none' : 'auto',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
@@ -738,7 +792,10 @@ const BusinessPurposeWallet = () => {
                                         autoFocus
                                         type="number" 
                                         placeholder="100" 
+                                        min="1"
+                                        step="any"
                                         value={addAmount} 
+                                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === '+') e.preventDefault(); }}
                                         onChange={e => setAddAmount(e.target.value)}
                                         style={{ width: '100%', padding: '0.9rem 1.1rem 0.9rem 2.25rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '850', fontSize: '1.2rem', color: '#0F172A' }}
                                     />
@@ -750,17 +807,20 @@ const BusinessPurposeWallet = () => {
 
                             <button 
                                 type="submit"
-                                disabled={addMoneyMutation.isLoading}
+                                disabled={addMoneyMutation.isLoading || !addAmount || Number(addAmount) <= 0}
+                                className={(!addAmount || Number(addAmount) <= 0) ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
                                 style={{ 
                                     padding: '1.1rem', 
                                     borderRadius: '14px', 
                                     border: 'none', 
-                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    background: (!addAmount || Number(addAmount) <= 0) ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
                                     color: 'white', 
                                     fontWeight: '850', 
                                     fontSize: '1rem', 
-                                    cursor: 'pointer',
-                                    boxShadow: '0 8px 20px rgba(27, 107, 58, 0.2)',
+                                    cursor: (addMoneyMutation.isLoading || !addAmount || Number(addAmount) <= 0) ? 'not-allowed' : 'pointer',
+                                    boxShadow: (!addAmount || Number(addAmount) <= 0) ? 'none' : '0 8px 20px rgba(27, 107, 58, 0.2)',
+                                    opacity: (addMoneyMutation.isLoading || !addAmount || Number(addAmount) <= 0) ? 0.5 : 1,
+                                    pointerEvents: (!addAmount || Number(addAmount) <= 0) ? 'none' : 'auto',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',

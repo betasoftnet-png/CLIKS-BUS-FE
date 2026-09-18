@@ -139,13 +139,15 @@ const BusinessPayments = () => {
             queryClient.invalidateQueries({ queryKey: ['expenses'] });
             queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
             queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+            queryClient.invalidateQueries({ queryKey: ['accounts'] });
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
             queryClient.invalidateQueries({ queryKey: ['suppliersList'] });
+            setSupplierForm(prev => ({ ...prev, total_amount: '', paid_amount: '' }));
             setIsSupplierModalOpen(false);
             alert('Supplier payment authorized and processed.');
         },
         onError: (err) => {
-            alert(err?.response?.data?.message || 'Failed to process supplier payment. Please try again.');
+            alert(err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Failed to process supplier payment. Please try again.');
         }
     });
 
@@ -154,11 +156,15 @@ const BusinessPayments = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['paymentReports'] });
             queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+            queryClient.invalidateQueries({ queryKey: ['accounts'] });
+            queryClient.invalidateQueries({ queryKey: ['ledger'] });
+            queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
+            setTransferForm(prev => ({ ...prev, amount: '' }));
             setIsTransferModalOpen(false);
             alert('Internal fund transfer settled across cash/bank registers!');
         },
         onError: (err) => {
-            alert(err?.response?.data?.message || 'Failed to process internal vault transfer.');
+            alert(err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Failed to process internal vault transfer.');
         }
     });
 
@@ -238,8 +244,8 @@ const BusinessPayments = () => {
     const [supplierForm, setSupplierForm] = useState({
         supplier_name: 'Delhi Distributors Ltd.',
         purchase_id: 'BILL-77091',
-        total_amount: 35000,
-        paid_amount: 10000,
+        total_amount: '',
+        paid_amount: '',
         payment_mode: 'Bank Transfer',
         transaction_reference: 'REF-88910B'
     });
@@ -247,8 +253,27 @@ const BusinessPayments = () => {
     const [transferForm, setTransferForm] = useState({
         from_acc_id: accounts[0]?.bank_account_id || '',
         to_acc_id: accounts[1]?.bank_account_id || accounts[0]?.bank_account_id || '',
-        amount: 5000
+        amount: ''
     });
+
+    React.useEffect(() => {
+        if (accounts && accounts.length > 0) {
+            setTransferForm(prev => {
+                const currentFromValid = accounts.some(a => String(a.bank_account_id) === String(prev.from_acc_id));
+                const fromId = currentFromValid ? prev.from_acc_id : accounts[0].bank_account_id;
+
+                const distinctAcc = accounts.find(a => String(a.bank_account_id) !== String(fromId));
+                const currentToValid = accounts.some(a => String(a.bank_account_id) === String(prev.to_acc_id)) && String(prev.to_acc_id) !== String(fromId);
+                const toId = currentToValid ? prev.to_acc_id : (distinctAcc ? distinctAcc.bank_account_id : accounts[0].bank_account_id);
+
+                return {
+                    ...prev,
+                    from_acc_id: fromId,
+                    to_acc_id: toId
+                };
+            });
+        }
+    }, [accounts]);
 
     const handleSaveCustomerPayment = (e) => {
         e.preventDefault();
@@ -272,10 +297,17 @@ const BusinessPayments = () => {
     const handleSaveSupplierPayment = (e) => {
         e.preventDefault();
         const paidAmt = parseFloat(supplierForm.paid_amount);
-        const totalAmt = parseFloat(supplierForm.total_amount);
+        const totalAmt = supplierForm.total_amount !== '' && supplierForm.total_amount !== null && supplierForm.total_amount !== undefined
+            ? parseFloat(supplierForm.total_amount)
+            : 0;
 
-        if (isNaN(paidAmt) || paidAmt <= 0 || isNaN(totalAmt) || totalAmt <= 0) {
-            alert('Supplier payment amount and original due amount must be strictly greater than 0.');
+        if (isNaN(paidAmt) || paidAmt <= 0) {
+            alert('Supplier payment amount must be strictly greater than 0.');
+            return;
+        }
+
+        if (isNaN(totalAmt) || totalAmt < 0) {
+            alert('Original due amount must be 0 or greater.');
             return;
         }
 
@@ -290,20 +322,25 @@ const BusinessPayments = () => {
 
     const handleInternalTransfer = (e) => {
         e.preventDefault();
-        const transAmt = parseFloat(transferForm.amount);
 
+        if (!transferForm.from_acc_id || !transferForm.to_acc_id) {
+            alert('Please select both a source account and a destination account.');
+            return;
+        }
+
+        if (String(transferForm.from_acc_id) === String(transferForm.to_acc_id)) {
+            alert('From Account and To Account cannot be identical! Please select different accounts.');
+            return;
+        }
+
+        const transAmt = parseFloat(transferForm.amount);
         if (isNaN(transAmt) || transAmt <= 0) {
             alert('Transfer amount must be strictly greater than 0.');
             return;
         }
 
-        if (transferForm.from_acc_id === transferForm.to_acc_id) {
-            alert('From Account and To Account cannot be identical!');
-            return;
-        }
-
         const sourceAcc = accounts.find(a => String(a.bank_account_id) === String(transferForm.from_acc_id));
-        if (sourceAcc && transAmt > (sourceAcc?.current_balance || 0)) {
+        if (sourceAcc && transAmt > (parseFloat(sourceAcc?.current_balance) || 0)) {
             alert(`Insufficient balance in source account (${sourceAcc.bank_account_name || 'Source Account'}) to make internal transfer! Available balance: ${formatCurrency(sourceAcc.current_balance)}`);
             return;
         }
@@ -813,8 +850,9 @@ const BusinessPayments = () => {
                                     <input 
                                         required 
                                         type="number" 
-                                        min="0.01"
+                                        min="0"
                                         step="any"
+                                        placeholder="0"
                                         value={supplierForm.total_amount} 
                                         onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
                                         onChange={(e) => setSupplierForm({ ...supplierForm, total_amount: e.target.value })} 
@@ -827,8 +865,9 @@ const BusinessPayments = () => {
                                 <input 
                                     required 
                                     type="number" 
-                                    min="0.01"
+                                    min="0"
                                     step="any"
+                                    placeholder="0"
                                     value={supplierForm.paid_amount} 
                                     onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
                                     onChange={(e) => setSupplierForm({ ...supplierForm, paid_amount: e.target.value })} 
@@ -872,7 +911,21 @@ const BusinessPayments = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>From Account</label>
-                                    <select value={transferForm.from_acc_id} onChange={(e) => setTransferForm({ ...transferForm, from_acc_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                    <select 
+                                        value={transferForm.from_acc_id} 
+                                        onChange={(e) => {
+                                            const selectedFrom = e.target.value;
+                                            setTransferForm(prev => {
+                                                let nextTo = prev.to_acc_id;
+                                                if (String(selectedFrom) === String(nextTo)) {
+                                                    const alternate = accounts.find(a => String(a.bank_account_id) !== String(selectedFrom));
+                                                    if (alternate) nextTo = alternate.bank_account_id;
+                                                }
+                                                return { ...prev, from_acc_id: selectedFrom, to_acc_id: nextTo };
+                                            });
+                                        }} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                    >
                                         {accounts.map(a => (
                                             <option key={a.bank_account_id} value={a.bank_account_id}>
                                                 {a.bank_account_name} ({formatCurrency(a.current_balance)})
@@ -882,12 +935,23 @@ const BusinessPayments = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>To Account</label>
-                                    <select value={transferForm.to_acc_id} onChange={(e) => setTransferForm({ ...transferForm, to_acc_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        {accounts.map(a => (
-                                            <option key={a.bank_account_id} value={a.bank_account_id}>
-                                                {a.bank_account_name} ({formatCurrency(a.current_balance)})
-                                            </option>
-                                        ))}
+                                    <select 
+                                        value={transferForm.to_acc_id} 
+                                        onChange={(e) => setTransferForm({ ...transferForm, to_acc_id: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                    >
+                                        {accounts.map(a => {
+                                            const isSelectedFrom = String(a.bank_account_id) === String(transferForm.from_acc_id);
+                                            return (
+                                                <option 
+                                                    key={a.bank_account_id} 
+                                                    value={a.bank_account_id}
+                                                    disabled={isSelectedFrom}
+                                                >
+                                                    {a.bank_account_name} ({formatCurrency(a.current_balance)}){isSelectedFrom ? ' (Source)' : ''}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                 </div>
                             </div>
@@ -896,8 +960,9 @@ const BusinessPayments = () => {
                                 <input 
                                     required 
                                     type="number" 
-                                    min="0.01"
+                                    min="0"
                                     step="any"
+                                    placeholder="0"
                                     value={transferForm.amount} 
                                     onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
                                     onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })} 
