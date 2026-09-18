@@ -1,4 +1,5 @@
-import BusinessSplitCollect, { getDirectAttachmentUrl, resolveFileUrl, resolveAttachmentUrl } from './BusinessSplitCollect';
+import BusinessSplitCollect, { getDirectAttachmentUrl, resolveFileUrl, resolveAttachmentUrl, isPdfFile, isImageFile } from './BusinessSplitCollect';
 
 export default BusinessSplitCollect;
-export { getDirectAttachmentUrl, resolveFileUrl, resolveAttachmentUrl };
+export { getDirectAttachmentUrl, resolveFileUrl, resolveAttachmentUrl, isPdfFile, isImageFile };
+

@@ -120,6 +120,11 @@ async function request(endpoint, options = {}) {
     const url = buildUrl(endpoint, params);
     const requestHeaders = buildHeaders(headers);
 
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+    if (isFormData) {
+        delete requestHeaders['Content-Type'];
+    }
+
     // Setup timeout via AbortController
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -138,7 +143,7 @@ async function request(endpoint, options = {}) {
 
     // Add body for non-GET requests
     if (body && method !== 'GET') {
-        fetchOptions.body = JSON.stringify(body);
+        fetchOptions.body = isFormData ? body : JSON.stringify(body);
     }
 
     let response;

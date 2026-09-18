@@ -34,9 +34,25 @@ import { config } from '../lib/config';
 // Initial Seed Data for Split Groups
 const INITIAL_SPLITS = [];
 
-export const getDirectAttachmentUrl = (filePath) => filePath || '';
-export const resolveFileUrl = getDirectAttachmentUrl;
-export const resolveAttachmentUrl = getDirectAttachmentUrl;
+export const resolveFileUrl = (filePath) => {
+    if (!filePath) return '';
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        return filePath;
+    }
+    const cleanPath = filePath.startsWith('/') ? filePath : `/uploads/${filePath}`;
+    const normalizedPath = cleanPath.startsWith('/uploads') ? cleanPath : `/uploads/${cleanPath.replace(/^\/+/, '')}`;
+    return `https://cliks.beta-softnet.com${normalizedPath}`;
+};
+export const getDirectAttachmentUrl = resolveFileUrl;
+export const resolveAttachmentUrl = resolveFileUrl;
+
+export const isPdfFile = (urlOrName = '') => {
+    return /\.pdf(\?.*)?$/i.test(urlOrName);
+};
+
+export const isImageFile = (urlOrName = '') => {
+    return /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(urlOrName);
+};
 
 const BusinessSplitCollect = () => {
     const { currency } = useCurrency();
@@ -64,6 +80,7 @@ const BusinessSplitCollect = () => {
     const [editingGroupId, setEditingGroupId] = useState(null);
     const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
     const [editingExpenseId, setEditingExpenseId] = useState(null);
+    const [previewAttachment, setPreviewAttachment] = useState(null);
     
     // Group Form State
     const [groupForm, setGroupForm] = useState({
@@ -86,6 +103,9 @@ const BusinessSplitCollect = () => {
         amount: '',
         paidBy: 'You',
         date: new Date().toISOString().split('T')[0],
+        attachmentName: '',
+        attachmentFile: null,
+        attachmentSizeKb: null,
         splitType: 'equal', // equal, custom
         shares: {} // Custom shares per participant
     });
@@ -236,6 +256,9 @@ const BusinessSplitCollect = () => {
             amount: '',
             paidBy: 'You',
             date: new Date().toISOString().split('T')[0],
+            attachmentName: '',
+            attachmentFile: null,
+            attachmentSizeKb: null,
             splitType: 'equal',
             shares: initialShares
         });
@@ -257,6 +280,9 @@ const BusinessSplitCollect = () => {
             amount: expense.amount.toString(),
             paidBy: expense.paidBy,
             date: expense.date,
+            attachmentName: expense.attachment || '',
+            attachmentFile: null,
+            attachmentSizeKb: null,
             splitType: expense.splitType || 'equal',
             shares: initialShares
         });
@@ -266,6 +292,42 @@ const BusinessSplitCollect = () => {
     const closeExpenseModal = () => {
         setIsAddExpenseModalOpen(false);
         setEditingExpenseId(null);
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const validTypes = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
+        const isValidType = validTypes.includes(file.type) || /\.(png|jpe?g|webp|pdf)$/i.test(file.name);
+        if (!isValidType) {
+            alert('Please select a valid image (PNG, JPG, WEBP) or PDF file.');
+            return;
+        }
+
+        if (file.size > 20 * 1024 * 1024) {
+            alert('File size exceeds the 20MB limit.');
+            return;
+        }
+
+        const sizeKb = (file.size / 1024).toFixed(1);
+        setExpenseForm(prev => ({
+            ...prev,
+            attachmentName: file.name,
+            attachmentFile: file,
+            attachmentSizeKb: sizeKb
+        }));
+    };
+
+    const handleRemoveFile = () => {
+        setExpenseForm(prev => ({
+            ...prev,
+            attachmentName: '',
+            attachmentFile: null,
+            attachmentSizeKb: null
+        }));
+        const inputEl = document.getElementById('expense-attachment-input');
+        if (inputEl) inputEl.value = '';
     };
 
     const handleAmountChange = (e) => {
@@ -323,6 +385,20 @@ const BusinessSplitCollect = () => {
             }
         }
 
+        let uploadedAttachment = expenseForm.attachmentName || null;
+        if (expenseForm.attachmentFile) {
+            try {
+                const formData = new FormData();
+                formData.append('file', expenseForm.attachmentFile);
+                const uploadRes = await splitExpenseService.uploadAttachment(formData);
+                uploadedAttachment = uploadRes?.url || uploadRes?.filename || (uploadRes?.data && (uploadRes.data.url || uploadRes.data.filename)) || expenseForm.attachmentName;
+            } catch (err) {
+                console.error("Failed to upload document:", err);
+                alert("Attachment upload failed: " + (err.response?.data?.message || err.message || "Unknown error"));
+                return;
+            }
+        }
+
         if (editingExpenseId) {
             const updatedExpense = {
                 id: editingExpenseId,
@@ -330,7 +406,7 @@ const BusinessSplitCollect = () => {
                 amount: amount,
                 paidBy: expenseForm.paidBy,
                 date: expenseForm.date,
-                attachment: null,
+                attachment: uploadedAttachment,
                 splitType: expenseForm.splitType,
                 shares: finalShares
             };
@@ -371,7 +447,7 @@ const BusinessSplitCollect = () => {
             amount: amount,
             paidBy: expenseForm.paidBy,
             date: expenseForm.date,
-            attachment: null,
+            attachment: uploadedAttachment,
             splitType: expenseForm.splitType,
             shares: finalShares
         };
@@ -1195,6 +1271,45 @@ const BusinessSplitCollect = () => {
                                                                     <span style={{ fontSize: '0.65rem', fontWeight: '750', color: '#64748B', display: 'flex', alignItems: 'center', gap: '3px' }}>
                                                                         <Calendar size={12} /> {e.date}
                                                                     </span>
+                                                                    {e.attachment && (
+                                                                        <>
+                                                                            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#CBD5E1' }} />
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(ev) => {
+                                                                                    ev.stopPropagation();
+                                                                                    const cleanName = e.attachment.split('/').pop().replace(/^\d+_/, '') || e.attachment;
+                                                                                    setPreviewAttachment({
+                                                                                        url: resolveFileUrl(e.attachment),
+                                                                                        name: cleanName
+                                                                                    });
+                                                                                }}
+                                                                                style={{
+                                                                                    display: 'inline-flex',
+                                                                                    alignItems: 'center',
+                                                                                    gap: '4px',
+                                                                                    background: '#EFF6FF',
+                                                                                    color: '#2563EB',
+                                                                                    border: '1px solid #BFDBFE',
+                                                                                    padding: '2px 8px',
+                                                                                    borderRadius: '8px',
+                                                                                    fontSize: '0.65rem',
+                                                                                    fontWeight: '800',
+                                                                                    cursor: 'pointer',
+                                                                                    maxWidth: '180px',
+                                                                                    transition: 'all 0.15s'
+                                                                                }}
+                                                                                title="Click to view attachment inline"
+                                                                                onMouseOver={(ev) => ev.currentTarget.style.background = '#DBEAFE'}
+                                                                                onMouseOut={(ev) => ev.currentTarget.style.background = '#EFF6FF'}
+                                                                            >
+                                                                                <FileText size={11} style={{ flexShrink: 0 }} />
+                                                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                                    {e.attachment.split('/').pop().replace(/^\d+_/, '') || 'Attachment'}
+                                                                                </span>
+                                                                            </button>
+                                                                        </>
+                                                                    )}
                                                                 </div>
                                                             </div>
 
@@ -1508,6 +1623,70 @@ const BusinessSplitCollect = () => {
                                     </div>
                                 </div> {/* End Grid */}
 
+                                {/* ATTACH YOUR EXPENSES */}
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                                        ATTACH YOUR EXPENSES
+                                    </label>
+                                    
+                                    <input 
+                                        id="expense-attachment-input"
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/webp,application/pdf"
+                                        style={{ display: 'none' }}
+                                        onChange={handleFileChange}
+                                    />
+
+                                    {expenseForm.attachmentFile || expenseForm.attachmentName ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#ECFDF5', border: '1.5px solid #A7F3D0', borderRadius: '12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                                <FileText size={18} style={{ color: '#059669', flexShrink: 0 }} />
+                                                <div style={{ minWidth: 0 }}>
+                                                    <div style={{ fontSize: '0.82rem', fontWeight: '850', color: '#064E3B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {expenseForm.attachmentName}
+                                                    </div>
+                                                    {expenseForm.attachmentSizeKb && (
+                                                        <div style={{ fontSize: '0.68rem', fontWeight: '750', color: '#047857' }}>
+                                                            {expenseForm.attachmentSizeKb} KB
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <button 
+                                                type="button" 
+                                                onClick={handleRemoveFile}
+                                                style={{ border: 'none', background: '#D1FAE5', color: '#065F46', padding: '4px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: '8px' }}
+                                                title="Remove attachment"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div 
+                                            onClick={() => document.getElementById('expense-attachment-input')?.click()}
+                                            style={{ 
+                                                border: '1.5px dashed #CBD5E1', 
+                                                borderRadius: '12px', 
+                                                padding: '0.9rem', 
+                                                textAlign: 'center', 
+                                                cursor: 'pointer', 
+                                                background: '#FFFFFF',
+                                                transition: 'all 0.2s',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                gap: '4px'
+                                            }}
+                                            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#10B981'; e.currentTarget.style.background = '#F0FDF4'; }}
+                                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.background = '#FFFFFF'; }}
+                                        >
+                                            <Upload size={18} style={{ color: '#059669' }} />
+                                            <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#334155' }}>Click to upload invoice / receipt copy</span>
+                                            <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '600' }}>Supports PNG, JPG, WEBP, or PDF (up to 20MB)</span>
+                                        </div>
+                                    )}
+                                </div>
+
                                 {/* Split Type Protocol */}
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Splitting Protocol</label>
@@ -1610,6 +1789,111 @@ const BusinessSplitCollect = () => {
                                     {editingExpenseId ? 'Save Changes' : 'Log Expense'}
                                 </button>
                             </form>
+                        </Motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* ──────── MODAL: ATTACHMENT PREVIEW ──────── */}
+            <AnimatePresence>
+                {previewAttachment && (
+                    <div 
+                        style={{ 
+                            position: 'fixed', 
+                            inset: 0, 
+                            background: 'rgba(15, 23, 42, 0.75)', 
+                            backdropFilter: 'blur(8px)', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            zIndex: 1100,
+                            padding: '1.25rem'
+                        }}
+                        onClick={() => setPreviewAttachment(null)}
+                    >
+                        <Motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ 
+                                background: 'white', 
+                                width: '100%', 
+                                maxWidth: '840px', 
+                                height: '85vh', 
+                                borderRadius: '24px', 
+                                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', 
+                                overflow: 'hidden', 
+                                display: 'flex', 
+                                flexDirection: 'column' 
+                            }}
+                        >
+                            {/* Modal Header */}
+                            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, background: '#FAFAFA' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                                    <FileText size={18} style={{ color: '#059669', flexShrink: 0 }} />
+                                    <h3 style={{ fontSize: '1rem', fontWeight: '900', color: '#0F172A', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {previewAttachment.name || 'Expense Attachment'}
+                                    </h3>
+                                </div>
+                                
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <a 
+                                        href={previewAttachment.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        style={{ 
+                                            display: 'inline-flex', 
+                                            alignItems: 'center', 
+                                            gap: '5px', 
+                                            padding: '0.45rem 0.85rem', 
+                                            borderRadius: '10px', 
+                                            background: '#ECFDF5', 
+                                            color: '#065F46', 
+                                            textDecoration: 'none', 
+                                            fontSize: '0.78rem', 
+                                            fontWeight: '850',
+                                            border: '1px solid #A7F3D0'
+                                        }}
+                                    >
+                                        <ExternalLink size={13} /> Open in New Tab
+                                    </a>
+                                    <button 
+                                        style={{ 
+                                            background: '#F1F5F9', 
+                                            border: 'none', 
+                                            borderRadius: '10px', 
+                                            padding: '0.45rem', 
+                                            cursor: 'pointer', 
+                                            color: '#475569',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }} 
+                                        onClick={() => setPreviewAttachment(null)}
+                                        title="Close preview"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Content */}
+                            <div style={{ flex: 1, padding: '1rem', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                {isPdfFile(previewAttachment.url || previewAttachment.name) ? (
+                                    <iframe 
+                                        src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewAttachment.url)}&embedded=true`}
+                                        title="PDF Preview"
+                                        style={{ width: '100%', height: '100%', border: 'none', borderRadius: '12px', background: 'white' }}
+                                    />
+                                ) : (
+                                    <img 
+                                        src={previewAttachment.url} 
+                                        alt={previewAttachment.name || 'Expense Attachment'} 
+                                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
+                                    />
+                                )}
+                            </div>
                         </Motion.div>
                     </div>
                 )}
