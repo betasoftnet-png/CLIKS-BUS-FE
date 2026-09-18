@@ -28,6 +28,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '../services/paymentService';
 import { suppliersService } from '../services/suppliersService';
 import { accountingService } from '../services/accountingService';
+import { purchasesService } from '../services/purchasesService';
 import '../App.css';
 import { useCurrency } from '../context';
 
@@ -40,14 +41,39 @@ const BusinessPayments = () => {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const queryClient = useQueryClient();
 
     // Unified query loading both ledgers, accounts, and overdue invoices
-    const { data: reportsData = { receivables: [], payables: [], accounts: [], overdueInvoices: [] } } = useQuery({
+    const { data: reportsData = { receivables: [], payables: [], accounts: [], overdueInvoices: [] }, refetch: refetchReports } = useQuery({
         queryKey: ['paymentReports'],
         queryFn: () => paymentService.getReports()
     });
+
+    const { data: purchasesList = [] } = useQuery({
+        queryKey: ['purchases'],
+        queryFn: () => purchasesService.getPurchases().catch(() => [])
+    });
+
+    const fetchSupplierPayables = async () => {
+        try {
+            await Promise.all([
+                refetchReports(),
+                queryClient.invalidateQueries({ queryKey: ['paymentReports'] }),
+                queryClient.invalidateQueries({ queryKey: ['purchases'] }),
+                queryClient.invalidateQueries({ queryKey: ['ledger'] }),
+                queryClient.invalidateQueries({ queryKey: ['suppliersList'] }),
+                queryClient.invalidateQueries({ queryKey: ['bankAccounts'] }),
+                queryClient.invalidateQueries({ queryKey: ['accounts'] }),
+                queryClient.invalidateQueries({ queryKey: ['profitLoss'] }),
+                queryClient.invalidateQueries({ queryKey: ['balanceSheet'] }),
+                queryClient.invalidateQueries({ queryKey: ['expenses'] })
+            ]);
+        } catch (err) {
+            console.error('Error in fetchSupplierPayables:', err);
+        }
+    };
 
     const { data: dbLedger = [] } = useQuery({
         queryKey: ['ledger'],
@@ -190,21 +216,57 @@ const BusinessPayments = () => {
         reconciliation_status: rec.reconciliation_status || 'matched'
     }));
 
-    const payables = dbPayables.map(rec => ({
-        payment_id: rec.id,
-        payment_number: `VCH-${new Date(rec.created_at).getFullYear()}-${rec.id}`,
-        payment_type: 'pay',
-        payment_date: rec.created_at ? rec.created_at.split('T')[0] : 'N/A',
-        payment_status: 'completed',
-        supplier_name: rec.party_name || 'General Vendor',
-        purchase_id: rec.invoice_id || `BILL-REF-${rec.id}`,
-        total_amount: parseFloat(rec.amount) || 0,
-        paid_amount: parseFloat(rec.amount) || 0,
-        pending_amount: 0,
-        payment_mode: rec.payment_mode || 'Other',
-        cheque_number: rec.reference_number || `CHQ-${rec.id}`,
-        reconciliation_status: rec.reconciliation_status || 'matched'
-    }));
+    const payables = dbPayables.map(rec => {
+        let originalTotal = 0;
+        if (rec.notes) {
+            try {
+                const parsed = JSON.parse(rec.notes);
+                if (parsed.original_due_amount !== undefined && !isNaN(parseFloat(parsed.original_due_amount))) {
+                    originalTotal = parseFloat(parsed.original_due_amount);
+                } else if (parsed.total_original !== undefined && !isNaN(parseFloat(parsed.total_original))) {
+                    originalTotal = parseFloat(parsed.total_original);
+                }
+            } catch (e) {}
+        }
+        if (!originalTotal && rec.original_due_amount) {
+            originalTotal = parseFloat(rec.original_due_amount);
+        }
+        if (!originalTotal && rec.total_original) {
+            originalTotal = parseFloat(rec.total_original);
+        }
+        if (!originalTotal && rec.total_amount && parseFloat(rec.total_amount) !== parseFloat(rec.amount)) {
+            originalTotal = parseFloat(rec.total_amount);
+        }
+        if (!originalTotal && purchasesList && purchasesList.length > 0) {
+            const matched = purchasesList.find(p => 
+                (p.purchase_number && String(p.purchase_number) === String(rec.invoice_id)) ||
+                (p.id && String(p.id) === String(rec.invoice_id))
+            );
+            if (matched) {
+                originalTotal = parseFloat(matched.grand_total || matched.total_amount || 0);
+            }
+        }
+        const paidAmt = parseFloat(rec.amount || rec.paid_amount || 0);
+        if (!originalTotal) {
+            originalTotal = paidAmt;
+        }
+
+        return {
+            payment_id: rec.id,
+            payment_number: `VCH-${new Date(rec.created_at).getFullYear()}-${rec.id}`,
+            payment_type: 'pay',
+            payment_date: rec.created_at ? rec.created_at.split('T')[0] : 'N/A',
+            payment_status: 'completed',
+            supplier_name: rec.party_name || 'General Vendor',
+            purchase_id: rec.invoice_id || `BILL-REF-${rec.id}`,
+            total_amount: originalTotal,
+            paid_amount: paidAmt,
+            pending_amount: Math.max(0, originalTotal - paidAmt),
+            payment_mode: rec.payment_mode || 'Other',
+            cheque_number: rec.reference_number || `CHQ-${rec.id}`,
+            reconciliation_status: rec.reconciliation_status || 'matched'
+        };
+    });
 
     const accounts = dbAccounts.length > 0 ? dbAccounts : [
         { bank_account_id: 'ACC-DEFL', bank_account_name: 'Default Cash Account', current_balance: 0, type: 'cash' }
@@ -294,8 +356,10 @@ const BusinessPayments = () => {
         });
     };
 
-    const handleSaveSupplierPayment = (e) => {
-        e.preventDefault();
+    const handleSaveSupplierPayment = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        if (isSubmitting || payMutation.isPending) return;
+
         const paidAmt = parseFloat(supplierForm.paid_amount);
         const totalAmt = supplierForm.total_amount !== '' && supplierForm.total_amount !== null && supplierForm.total_amount !== undefined
             ? parseFloat(supplierForm.total_amount)
@@ -311,13 +375,49 @@ const BusinessPayments = () => {
             return;
         }
 
-        payMutation.mutate({
-            supplier_name: supplierForm.supplier_name,
-            purchase_id: supplierForm.purchase_id,
-            amount: paidAmt,
-            payment_mode: supplierForm.payment_mode,
-            reference_number: supplierForm.transaction_reference
-        });
+        setIsSubmitting(true);
+        try {
+            const payload = {
+                supplier_name: supplierForm.supplier_name,
+                purchase_id: supplierForm.purchase_id,
+                amount: paidAmt,
+                paid_amount: paidAmt,
+                original_due_amount: totalAmt,
+                total_original: totalAmt,
+                total_amount: totalAmt,
+                payment_mode: supplierForm.payment_mode,
+                reference_number: supplierForm.transaction_reference,
+                notes: JSON.stringify({ original_due_amount: totalAmt, paid_amount: paidAmt })
+            };
+
+            const response = await paymentService.paySupplier(payload);
+
+            const isSuccess = 
+                response?.status === 200 || 
+                response?.status === 201 || 
+                response?.data || 
+                response?.success || 
+                response?.id || 
+                (response && typeof response === 'object' && !response.error);
+
+            if (isSuccess) {
+                setIsSupplierModalOpen(false);
+                setSupplierForm(prev => ({ ...prev, total_amount: '', paid_amount: '' }));
+                await fetchSupplierPayables();
+            } else {
+                alert(response?.message || 'Failed to process supplier payment. Please try again.');
+            }
+        } catch (err) {
+            if (err?.response?.status === 200 || err?.response?.status === 201 || err?.response?.data?.success) {
+                setIsSupplierModalOpen(false);
+                setSupplierForm(prev => ({ ...prev, total_amount: '', paid_amount: '' }));
+                await fetchSupplierPayables();
+            } else {
+                alert(err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Failed to process supplier payment. Please try again.');
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleInternalTransfer = (e) => {
@@ -890,8 +990,29 @@ const BusinessPayments = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" disabled={payMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                {payMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : 'Disburse Supplier Funds'}
+                            <button 
+                                type="submit" 
+                                disabled={isSubmitting || payMutation.isPending} 
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '1rem', 
+                                    borderRadius: '16px', 
+                                    background: (isSubmitting || payMutation.isPending) ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    fontWeight: '800', 
+                                    fontSize: '1.1rem', 
+                                    cursor: (isSubmitting || payMutation.isPending) ? 'not-allowed' : 'pointer', 
+                                    boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    gap: '0.5rem',
+                                    opacity: (isSubmitting || payMutation.isPending) ? 0.8 : 1,
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                {(isSubmitting || payMutation.isPending) ? <Loader2 className="animate-spin" size={20} /> : 'Disburse Supplier Funds'}
                             </button>
                         </form>
                     </div>
