@@ -381,198 +381,43 @@ export const SubscriptionBadgeWidget = ({
                 );
             })()}
 
-            {/* CASE 2: Two Plans (Matches reference screenshot strictly) */}
+            {/* CASE 2: Two Plans (Matches reference 2-plan layout strictly) */}
             {planCount === 2 && (
-                <div
-                    className="w-full bg-[#0A101D] border border-[#142038] rounded-2xl p-1.5 flex items-center gap-2 shadow-lg"
-                    style={{
-                        width: '100%',
-                        backgroundColor: '#0A101D',
-                        border: '1px solid #142038',
-                        borderRadius: '16px',
-                        padding: '6px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        boxSizing: 'border-box',
-                        boxShadow: '0 4px 16px rgba(10, 20, 45, 0.4)'
-                    }}
-                >
-                    {displayPlans.map((plan, idx) => {
-                        const moduleName = (plan.moduleTitle || plan.module || plan.name || 'BOOK').toUpperCase();
-                        const tierName = (plan.tierTitle || plan.tier || plan.plan || 'ELITE').toUpperCase();
-                        const days = plan.days ?? plan.daysRemaining ?? plan.days_left ?? 346;
-                        const isFinPro = moduleName.includes('FIN') || idx === 1;
+                <div className="w-full bg-[#0b1329] border border-gray-800/80 rounded-2xl p-2.5 shadow-md">
+                    <div className="grid grid-cols-2 gap-2">
+                        {displayPlans.slice(0, 2).map((plan, idx) => {
+                            const daysLeft = plan.days_left ?? plan.daysLeft ?? plan.days ?? 358;
+                            const moduleName = (plan.moduleTitle || plan.module || plan.name || (idx === 0 ? 'BOOK' : 'FIN-PRO')).toUpperCase();
+                            const tierName = (plan.tierTitle || plan.tier || plan.plan || (idx === 0 ? 'ELITE' : 'SOLO')).toUpperCase();
 
-                        return (
-                            <div
-                                key={plan.id || idx}
-                                className="flex-1 bg-[#060913] border border-[#1E293B] hover:border-slate-600 transition-all rounded-xl p-2.5 flex flex-col justify-between h-[88px] shadow-sm"
-                                style={{
-                                    flex: 1,
-                                    backgroundColor: '#060913',
-                                    border: '1.5px solid #1E293B',
-                                    borderRadius: '13px',
-                                    padding: '8px 8px 10px 8px',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    justifyContent: 'space-between',
-                                    height: '88px',
-                                    minHeight: '88px',
-                                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.35)',
-                                    boxSizing: 'border-box',
-                                    minWidth: 0
-                                }}
-                            >
-                                {/* Top Row: Icon on left, Days circle on right */}
+                            return (
                                 <div
-                                    className="flex items-center justify-between"
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        width: '100%'
-                                    }}
+                                    key={plan.id || idx}
+                                    className="flex items-center gap-2 bg-[#101b38] border border-black/60 rounded-xl px-2.5 py-2"
                                 >
-                                    {/* Icon Container */}
-                                    <div
-                                        className="w-7 h-7 rounded-md bg-[#111827] border border-slate-700/60 flex items-center justify-center"
-                                        style={{
-                                            width: '28px',
-                                            height: '28px',
-                                            borderRadius: '7px',
-                                            backgroundColor: '#111827',
-                                            border: '1px solid rgba(51, 65, 85, 0.6)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            flexShrink: 0
-                                        }}
-                                    >
-                                        {isFinPro ? (
-                                            // Ribbon / Medal icon for FIN-PRO
-                                            <svg
-                                                className="w-4 h-4 text-sky-400"
-                                                style={{ width: '16px', height: '16px', color: '#38bdf8' }}
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2.2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            >
-                                                <circle cx="12" cy="8" r="5" />
-                                                <path d="M8.21 13.89L7 21l5-3 5 3-1.21-7.11" />
-                                            </svg>
-                                        ) : (
-                                            // Shield icon with checkmark for BOOK
-                                            <svg
-                                                className="w-4 h-4 text-sky-400"
-                                                style={{ width: '16px', height: '16px', color: '#38bdf8' }}
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2.2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            >
-                                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                                <path d="m9 12 2 2 4-4" />
-                                            </svg>
-                                        )}
-                                    </div>
-
-                                    {/* Days Counter Circle */}
-                                    <div
-                                        className="w-9 h-9 rounded-full bg-white border-[2.5px] border-[#F59E0B] flex flex-col items-center justify-center shadow-sm"
-                                        style={{
-                                            width: '36px',
-                                            height: '36px',
-                                            borderRadius: '9999px',
-                                            backgroundColor: '#FFFFFF',
-                                            border: '2.5px solid #F59E0B',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.25)',
-                                            flexShrink: 0
-                                        }}
-                                    >
-                                        <span
-                                            className="text-[#0F172A] font-black text-[11px] leading-none"
-                                            style={{
-                                                color: '#0F172A',
-                                                fontWeight: '900',
-                                                fontSize: '11px',
-                                                lineHeight: 1
-                                            }}
-                                        >
-                                            {days}
+                                    {/* Circular Day Badge */}
+                                    <div className="w-10 h-10 min-w-[40px] rounded-full bg-white border-2 border-[#f59e0b] flex flex-col items-center justify-center leading-none shadow-xs">
+                                        <span className="text-[11px] font-black text-[#0b1329] tracking-tight">
+                                            {daysLeft}
                                         </span>
-                                        <span
-                                            className="text-[6.5px] font-bold text-[#0F172A] uppercase tracking-tight leading-none mt-0.5"
-                                            style={{
-                                                fontSize: '6.5px',
-                                                fontWeight: '800',
-                                                color: '#0F172A',
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '0.02em',
-                                                lineHeight: 1,
-                                                marginTop: '2px'
-                                            }}
-                                        >
+                                        <span className="text-[7px] font-extrabold text-[#0b1329] tracking-tighter uppercase mt-0.5">
                                             DAYS
                                         </span>
                                     </div>
-                                </div>
 
-                                {/* Bottom Row: Text labels */}
-                                <div
-                                    className="text-center mt-1"
-                                    style={{
-                                        textAlign: 'center',
-                                        marginTop: '4px',
-                                        width: '100%'
-                                    }}
-                                >
-                                    <div
-                                        className="text-white text-[12px] font-black uppercase tracking-wider leading-none"
-                                        style={{
-                                            color: '#FFFFFF',
-                                            fontSize: '12px',
-                                            fontWeight: '900',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.04em',
-                                            lineHeight: 1,
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap'
-                                        }}
-                                    >
-                                        {moduleName}
-                                    </div>
-                                    <div
-                                        className="text-[#F59E0B] text-[10px] font-extrabold uppercase tracking-wide leading-none mt-1"
-                                        style={{
-                                            color: '#F59E0B',
-                                            fontSize: '10px',
-                                            fontWeight: '900',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.03em',
-                                            lineHeight: 1,
-                                            marginTop: '3px',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap'
-                                        }}
-                                    >
-                                        {tierName}
+                                    {/* Module & Tier Text */}
+                                    <div className="flex flex-col justify-center min-w-0">
+                                        <span className="text-xs font-black text-white uppercase tracking-tight truncate leading-tight">
+                                            {moduleName}
+                                        </span>
+                                        <span className="text-[11px] font-black text-[#f59e0b] uppercase tracking-wide truncate leading-tight">
+                                            {tierName}
+                                        </span>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
             )}
 

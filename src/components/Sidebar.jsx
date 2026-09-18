@@ -203,6 +203,68 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     );
 };
 
+/**
+ * DynamicSubscriptionWidget
+ * Renders the subscription widget in the sidebar, with the exact 2-plan side-by-side layout.
+ */
+export const DynamicSubscriptionWidget = ({ activePlans, plans, user, selectedPlan, planDaysRemaining, onNavigate }) => {
+    const list = activePlans || plans || [];
+
+    if (list.length === 2) {
+        return (
+            <div 
+                onClick={onNavigate}
+                className="w-full bg-[#0b1329] border border-gray-800/80 rounded-2xl p-2.5 shadow-md cursor-pointer hover:border-slate-700 transition-all"
+            >
+                <div className="grid grid-cols-2 gap-2">
+                    {list.slice(0, 2).map((plan, idx) => {
+                        const daysLeft = plan.days_left ?? plan.daysLeft ?? plan.daysRemaining ?? plan.days ?? 358;
+                        const moduleName = (plan.module || plan.name || plan.moduleTitle || (idx === 0 ? 'BOOK' : 'FIN-PRO')).toUpperCase();
+                        const tierName = (plan.tier || plan.plan || plan.tierTitle || (idx === 0 ? 'ELITE' : 'SOLO')).toUpperCase();
+
+                        return (
+                            <div
+                                key={plan.id || idx}
+                                className="flex items-center gap-2 bg-[#101b38] border border-black/60 rounded-xl px-2.5 py-2"
+                            >
+                                {/* Circular Day Badge */}
+                                <div className="w-10 h-10 min-w-[40px] rounded-full bg-white border-2 border-[#f59e0b] flex flex-col items-center justify-center leading-none shadow-xs">
+                                    <span className="text-[11px] font-black text-[#0b1329] tracking-tight">
+                                        {daysLeft}
+                                    </span>
+                                    <span className="text-[7px] font-extrabold text-[#0b1329] tracking-tighter uppercase mt-0.5">
+                                        DAYS
+                                    </span>
+                                </div>
+
+                                {/* Module & Tier Text */}
+                                <div className="flex flex-col justify-center min-w-0">
+                                    <span className="text-xs font-black text-white uppercase tracking-tight truncate leading-tight">
+                                        {moduleName}
+                                    </span>
+                                    <span className="text-[11px] font-black text-[#f59e0b] uppercase tracking-wide truncate leading-tight">
+                                        {tierName}
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <SubscriptionBadgeWidget
+            plans={list}
+            user={user}
+            selectedPlan={selectedPlan}
+            planDaysRemaining={planDaysRemaining}
+            onNavigate={onNavigate}
+        />
+    );
+};
+
 const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -864,7 +926,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 {/* Dynamic Multi-Plan Subscription Status Card (Matching User Visual Specs) */}
                 {(!isAdminMode && !isSalesAgentMode) && (
                     <div style={{ margin: '0.25rem 0' }}>
-                        <SubscriptionBadgeWidget
+                        <DynamicSubscriptionWidget
+                            activePlans={userSubscriptions}
                             plans={userSubscriptions}
                             user={user}
                             selectedPlan={selectedPlan}
