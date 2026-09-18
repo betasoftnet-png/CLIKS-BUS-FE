@@ -302,8 +302,8 @@ const BusinessGST = () => {
                 invoice_number: '',
                 invoice_date: new Date().toISOString().split('T')[0],
                 transport_mode: 'Road',
-                transporter_name: '',
-                transporter_gstin: '',
+                transporter_name: 'M/S UTTARAYAN CO-OPERATIVE FOR RENEWABLE ENERGY',
+                transporter_gstin: '05AAAAU6537D1ZO',
                 vehicle_number: '',
                 transport_distance: '',
                 dispatch_location: '',
@@ -581,8 +581,8 @@ const BusinessGST = () => {
         invoice_number: '',
         invoice_date: new Date().toISOString().split('T')[0],
         transport_mode: 'Road',
-        transporter_name: '',
-        transporter_gstin: '',
+        transporter_name: 'M/S UTTARAYAN CO-OPERATIVE FOR RENEWABLE ENERGY',
+        transporter_gstin: '05AAAAU6537D1ZO',
         vehicle_number: '',
         transport_distance: '',
         dispatch_location: '',
@@ -2292,7 +2292,7 @@ const BusinessGST = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>TRANSPORT COMPANY NAME *</label>
-                                    <input required type="text" value={ewayForm.transporter_name} onChange={(e) => setEwayForm({ ...ewayForm, transporter_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.transporter_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="Bluedart Cargo" />
+                                    <input required type="text" value={ewayForm.transporter_name} onChange={(e) => setEwayForm({ ...ewayForm, transporter_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.transporter_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. M/S UTTARAYAN CO-OPERATIVE FOR RENEWABLE ENERGY" />
                                     {validationErrors.transporter_name && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.transporter_name}</span>}
                                 </div>
                             </div>
@@ -2300,7 +2300,7 @@ const BusinessGST = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>TRANSPORTER GSTIN *</label>
-                                    <input required type="text" value={ewayForm.transporter_gstin} onChange={(e) => setEwayForm({ ...ewayForm, transporter_gstin: e.target.value.toUpperCase() })} onBlur={(e) => setEwayForm({ ...ewayForm, transporter_gstin: e.target.value.trim().toUpperCase() })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.transporter_gstin ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="27AAAAA1111A1Z1" />
+                                    <input required type="text" value={ewayForm.transporter_gstin} onChange={(e) => setEwayForm({ ...ewayForm, transporter_gstin: e.target.value.toUpperCase() })} onBlur={(e) => setEwayForm({ ...ewayForm, transporter_gstin: e.target.value.trim().toUpperCase() })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.transporter_gstin ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="05AAAAU6537D1ZO" />
                                     {validationErrors.transporter_gstin && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.transporter_gstin}</span>}
                                 </div>
                                 <div>

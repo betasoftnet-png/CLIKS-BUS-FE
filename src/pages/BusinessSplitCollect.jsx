@@ -54,6 +54,61 @@ export const isImageFile = (urlOrName = '') => {
     return /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(urlOrName);
 };
 
+export const openAttachmentInNewTab = (attachment) => {
+    if (!attachment) return;
+    const rawUrl = typeof attachment === 'string' ? attachment : attachment.url;
+    const name = (typeof attachment === 'object' ? attachment.name : '') || 'Attachment Preview';
+    if (!rawUrl) return;
+
+    const fileUrl = resolveFileUrl(rawUrl);
+    const isPdf = isPdfFile(fileUrl || name);
+
+    if (isPdf) {
+        window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=false`, '_blank');
+    } else {
+        const newTab = window.open('', '_blank');
+        if (newTab) {
+            newTab.document.write(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${name.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')}</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0b0f19;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+        }
+        img {
+            max-width: 96vw;
+            max-height: 96vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+    </style>
+</head>
+<body>
+    <img src="${fileUrl}" alt="${name.replace(/"/g, '&quot;')}" />
+</body>
+</html>`);
+            newTab.document.close();
+        } else {
+            window.open(fileUrl, '_blank');
+        }
+    }
+};
+
 export const getViewableUrl = (rawFilePath) => {
     if (!rawFilePath) return '';
 
@@ -1859,10 +1914,9 @@ const BusinessSplitCollect = () => {
                                 </div>
                                 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <a 
-                                        href={getViewableUrl(previewAttachment.url)} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
+                                    <button 
+                                        type="button"
+                                        onClick={() => openAttachmentInNewTab(previewAttachment)}
                                         style={{ 
                                             display: 'inline-flex', 
                                             alignItems: 'center', 
@@ -1874,11 +1928,12 @@ const BusinessSplitCollect = () => {
                                             textDecoration: 'none', 
                                             fontSize: '0.78rem', 
                                             fontWeight: '850',
-                                            border: '1px solid #A7F3D0'
+                                            border: '1px solid #A7F3D0',
+                                            cursor: 'pointer'
                                         }}
                                     >
                                         <ExternalLink size={13} /> Open in New Tab
-                                    </a>
+                                    </button>
                                     <button 
                                         style={{ 
                                             background: '#F1F5F9', 
