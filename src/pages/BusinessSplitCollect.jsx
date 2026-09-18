@@ -449,11 +449,21 @@ const BusinessSplitCollect = () => {
         } else {
             // Validate custom shares sum matches total amount
             let sum = 0;
+            let hasNegativeOrInvalid = false;
             activeSplit.participants.forEach(p => {
-                const share = parseFloat(expenseForm.shares[p]) || 0;
-                finalShares[p] = share;
-                sum += share;
+                const rawVal = expenseForm.shares[p];
+                const share = parseFloat(rawVal);
+                if (rawVal === undefined || rawVal === null || String(rawVal).trim() === '' || isNaN(share) || share < 0) {
+                    hasNegativeOrInvalid = true;
+                }
+                finalShares[p] = share || 0;
+                sum += (share || 0);
             });
+
+            if (hasNegativeOrInvalid) {
+                alert('Participant allocations cannot be negative or non-numeric.');
+                return;
+            }
             
             if (Math.abs(sum - amount) > 0.1) {
                 alert(`The sum of custom shares (${activeSplit.currencySymbol}${sum.toFixed(2)}) must exactly match the total expense amount (${activeSplit.currencySymbol}${amount.toFixed(2)})!`);
@@ -874,6 +884,17 @@ const BusinessSplitCollect = () => {
             printWindow.print();
         }, 300);
     };
+
+    const hasInvalidCustomShares = expenseForm.splitType === 'custom' && (
+        !activeSplit?.participants ||
+        activeSplit.participants.length === 0 ||
+        activeSplit.participants.some(p => {
+            const val = expenseForm.shares?.[p];
+            if (val === undefined || val === null || String(val).trim() === '') return true;
+            const num = Number(val);
+            return isNaN(num) || num < 0;
+        })
+    );
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
@@ -1815,19 +1836,27 @@ const BusinessSplitCollect = () => {
                                                             <span style={{ fontSize: '0.85rem', fontWeight: '850', color: '#64748B' }}>{activeSplit.currencySymbol}</span>
                                                             <input 
                                                                 required
-                                                                type="text"
+                                                                type="number"
+                                                                min="0"
+                                                                step="any"
                                                                 inputMode="decimal"
                                                                 placeholder="0.00"
                                                                 value={expenseForm.shares[p] || ''}
+                                                                onKeyDown={(e) => { if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
                                                                 onChange={(e) => {
-                                                                    let val = e.target.value.replace(/[^0-9.]/g, '');
+                                                                    let val = e.target.value;
+                                                                    if (Number(val) < 0) return;
+                                                                    val = val.replace(/[^0-9.]/g, '');
+                                                                    if (Number(val) < 0) return;
                                                                     const parts = val.split('.');
                                                                     if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
                                                                     let intPart = parts[0] || '';
                                                                     if (intPart.length > 12) intPart = intPart.slice(0, 12);
                                                                     let decPart = parts[1] !== undefined ? '.' + parts[1].slice(0, 2) : '';
+                                                                    const cleanVal = intPart + decPart;
+                                                                    if (Number(cleanVal) < 0) return;
                                                                     const newShares = { ...expenseForm.shares };
-                                                                    newShares[p] = intPart + decPart;
+                                                                    newShares[p] = cleanVal;
                                                                     setExpenseForm({ ...expenseForm, shares: newShares });
                                                                 }}
                                                                 style={{ width: '100px', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontWeight: '900', textAlign: 'right', fontSize: '0.82rem', color: '#1B6B3A' }}
@@ -1860,7 +1889,20 @@ const BusinessSplitCollect = () => {
 
                                 <button 
                                     type="submit"
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '850', fontSize: '0.88rem', cursor: 'pointer', marginTop: '0.5rem' }}
+                                    disabled={hasInvalidCustomShares}
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '0.75rem', 
+                                        borderRadius: '12px', 
+                                        background: hasInvalidCustomShares ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                        color: 'white', 
+                                        border: 'none', 
+                                        fontWeight: '850', 
+                                        fontSize: '0.88rem', 
+                                        cursor: hasInvalidCustomShares ? 'not-allowed' : 'pointer', 
+                                        marginTop: '0.5rem',
+                                        opacity: hasInvalidCustomShares ? 0.6 : 1
+                                    }}
                                 >
                                     {editingExpenseId ? 'Save Changes' : 'Log Expense'}
                                 </button>

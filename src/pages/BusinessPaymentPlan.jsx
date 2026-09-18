@@ -515,17 +515,18 @@ const BusinessPaymentPlan = () => {
                                     <input 
                                         required 
                                         type="number" 
-                                        min="0.01"
+                                        min="0"
                                         step="any"
-                                        placeholder="0.00" 
+                                        placeholder="0" 
                                         value={formData.amount} 
                                         onKeyDown={(e) => {
-                                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                            if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
                                                 e.preventDefault();
                                             }
                                         }}
                                         onChange={e => {
                                             const val = e.target.value;
+                                            if (val !== '' && Number(val) < 0) return;
                                             if (val === '' || parseFloat(val) >= 0) {
                                                 setFormData({...formData, amount: val});
                                             }
@@ -557,12 +558,15 @@ const BusinessPaymentPlan = () => {
 
                             <button 
                                 type="submit" 
-                                disabled={createMutation.isLoading}
+                                disabled={createMutation.isLoading || !formData.amount || Number(formData.amount) <= 0}
                                 style={{ 
                                     width: '100%', padding: '1.1rem', borderRadius: '18px', 
-                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    background: (!formData.amount || Number(formData.amount) <= 0) ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
                                     color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', 
-                                    marginTop: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem'
+                                    marginTop: '0.5rem', 
+                                    cursor: (createMutation.isLoading || !formData.amount || Number(formData.amount) <= 0) ? 'not-allowed' : 'pointer', 
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+                                    opacity: (createMutation.isLoading || !formData.amount || Number(formData.amount) <= 0) ? 0.6 : 1
                                 }}
                             >
                                 {createMutation.isLoading ? <Loader2 className="animate-spin" /> : 'Schedule Payment'}
