@@ -148,9 +148,10 @@ const BusinessPurposeWallet = () => {
             return alert("Fully claimed wallets cannot be edited.");
         }
         setEditingWalletId(wallet.id);
+        const roundedTarget = Math.round(parseFloat(wallet.target_amount || 0));
         setFormData({
             name: wallet.name,
-            target_amount: wallet.target_amount.toString(),
+            target_amount: roundedTarget >= 0 ? roundedTarget.toString() : '0',
             description: wallet.description || ''
         });
         setIsCreateModalOpen(true);
@@ -172,8 +173,11 @@ const BusinessPurposeWallet = () => {
 
     const handleCreateSubmit = (e) => {
         e.preventDefault();
-        const amt = parseFloat(formData.target_amount);
-        if (isNaN(amt) || amt <= 0) return alert("Please provide a valid target amount.");
+        if (formData.target_amount === '' || formData.target_amount === null || formData.target_amount === undefined) {
+            return alert("Please enter a target cap amount.");
+        }
+        const amt = parseInt(formData.target_amount, 10);
+        if (isNaN(amt) || amt < 0) return alert("Please provide a valid non-negative target amount (0 or greater).");
         if (editingWalletId) {
             updateMutation.mutate({ id: editingWalletId, data: { ...formData, target_amount: amt } });
         } else {
@@ -721,9 +725,22 @@ const BusinessPurposeWallet = () => {
                                     <input 
                                         required 
                                         type="number" 
-                                        placeholder="5000" 
+                                        min="0"
+                                        step="1"
+                                        placeholder="0" 
                                         value={formData.target_amount} 
-                                        onChange={e => setFormData({...formData, target_amount: e.target.value})}
+                                        onKeyDown={(e) => { 
+                                            if (e.key === '-' || e.key === '.' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                                                e.preventDefault(); 
+                                            }
+                                        }}
+                                        onChange={(e) => {
+                                            let val = e.target.value.replace(/[^0-9]/g, '');
+                                            if (val.length > 1 && val.startsWith('0')) {
+                                                val = val.replace(/^0+/, '') || '0';
+                                            }
+                                            setFormData({ ...formData, target_amount: val });
+                                        }}
                                         style={{ width: '100%', padding: '0.9rem 1.1rem 0.9rem 2.25rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '800', fontSize: '1.1rem', color: '#0F172A' }}
                                     />
                                 </div>
@@ -742,18 +759,21 @@ const BusinessPurposeWallet = () => {
 
                             <button 
                                 type="submit"
-                                disabled={createMutation.isPending || updateMutation.isPending}
+                                disabled={createMutation.isPending || updateMutation.isPending || formData.target_amount === '' || Number(formData.target_amount) < 0}
+                                className={(formData.target_amount === '' || Number(formData.target_amount) < 0) ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
                                 style={{ 
                                     padding: '1.1rem', 
                                     borderRadius: '14px', 
                                     border: 'none', 
-                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    background: (formData.target_amount === '' || Number(formData.target_amount) < 0) ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
                                     color: 'white', 
                                     fontWeight: '850', 
                                     fontSize: '1rem', 
                                     marginTop: '0.5rem', 
-                                    cursor: 'pointer',
-                                    boxShadow: '0 8px 20px rgba(27, 107, 58, 0.2)'
+                                    cursor: (createMutation.isPending || updateMutation.isPending || formData.target_amount === '' || Number(formData.target_amount) < 0) ? 'not-allowed' : 'pointer',
+                                    boxShadow: (formData.target_amount === '' || Number(formData.target_amount) < 0) ? 'none' : '0 8px 20px rgba(27, 107, 58, 0.2)',
+                                    opacity: (createMutation.isPending || updateMutation.isPending || formData.target_amount === '' || Number(formData.target_amount) < 0) ? 0.5 : 1,
+                                    pointerEvents: (formData.target_amount === '' || Number(formData.target_amount) < 0) ? 'none' : 'auto'
                                 }}
                             >
                                 {createMutation.isPending || updateMutation.isPending ? <Loader2 className="animate-spin" style={{ margin: '0 auto' }} /> : (editingWalletId ? 'Save Changes' : 'Activate Isolated Container')}
