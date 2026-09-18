@@ -157,6 +157,65 @@ const BusinessSplitCollect = () => {
     const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
     const [editingExpenseId, setEditingExpenseId] = useState(null);
     const [previewAttachment, setPreviewAttachment] = useState(null);
+    const [blobUrl, setBlobUrl] = useState(null);
+    const [isBlobLoading, setIsBlobLoading] = useState(false);
+
+    // Generate in-memory typed Blob URL for attachment preview & cleanup on unmount/close
+    useEffect(() => {
+        if (!previewAttachment?.url) {
+            setBlobUrl(null);
+            setIsBlobLoading(false);
+            return;
+        }
+
+        let active = true;
+        let createdBlobUrl = null;
+        setIsBlobLoading(true);
+
+        const fetchAttachmentBlob = async () => {
+            try {
+                const response = await fetch(previewAttachment.url);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch attachment: ${response.status}`);
+                }
+                const buffer = await response.arrayBuffer();
+
+                const isPdf = isPdfFile(previewAttachment.url || previewAttachment.name);
+                const isPng = /\.png(\?.*)?$/i.test(previewAttachment.name || previewAttachment.url);
+                const isWebp = /\.webp(\?.*)?$/i.test(previewAttachment.name || previewAttachment.url);
+                const isJpg = /\.(jpe?g)(\?.*)?$/i.test(previewAttachment.name || previewAttachment.url);
+                const mimeType = isPdf 
+                    ? 'application/pdf' 
+                    : (isPng ? 'image/png' : (isWebp ? 'image/webp' : (isJpg ? 'image/jpeg' : (response.headers.get('content-type') || 'application/octet-stream'))));
+
+                const blob = new Blob([buffer], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                createdBlobUrl = url;
+
+                if (active) {
+                    setBlobUrl(url);
+                    setIsBlobLoading(false);
+                } else {
+                    URL.revokeObjectURL(url);
+                }
+            } catch (err) {
+                console.error("Error creating in-memory Blob URL for preview:", err);
+                if (active) {
+                    setBlobUrl(previewAttachment.url);
+                    setIsBlobLoading(false);
+                }
+            }
+        };
+
+        fetchAttachmentBlob();
+
+        return () => {
+            active = false;
+            if (createdBlobUrl) {
+                URL.revokeObjectURL(createdBlobUrl);
+            }
+        };
+    }, [previewAttachment]);
     
     // Group Form State
     const [groupForm, setGroupForm] = useState({
@@ -1958,7 +2017,12 @@ const BusinessSplitCollect = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <button 
                                         type="button"
-                                        onClick={() => openAttachmentInNewTab(previewAttachment)}
+                                        onClick={() => {
+                                            const targetUrl = blobUrl || previewAttachment.url;
+                                            if (targetUrl) {
+                                                window.open(targetUrl, '_blank');
+                                            }
+                                        }}
                                         style={{ 
                                             display: 'inline-flex', 
                                             alignItems: 'center', 
@@ -1998,15 +2062,20 @@ const BusinessSplitCollect = () => {
 
                             {/* Modal Content */}
                             <div style={{ flex: 1, padding: '1rem', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                {isPdfFile(previewAttachment.url || previewAttachment.name) ? (
+                                {isBlobLoading ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                                        <Loader2 className="animate-spin" size={32} color="#059669" />
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '750', color: '#64748B' }}>Loading attachment preview...</span>
+                                    </div>
+                                ) : isPdfFile(previewAttachment.url || previewAttachment.name) ? (
                                     <iframe 
-                                        src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewAttachment.url)}&embedded=true`}
+                                        src={blobUrl || previewAttachment.url}
                                         title="PDF Preview"
                                         style={{ width: '100%', height: '100%', border: 'none', borderRadius: '12px', background: 'white' }}
                                     />
                                 ) : (
                                     <img 
-                                        src={previewAttachment.url} 
+                                        src={blobUrl || previewAttachment.url} 
                                         alt={previewAttachment.name || 'Expense Attachment'} 
                                         style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
                                     />
