@@ -201,8 +201,30 @@ const BusinessPeople = () => {
         }, 0);
     }, [personTx, personDetails]);
 
-    const people = useMemo(() => peopleRes.data || peopleRes || [], [peopleRes]);
-    const transactions = transactionsRes.data || transactionsRes || [];
+    const people = useMemo(() => {
+        const list = peopleRes.data || peopleRes || [];
+        return [...list].sort((a, b) => {
+            const aPinned = pinnedPeopleIds.includes(a.id);
+            const bPinned = pinnedPeopleIds.includes(b.id);
+            if (aPinned && !bPinned) return -1;
+            if (!aPinned && bPinned) return 1;
+            const dateA = new Date(a.updatedAt || a.updated_at || a.createdAt || a.created_at || a.date || 0).getTime();
+            const dateB = new Date(b.updatedAt || b.updated_at || b.createdAt || b.created_at || b.date || 0).getTime();
+            if (dateB !== dateA) return dateB - dateA;
+            return (Number(b.id) || 0) - (Number(a.id) || 0);
+        });
+    }, [peopleRes, pinnedPeopleIds]);
+
+    const transactions = useMemo(() => {
+        const list = transactionsRes.data || transactionsRes || [];
+        return [...list].sort((a, b) => {
+            const dateA = new Date(a.date || a.execution_date || a.updatedAt || a.updated_at || a.createdAt || a.created_at || 0).getTime();
+            const dateB = new Date(b.date || b.execution_date || b.updatedAt || b.updated_at || b.createdAt || b.created_at || 0).getTime();
+            if (dateB !== dateA) return dateB - dateA;
+            return (Number(b.id) || 0) - (Number(a.id) || 0);
+        });
+    }, [transactionsRes]);
+
     const reminders = remindersRes.data || remindersRes || [];
 
     const summary = useMemo(() => {
@@ -303,7 +325,50 @@ const BusinessPeople = () => {
 
     const createTxMutation = useMutation({
         mutationFn: (data) => peopleService.createTransaction(data.person_id, data),
-        onSuccess: (_, variables) => {
+        onSuccess: (res, variables) => {
+            const rawNew = res?.data?.data || res?.data || res || {};
+            const nowIso = new Date().toISOString();
+            const newRecord = {
+                ...rawNew,
+                person_id: variables.person_id,
+                type: variables.type || rawNew.type,
+                amount: variables.amount || rawNew.amount,
+                date: variables.date || rawNew.date,
+                description: variables.description || rawNew.description,
+                person_name: people.find(p => String(p.id) === String(variables.person_id))?.name || rawNew.person_name || 'Contact',
+                created_at: rawNew.created_at || nowIso,
+                updated_at: rawNew.updated_at || nowIso
+            };
+
+            // Prepend newRecord to queryClient cache so it appears first immediately
+            queryClient.setQueryData(['people-transactions-all'], (old) => {
+                const oldList = Array.isArray(old) ? old : (old?.data || []);
+                return [newRecord, ...oldList.filter(item => String(item.id) !== String(newRecord.id))];
+            });
+
+            if (variables.person_id) {
+                queryClient.setQueryData(['person-transactions', variables.person_id], (old) => {
+                    const oldList = Array.isArray(old) ? old : (old?.data || []);
+                    return [newRecord, ...oldList.filter(item => String(item.id) !== String(newRecord.id))];
+                });
+            }
+
+            // Bump contact's updated_at in cache so it immediately surfaces to top of contacts list
+            queryClient.setQueryData(['people-list', searchTerm], (old) => {
+                if (!old) return old;
+                const oldList = Array.isArray(old) ? old : (old?.data || []);
+                const target = oldList.find(p => String(p.id) === String(variables.person_id));
+                if (!target) return old;
+                const updatedPerson = {
+                    ...target,
+                    updated_at: nowIso,
+                    updatedAt: nowIso
+                };
+                const rest = oldList.filter(p => String(p.id) !== String(variables.person_id));
+                const nextList = [updatedPerson, ...rest];
+                return Array.isArray(old) ? nextList : { ...old, data: nextList };
+            });
+
             queryClient.invalidateQueries(['people-transactions-all']);
             queryClient.invalidateQueries(['people-list']);
             if (variables.person_id) {
@@ -655,19 +720,30 @@ const BusinessPeople = () => {
         return Array.from(groups);
     }, [people]);
 
-    const filteredPeople = people.filter(p => {
-        const matchesSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              (p.company || '').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesGroup = groupFilter === 'All' || p.relationship === groupFilter;
-        const meta = getContactMeta(p.contact_info);
-        const matchesStatus = statusFilter === 'All' || meta.status === statusFilter;
-        return matchesSearch && matchesGroup && matchesStatus;
-    });
+    const filteredPeople = useMemo(() => {
+        return people.filter(p => {
+            const matchesSearch = (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                  (p.company || '').toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesGroup = groupFilter === 'All' || p.relationship === groupFilter;
+            const meta = getContactMeta(p.contact_info);
+            const matchesStatus = statusFilter === 'All' || meta.status === statusFilter;
+            return matchesSearch && matchesGroup && matchesStatus;
+        });
+    }, [people, searchTerm, groupFilter, statusFilter]);
 
-    const filteredTx = transactions.filter(t =>
-        (t.person_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (t.description || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredTx = useMemo(() => {
+        return transactions
+            .filter(t =>
+                (t.person_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (t.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .sort((a, b) => {
+                const dateA = new Date(a.date || a.execution_date || a.updatedAt || a.updated_at || a.createdAt || a.created_at || 0).getTime();
+                const dateB = new Date(b.date || b.execution_date || b.updatedAt || b.updated_at || b.createdAt || b.created_at || 0).getTime();
+                if (dateB !== dateA) return dateB - dateA;
+                return (Number(b.id) || 0) - (Number(a.id) || 0);
+            });
+    }, [transactions, searchTerm]);
 
     return (
         <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
@@ -869,7 +945,10 @@ const BusinessPeople = () => {
                                         const bPinned = pinnedPeopleIds.includes(b.id);
                                         if (aPinned && !bPinned) return -1;
                                         if (!aPinned && bPinned) return 1;
-                                        return 0;
+                                        const dateA = new Date(a.updatedAt || a.updated_at || a.createdAt || a.created_at || a.date || 0).getTime();
+                                        const dateB = new Date(b.updatedAt || b.updated_at || b.createdAt || b.created_at || b.date || 0).getTime();
+                                        if (dateB !== dateA) return dateB - dateA;
+                                        return (Number(b.id) || 0) - (Number(a.id) || 0);
                                     })
                                     .map((p) => {
                                         const meta = getContactMeta(p.contact_info);
@@ -1154,12 +1233,21 @@ const BusinessPeople = () => {
                                         <td style={{ padding: '1.5rem 2rem', color: '#475569', fontWeight: '650' }}>{r.memo_label || r.title}</td>
                                         <td style={{ padding: '1.5rem 2rem', textAlign: 'right', fontWeight: '900', color: '#0F172A' }}>{formatCurr(r.claim_cap !== undefined ? r.claim_cap : r.amount)}</td>
                                         <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px' }}>
                                                 <button 
                                                     onClick={() => alert(`Dispatched WhatsApp alert reminder to ${r.target_contact || r.person_name}.`)}
                                                     style={{ border: 'none', background: '#F0FDF4', padding: '0.5rem 0.75rem', borderRadius: '8px', color: '#1B6B3A', fontWeight: '800', cursor: 'pointer', fontSize: '0.8rem' }}
                                                 >
-                                                    Alert
+                                                    Send
+                                                </button>
+                                                <button 
+                                                    onClick={() => deleteReminderMutation.mutate(r)}
+                                                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
+                                                    onMouseOver={(e) => (e.currentTarget.style.color = '#EF4444')}
+                                                    onMouseOut={(e) => (e.currentTarget.style.color = '#94A3B8')}
+                                                    title="Delete reminder"
+                                                >
+                                                    <Trash2 size={18} />
                                                 </button>
                                                 <button 
                                                     onClick={() => markReminderCompleted(r)}
@@ -1754,7 +1842,12 @@ const BusinessPeople = () => {
             </div>
         ) : (
             (() => {
-                const allTx = [...(personTx.data || personTx || [])].sort((a, b) => Number(a.id) - Number(b.id));
+                const allTx = [...(personTx.data || personTx || [])].sort((a, b) => {
+                    const dateA = new Date(a.date || a.execution_date || a.updatedAt || a.updated_at || a.createdAt || a.created_at || 0).getTime();
+                    const dateB = new Date(b.date || b.execution_date || b.updatedAt || b.updated_at || b.createdAt || b.created_at || 0).getTime();
+                    if (dateB !== dateA) return dateB - dateA;
+                    return (Number(b.id) || 0) - (Number(a.id) || 0);
+                });
 
                 const filtered = ledgerSearchTerm.trim()
                     ? allTx.filter(t => {
