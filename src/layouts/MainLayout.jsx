@@ -5,6 +5,7 @@ import AuditPanel from '../components/AuditPanel';
 import ReferralModal from '../components/ReferralModal';
 import '../App.css';
 import { useQuery } from '@tanstack/react-query';
+import { Outlet } from 'react-router-dom';
 import { settingsService, authService } from '../services';
 
 import BroadcastBanner from '../components/BroadcastBanner';
@@ -162,7 +163,7 @@ const MainLayout = ({ children }) => {
                 <div className="main-content-area">
                     <BroadcastBanner />
                     <div className="content-scrollable">
-                        {children}
+                        {children || <Outlet />}
                     </div>
                 </div>
 

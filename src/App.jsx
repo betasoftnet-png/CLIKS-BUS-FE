@@ -1,9 +1,12 @@
 import React, { Suspense, useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { ErrorBoundary } from './components/common';
 import MainLayout from './layouts/MainLayout';
+import BooksLayout from './layouts/BooksLayout';
+import PaymentsLayout from './layouts/PaymentsLayout';
+import SocialLayout from './layouts/SocialLayout';
 import { FeatureGate } from './components/common/FeatureGate';
 import Landing from './pages/Landing';
 
@@ -217,6 +220,146 @@ const GlobalConfirm = () => {
   );
 };
 
+function AuthenticatedApp() {
+  const location = useLocation();
+
+  return (
+    <ProtectedRoute>
+      <ErrorBoundary>
+        <MainLayout>
+          <div key={location.pathname} className="main-content-wrapper" style={{ height: '100%', width: '100%', minHeight: 0 }}>
+            <Suspense fallback={<PageLoader />}>
+              <Routes location={location}>
+                {/* Root Redirect */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/books" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/social" element={<Navigate to="/social/betaclub" replace />} />
+
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/faq" element={<FAQ />} />
+
+                {/* Admin Control Center */}
+                <Route path="/admin/*" element={
+                  <ProtectedRoute role="admin">
+                    <Routes>
+                      <Route path="dashboard" element={<AdminDashboard />} />
+                      <Route path="users" element={<AdminUsers />} />
+                      <Route path="moderation" element={<AdminModeration />} />
+                      <Route path="logs" element={<AdminAuditLogs />} />
+                      <Route path="settings" element={<AdminSettings />} />
+                      <Route path="sales" element={<AdminSales />} />
+                      <Route path="sales-team" element={<AdminSalesTeam />} />
+                      <Route path="sales-leads" element={<AdminSalesLeads />} />
+                      <Route path="support-team" element={<AdminSupportTeam />} />
+                      <Route path="faq" element={<FAQ />} />
+                    </Routes>
+                  </ProtectedRoute>
+                } />
+
+                {/* Sales Representative Workspaces */}
+                <Route path="/sales-portal/*" element={
+                  <ProtectedRoute role="sales_agent">
+                    <Routes>
+                      <Route path="dashboard" element={<SalesDashboard />} />
+                      <Route path="leads" element={<SalesLeads />} />
+                      <Route path="faq" element={<FAQ />} />
+                    </Routes>
+                  </ProtectedRoute>
+                } />
+
+                {/* Customer Support Representative Workspaces */}
+                <Route path="/support-portal/*" element={
+                  <ProtectedRoute role="support_agent">
+                    <Routes>
+                      <Route path="dashboard" element={<SupportDashboard />} />
+                      <Route path="faq" element={<FAQ />} />
+                    </Routes>
+                  </ProtectedRoute>
+                } />
+
+                {/* Restructured Business Modules */}
+                <Route path="/dashboard" element={<BusinessDashboard />} />
+                <Route path="/inventory/products" element={<BusinessInventory />} />
+                <Route path="/barcode" element={<BusinessBarcode />} />
+                <Route path="/inventory/barcode" element={<Navigate to="/barcode" replace />} />
+                <Route path="/sales/invoice" element={<BusinessBilling />} />
+                <Route path="/sales/orders" element={<BusinessSalesOrders />} />
+                <Route path="/purchases/purchases" element={<BusinessPurchases />} />
+                <Route path="/finance/purchases/new" element={<BusinessFinancePurchases />} />
+                <Route path="/finance/purchases/register" element={<BusinessFinancePurchases />} />
+                <Route path="/finance/purchases/vendors" element={<BusinessFinancePurchases />} />
+                <Route path="/finance/purchases/bills" element={<BusinessFinancePurchases />} />
+                <Route path="/finance/purchases/details" element={<BusinessFinancePurchases />} />
+                <Route path="/finance/purchases/reports" element={<BusinessFinancePurchases />} />
+                <Route path="/finance/plan" element={<BusinessFinancialPlan />} />
+                <Route path="/finance/compare" element={<BusinessCompare />} />
+                <Route path="/hr/staff" element={<FeatureGate feature="payroll-attendance" requiredPlanName="Starter Plan"><BusinessStaffing /></FeatureGate>} />
+                <Route path="/hr/attendance" element={<FeatureGate feature="payroll-attendance" requiredPlanName="Starter Plan"><BusinessAttendance /></FeatureGate>} />
+                <Route path="/hr/payroll" element={<FeatureGate feature="payroll-attendance" requiredPlanName="Starter Plan"><BusinessPayroll /></FeatureGate>} />
+                <Route path="/payments/split-collect" element={<BusinessSplitCollect />} />
+                <Route path="/sales/customers" element={<BusinessCRM />} />
+
+                <Route path="/sales/returns" element={<BusinessReturns />} />
+                <Route path="/inventory/stock" element={<BusinessStock />} />
+                <Route path="/purchases/suppliers" element={<BusinessSuppliers />} />
+                <Route path="/payments" element={<Navigate to="/payments/transaction" replace />} />
+                <Route path="/payments/people" element={<BusinessPeople />} />
+                <Route path="/payments/transaction" element={<BusinessPayments key="transaction" />} />
+                <Route path="/payments/wallet" element={<Navigate to="/payments/people" replace />} />
+                <Route path="/payments/segregation" element={<BusinessPurposeWallet />} />
+                <Route path="/payments/rewards" element={<Navigate to="/payments/people" replace />} />
+                <Route path="/payments/plan" element={<BusinessPaymentPlan />} />
+                <Route path="/payments/planner" element={<BusinessPaymentPlan />} />
+
+                <Route path="/finance/expenses" element={<BusinessExpenses />} />
+                <Route path="/inventory/warehouse" element={<FeatureGate feature="multi-warehouse" requiredPlanName="Growth Plan"><BusinessWarehouse /></FeatureGate>} />
+                <Route path="/finance/accounting" element={<FeatureGate feature="accounting" requiredPlanName="Starter Plan"><BusinessAccounting /></FeatureGate>} />
+                <Route path="/finance/gst" element={<FeatureGate feature="gst-filings" requiredPlanName="Starter Plan"><BusinessGST /></FeatureGate>} />
+                <Route path="/finance/fittech" element={<BusinessCA mode="business" />} />
+                <Route path="/marketing" element={<BusinessMarketing />} />
+                <Route path="/ca" element={<BusinessCA mode="personal" />} />
+                <Route path="/sales/delivery" element={<BusinessDelivery />} />
+                <Route path="/manufacturing" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/reports" element={<BusinessReports />} />
+                <Route path="/pos" element={<BusinessPOS />} />
+                <Route path="/sales/pos" element={<Navigate to="/pos" replace />} />
+                <Route path="/customization" element={<BusinessCustomization />} />
+                <Route path="/subscription" element={<BusinessSubscription />} />
+                <Route path="/social/meetup" element={<Navigate to="/social/betaclub" replace />} />
+                <Route path="/social/betaclub" element={<BusinessPitches />} />
+                <Route path="/social/betaclub/admin" element={<Navigate to="/adminlogin" replace />} />
+                <Route path="/social/betaclub/adminlogin" element={<Navigate to="/adminlogin" replace />} />
+                <Route path="/social/investors" element={<Navigate to="/social/betaclub" replace />} />
+                <Route path="/auth/founder-login" element={<BusinessPitches openAuthModal="founder" />} />
+                <Route path="/auth/investor-login" element={<BusinessPitches openAuthModal="investor" />} />
+                <Route path="/social/trading" element={<BusinessTrading />} />
+                <Route path="/referral" element={<BusinessReferral />} />
+                <Route path="/cliks" element={<BusinessPlaceholder title="Cliks" />} />
+                <Route path="/bnxmail" element={<BusinessPlaceholder title="BNXmail" />} />
+                <Route path="/bit-tool" element={<BusinessPlaceholder title="Bit-Tool" />} />
+                <Route path="/b2auth" element={<BusinessPlaceholder title="B2Auth" />} />
+
+                <Route path="/calculator" element={<BusinessCalculator />} />
+                <Route path="/beta-launcher" element={<BusinessLauncher />} />
+                <Route path="/calendar" element={<BusinessPlaceholder title="Calendar" />} />
+                <Route path="/contact" element={<BusinessPlaceholder title="Contact / ID Card" />} />
+                <Route path="/beta-trust" element={<BusinessPlaceholder title="Beta Trust" />} />
+                <Route path="/keyboard" element={<BusinessPlaceholder title="Keyboard" />} />
+                <Route path="/translator" element={<BusinessPlaceholder title="Translator" />} />
+                <Route path="/lens" element={<BusinessPlaceholder title="Lens" />} />
+                <Route path="/weather" element={<BusinessPlaceholder title="Weather" />} />
+                <Route path="/news" element={<BusinessPlaceholder title="News" />} />
+
+              </Routes>
+            </Suspense>
+          </div>
+        </MainLayout>
+      </ErrorBoundary>
+    </ProtectedRoute>
+  );
+}
+
 function AppContent() {
   return (
     <Router>
@@ -258,137 +401,7 @@ function AppContent() {
         <Route path="/register" element={<Register />} />
         
         {/* Protected Routes - All routes within MainLayout require authentication */}
-        <Route path="*" element={
-          <ProtectedRoute>
-            <ErrorBoundary>
-              <MainLayout>
-                <Suspense fallback={<PageLoader />}>
-                  <Routes>
-                    {/* Root Redirect */}
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                    
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/faq" element={<FAQ />} />
-
-                    {/* Admin Control Center */}
-                    <Route path="/admin/*" element={
-                      <ProtectedRoute role="admin">
-                        <Routes>
-                          <Route path="dashboard" element={<AdminDashboard />} />
-                          <Route path="users" element={<AdminUsers />} />
-                          <Route path="moderation" element={<AdminModeration />} />
-                          <Route path="logs" element={<AdminAuditLogs />} />
-                          <Route path="settings" element={<AdminSettings />} />
-                          <Route path="sales" element={<AdminSales />} />
-                          <Route path="sales-team" element={<AdminSalesTeam />} />
-                          <Route path="sales-leads" element={<AdminSalesLeads />} />
-                          <Route path="support-team" element={<AdminSupportTeam />} />
-                          <Route path="faq" element={<FAQ />} />
-                        </Routes>
-                      </ProtectedRoute>
-                    } />
-
-                    {/* Sales Representative Workspaces */}
-                    <Route path="/sales-portal/*" element={
-                      <ProtectedRoute role="sales_agent">
-                        <Routes>
-                          <Route path="dashboard" element={<SalesDashboard />} />
-                          <Route path="leads" element={<SalesLeads />} />
-                          <Route path="faq" element={<FAQ />} />
-                        </Routes>
-                      </ProtectedRoute>
-                    } />
-
-                    {/* Customer Support Representative Workspaces */}
-                    <Route path="/support-portal/*" element={
-                      <ProtectedRoute role="support_agent">
-                        <Routes>
-                          <Route path="dashboard" element={<SupportDashboard />} />
-                          <Route path="faq" element={<FAQ />} />
-                        </Routes>
-                      </ProtectedRoute>
-                    } />
-
-                    {/* Restructured Business Modules */}
-                    <Route path="/dashboard" element={<BusinessDashboard />} />
-                    <Route path="/inventory/products" element={<BusinessInventory />} />
-                    <Route path="/barcode" element={<BusinessBarcode />} />
-                    <Route path="/inventory/barcode" element={<Navigate to="/barcode" replace />} />
-                    <Route path="/sales/invoice" element={<BusinessBilling />} />
-                    <Route path="/sales/orders" element={<BusinessSalesOrders />} />
-                    <Route path="/purchases/purchases" element={<BusinessPurchases />} />
-                    <Route path="/finance/purchases/new" element={<BusinessFinancePurchases />} />
-                    <Route path="/finance/purchases/register" element={<BusinessFinancePurchases />} />
-                    <Route path="/finance/purchases/vendors" element={<BusinessFinancePurchases />} />
-                    <Route path="/finance/purchases/bills" element={<BusinessFinancePurchases />} />
-                    <Route path="/finance/purchases/details" element={<BusinessFinancePurchases />} />
-                    <Route path="/finance/purchases/reports" element={<BusinessFinancePurchases />} />
-                    <Route path="/finance/plan" element={<BusinessFinancialPlan />} />
-                    <Route path="/finance/compare" element={<BusinessCompare />} />
-                    <Route path="/hr/staff" element={<FeatureGate feature="payroll-attendance" requiredPlanName="Starter Plan"><BusinessStaffing /></FeatureGate>} />
-                    <Route path="/hr/attendance" element={<FeatureGate feature="payroll-attendance" requiredPlanName="Starter Plan"><BusinessAttendance /></FeatureGate>} />
-                    <Route path="/hr/payroll" element={<FeatureGate feature="payroll-attendance" requiredPlanName="Starter Plan"><BusinessPayroll /></FeatureGate>} />
-                    <Route path="/payments/split-collect" element={<BusinessSplitCollect />} />
-                    <Route path="/sales/customers" element={<BusinessCRM />} />
-
-                    <Route path="/sales/returns" element={<BusinessReturns />} />
-                    <Route path="/inventory/stock" element={<BusinessStock />} />
-                    <Route path="/purchases/suppliers" element={<BusinessSuppliers />} />
-                    <Route path="/payments" element={<Navigate to="/payments/people" replace />} />
-                    <Route path="/payments/people" element={<BusinessPeople />} />
-                    <Route path="/payments/transaction" element={<BusinessPayments key="transaction" />} />
-                    <Route path="/payments/wallet" element={<Navigate to="/payments/people" replace />} />
-                    <Route path="/payments/segregation" element={<BusinessPurposeWallet />} />
-                    <Route path="/payments/rewards" element={<Navigate to="/payments/people" replace />} />
-                    <Route path="/payments/plan" element={<BusinessPaymentPlan />} />
-                    <Route path="/payments/planner" element={<BusinessPaymentPlan />} />
-
-                    <Route path="/finance/expenses" element={<BusinessExpenses />} />
-                    <Route path="/inventory/warehouse" element={<FeatureGate feature="multi-warehouse" requiredPlanName="Growth Plan"><BusinessWarehouse /></FeatureGate>} />
-                    <Route path="/finance/accounting" element={<FeatureGate feature="accounting" requiredPlanName="Starter Plan"><BusinessAccounting /></FeatureGate>} />
-                    <Route path="/finance/gst" element={<FeatureGate feature="gst-filings" requiredPlanName="Starter Plan"><BusinessGST /></FeatureGate>} />
-                    <Route path="/finance/fittech" element={<BusinessCA mode="business" />} />
-                    <Route path="/marketing" element={<BusinessMarketing />} />
-                    <Route path="/ca" element={<BusinessCA mode="personal" />} />
-                    <Route path="/sales/delivery" element={<BusinessDelivery />} />
-                    <Route path="/manufacturing" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/reports" element={<BusinessReports />} />
-                    <Route path="/pos" element={<BusinessPOS />} />
-                    <Route path="/sales/pos" element={<Navigate to="/pos" replace />} />
-                    <Route path="/customization" element={<BusinessCustomization />} />
-                    <Route path="/subscription" element={<BusinessSubscription />} />
-                    <Route path="/social/meetup" element={<Navigate to="/social/betaclub" replace />} />
-                    <Route path="/social/betaclub" element={<BusinessPitches />} />
-                    <Route path="/social/betaclub/admin" element={<Navigate to="/adminlogin" replace />} />
-                    <Route path="/social/betaclub/adminlogin" element={<Navigate to="/adminlogin" replace />} />
-                    <Route path="/social/investors" element={<Navigate to="/social/betaclub" replace />} />
-                    <Route path="/auth/founder-login" element={<BusinessPitches openAuthModal="founder" />} />
-                    <Route path="/auth/investor-login" element={<BusinessPitches openAuthModal="investor" />} />
-                    <Route path="/social/trading" element={<BusinessTrading />} />
-                    <Route path="/referral" element={<BusinessReferral />} />
-                    <Route path="/cliks" element={<BusinessPlaceholder title="Cliks" />} />
-                    <Route path="/bnxmail" element={<BusinessPlaceholder title="BNXmail" />} />
-                    <Route path="/bit-tool" element={<BusinessPlaceholder title="Bit-Tool" />} />
-                    <Route path="/b2auth" element={<BusinessPlaceholder title="B2Auth" />} />
-
-                    <Route path="/calculator" element={<BusinessCalculator />} />
-                    <Route path="/beta-launcher" element={<BusinessLauncher />} />
-                    <Route path="/calendar" element={<BusinessPlaceholder title="Calendar" />} />
-                    <Route path="/contact" element={<BusinessPlaceholder title="Contact / ID Card" />} />
-                    <Route path="/beta-trust" element={<BusinessPlaceholder title="Beta Trust" />} />
-                    <Route path="/keyboard" element={<BusinessPlaceholder title="Keyboard" />} />
-                    <Route path="/translator" element={<BusinessPlaceholder title="Translator" />} />
-                    <Route path="/lens" element={<BusinessPlaceholder title="Lens" />} />
-                    <Route path="/weather" element={<BusinessPlaceholder title="Weather" />} />
-                    <Route path="/news" element={<BusinessPlaceholder title="News" />} />
-
-                  </Routes>
-                </Suspense>
-              </MainLayout>
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
+        <Route path="*" element={<AuthenticatedApp />} />
       </Routes>
     </Router>
   );

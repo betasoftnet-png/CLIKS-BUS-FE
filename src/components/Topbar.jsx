@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 import '../App.css';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, NavLink } from 'react-router-dom';
 import { useAuth, useLanguage } from '../context';
 import { apiClient } from '../api/client';
 import logoPng from '../assets/cliks6.png'; // Final branding
@@ -330,9 +330,9 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
     const isFinanceActive = activeModule === 'payments';
 
     const navItems = [
-        { name: t('books', 'Books'), url: '/dashboard', icon: BookOpen, active: activeModule === 'books' },
-        { name: t('payments', 'Payments'), url: '/payments/people', icon: Calculator, active: isFinanceActive },
-        { name: t('social', 'Social'), url: '/social/betaclub', icon: Users, active: isSocialActive },
+        { name: t('books', 'Books'), url: '/books', icon: BookOpen },
+        { name: t('payments', 'Payments'), url: '/payments/transaction', icon: Calculator },
+        { name: t('social', 'Social'), url: '/social', icon: Users },
     ];
 
     return (
@@ -391,40 +391,48 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                 }}>
                     {navItems.map((item) => {
                         const Icon = item.icon;
-                        const isActive = item.active;
+                        const isItemActive = 
+                            (item.url === '/books' && (location.pathname === '/books' || location.pathname === '/dashboard' || location.pathname.startsWith('/finance') || location.pathname.startsWith('/sales') || location.pathname.startsWith('/inventory') || location.pathname.startsWith('/purchases') || location.pathname.startsWith('/hr') || location.pathname === '/pos' || location.pathname === '/reports' || location.pathname === '/barcode' || location.pathname === '/customization' || location.pathname === '/subscription')) ||
+                            (item.url === '/payments/transaction' && (location.pathname === '/payments' || location.pathname.startsWith('/payments'))) ||
+                            (item.url === '/social' && (location.pathname === '/social' || location.pathname.startsWith('/social')));
 
                         return (
-                            <button
+                            <NavLink
                                 key={item.name}
-                                onClick={() => item.action ? item.action() : handleNavigation(item.url)}
+                                to={item.url}
                                 aria-label={item.name}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '8px 20px',
-                                    borderRadius: '999px',
-                                    border: 'none',
-                                    background: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-                                    color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
-                                    fontSize: '14px',
-                                    fontWeight: 500,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s ease',
-                                    position: 'relative'
+                                className={({ isActive }) => `top-nav-link ${isActive || isItemActive ? 'active' : ''}`}
+                                style={({ isActive }) => {
+                                    const active = isActive || isItemActive;
+                                    return {
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '8px 20px',
+                                        borderRadius: '999px',
+                                        border: 'none',
+                                        background: active ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+                                        color: active ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
+                                        fontSize: '14px',
+                                        fontWeight: 500,
+                                        cursor: 'pointer',
+                                        textDecoration: 'none',
+                                        transition: 'all 0.2s ease',
+                                        position: 'relative'
+                                    };
                                 }}
                                 onMouseEnter={(e) => {
-                                    if (!isActive) e.currentTarget.style.color = '#ffffff';
+                                    if (!isItemActive) e.currentTarget.style.color = '#ffffff';
                                 }}
                                 onMouseLeave={(e) => {
-                                    if (!isActive) e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)';
+                                    if (!isItemActive) e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)';
                                 }}
                             >
                                 <span className="hidden md:inline">{item.name}</span>
                                 <span className="md:hidden" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <Icon size={18} />
                                 </span>
-                            </button>
+                            </NavLink>
                         );
                     })}
                 </div>
