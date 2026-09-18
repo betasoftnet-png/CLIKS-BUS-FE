@@ -54,6 +54,27 @@ export const isImageFile = (urlOrName = '') => {
     return /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(urlOrName);
 };
 
+export const getViewableUrl = (rawFilePath) => {
+    if (!rawFilePath) return '';
+
+    let absoluteFileUrl = rawFilePath;
+    if (!rawFilePath.startsWith('http://') && !rawFilePath.startsWith('https://')) {
+        const clean = rawFilePath.startsWith('/') ? rawFilePath : `/${rawFilePath}`;
+        const base = 'https://cliks.beta-softnet.com';
+        absoluteFileUrl = clean.startsWith('/uploads') ? `${base}${clean}` : `${base}/uploads${clean}`;
+    }
+
+    const isPdf = isPdfFile(absoluteFileUrl);
+
+    // If it's a PDF, wrap with Google Docs Viewer so any browser tab displays the rendered document directly
+    if (isPdf) {
+        return `https://docs.google.com/viewer?url=${encodeURIComponent(absoluteFileUrl)}&embedded=false`;
+    }
+
+    // If image, return direct asset path
+    return absoluteFileUrl;
+};
+
 const BusinessSplitCollect = () => {
     const { currency } = useCurrency();
     // ── State Management ───────────────────────────────────────────────────
@@ -1839,7 +1860,7 @@ const BusinessSplitCollect = () => {
                                 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <a 
-                                        href={previewAttachment.url} 
+                                        href={getViewableUrl(previewAttachment.url)} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
                                         style={{ 
