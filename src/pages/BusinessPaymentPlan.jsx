@@ -280,8 +280,8 @@ const BusinessPaymentPlan = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
                 {[
                     { label: 'Total Scheduled', value: stats.totalScheduled, icon: CalendarIcon, color: '#1B6B3A', bg: '#DCF2E4' },
-                    { label: 'To Send', value: formatCurrency(stats.toSend), icon: ArrowUpRight, color: '#EF4444', bg: '#FEE2E2' },
-                    { label: 'To Receive', value: formatCurrency(stats.toReceive), icon: ArrowDownRight, color: '#10B981', bg: '#D1FAE5' },
+                    { label: 'Total sended', value: formatCurrency(stats.toSend), icon: ArrowUpRight, color: '#EF4444', bg: '#FEE2E2' },
+                    { label: 'Total received', value: formatCurrency(stats.toReceive), icon: ArrowDownRight, color: '#10B981', bg: '#D1FAE5' },
                     { label: 'Pending Task', value: stats.pendingCount, icon: Clock, color: '#F59E0B', bg: '#FEF3C7' }
                 ].map((stat, idx) => (
                     <div key={idx} style={{ background: 'white', padding: '1.25rem', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
