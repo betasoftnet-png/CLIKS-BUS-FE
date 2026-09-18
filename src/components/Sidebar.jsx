@@ -203,6 +203,26 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     );
 };
 
+const sanitizeTierLabel = (rawTier) => {
+    if (!rawTier) return '';
+    const val = String(rawTier).trim().toUpperCase();
+
+    // Normalize Elite Suite / Book Elite -> ELITE
+    if (val.includes('ELITE')) return 'ELITE';
+
+    // Normalize Fin-Pro Solo / Solo Plan -> SOLO
+    if (val.includes('SOLO')) return 'SOLO';
+
+    // Fallback for other standard tiers
+    if (val.includes('STARTER')) return 'STARTER';
+    if (val.includes('GROWTH')) return 'GROWTH';
+    if (val.includes('FIRM')) return 'FIRM';
+    if (val.includes('BASIC')) return 'BASIC';
+
+    // If no predefined match, take the first word or strip redundant module prefixes
+    return val.replace(/^(FIN-PRO|BOOK|PLD)\s+/i, '').split(' ')[0];
+};
+
 /**
  * DynamicSubscriptionWidget
  * Renders the subscription widget in the sidebar, with the exact 2-plan side-by-side layout.
@@ -219,8 +239,9 @@ export const DynamicSubscriptionWidget = ({ activePlans, plans, user, selectedPl
                 <div className="grid grid-cols-2 gap-2">
                     {list.slice(0, 2).map((plan, idx) => {
                         const daysLeft = plan.days_left ?? plan.daysLeft ?? plan.daysRemaining ?? plan.days ?? 358;
-                        const moduleName = (plan.module || plan.name || plan.moduleTitle || (idx === 0 ? 'BOOK' : 'FIN-PRO')).toUpperCase();
-                        const tierName = (plan.tier || plan.plan || plan.tierTitle || (idx === 0 ? 'ELITE' : 'SOLO')).toUpperCase();
+                        const rawMod = String(plan.module || plan.name || plan.moduleTitle || (idx === 0 ? 'BOOK' : 'FIN-PRO')).toUpperCase();
+                        const moduleName = rawMod.includes('FIN') ? 'FIN-PRO' : (rawMod.includes('BOOK') ? 'BOOK' : rawMod);
+                        const tierName = sanitizeTierLabel(plan.tier || plan.plan || plan.tierTitle || (idx === 0 ? 'ELITE' : 'SOLO'));
 
                         return (
                             <div

@@ -387,8 +387,20 @@ export const SubscriptionBadgeWidget = ({
                     <div className="grid grid-cols-2 gap-2">
                         {displayPlans.slice(0, 2).map((plan, idx) => {
                             const daysLeft = plan.days_left ?? plan.daysLeft ?? plan.days ?? 358;
-                            const moduleName = (plan.moduleTitle || plan.module || plan.name || (idx === 0 ? 'BOOK' : 'FIN-PRO')).toUpperCase();
-                            const tierName = (plan.tierTitle || plan.tier || plan.plan || (idx === 0 ? 'ELITE' : 'SOLO')).toUpperCase();
+                            const rawMod = String(plan.moduleTitle || plan.module || plan.name || (idx === 0 ? 'BOOK' : 'FIN-PRO')).toUpperCase();
+                            const moduleName = rawMod.includes('FIN') ? 'FIN-PRO' : (rawMod.includes('BOOK') ? 'BOOK' : rawMod);
+                            const sanitizeTierLabel = (rawTier) => {
+                                if (!rawTier) return '';
+                                const val = String(rawTier).trim().toUpperCase();
+                                if (val.includes('ELITE')) return 'ELITE';
+                                if (val.includes('SOLO')) return 'SOLO';
+                                if (val.includes('STARTER')) return 'STARTER';
+                                if (val.includes('GROWTH')) return 'GROWTH';
+                                if (val.includes('FIRM')) return 'FIRM';
+                                if (val.includes('BASIC')) return 'BASIC';
+                                return val.replace(/^(FIN-PRO|BOOK|PLD)\s+/i, '').split(' ')[0];
+                            };
+                            const tierName = sanitizeTierLabel(plan.tierTitle || plan.tier || plan.plan || (idx === 0 ? 'ELITE' : 'SOLO'));
 
                             return (
                                 <div
