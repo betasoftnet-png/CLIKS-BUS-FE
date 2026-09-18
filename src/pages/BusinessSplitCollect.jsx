@@ -34,21 +34,29 @@ import { config } from '../lib/config';
 // Initial Seed Data for Split Groups
 const INITIAL_SPLITS = [];
 
-// Strict URL normalizer pointing strictly to backend uploads endpoint
-export const resolveFileUrl = (filePath) => {
+// Clean direct backend URL resolver without fetch CORS dependencies
+export const getDirectAttachmentUrl = (filePath) => {
     if (!filePath || typeof filePath !== 'string') return '';
-    if (filePath.startsWith('blob:') || filePath.startsWith('data:')) return filePath;
-
-    // Strip any preceding protocol/domain and leading uploads path
-    const cleanFileName = filePath
-        .replace(/^https?:\/\/[^/]+/, '')
-        .replace(/^\/?(uploads\/)?/, '')
-        .trim();
-
-    return `https://cliks.beta-softnet.com/uploads/${cleanFileName}`;
+    if (filePath.startsWith('blob:') || filePath.startsWith('data:')) {
+        return filePath;
+    }
+    let path = filePath;
+    if (path.includes('cliksbusiness.com')) {
+        path = path.replace('https://cliksbusiness.com', 'https://cliks.beta-softnet.com')
+                   .replace('http://cliksbusiness.com', 'https://cliks.beta-softnet.com');
+    }
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+        return path;
+    }
+    const clean = path.startsWith('/') ? path : `/${path}`;
+    const backendHost = 'https://cliks.beta-softnet.com';
+    return clean.startsWith('/uploads')
+        ? `${backendHost}${clean}`
+        : `${backendHost}/uploads${clean}`;
 };
 
-export const resolveAttachmentUrl = resolveFileUrl;
+export const resolveFileUrl = getDirectAttachmentUrl;
+export const resolveAttachmentUrl = getDirectAttachmentUrl;
 
 const BusinessSplitCollect = () => {
     const { currency } = useCurrency();
@@ -105,64 +113,6 @@ const BusinessSplitCollect = () => {
     });
 
     const [previewAttachment, setPreviewAttachment] = useState(null);
-    const [previewBlobUrl, setPreviewBlobUrl] = useState(null);
-    const [previewLoading, setPreviewLoading] = useState(false);
-    const [previewError, setPreviewError] = useState(null);
-
-    // Fetch attachment as Blob to prevent SPA fallback HTML rendering inside preview frame
-    useEffect(() => {
-        if (!previewAttachment || !previewAttachment.url) {
-            setPreviewBlobUrl(null);
-            setPreviewLoading(false);
-            setPreviewError(null);
-            return;
-        }
-
-        let isMounted = true;
-        let createdBlobUrl = null;
-
-        // If it's already a local blob/data URL (e.g. freshly selected file)
-        if (previewAttachment.url.startsWith('blob:') || previewAttachment.url.startsWith('data:')) {
-            setPreviewBlobUrl(previewAttachment.url);
-            setPreviewLoading(false);
-            setPreviewError(null);
-            return;
-        }
-
-        const targetUrl = resolveFileUrl(previewAttachment.url);
-        setPreviewLoading(true);
-        setPreviewError(null);
-        setPreviewBlobUrl(null);
-
-        fetch(targetUrl, { credentials: 'include' })
-            .then(async (res) => {
-                if (!res.ok) {
-                    throw new Error(`Failed to load file (${res.status} ${res.statusText})`);
-                }
-                const contentType = res.headers.get('content-type') || '';
-                if (contentType.toLowerCase().includes('text/html')) {
-                    throw new Error('Received HTML webpage instead of a valid attachment');
-                }
-                const blob = await res.blob();
-                if (!isMounted) return;
-                createdBlobUrl = URL.createObjectURL(blob);
-                setPreviewBlobUrl(createdBlobUrl);
-                setPreviewLoading(false);
-            })
-            .catch((err) => {
-                if (!isMounted) return;
-                console.error('Attachment preview fetch error:', err);
-                setPreviewError(err.message || 'Error loading preview');
-                setPreviewLoading(false);
-            });
-
-        return () => {
-            isMounted = false;
-            if (createdBlobUrl) {
-                URL.revokeObjectURL(createdBlobUrl);
-            }
-        };
-    }, [previewAttachment]);
 
     // Fetch splits from backend on mount
     useEffect(() => {
@@ -1324,6 +1274,7 @@ const BusinessSplitCollect = () => {
                                                                     {e.attachment && (() => {
                                                                         const isPdf = e.attachment.toLowerCase().endsWith('.pdf');
                                                                         const isImage = /\.(jpe?g|png|webp|gif|svg)$/i.test(e.attachment);
+                                                                        const directUrl = getDirectAttachmentUrl(e.attachment);
                                                                         return (
                                                                             <>
                                                                                 <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#CBD5E1' }} />
@@ -1333,7 +1284,7 @@ const BusinessSplitCollect = () => {
                                                                                     onClick={(evt) => {
                                                                                         evt.stopPropagation();
                                                                                         setPreviewAttachment({
-                                                                                            url: e.attachment,
+                                                                                            url: directUrl,
                                                                                             name: e.attachment,
                                                                                             isPdf,
                                                                                             isImage
@@ -1704,6 +1655,8 @@ const BusinessSplitCollect = () => {
                                                         if (expenseForm.attachmentFile?.content) {
                                                             const mime = att.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg';
                                                             targetUrl = `data:${mime};base64,${expenseForm.attachmentFile.content}`;
+                                                        } else {
+                                                            targetUrl = getDirectAttachmentUrl(att);
                                                         }
                                                         setPreviewAttachment({
                                                             url: targetUrl,
@@ -1893,46 +1846,42 @@ const BusinessSplitCollect = () => {
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <a 
-                                        href={previewBlobUrl || '#'} 
+                                        href={previewAttachment.url} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
-                                        onClick={(e) => { if (!previewBlobUrl) e.preventDefault(); }}
                                         style={{ 
                                             display: 'inline-flex', 
                                             alignItems: 'center', 
                                             gap: '4px', 
                                             padding: '0.45rem 0.85rem', 
                                             borderRadius: '10px', 
-                                            background: previewBlobUrl ? '#EFF6FF' : '#F1F5F9', 
-                                            color: previewBlobUrl ? '#2563EB' : '#94A3B8', 
+                                            background: '#EFF6FF', 
+                                            color: '#2563EB', 
                                             textDecoration: 'none', 
                                             fontSize: '0.78rem', 
                                             fontWeight: '800',
-                                            border: previewBlobUrl ? '1px solid #BFDBFE' : '1px solid #E2E8F0',
-                                            cursor: previewBlobUrl ? 'pointer' : 'not-allowed',
-                                            pointerEvents: previewBlobUrl ? 'auto' : 'none'
+                                            border: '1px solid #BFDBFE'
                                         }}
                                     >
                                         <ExternalLink size={14} /> Open in New Tab
                                     </a>
                                     <a 
-                                        href={previewBlobUrl || '#'} 
+                                        href={previewAttachment.url} 
                                         download={previewAttachment.name}
-                                        onClick={(e) => { if (!previewBlobUrl) e.preventDefault(); }}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         style={{ 
                                             display: 'inline-flex', 
                                             alignItems: 'center', 
                                             gap: '4px', 
                                             padding: '0.45rem 0.85rem', 
                                             borderRadius: '10px', 
-                                            background: previewBlobUrl ? '#F1F5F9' : '#F8FAFC', 
-                                            color: previewBlobUrl ? '#334155' : '#94A3B8', 
+                                            background: '#F1F5F9', 
+                                            color: '#334155', 
                                             textDecoration: 'none', 
                                             fontSize: '0.78rem', 
                                             fontWeight: '800',
-                                            border: previewBlobUrl ? '1px solid #CBD5E1' : '1px solid #E2E8F0',
-                                            cursor: previewBlobUrl ? 'pointer' : 'not-allowed',
-                                            pointerEvents: previewBlobUrl ? 'auto' : 'none'
+                                            border: '1px solid #CBD5E1'
                                         }}
                                     >
                                         <Download size={14} /> Download
@@ -1958,41 +1907,18 @@ const BusinessSplitCollect = () => {
 
                             {/* Viewer */}
                             <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F5F9', minHeight: '380px' }}>
-                                {previewLoading ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '3rem' }}>
-                                        <Motion.div 
-                                            animate={{ rotate: 360 }}
-                                            transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                                            style={{ width: '36px', height: '36px', border: '3px solid #E2E8F0', borderTop: '3px solid #2563EB', borderRadius: '50%' }}
-                                        />
-                                        <span style={{ fontSize: '0.85rem', fontWeight: '750', color: '#64748B' }}>
-                                            Loading preview...
-                                        </span>
-                                    </div>
-                                ) : previewError ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2.5rem', textAlign: 'center', maxWidth: '450px' }}>
-                                        <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-                                            <AlertCircle size={28} />
-                                        </div>
-                                        <h4 style={{ fontSize: '1rem', fontWeight: '850', color: '#1E293B', margin: '0 0 0.5rem 0' }}>
-                                            Unable to preview file inline
-                                        </h4>
-                                        <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0 0 1.25rem 0', lineHeight: 1.5 }}>
-                                            {previewError.toLowerCase().includes('html') 
-                                                ? 'The requested file could not be loaded or returned an invalid response from the server.' 
-                                                : previewError}
-                                        </p>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569', padding: '6px 12px', background: '#E2E8F0', borderRadius: '8px' }}>
-                                            {previewAttachment.name}
-                                        </span>
-                                    </div>
-                                ) : previewBlobUrl && previewAttachment.isImage ? (
+                                {previewAttachment.isImage ? (
                                     <img 
-                                        src={previewBlobUrl} 
+                                        src={previewAttachment.url} 
                                         alt={previewAttachment.name} 
                                         style={{ maxWidth: '100%', maxHeight: '72vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', background: 'white' }} 
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                            const fb = document.getElementById('preview-fallback-box');
+                                            if (fb) fb.style.display = 'flex';
+                                        }}
                                     />
-                                ) : previewBlobUrl && previewAttachment.isPdf ? (
+                                ) : previewAttachment.isPdf ? (
                                     <div style={{ width: '100%', height: '72vh', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
                                         <div style={{ padding: '0.6rem 1rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                                             <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2000,7 +1926,7 @@ const BusinessSplitCollect = () => {
                                             </span>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <a 
-                                                    href={previewBlobUrl} 
+                                                    href={previewAttachment.url} 
                                                     target="_blank" 
                                                     rel="noopener noreferrer"
                                                     style={{ fontSize: '0.75rem', fontWeight: '800', color: '#2563EB', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '6px', background: '#EFF6FF', border: '1px solid #BFDBFE' }}
@@ -2008,8 +1934,10 @@ const BusinessSplitCollect = () => {
                                                     <ExternalLink size={12} /> Open in New Tab
                                                 </a>
                                                 <a 
-                                                    href={previewBlobUrl} 
+                                                    href={previewAttachment.url} 
                                                     download={previewAttachment.name}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
                                                     style={{ fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '6px', background: '#DCFCE7', border: '1px solid #BBF7D0' }}
                                                 >
                                                     <Download size={12} /> Direct Download
@@ -2017,24 +1945,40 @@ const BusinessSplitCollect = () => {
                                             </div>
                                         </div>
                                         <iframe 
-                                            src={previewBlobUrl} 
+                                            src={previewAttachment.url} 
                                             title={previewAttachment.name}
                                             style={{ width: '100%', height: '100%', border: 'none' }}
                                         />
                                     </div>
-                                ) : previewBlobUrl ? (
+                                ) : (
                                     <div style={{ textAlign: 'center', padding: '2rem' }}>
                                         <FileText size={48} color="#64748B" style={{ marginBottom: '1rem' }} />
                                         <p style={{ fontWeight: '800', color: '#1E293B', marginBottom: '0.5rem' }}>{previewAttachment.name}</p>
                                         <a 
-                                            href={previewBlobUrl} 
+                                            href={previewAttachment.url} 
                                             download={previewAttachment.name}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '0.6rem 1.25rem', background: '#2563EB', color: 'white', borderRadius: '10px', textDecoration: 'none', fontWeight: '850', fontSize: '0.85rem' }}
                                         >
                                             <Download size={16} /> Download File
                                         </a>
                                     </div>
-                                ) : null}
+                                )}
+                                <div id="preview-fallback-box" style={{ display: 'none', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
+                                    <AlertCircle size={40} color="#EF4444" style={{ marginBottom: '0.75rem' }} />
+                                    <p style={{ fontWeight: '800', color: '#1E293B', marginBottom: '0.25rem' }}>Unable to preview file inline</p>
+                                    <p style={{ fontSize: '0.8rem', color: '#64748B', marginBottom: '1rem' }}>The file may not be directly viewable or requires direct download.</p>
+                                    <a 
+                                        href={previewAttachment.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        download={previewAttachment.name}
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '0.5rem 1rem', background: '#2563EB', color: 'white', borderRadius: '10px', textDecoration: 'none', fontWeight: '800', fontSize: '0.8rem' }}
+                                    >
+                                        <Download size={14} /> Download Attachment
+                                    </a>
+                                </div>
                             </div>
                         </Motion.div>
                     </div>
