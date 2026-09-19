@@ -356,12 +356,16 @@ const BusinessPayments = () => {
 
     const handleSaveCustomerPayment = (e) => {
         e.preventDefault();
-        const paidAmt = parseFloat(customerForm.paid_amount);
         const totalAmt = parseFloat(customerForm.total_amount);
+        let paidAmt = parseFloat(customerForm.paid_amount);
 
         if (isNaN(paidAmt) || paidAmt <= 0 || isNaN(totalAmt) || totalAmt <= 0) {
             alert('Customer payment amount and total original amount must be strictly greater than 0.');
             return;
+        }
+
+        if (paidAmt > totalAmt) {
+            paidAmt = totalAmt;
         }
 
         receiveMutation.mutate({
@@ -1039,12 +1043,29 @@ const BusinessPayments = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Original Amount ({currency.symbol})</label>
                                     <input 
                                         required 
-                                        type="number" 
-                                        min="0.01"
-                                        step="any"
+                                        type="text" 
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        placeholder="e.g. 10000"
                                         value={customerForm.total_amount} 
-                                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
-                                        onChange={(e) => setCustomerForm({ ...customerForm, total_amount: e.target.value })} 
+                                        onKeyDown={(e) => { if (['+', '-', '.', ',', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
+                                        onChange={(e) => {
+                                            const sanitized = e.target.value.replace(/[^0-9]/g, '');
+                                            setCustomerForm(prev => {
+                                                let updatedPaid = prev.paid_amount;
+                                                if (sanitized !== '' && updatedPaid !== '') {
+                                                    const maxVal = Number(sanitized);
+                                                    if (Number(updatedPaid) > maxVal) {
+                                                        updatedPaid = String(maxVal);
+                                                    }
+                                                }
+                                                return {
+                                                    ...prev,
+                                                    total_amount: sanitized,
+                                                    paid_amount: updatedPaid
+                                                };
+                                            });
+                                        }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
                                     />
                                 </div>
@@ -1056,9 +1077,19 @@ const BusinessPayments = () => {
                                     type="number" 
                                     min="0.01"
                                     step="any"
+                                    max={customerForm.total_amount || undefined}
                                     value={customerForm.paid_amount} 
-                                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
-                                    onChange={(e) => setCustomerForm({ ...customerForm, paid_amount: e.target.value })} 
+                                    onKeyDown={(e) => { if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
+                                    onChange={(e) => {
+                                        let val = e.target.value;
+                                        if (val !== '' && customerForm.total_amount !== '') {
+                                            const maxVal = Number(customerForm.total_amount);
+                                            if (!isNaN(maxVal) && Number(val) > maxVal) {
+                                                val = String(maxVal);
+                                            }
+                                        }
+                                        setCustomerForm(prev => ({ ...prev, paid_amount: val }));
+                                    }} 
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
                                 />
                             </div>
