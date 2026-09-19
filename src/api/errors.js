@@ -148,7 +148,9 @@ export async function normalizeError(error, response = null) {
     // Fetch response error
     if (response && !response.ok) {
         const { message, code, details } = await parseErrorResponse(response);
-        return new ApiError(message, response.status, code, details);
+        const err = new ApiError(message, response.status, code, details);
+        err.response = { status: response.status, data: { message, code, details } };
+        return err;
     }
 
     // Network/connectivity error

@@ -243,7 +243,16 @@ async function request(endpoint, options = {}) {
     try {
         const contentType = response.headers.get('content-type') || '';
         if (contentType.includes('application/json')) {
-            return await response.json();
+            const data = await response.json();
+            if (data && typeof data === 'object') {
+                if (data.status === undefined) {
+                    data.status = response.status;
+                }
+                data.statusCode = response.status;
+                data.httpStatus = response.status;
+                data.ok = response.ok;
+            }
+            return data;
         }
         return await response.text();
     } catch {
