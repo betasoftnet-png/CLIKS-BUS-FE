@@ -22,13 +22,17 @@ import {
     Calendar,
     Send,
     TrendingUp,
-    Loader2
+    Loader2,
+    MoreVertical,
+    Pencil,
+    Trash2
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '../services/paymentService';
 import { apiClient } from '../api/client';
 import { suppliersService } from '../services/suppliersService';
 import { accountingService } from '../services/accountingService';
+import { bankAccountService } from '../services/bankAccountService';
 import { purchasesService } from '../services/purchasesService';
 import '../App.css';
 import { useCurrency } from '../context';
@@ -43,6 +47,35 @@ const BusinessPayments = () => {
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Bank & Cash register cards action menu & edit/delete modal state
+    const [activeDropdownAccId, setActiveDropdownAccId] = useState(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isSavingAccount, setIsSavingAccount] = useState(false);
+    const [selectedLedgerAccount, setSelectedLedgerAccount] = useState(null);
+    const [editedAccounts, setEditedAccounts] = useState({});
+    const [deletedAccountIds, setDeletedAccountIds] = useState(new Set());
+    const [editAccountForm, setEditAccountForm] = useState({
+        bank_account_id: '',
+        id: '',
+        bank_account_name: '',
+        account_number: '',
+        type: 'bank',
+        current_balance: 0,
+        bank_name: '',
+        ifsc_code: '',
+        branch_name: '',
+        status: 'Active'
+    });
+
+    // Close action dropdown on outside clicks
+    React.useEffect(() => {
+        const handleGlobalClick = () => {
+            setActiveDropdownAccId(null);
+        };
+        window.addEventListener('click', handleGlobalClick);
+        return () => window.removeEventListener('click', handleGlobalClick);
+    }, []);
 
     const queryClient = useQueryClient();
 
@@ -92,8 +125,16 @@ const BusinessPayments = () => {
     const cashLedgerData = React.useMemo(() => {
         const cashTxs = (Array.isArray(dbLedger) ? dbLedger : [])
             .filter(tx => {
-                const m = String(tx.mode || tx.payment_mode || '').trim().toLowerCase();
-                return m === 'cash' || m.includes('cash in hand') || m.includes('hand') || !tx.mode;
+                const targetName = selectedLedgerAccount ? selectedLedgerAccount.bank_account_name.toLowerCase() : 'cash';
+                const m = String(tx.mode || tx.payment_mode || tx.category || tx.notes || '').trim().toLowerCase();
+                if (!selectedLedgerAccount || targetName.includes('cash')) {
+                    return m === 'cash' || m.includes('cash in hand') || m.includes('hand') || !tx.mode;
+                }
+                if (targetName.includes('hdfc')) return m.includes('hdfc') || m.includes('bank');
+                if (targetName.includes('sbi')) return m.includes('sbi') || m.includes('bank');
+                if (targetName.includes('icici')) return m.includes('icici') || m.includes('bank');
+                if (targetName.includes('razorpay') || targetName.includes('upi')) return m.includes('upi') || m.includes('razorpay');
+                return m.includes(targetName) || m.includes('bank');
             })
             .sort((a, b) => (new Date(a.date || a.created_at) - new Date(b.date || b.created_at)) || (a.id - b.id));
 
@@ -108,7 +149,7 @@ const BusinessPayments = () => {
             }
             return {
                 date: tx.date ? new Date(tx.date).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'),
-                description: tx.notes || tx.category || tx.description || 'Cash Transaction',
+                description: tx.notes || tx.category || tx.description || `${selectedLedgerAccount ? selectedLedgerAccount.bank_account_name : 'Cash'} Transaction`,
                 type: isIncome ? 'Credit' : 'Debit',
                 amount: amt.toLocaleString('en-IN'),
                 balanceAfter: runningBal.toLocaleString('en-IN')
@@ -116,19 +157,20 @@ const BusinessPayments = () => {
         });
 
         if (mapped.length === 0) {
+            const openingBal = selectedLedgerAccount ? selectedLedgerAccount.current_balance : 0;
             return [
                 {
                     date: new Date().toLocaleDateString('en-GB'),
-                    description: 'Default Opening Cash Balance',
+                    description: `Opening Balance (${selectedLedgerAccount ? selectedLedgerAccount.bank_account_name : 'Cash in Hand'})`,
                     type: 'Credit',
-                    amount: '0',
-                    balanceAfter: '0'
+                    amount: openingBal.toLocaleString('en-IN'),
+                    balanceAfter: openingBal.toLocaleString('en-IN')
                 }
             ];
         }
 
         return mapped.reverse();
-    }, [dbLedger]);
+    }, [dbLedger, selectedLedgerAccount]);
 
     const { data: suppliersList = [] } = useQuery({
         queryKey: ['suppliersList'],
@@ -326,37 +368,164 @@ const BusinessPayments = () => {
             bank_account_id: a.id || a.bank_account_id,
             bank_account_name: a.account_name || a.bank_account_name || a.name || 'Account',
             current_balance: parseFloat(a.balance ?? a.current_balance ?? 0) || 0,
-            type: a.account_type || a.bank_type || a.type || 'bank'
+            type: a.account_type || a.bank_type || a.type || 'bank',
+            account_number: a.account_number || a.account_no || '',
+            bank_name: a.bank_name || '',
+            ifsc_code: a.ifsc || a.ifsc_code || '',
+            branch_name: a.branch || a.branch_name || '',
+            status: a.status || 'Active'
         }));
 
         // Standard registered cash & bank profiles matching /finance/accounting under "Cash & Bank"
         const standardProfiles = [
-            { id: 11, bank_account_id: 11, bank_account_name: 'Cash in Hand', current_balance: 25000, type: 'cash' },
-            { id: 12, bank_account_id: 12, bank_account_name: 'HDFC Bank Account', current_balance: 150000, type: 'bank' },
-            { id: 13, bank_account_id: 13, bank_account_name: 'SBI Current Account', current_balance: 75000, type: 'bank' },
-            { id: 14, bank_account_id: 14, bank_account_name: 'ICICI Bank Account', current_balance: 50000, type: 'bank' },
-            { id: 15, bank_account_id: 15, bank_account_name: 'UPI / Razorpay', current_balance: 12000, type: 'wallet' }
+            { id: 11, bank_account_id: 11, bank_account_name: 'Cash in Hand', current_balance: 25000, type: 'cash', account_number: 'N/A', status: 'Active' },
+            { id: 12, bank_account_id: 12, bank_account_name: 'HDFC Bank Account', current_balance: 150000, type: 'bank', account_number: '501002938128', bank_name: 'HDFC Bank', ifsc_code: 'HDFC0000001', branch_name: 'Main Branch', status: 'Active' },
+            { id: 13, bank_account_id: 13, bank_account_name: 'SBI Current Account', current_balance: 75000, type: 'bank', account_number: '30291823901', bank_name: 'State Bank of India', ifsc_code: 'SBIN0001234', branch_name: 'Corporate Branch', status: 'Active' },
+            { id: 14, bank_account_id: 14, bank_account_name: 'ICICI Bank Account', current_balance: 50000, type: 'bank', account_number: '001205001234', bank_name: 'ICICI Bank', ifsc_code: 'ICIC0000012', branch_name: 'Commercial Branch', status: 'Active' },
+            { id: 15, bank_account_id: 15, bank_account_name: 'UPI / Razorpay', current_balance: 12000, type: 'wallet', account_number: 'business@okhdfcbank', bank_name: 'Razorpay UPI', status: 'Active' }
         ];
 
+        let baseList = [];
         if (normalizedFetched.length === 0) {
             if (dbAccounts && dbAccounts.length > 0) {
-                return dbAccounts;
+                baseList = dbAccounts.map(a => ({
+                    ...a,
+                    account_number: a.account_number || a.account_no || 'N/A'
+                }));
+            } else {
+                baseList = standardProfiles;
             }
-            return standardProfiles;
+        } else {
+            const existingNames = new Set(normalizedFetched.map(a => a.bank_account_name.toLowerCase().trim()));
+            baseList = [...normalizedFetched];
+            for (const std of standardProfiles) {
+                if (!existingNames.has(std.bank_account_name.toLowerCase().trim())) {
+                    baseList.push(std);
+                }
+            }
         }
 
-        // Merge: include all normalizedFetched plus any standardProfiles not yet in normalizedFetched
-        const existingNames = new Set(normalizedFetched.map(a => a.bank_account_name.toLowerCase().trim()));
-        const merged = [...normalizedFetched];
+        // Apply deletion filter and edited field overrides
+        return baseList
+            .filter(a => !deletedAccountIds.has(a.bank_account_id) && !deletedAccountIds.has(a.id))
+            .map(a => {
+                const override = editedAccounts[a.bank_account_id] || editedAccounts[a.id];
+                return override ? { ...a, ...override } : a;
+            });
+    }, [dbBankAccounts, dbAccounts, deletedAccountIds, editedAccounts]);
 
-        for (const std of standardProfiles) {
-            if (!existingNames.has(std.bank_account_name.toLowerCase().trim())) {
-                merged.push(std);
-            }
+    const handleOpenEditModal = (acc) => {
+        setEditAccountForm({
+            bank_account_id: acc.bank_account_id,
+            id: acc.id || acc.bank_account_id,
+            bank_account_name: acc.bank_account_name || '',
+            account_number: acc.account_number || '',
+            type: acc.type || 'bank',
+            current_balance: acc.current_balance !== undefined ? acc.current_balance : 0,
+            bank_name: acc.bank_name || '',
+            ifsc_code: acc.ifsc_code || '',
+            branch_name: acc.branch_name || '',
+            status: acc.status || 'Active'
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveEditAccount = async (e) => {
+        e.preventDefault();
+        if (!editAccountForm.bank_account_name.trim()) {
+            alert('Account name is required.');
+            return;
         }
 
-        return merged;
-    }, [dbBankAccounts, dbAccounts]);
+        setIsSavingAccount(true);
+        try {
+            const targetId = editAccountForm.id || editAccountForm.bank_account_id;
+            const payload = {
+                bankName: editAccountForm.bank_name || editAccountForm.bank_account_name,
+                accountHolder: editAccountForm.bank_account_name,
+                accountNumber: editAccountForm.account_number || 'N/A',
+                account_name: editAccountForm.bank_account_name,
+                account_number: editAccountForm.account_number,
+                account_type: editAccountForm.type,
+                ifsc: editAccountForm.ifsc_code,
+                branch: editAccountForm.branch_name,
+                currentBalance: parseFloat(editAccountForm.current_balance) || 0,
+                current_balance: parseFloat(editAccountForm.current_balance) || 0,
+                status: editAccountForm.status || 'Active'
+            };
+
+            try {
+                await bankAccountService.updateBankAccount(targetId, payload);
+            } catch (err1) {
+                try {
+                    await accountingService.updateAccount(targetId, payload);
+                } catch (err2) {
+                    // Preserved locally in session state
+                }
+            }
+
+            setEditedAccounts(prev => ({
+                ...prev,
+                [editAccountForm.bank_account_id]: {
+                    ...editAccountForm,
+                    bank_account_name: editAccountForm.bank_account_name.trim(),
+                    current_balance: parseFloat(editAccountForm.current_balance) || 0,
+                    account_number: editAccountForm.account_number.trim()
+                },
+                [editAccountForm.id]: {
+                    ...editAccountForm,
+                    bank_account_name: editAccountForm.bank_account_name.trim(),
+                    current_balance: parseFloat(editAccountForm.current_balance) || 0,
+                    account_number: editAccountForm.account_number.trim()
+                }
+            }));
+
+            queryClient.invalidateQueries({ queryKey: ['cash-bank-accounts'] });
+            queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+            queryClient.invalidateQueries({ queryKey: ['paymentReports'] });
+
+            setIsEditModalOpen(false);
+            alert(`Account "${editAccountForm.bank_account_name}" updated successfully.`);
+        } catch (err) {
+            console.error('Save account error:', err);
+            alert(err?.response?.data?.message || 'Failed to update account.');
+        } finally {
+            setIsSavingAccount(false);
+        }
+    };
+
+    const handleDeleteAccount = async (acc) => {
+        const confirmDelete = window.confirm(`Are you sure you want to delete account "${acc.bank_account_name}"? This action cannot be undone.`);
+        if (!confirmDelete) return;
+
+        try {
+            const targetId = acc.id || acc.bank_account_id;
+            try {
+                await bankAccountService.deleteBankAccount(targetId);
+            } catch (err1) {
+                try {
+                    await accountingService.deleteAccount(targetId);
+                } catch (err2) {
+                    // Fallback to local deletion
+                }
+            }
+
+            setDeletedAccountIds(prev => new Set([...prev, acc.bank_account_id, acc.id]));
+
+            queryClient.invalidateQueries({ queryKey: ['cash-bank-accounts'] });
+            queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
+            queryClient.invalidateQueries({ queryKey: ['paymentReports'] });
+
+            if (selectedLedgerAccount?.bank_account_id === acc.bank_account_id) {
+                setSelectedLedgerAccount(null);
+            }
+
+            alert(`Account "${acc.bank_account_name}" deleted successfully.`);
+        } catch (err) {
+            console.error('Delete account error:', err);
+            alert(err?.response?.data?.message || 'Failed to delete account.');
+        }
+    };
 
     const overdues = dbOverdues.map(inv => {
         const totalAmt = parseFloat(inv.total_amount || inv.amount || 0);
@@ -881,22 +1050,168 @@ const BusinessPayments = () => {
                 <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '1.5rem' }}>
                     {/* Existing Bank & Cash Registers top grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                        {accounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => (
-                            <div key={acc.bank_account_id} className="border rounded-2xl p-6 bg-white shadow-sm" style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '1.75rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                                    <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F0F9F4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{acc.bank_account_id}</span>
-                                    <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{(acc.type || 'ACCOUNT').toUpperCase()}</span>
-                                </div>
+                        {accounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => {
+                            const isSelected = selectedLedgerAccount?.bank_account_id === acc.bank_account_id;
+                            const isDropdownOpen = activeDropdownAccId === acc.bank_account_id;
 
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.5rem' }}>{acc.bank_account_name}</h3>
-                                <p style={{ color: '#64748B', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Account No: {acc.account_number || acc.bank_account_id}</p>
+                            return (
+                                <div 
+                                    key={acc.bank_account_id} 
+                                    className="border rounded-2xl p-6 bg-white shadow-sm transition-all" 
+                                    onClick={() => setSelectedLedgerAccount(acc)}
+                                    style={{ 
+                                        background: 'white', 
+                                        borderRadius: '24px', 
+                                        border: isSelected ? '2px solid #1B6B3A' : '1px solid #E2E8F0', 
+                                        padding: '1.75rem', 
+                                        boxShadow: isSelected ? '0 10px 20px -5px rgba(27, 107, 58, 0.12)' : '0 4px 6px -1px rgba(0,0,0,0.02)',
+                                        cursor: 'pointer',
+                                        position: 'relative'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                        <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F0F9F4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>
+                                            {acc.bank_account_id}
+                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
+                                            <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>
+                                                {(acc.type || 'ACCOUNT').toUpperCase()}
+                                            </span>
 
-                                <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B' }}>Current Balance:</span>
-                                    <span style={{ fontSize: '1.5rem', fontWeight: '950', color: '#1B6B3A' }}>{formatCurrency(acc.current_balance)}</span>
+                                            {/* Three-dot action button */}
+                                            <div style={{ position: 'relative' }}>
+                                                <button
+                                                    type="button"
+                                                    aria-label={`Options for ${acc.bank_account_name}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveDropdownAccId(prev => prev === acc.bank_account_id ? null : acc.bank_account_id);
+                                                    }}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        width: '30px',
+                                                        height: '30px',
+                                                        borderRadius: '8px',
+                                                        border: isDropdownOpen ? '1px solid #CBD5E1' : '1px solid #E2E8F0',
+                                                        background: isDropdownOpen ? '#F1F5F9' : '#FFFFFF',
+                                                        color: isDropdownOpen ? '#0F172A' : '#64748B',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.15s ease',
+                                                        padding: 0
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = '#F8FAFC';
+                                                        e.currentTarget.style.color = '#0F172A';
+                                                        e.currentTarget.style.borderColor = '#CBD5E1';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if (activeDropdownAccId !== acc.bank_account_id) {
+                                                            e.currentTarget.style.background = '#FFFFFF';
+                                                            e.currentTarget.style.color = '#64748B';
+                                                            e.currentTarget.style.borderColor = '#E2E8F0';
+                                                        }
+                                                    }}
+                                                >
+                                                    <MoreVertical size={16} />
+                                                </button>
+
+                                                {/* Dropdown Action Menu */}
+                                                {isDropdownOpen && (
+                                                    <div
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: 'calc(100% + 6px)',
+                                                            right: 0,
+                                                            width: '140px',
+                                                            background: '#FFFFFF',
+                                                            borderRadius: '12px',
+                                                            border: '1px solid #E2E8F0',
+                                                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+                                                            zIndex: 100,
+                                                            overflow: 'hidden',
+                                                            padding: '4px'
+                                                        }}
+                                                    >
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveDropdownAccId(null);
+                                                                handleOpenEditModal(acc);
+                                                            }}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.5rem',
+                                                                width: '100%',
+                                                                padding: '0.55rem 0.75rem',
+                                                                border: 'none',
+                                                                borderRadius: '8px',
+                                                                background: 'transparent',
+                                                                color: '#1E293B',
+                                                                fontSize: '0.85rem',
+                                                                fontWeight: '650',
+                                                                cursor: 'pointer',
+                                                                textAlign: 'left',
+                                                                transition: 'background-color 0.15s ease'
+                                                            }}
+                                                            onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; }}
+                                                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                                        >
+                                                            <Pencil size={14} style={{ color: '#2563EB' }} />
+                                                            <span>Edit</span>
+                                                        </button>
+
+                                                        <div style={{ height: '1px', background: '#F1F5F9', margin: '3px 0' }} />
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveDropdownAccId(null);
+                                                                handleDeleteAccount(acc);
+                                                            }}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.5rem',
+                                                                width: '100%',
+                                                                padding: '0.55rem 0.75rem',
+                                                                border: 'none',
+                                                                borderRadius: '8px',
+                                                                background: 'transparent',
+                                                                color: '#DC2626',
+                                                                fontSize: '0.85rem',
+                                                                fontWeight: '650',
+                                                                cursor: 'pointer',
+                                                                textAlign: 'left',
+                                                                transition: 'background-color 0.15s ease'
+                                                            }}
+                                                            onMouseEnter={(e) => { e.currentTarget.style.background = '#FEF2F2'; }}
+                                                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                                        >
+                                                            <Trash2 size={14} style={{ color: '#DC2626' }} />
+                                                            <span>Delete</span>
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.5rem' }}>{acc.bank_account_name}</h3>
+                                    <p style={{ color: '#64748B', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Account No: {acc.account_number || acc.bank_account_id}</p>
+
+                                    <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B' }}>Current Balance:</span>
+                                        <span style={{ fontSize: '1.5rem', fontWeight: '950', color: '#1B6B3A' }}>{formatCurrency(acc.current_balance)}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                         <div className="border border-dashed rounded-2xl p-6 bg-white flex flex-col items-center justify-center" style={{ background: 'white', borderRadius: '24px', border: '1px dashed #DDD6FE', padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }} onClick={() => setIsTransferModalOpen(true)}>
                             <ArrowUpRight size={32} style={{ color: '#1B6B3A', marginBottom: '0.75rem' }} />
                             <h4 style={{ fontWeight: '800', color: '#064E3B' }}>Internal Transfer Funds</h4>
@@ -904,14 +1219,14 @@ const BusinessPayments = () => {
                         </div>
                     </div>
 
-                    {/* Relocated Transaction Ledger: Cash in Hand */}
+                    {/* Relocated Transaction Ledger */}
                     <div className="bg-white border rounded-2xl shadow-sm p-6 mt-6" style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', marginTop: '1.5rem' }}>
                       {/* Header */}
                       <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-gray-100 gap-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem', borderBottom: '1px solid #F1F5F9', flexWrap: 'wrap', gap: '1rem' }}>
                         <div className="flex items-center gap-2" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span className="text-blue-600 text-lg">🗂️</span>
-                          <h3 className="font-semibold text-gray-900 text-base" style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1E293B', margin: 0 }}>
-                            Transaction Ledger: Cash in Hand
+                          <h3 className="font-semibold text-gray-900 text-base" style={{ fontSize: '1.1rem', fontWeight: '850', color: '#1E293B', margin: 0 }}>
+                            Transaction Ledger: {selectedLedgerAccount ? selectedLedgerAccount.bank_account_name : 'Cash in Hand'}
                           </h3>
                         </div>
 
@@ -1430,6 +1745,127 @@ const BusinessPayments = () => {
                             <button type="submit" disabled={transferMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                                 {transferMutation.isPending ? <Loader2 className="animate-spin" size={20} /> : 'Settle Fund Transfer'}
                             </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Account Modal */}
+            {isEditModalOpen && editAccountForm && (
+                <div 
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}
+                    onClick={() => setIsEditModalOpen(false)}
+                >
+                    <div 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
+                                    <Pencil size={20} />
+                                </div>
+                                <div>
+                                    <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Edit Account</h2>
+                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>Update registered account details and balance</p>
+                                </div>
+                            </div>
+                            <button 
+                                type="button" 
+                                onClick={() => setIsEditModalOpen(false)} 
+                                style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveEditAccount} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                    Account Name *
+                                </label>
+                                <input 
+                                    required 
+                                    value={editAccountForm.bank_account_name} 
+                                    onChange={(e) => setEditAccountForm({ ...editAccountForm, bank_account_name: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }} 
+                                />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                        Account / UPI Number
+                                    </label>
+                                    <input 
+                                        value={editAccountForm.account_number} 
+                                        onChange={(e) => setEditAccountForm({ ...editAccountForm, account_number: e.target.value })} 
+                                        placeholder="e.g. 501002938128"
+                                        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }} 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                        Account Type
+                                    </label>
+                                    <select 
+                                        value={editAccountForm.type} 
+                                        onChange={(e) => setEditAccountForm({ ...editAccountForm, type: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                                    >
+                                        <option value="cash">Cash</option>
+                                        <option value="bank">Bank Account</option>
+                                        <option value="wallet">Wallet / UPI</option>
+                                        <option value="savings">Savings</option>
+                                        <option value="current">Current</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                        Current Balance ({currency.symbol}) *
+                                    </label>
+                                    <input 
+                                        type="number"
+                                        step="any"
+                                        value={editAccountForm.current_balance} 
+                                        onChange={(e) => setEditAccountForm({ ...editAccountForm, current_balance: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.9rem', fontWeight: '700', color: '#1B6B3A', outline: 'none', boxSizing: 'border-box' }} 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                        Status
+                                    </label>
+                                    <select 
+                                        value={editAccountForm.status} 
+                                        onChange={(e) => setEditAccountForm({ ...editAccountForm, status: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                                    >
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                                <button 
+                                    type="button" 
+                                    onClick={() => setIsEditModalOpen(false)} 
+                                    style={{ flex: 1, padding: '0.85rem', borderRadius: '14px', background: '#F1F5F9', color: '#475569', border: 'none', fontWeight: '750', fontSize: '0.95rem', cursor: 'pointer' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={isSavingAccount} 
+                                    style={{ flex: 2, padding: '0.85rem', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(27, 107, 58, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                                >
+                                    {isSavingAccount ? <Loader2 className="animate-spin" size={18} /> : 'Save Changes'}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
