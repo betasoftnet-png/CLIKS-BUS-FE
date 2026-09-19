@@ -46,6 +46,7 @@ const FilterableTableHead = ({ columns = [], onFilterChange, thStyle = {} }) => 
                     return (
                         <th
                             key={col.key}
+                            className={col.className}
                             style={{
                                 padding: '0.55rem 1rem',
                                 fontSize: '0.7rem',
@@ -55,7 +56,9 @@ const FilterableTableHead = ({ columns = [], onFilterChange, thStyle = {} }) => 
                                 whiteSpace: 'nowrap',
                                 textAlign: col.align || 'left',
                                 letterSpacing: '0.03em',
-                                ...thStyle
+                                ...(col.minWidth ? { minWidth: col.minWidth } : {}),
+                                ...thStyle,
+                                ...(col.style || {})
                             }}
                         >
                             <div style={{
@@ -101,8 +104,8 @@ const FilterableTableHead = ({ columns = [], onFilterChange, thStyle = {} }) => 
              {/* Filter input row — only renders when at least one column is open */}
              {hasAnyOpen && (
                  <tr style={{ borderBottom: '2px solid rgba(148, 163, 184, 0.15)', background: '#FAFAFA' }}>
-                     {columns.map(col => (
-                         <th key={col.key} style={{ padding: '0.2rem 0.4rem' }}>
+                      {columns.map(col => (
+                          <th key={col.key} className={col.className} style={{ padding: '0.2rem 0.4rem', ...(col.minWidth ? { minWidth: col.minWidth } : {}), ...(col.style || {}) }}>
                              {!col.noFilter && openCols[col.key] ? (
                                  <div style={{ position: 'relative' }}>
                                      <input
