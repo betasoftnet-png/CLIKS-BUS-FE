@@ -1336,122 +1336,245 @@ const BusinessSplitCollect = () => {
                                                 </p>
                                             </div>
                                         ) : (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                            <div className="space-y-3" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                                 {filteredExpenses.map(e => {
                                                     const isSettlement = e.isSettlement || e.type === 'SETTLEMENT' || e.type === 'REPAYMENT' || (e.title && e.title.startsWith('Settlement:'));
+                                                    
+                                                    // Determine split type badge
+                                                    const splitBadgeText = isSettlement 
+                                                        ? 'Settlement' 
+                                                        : (e.splitType && !e.splitType.toLowerCase().includes('equal') ? 'Custom Split' : 'Equal Split');
+                                                    
+                                                    const badgeStyle = isSettlement
+                                                        ? { bg: '#ECFDF5', color: '#059669', border: '#A7F3D0' }
+                                                        : (splitBadgeText === 'Equal Split'
+                                                            ? { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE' }
+                                                            : { bg: '#F5F3FF', color: '#7C3AED', border: '#DDD6FE' });
+
                                                     return (
                                                         <div 
                                                             key={e.id} 
+                                                            className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:border-gray-200"
                                                             style={{ 
-                                                                background: 'white', 
+                                                                background: '#FFFFFF', 
                                                                 borderRadius: '16px', 
-                                                                border: '1.5px solid #E2E8F0', 
+                                                                border: '1px solid #F1F5F9', 
                                                                 padding: '1rem 1.25rem', 
                                                                 display: 'flex', 
                                                                 alignItems: 'center', 
+                                                                justifyContent: 'space-between',
                                                                 gap: '1rem',
-                                                                boxShadow: '0 2px 4px rgba(0,0,0,0.01)',
+                                                                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
                                                                 position: 'relative'
                                                             }}
                                                         >
-                                                            {/* Icon indicator */}
-                                                            <div style={{ 
-                                                                width: '38px', 
-                                                                height: '38px', 
-                                                                borderRadius: '10px', 
-                                                                background: isSettlement ? '#F0FDF4' : '#F8FAFC', 
-                                                                color: isSettlement ? '#10B981' : '#475569', 
-                                                                display: 'flex', 
-                                                                alignItems: 'center', 
-                                                                justifyContent: 'center', 
-                                                                flexShrink: 0 
-                                                            }}>
-                                                                {isSettlement ? <Check size={18} strokeWidth={2.5} /> : <Receipt size={18} />}
-                                                            </div>
+                                                            {/* Left info: Icon & Content */}
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flex: 1, minWidth: 0 }}>
+                                                                {/* Icon indicator */}
+                                                                <div 
+                                                                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                                                        isSettlement ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-slate-600 border border-gray-100'
+                                                                    }`}
+                                                                    style={{ 
+                                                                        width: '40px', 
+                                                                        height: '40px', 
+                                                                        borderRadius: '12px', 
+                                                                        background: isSettlement ? '#ECFDF5' : '#F8FAFC', 
+                                                                        color: isSettlement ? '#059669' : '#475569', 
+                                                                        border: isSettlement ? '1px solid #A7F3D0' : '1px solid #E2E8F0',
+                                                                        display: 'flex', 
+                                                                        alignItems: 'center', 
+                                                                        justifyContent: 'center', 
+                                                                        flexShrink: 0 
+                                                                    }}
+                                                                >
+                                                                    {isSettlement ? <Check size={19} strokeWidth={2.5} /> : <Receipt size={19} />}
+                                                                </div>
 
-                                                            {/* Details */}
-                                                            <div style={{ flex: 1 }}>
-                                                                <h4 style={{ margin: '0 0 0.15rem 0', fontSize: '0.9rem', fontWeight: '850', color: '#1F2937' }}>{e.title}</h4>
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                                                    <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B' }}>
-                                                                        Paid by <strong style={{ color: '#1E293B' }}>{e.paidBy}</strong>
-                                                                    </span>
-                                                                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#CBD5E1' }} />
-                                                                    <span style={{ fontSize: '0.65rem', fontWeight: '750', color: '#64748B', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                                                        <Calendar size={12} /> {e.date}
-                                                                    </span>
-                                                                    {e.attachment && (
-                                                                        <>
-                                                                            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#CBD5E1' }} />
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={(ev) => {
-                                                                                    ev.stopPropagation();
-                                                                                    const cleanName = e.attachment.split('/').pop().replace(/^\d+_/, '') || e.attachment;
-                                                                                    setPreviewAttachment({
-                                                                                        url: resolveFileUrl(e.attachment),
-                                                                                        name: cleanName
-                                                                                    });
-                                                                                }}
-                                                                                style={{
-                                                                                    display: 'inline-flex',
-                                                                                    alignItems: 'center',
-                                                                                    gap: '4px',
-                                                                                    background: '#EFF6FF',
-                                                                                    color: '#2563EB',
-                                                                                    border: '1px solid #BFDBFE',
-                                                                                    padding: '2px 8px',
-                                                                                    borderRadius: '8px',
-                                                                                    fontSize: '0.65rem',
-                                                                                    fontWeight: '800',
-                                                                                    cursor: 'pointer',
-                                                                                    maxWidth: '180px',
-                                                                                    transition: 'all 0.15s'
-                                                                                }}
-                                                                                title="Click to view attachment inline"
-                                                                                onMouseOver={(ev) => ev.currentTarget.style.background = '#DBEAFE'}
-                                                                                onMouseOut={(ev) => ev.currentTarget.style.background = '#EFF6FF'}
-                                                                            >
-                                                                                <FileText size={11} style={{ flexShrink: 0 }} />
-                                                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                                    {e.attachment.split('/').pop().replace(/^\d+_/, '') || 'Attachment'}
-                                                                                </span>
-                                                                            </button>
-                                                                        </>
-                                                                    )}
+                                                                {/* Details */}
+                                                                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                                        <h4 
+                                                                            className="font-bold text-gray-900"
+                                                                            style={{ 
+                                                                                margin: 0, 
+                                                                                fontSize: '0.95rem', 
+                                                                                fontWeight: '800', 
+                                                                                color: isSettlement ? '#065F46' : '#0F172A',
+                                                                                letterSpacing: '-0.01em'
+                                                                            }}
+                                                                        >
+                                                                            {e.title}
+                                                                        </h4>
+
+                                                                        {/* Distinct tag badge for "Equal Split", "Custom Split", or "Settlement" */}
+                                                                        <span 
+                                                                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                                                                isSettlement 
+                                                                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                                                                                    : (splitBadgeText === 'Equal Split' 
+                                                                                        ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                                                                                        : 'bg-purple-50 text-purple-700 border border-purple-200')
+                                                                            }`}
+                                                                            style={{
+                                                                                display: 'inline-flex',
+                                                                                alignItems: 'center',
+                                                                                padding: '2px 8px',
+                                                                                borderRadius: '9999px',
+                                                                                fontSize: '0.68rem',
+                                                                                fontWeight: '750',
+                                                                                background: badgeStyle.bg,
+                                                                                color: badgeStyle.color,
+                                                                                border: `1px solid ${badgeStyle.border}`
+                                                                            }}
+                                                                        >
+                                                                            {splitBadgeText}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                                        <span style={{ fontSize: '0.72rem', fontWeight: '500', color: '#64748B' }}>
+                                                                            Paid by <strong style={{ color: '#1E293B', fontWeight: '750' }}>{e.paidBy}</strong>
+                                                                        </span>
+                                                                        
+                                                                        <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#CBD5E1' }} />
+                                                                        
+                                                                        {/* Date pill / metadata */}
+                                                                        <span 
+                                                                            style={{ 
+                                                                                display: 'inline-flex', 
+                                                                                alignItems: 'center', 
+                                                                                gap: '4px',
+                                                                                fontSize: '0.7rem', 
+                                                                                fontWeight: '600', 
+                                                                                color: '#64748B',
+                                                                                background: '#F8FAFC',
+                                                                                border: '1px solid #E2E8F0',
+                                                                                padding: '1px 7px',
+                                                                                borderRadius: '6px'
+                                                                            }}
+                                                                        >
+                                                                            <Calendar size={11} style={{ color: '#94A3B8' }} /> {e.date}
+                                                                        </span>
+
+                                                                        {e.attachment && (
+                                                                            <>
+                                                                                <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#CBD5E1' }} />
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={(ev) => {
+                                                                                        ev.stopPropagation();
+                                                                                        const cleanName = e.attachment.split('/').pop().replace(/^\d+_/, '') || e.attachment;
+                                                                                        setPreviewAttachment({
+                                                                                            url: resolveFileUrl(e.attachment),
+                                                                                            name: cleanName
+                                                                                        });
+                                                                                    }}
+                                                                                    style={{
+                                                                                        display: 'inline-flex',
+                                                                                        alignItems: 'center',
+                                                                                        gap: '4px',
+                                                                                        background: '#EFF6FF',
+                                                                                        color: '#2563EB',
+                                                                                        border: '1px solid #BFDBFE',
+                                                                                        padding: '1px 8px',
+                                                                                        borderRadius: '6px',
+                                                                                        fontSize: '0.68rem',
+                                                                                        fontWeight: '750',
+                                                                                        cursor: 'pointer',
+                                                                                        maxWidth: '160px',
+                                                                                        transition: 'all 0.15s'
+                                                                                    }}
+                                                                                    title="Click to view attachment inline"
+                                                                                    onMouseOver={(ev) => ev.currentTarget.style.background = '#DBEAFE'}
+                                                                                    onMouseOut={(ev) => ev.currentTarget.style.background = '#EFF6FF'}
+                                                                                >
+                                                                                    <FileText size={11} style={{ flexShrink: 0 }} />
+                                                                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                                        {e.attachment.split('/').pop().replace(/^\d+_/, '') || 'Attachment'}
+                                                                                    </span>
+                                                                                </button>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             </div>
 
                                                             {/* Amount & Actions */}
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexShrink: 0 }}>
                                                                 <div style={{ textAlign: 'right' }}>
-                                                                    <span style={{ fontSize: '1.05rem', fontWeight: '950', color: isSettlement ? '#059669' : '#1E293B' }}>
-                                                                        {activeSplit.currencySymbol}{(parseFloat(e.amount) || 0).toLocaleString()}
-                                                                    </span>
-                                                                    <span style={{ display: 'block', fontSize: '0.6rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase', marginTop: '1px' }}>
-                                                                        {e.splitType} Split
+                                                                    <span 
+                                                                        className="font-black"
+                                                                        style={{ 
+                                                                            fontSize: '1.1rem', 
+                                                                            fontWeight: '900', 
+                                                                            color: isSettlement ? '#059669' : '#0F172A',
+                                                                            letterSpacing: '-0.02em',
+                                                                            display: 'block'
+                                                                        }}
+                                                                    >
+                                                                        {activeSplit.currencySymbol || '₹'}{(parseFloat(e.amount) || 0).toLocaleString()}
                                                                     </span>
                                                                 </div>
-                                                                {!isSettlement && (
+
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                                                    {!isSettlement && (
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={() => openEditExpenseModal(e)}
+                                                                            title="Edit Expense"
+                                                                            style={{ 
+                                                                                background: 'transparent', 
+                                                                                border: 'none', 
+                                                                                color: '#94A3B8', 
+                                                                                cursor: 'pointer', 
+                                                                                padding: '6px', 
+                                                                                borderRadius: '8px',
+                                                                                display: 'flex', 
+                                                                                alignItems: 'center', 
+                                                                                justifyContent: 'center',
+                                                                                transition: 'all 0.15s'
+                                                                            }}
+                                                                            onMouseOver={(ev) => {
+                                                                                ev.currentTarget.style.color = '#16A34A';
+                                                                                ev.currentTarget.style.background = '#F0FDF4';
+                                                                            }}
+                                                                            onMouseOut={(ev) => {
+                                                                                ev.currentTarget.style.color = '#94A3B8';
+                                                                                ev.currentTarget.style.background = 'transparent';
+                                                                            }}
+                                                                        >
+                                                                            <Pencil size={14} />
+                                                                        </button>
+                                                                    )}
                                                                     <button 
-                                                                        onClick={() => openEditExpenseModal(e)}
-                                                                        title="Edit Expense"
-                                                                        style={{ background: 'transparent', border: 'none', color: '#CBD5E1', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                                        onMouseOver={(e) => e.currentTarget.style.color = '#1B6B3A'}
-                                                                        onMouseOut={(e) => e.currentTarget.style.color = '#CBD5E1'}
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteExpense(e.id)}
+                                                                        title="Delete Expense"
+                                                                        style={{ 
+                                                                            background: 'transparent', 
+                                                                            border: 'none', 
+                                                                            color: '#94A3B8', 
+                                                                            cursor: 'pointer', 
+                                                                            padding: '6px', 
+                                                                            borderRadius: '8px',
+                                                                            display: 'flex', 
+                                                                            alignItems: 'center', 
+                                                                            justifyContent: 'center',
+                                                                            transition: 'all 0.15s'
+                                                                        }}
+                                                                        onMouseOver={(ev) => {
+                                                                            ev.currentTarget.style.color = '#EF4444';
+                                                                            ev.currentTarget.style.background = '#FEF2F2';
+                                                                        }}
+                                                                        onMouseOut={(ev) => {
+                                                                            ev.currentTarget.style.color = '#94A3B8';
+                                                                            ev.currentTarget.style.background = 'transparent';
+                                                                        }}
                                                                     >
-                                                                        <Pencil size={13} />
+                                                                        <X size={16} />
                                                                     </button>
-                                                                )}
-                                                                <button 
-                                                                    onClick={() => handleDeleteExpense(e.id)}
-                                                                    title="Delete Expense"
-                                                                    style={{ background: 'transparent', border: 'none', color: '#CBD5E1', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                                    onMouseOver={(e) => e.currentTarget.style.color = '#EF4444'}
-                                                                    onMouseOut={(e) => e.currentTarget.style.color = '#CBD5E1'}
-                                                                >
-                                                                    <X size={15} />
-                                                                </button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     );
