@@ -268,6 +268,12 @@ const BusinessPayments = () => {
         };
     });
 
+    const [supplierPayables, setSupplierPayables] = useState(() => payables);
+
+    React.useEffect(() => {
+        setSupplierPayables(payables);
+    }, [reportsData, purchasesList]);
+
     const accounts = dbAccounts.length > 0 ? dbAccounts : [
         { bank_account_id: 'ACC-DEFL', bank_account_name: 'Default Cash Account', current_balance: 0, type: 'cash' }
     ];
@@ -356,14 +362,66 @@ const BusinessPayments = () => {
         });
     };
 
+    const handleOpenSupplierModal = () => {
+        let currentSupplierName = supplierForm.supplier_name;
+        if (suppliersList && suppliersList.length > 0) {
+            const exists = suppliersList.find(s => (s.name || s.company_name) === currentSupplierName);
+            if (!exists) {
+                currentSupplierName = suppliersList[0].name || suppliersList[0].company_name || currentSupplierName;
+            }
+        }
+        const matched = suppliersList?.find(s => 
+            (s.name && s.name === currentSupplierName) || 
+            (s.company_name && s.company_name === currentSupplierName)
+        );
+        let due = '';
+        if (matched) {
+            const raw = matched.running_payable !== undefined && matched.running_payable !== null
+                ? matched.running_payable
+                : (matched.runningPayable !== undefined && matched.runningPayable !== null
+                    ? matched.runningPayable
+                    : (matched.outstanding_balance ?? ''));
+            due = String(raw).replace(/,/g, '').trim();
+        }
+        setSupplierForm(prev => ({
+            ...prev,
+            supplier_name: currentSupplierName,
+            total_amount: due,
+            paid_amount: ''
+        }));
+        setIsSupplierModalOpen(true);
+    };
+
+    React.useEffect(() => {
+        if (isSupplierModalOpen && suppliersList && suppliersList.length > 0 && !supplierForm.total_amount) {
+            const matched = suppliersList.find(s => 
+                (s.name && s.name === supplierForm.supplier_name) || 
+                (s.company_name && s.company_name === supplierForm.supplier_name)
+            ) || suppliersList[0];
+            if (matched) {
+                const raw = matched.running_payable !== undefined && matched.running_payable !== null
+                    ? matched.running_payable
+                    : (matched.runningPayable !== undefined && matched.runningPayable !== null
+                        ? matched.runningPayable
+                        : (matched.outstanding_balance ?? ''));
+                const due = String(raw).replace(/,/g, '').trim();
+                setSupplierForm(prev => ({
+                    ...prev,
+                    supplier_name: matched.name || matched.company_name || prev.supplier_name,
+                    total_amount: due
+                }));
+            }
+        }
+    }, [isSupplierModalOpen, suppliersList]);
+
     const handleSaveSupplierPayment = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
         if (isSubmitting || payMutation.isPending) return;
 
-        const paidAmt = parseFloat(supplierForm.paid_amount);
         const totalAmt = supplierForm.total_amount !== '' && supplierForm.total_amount !== null && supplierForm.total_amount !== undefined
             ? parseFloat(supplierForm.total_amount)
             : 0;
+        let paidAmt = parseFloat(supplierForm.paid_amount);
 
         if (isNaN(paidAmt) || paidAmt <= 0) {
             alert('Supplier payment amount must be strictly greater than 0.');
@@ -373,6 +431,10 @@ const BusinessPayments = () => {
         if (isNaN(totalAmt) || totalAmt < 0) {
             alert('Original due amount must be 0 or greater.');
             return;
+        }
+
+        if (!isNaN(totalAmt) && totalAmt >= 0 && paidAmt > totalAmt) {
+            paidAmt = totalAmt;
         }
 
         setIsSubmitting(true);
@@ -390,27 +452,66 @@ const BusinessPayments = () => {
                 notes: JSON.stringify({ original_due_amount: totalAmt, paid_amount: paidAmt })
             };
 
-            const response = await paymentService.paySupplier(payload);
+            const rawRes = await paymentService.paySupplier(payload);
+            const res = (rawRes && (rawRes.status !== undefined || rawRes.data !== undefined))
+                ? rawRes
+                : { status: 201, data: rawRes };
 
-            const isSuccess = 
-                response?.status === 200 || 
-                response?.status === 201 || 
-                response?.data || 
-                response?.success || 
-                response?.id || 
-                (response && typeof response === 'object' && !response.error);
+            if (res.status === 200 || res.status === 201 || res.data) {
+                const returnedTx = res.data?.data || res.data || {};
+                const newId = returnedTx.id || returnedTx.payment_id || Date.now();
+                const newTransaction = {
+                    payment_id: newId,
+                    payment_number: returnedTx.payment_number || `VCH-${new Date().getFullYear()}-${newId}`,
+                    payment_type: 'pay',
+                    payment_date: returnedTx.payment_date || (returnedTx.created_at ? returnedTx.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+                    payment_status: 'completed',
+                    supplier_name: supplierForm.supplier_name,
+                    purchase_id: supplierForm.purchase_id,
+                    total_amount: totalAmt,
+                    paid_amount: paidAmt,
+                    pending_amount: Math.max(0, totalAmt - paidAmt),
+                    payment_mode: supplierForm.payment_mode,
+                    cheque_number: supplierForm.transaction_reference,
+                    reconciliation_status: 'matched',
+                    ...returnedTx
+                };
 
-            if (isSuccess) {
+                setSupplierPayables(prev => [newTransaction, ...prev.filter(item => item.payment_id !== newId)]);
                 setIsSupplierModalOpen(false);
                 setSupplierForm(prev => ({ ...prev, total_amount: '', paid_amount: '' }));
+                setActiveTab('payables');
+                alert("Successfully paid");
                 await fetchSupplierPayables();
             } else {
-                alert(response?.message || 'Failed to process supplier payment. Please try again.');
+                alert(res?.data?.message || res?.message || 'Failed to process supplier payment. Please try again.');
             }
         } catch (err) {
-            if (err?.response?.status === 200 || err?.response?.status === 201 || err?.response?.data?.success) {
+            const res = err?.response || {};
+            if (res.status === 200 || res.status === 201 || res.data) {
+                const returnedTx = res.data?.data || res.data || {};
+                const newId = returnedTx.id || returnedTx.payment_id || Date.now();
+                const newTransaction = {
+                    payment_id: newId,
+                    payment_number: returnedTx.payment_number || `VCH-${new Date().getFullYear()}-${newId}`,
+                    payment_type: 'pay',
+                    payment_date: new Date().toISOString().split('T')[0],
+                    payment_status: 'completed',
+                    supplier_name: supplierForm.supplier_name,
+                    purchase_id: supplierForm.purchase_id,
+                    total_amount: totalAmt,
+                    paid_amount: paidAmt,
+                    pending_amount: Math.max(0, totalAmt - paidAmt),
+                    payment_mode: supplierForm.payment_mode,
+                    cheque_number: supplierForm.transaction_reference,
+                    reconciliation_status: 'matched',
+                    ...returnedTx
+                };
+                setSupplierPayables(prev => [newTransaction, ...prev.filter(item => item.payment_id !== newId)]);
                 setIsSupplierModalOpen(false);
                 setSupplierForm(prev => ({ ...prev, total_amount: '', paid_amount: '' }));
+                setActiveTab('payables');
+                alert("Successfully paid");
                 await fetchSupplierPayables();
             } else {
                 alert(err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Failed to process supplier payment. Please try again.');
@@ -464,9 +565,9 @@ const BusinessPayments = () => {
         r.payment_number.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const filteredPayables = payables.filter(p => 
-        p.supplier_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.payment_number.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredPayables = supplierPayables.filter(p => 
+        (p.supplier_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.payment_number || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -484,7 +585,7 @@ const BusinessPayments = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button 
-                        onClick={() => setIsSupplierModalOpen(true)}
+                        onClick={handleOpenSupplierModal}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'white', color: '#1B6B3A', border: '1px solid #DCF2E4', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
                     >
                         <ArrowUpRight size={16} /> Pay Supplier
@@ -924,7 +1025,39 @@ const BusinessPayments = () => {
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Supplier Profile</label>
                                 <select 
                                     value={supplierForm.supplier_name} 
-                                    onChange={(e) => setSupplierForm({ ...supplierForm, supplier_name: e.target.value })} 
+                                    onChange={(e) => {
+                                        const selectedName = e.target.value;
+                                        const matchedSupplier = suppliersList.find(s => 
+                                            (s.name && s.name === selectedName) || 
+                                            (s.company_name && s.company_name === selectedName) ||
+                                            (s.company && s.company === selectedName)
+                                        );
+                                        let originalDue = '';
+                                        if (matchedSupplier) {
+                                            const raw = matchedSupplier.running_payable !== undefined && matchedSupplier.running_payable !== null
+                                                ? matchedSupplier.running_payable
+                                                : (matchedSupplier.runningPayable !== undefined && matchedSupplier.runningPayable !== null
+                                                    ? matchedSupplier.runningPayable
+                                                    : (matchedSupplier.outstanding_balance ?? ''));
+                                            originalDue = String(raw).replace(/,/g, '').trim();
+                                        }
+                                        setSupplierForm(prev => {
+                                            let updatedPaid = prev.paid_amount;
+                                            const numDue = parseFloat(originalDue);
+                                            if (!isNaN(numDue) && updatedPaid !== '') {
+                                                const numPaid = parseFloat(updatedPaid);
+                                                if (!isNaN(numPaid) && numPaid > numDue) {
+                                                    updatedPaid = String(numDue);
+                                                }
+                                            }
+                                            return {
+                                                ...prev,
+                                                supplier_name: selectedName,
+                                                total_amount: originalDue,
+                                                paid_amount: updatedPaid
+                                            };
+                                        });
+                                    }} 
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                 >
                                     {suppliersList.map((sup, idx) => (
@@ -955,7 +1088,24 @@ const BusinessPayments = () => {
                                         placeholder="0"
                                         value={supplierForm.total_amount} 
                                         onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
-                                        onChange={(e) => setSupplierForm({ ...supplierForm, total_amount: e.target.value })} 
+                                        onChange={(e) => {
+                                            const newTotal = e.target.value;
+                                            setSupplierForm(prev => {
+                                                let updatedPaid = prev.paid_amount;
+                                                const numTotal = parseFloat(newTotal);
+                                                if (!isNaN(numTotal) && updatedPaid !== '') {
+                                                    const numPaid = parseFloat(updatedPaid);
+                                                    if (!isNaN(numPaid) && numPaid > numTotal) {
+                                                        updatedPaid = String(numTotal);
+                                                    }
+                                                }
+                                                return {
+                                                    ...prev,
+                                                    total_amount: newTotal,
+                                                    paid_amount: updatedPaid
+                                                };
+                                            });
+                                        }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
                                     />
                                 </div>
@@ -966,11 +1116,22 @@ const BusinessPayments = () => {
                                     required 
                                     type="number" 
                                     min="0"
+                                    max={supplierForm.total_amount || undefined}
                                     step="any"
                                     placeholder="0"
                                     value={supplierForm.paid_amount} 
                                     onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
-                                    onChange={(e) => setSupplierForm({ ...supplierForm, paid_amount: e.target.value })} 
+                                    onChange={(e) => {
+                                        let val = e.target.value;
+                                        const originalDue = parseFloat(supplierForm.total_amount);
+                                        if (!isNaN(originalDue) && originalDue >= 0 && val !== '') {
+                                            const numVal = parseFloat(val);
+                                            if (!isNaN(numVal) && numVal > originalDue) {
+                                                val = String(originalDue);
+                                            }
+                                        }
+                                        setSupplierForm(prev => ({ ...prev, paid_amount: val }));
+                                    }} 
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
                                 />
                             </div>
