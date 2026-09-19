@@ -73,6 +73,9 @@ import hrIconPng from '../assets/image copy.png';
 import storageLogo from '../assets/storagelogo.png';
 
 const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick, isAdmin = false, isSales = false, isSupport = false, user }) => {
+    const { t } = useLanguage();
+    const displayLabel = (t && typeof t === 'function') ? t(item.label, item.label) : item.label;
+
     if (item.permission && !hasAccess(user, item.permission)) {
         return null;
     }
@@ -124,9 +127,6 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
             backgroundStyle = '#1B6B3A';
         }
     }
-
-    const { t } = useLanguage();
-    const displayLabel = (t && typeof t === 'function') ? t(item.label, item.label) : item.label;
 
     if (hasChildren) {
         return (

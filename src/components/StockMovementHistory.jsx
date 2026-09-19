@@ -8,15 +8,14 @@ export default function StockMovementHistory({
     reportsData = {},
     formatCurrency = (val) => `₹${Number(val || 0).toLocaleString('en-IN')}`
 }) {
-    if (!selectedStock) return null;
-
-    const currentStockQty = parseFloat(selectedStock.current_stock) || 0;
-    const damagedStockQty = parseFloat(selectedStock.damaged_stock) || 0;
-    const inTransitQty = parseFloat(selectedStock.in_transit_stock) || 0;
+    const currentStockQty = parseFloat(selectedStock?.current_stock) || 0;
+    const damagedStockQty = parseFloat(selectedStock?.damaged_stock) || 0;
+    const inTransitQty = parseFloat(selectedStock?.in_transit_stock) || 0;
     const nowStr = new Date().toISOString().split('T')[0];
 
     // Compute dynamic running balances and events
     const timelineEvents = useMemo(() => {
+        if (!selectedStock) return [];
         const txList = Array.isArray(rawStockHistory) ? rawStockHistory : [];
 
         // Match any recent inwards for this stock/product
@@ -162,6 +161,8 @@ export default function StockMovementHistory({
             }
         ];
     }, [selectedStock, currentStockQty, damagedStockQty, rawStockHistory, reportsData]);
+
+    if (!selectedStock) return null;
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(6,78,59,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
