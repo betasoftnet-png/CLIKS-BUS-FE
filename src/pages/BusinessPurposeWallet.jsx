@@ -43,10 +43,6 @@ const BusinessPurposeWallet = () => {
     });
     const [error, setError] = useState('');
 
-    const targetAmount = formData.target_amount;
-    const isTargetAmountValid = Boolean(targetAmount && Number(targetAmount) > 0);
-    const isSubmitDisabled = createMutation.isPending || updateMutation.isPending || !targetAmount || Number(targetAmount) <= 0;
-
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [historyWalletId, setHistoryWalletId] = useState(null);
     const [activeMenuId, setActiveMenuId] = useState(null);
@@ -132,6 +128,10 @@ const BusinessPurposeWallet = () => {
             alert(err?.response?.data?.message || "Failed to update purpose wallet.");
         }
     });
+
+    const targetAmount = formData.target_amount;
+    const isTargetAmountValid = Boolean(targetAmount && Number(targetAmount) > 0);
+    const isSubmitDisabled = createMutation.isPending || updateMutation.isPending || !targetAmount || Number(targetAmount) <= 0;
 
     const closeCreateModal = () => {
         setIsCreateModalOpen(false);
