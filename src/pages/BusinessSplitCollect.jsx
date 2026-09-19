@@ -133,8 +133,43 @@ export const getViewableUrl = (rawFilePath) => {
 // Pure calculation function to compute total outlay across both list cards and details view
 export const calculateGroupOutlay = (expenses) => {
     return (expenses || [])
-        .filter(item => !item.isSettlement && item.type !== 'SETTLEMENT' && item.type !== 'REPAYMENT' && (!item.title || !item.title.toLowerCase().startsWith('settlement:')))
+        .filter(item => !item.isSettlement && item.type !== 'SETTLEMENT' && item.type !== 'REPAYMENT' && (!item.title || !item.title.toLowerCase().startsWith('settlement')))
         .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+};
+
+// Helper to find specific unsettled expenses paid by creditor for a debt
+export const getEligibleExpensesForDebt = (debt, expenses = [], participants = []) => {
+    if (!debt || !expenses) return [];
+    
+    // Non-settlement expenses paid by the creditor (debt.to)
+    const creditorExpenses = expenses.filter(exp => 
+        !exp.isSettlement && 
+        exp.type !== 'SETTLEMENT' && 
+        exp.type !== 'REPAYMENT' && 
+        (!exp.title || !exp.title.toLowerCase().startsWith('settlement')) &&
+        exp.paidBy === debt.to
+    );
+
+    const pool = creditorExpenses.length > 0 ? creditorExpenses : expenses.filter(exp => 
+        !exp.isSettlement && 
+        exp.type !== 'SETTLEMENT' && 
+        exp.type !== 'REPAYMENT' && 
+        (!exp.title || !exp.title.toLowerCase().startsWith('settlement'))
+    );
+
+    return pool.map(exp => {
+        let memberShare = 0;
+        if (exp.shares && exp.shares[debt.from] !== undefined) {
+            memberShare = parseFloat(exp.shares[debt.from]) || 0;
+        } else {
+            const numParts = (participants && participants.length) || 1;
+            memberShare = Math.round(((parseFloat(exp.amount) || 0) / numParts) * 100) / 100;
+        }
+        return {
+            ...exp,
+            memberShare: memberShare > 0 ? memberShare : (parseFloat(exp.amount) || 0)
+        };
+    });
 };
 
 const BusinessSplitCollect = () => {
@@ -164,6 +199,12 @@ const BusinessSplitCollect = () => {
     const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
     const [editingExpenseId, setEditingExpenseId] = useState(null);
     const [previewAttachment, setPreviewAttachment] = useState(null);
+    
+    // Custom Pay Modal State
+    const [isCustomPayModalOpen, setIsCustomPayModalOpen] = useState(false);
+    const [customPayDebt, setCustomPayDebt] = useState(null);
+    const [customPayExpenseId, setCustomPayExpenseId] = useState('');
+    const [customPayAmount, setCustomPayAmount] = useState('');
     
     // Group Form State
     const [groupForm, setGroupForm] = useState({
@@ -726,6 +767,101 @@ const BusinessSplitCollect = () => {
                 setSplits(updatedSplits);
                 alert('Settlement logged perfectly!');
             }
+        }
+    };
+
+    const openCustomPayModal = (debt) => {
+        setCustomPayDebt(debt);
+        const eligible = getEligibleExpensesForDebt(debt, activeSplit?.expenses || [], activeSplit?.participants || []);
+        if (eligible.length > 0) {
+            setCustomPayExpenseId(eligible[0].id);
+            setCustomPayAmount(String(eligible[0].memberShare || debt.amount));
+        } else {
+            setCustomPayExpenseId('general');
+            setCustomPayAmount(String(debt.amount));
+        }
+        setIsCustomPayModalOpen(true);
+    };
+
+    const handleSelectExpenseForPay = (expId) => {
+        setCustomPayExpenseId(expId);
+        const eligible = getEligibleExpensesForDebt(customPayDebt, activeSplit?.expenses || [], activeSplit?.participants || []);
+        const chosen = eligible.find(e => String(e.id) === String(expId));
+        if (chosen) {
+            setCustomPayAmount(String(chosen.memberShare || customPayDebt?.amount || ''));
+        }
+    };
+
+    const handleCustomPaySubmit = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!activeSplit || !customPayDebt) return;
+
+        const payAmt = parseFloat(customPayAmount);
+        if (!payAmt || payAmt <= 0) {
+            alert("Please enter a valid payment amount greater than 0.");
+            return;
+        }
+
+        const eligible = getEligibleExpensesForDebt(customPayDebt, activeSplit.expenses, activeSplit.participants);
+        const chosenExp = eligible.find(exp => String(exp.id) === String(customPayExpenseId));
+        const expenseTitle = chosenExp ? chosenExp.title : 'Expense';
+
+        // Requirement: Settlement for [Expense Title]: [From] paid [To]
+        const settlementTitle = `Settlement for ${expenseTitle}: ${customPayDebt.from} paid ${customPayDebt.to}`;
+
+        const settlementExpense = {
+            id: 'exp-settle-' + Date.now(),
+            title: settlementTitle,
+            amount: payAmt,
+            paidBy: customPayDebt.from,
+            date: new Date().toISOString().split('T')[0],
+            attachment: null,
+            splitType: 'custom',
+            isSettlement: true,
+            type: 'SETTLEMENT',
+            shares: {
+                [customPayDebt.to]: payAmt
+            }
+        };
+
+        // Set shares to 0 for everyone else
+        activeSplit.participants.forEach(p => {
+            if (p !== customPayDebt.to) {
+                settlementExpense.shares[p] = 0;
+            }
+        });
+
+        try {
+            const createdSettlement = await splitExpenseService.addExpense(selectedSplitId, settlementExpense);
+            const updatedSplits = splits.map(s => {
+                if (s.id === selectedSplitId) {
+                    return {
+                        ...s,
+                        expenses: [createdSettlement, ...s.expenses]
+                    };
+                }
+                return s;
+            });
+            setSplits(updatedSplits);
+            alert(`✨ Settlement for "${expenseTitle}" logged successfully!`);
+        } catch (err) {
+            console.error("Error saving custom settlement to backend:", err);
+            const updatedSplits = splits.map(s => {
+                if (s.id === selectedSplitId) {
+                    return {
+                        ...s,
+                        expenses: [settlementExpense, ...s.expenses]
+                    };
+                }
+                return s;
+            });
+            setSplits(updatedSplits);
+            alert(`✨ Settlement for "${expenseTitle}" logged successfully!`);
+        } finally {
+            setIsCustomPayModalOpen(false);
+            setCustomPayDebt(null);
+            setCustomPayExpenseId('');
+            setCustomPayAmount('');
         }
     };
 
@@ -1338,7 +1474,7 @@ const BusinessSplitCollect = () => {
                                         ) : (
                                             <div className="space-y-3" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                                 {filteredExpenses.map(e => {
-                                                    const isSettlement = e.isSettlement || e.type === 'SETTLEMENT' || e.type === 'REPAYMENT' || (e.title && e.title.startsWith('Settlement:'));
+                                                    const isSettlement = e.isSettlement || e.type === 'SETTLEMENT' || e.type === 'REPAYMENT' || (e.title && e.title.toLowerCase().startsWith('settlement'));
                                                     
                                                     // Determine split type badge
                                                     const splitBadgeText = isSettlement 
@@ -1642,22 +1778,44 @@ const BusinessSplitCollect = () => {
                                                                 {activeSplit.currencySymbol}{d.amount.toLocaleString()}
                                                             </div>
                                                         </div>
-                                                        <button 
-                                                            onClick={() => handleSettleDebt(d)}
-                                                            style={{ 
-                                                                border: 'none', 
-                                                                background: '#34D399', 
-                                                                color: '#064E3B', 
-                                                                padding: '0.45rem 0.85rem', 
-                                                                borderRadius: '10px', 
-                                                                fontWeight: '900', 
-                                                                fontSize: '0.75rem', 
-                                                                cursor: 'pointer',
-                                                                boxShadow: '0 4px 10px rgba(52, 211, 153, 0.2)'
-                                                            }}
-                                                        >
-                                                            Settle Debt
-                                                        </button>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => openCustomPayModal(d)}
+                                                                style={{ 
+                                                                    border: '1px solid rgba(255,255,255,0.18)', 
+                                                                    background: 'rgba(255,255,255,0.08)', 
+                                                                    color: '#F8FAFC', 
+                                                                    padding: '0.45rem 0.85rem', 
+                                                                    borderRadius: '10px', 
+                                                                    fontWeight: '800', 
+                                                                    fontSize: '0.75rem', 
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s'
+                                                                }}
+                                                                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.16)'}
+                                                                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                                                            >
+                                                                Custom Pay
+                                                            </button>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => handleSettleDebt(d)}
+                                                                style={{ 
+                                                                    border: 'none', 
+                                                                    background: '#34D399', 
+                                                                    color: '#064E3B', 
+                                                                    padding: '0.45rem 0.85rem', 
+                                                                    borderRadius: '10px', 
+                                                                    fontWeight: '900', 
+                                                                    fontSize: '0.75rem', 
+                                                                    cursor: 'pointer',
+                                                                    boxShadow: '0 4px 10px rgba(52, 211, 153, 0.2)'
+                                                                }}
+                                                            >
+                                                                Settle Debt
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
@@ -2045,6 +2203,203 @@ const BusinessSplitCollect = () => {
                         </Motion.div>
                     </div>
                 )}
+            </AnimatePresence>
+
+            {/* ──────── MODAL: CUSTOM PAY SETTLEMENT ──────── */}
+            <AnimatePresence>
+                {isCustomPayModalOpen && customPayDebt && activeSplit && (() => {
+                    const eligibleExpenses = getEligibleExpensesForDebt(customPayDebt, activeSplit.expenses || [], activeSplit.participants || []);
+                    return (
+                        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, padding: '1rem' }}>
+                            <Motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }}
+                            >
+                                {/* Header */}
+                                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <h3 style={{ fontSize: '1.15rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>Custom Expense Settlement</h3>
+                                        <p style={{ fontSize: '0.75rem', color: '#64748B', margin: '2px 0 0 0', fontWeight: '600' }}>Settle debt linked to a specific purchase</p>
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        style={{ background: '#F1F5F9', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer', color: '#475569' }} 
+                                        onClick={() => {
+                                            setIsCustomPayModalOpen(false);
+                                            setCustomPayDebt(null);
+                                        }}
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleCustomPaySubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                    {/* Debtor & Creditor Overview */}
+                                    <div style={{ background: '#F8FAFC', border: '1.5px solid #E2E8F0', borderRadius: '18px', padding: '0.9rem 1.1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Settlement Flow</div>
+                                            <div style={{ fontSize: '0.92rem', fontWeight: '850', color: '#0F172A', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <span style={{ color: '#DC2626' }}>{customPayDebt.from}</span>
+                                                <span style={{ color: '#94A3B8' }}>➔</span>
+                                                <span style={{ color: '#059669' }}>{customPayDebt.to}</span>
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Outstanding Debt</div>
+                                            <div style={{ fontSize: '1rem', fontWeight: '950', color: '#0284C7', marginTop: '3px' }}>
+                                                {activeSplit.currencySymbol || '₹'}{customPayDebt.amount.toLocaleString()}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Expense Selector: Dropdown / Radio list */}
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.03em' }}>
+                                            Select Expense Paid by {customPayDebt.to}
+                                        </label>
+
+                                        {eligibleExpenses.length > 0 ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '200px', overflowY: 'auto', paddingRight: '4px' }}>
+                                                {eligibleExpenses.map(exp => {
+                                                    const isSelected = String(customPayExpenseId) === String(exp.id);
+                                                    return (
+                                                        <div 
+                                                            key={exp.id}
+                                                            onClick={() => handleSelectExpenseForPay(exp.id)}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'space-between',
+                                                                padding: '0.75rem 0.9rem',
+                                                                borderRadius: '14px',
+                                                                border: isSelected ? '2px solid #059669' : '1px solid #E2E8F0',
+                                                                background: isSelected ? '#F0FDF4' : '#FFFFFF',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.15s'
+                                                            }}
+                                                        >
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                                                                <input 
+                                                                    type="radio" 
+                                                                    name="customPayExpense" 
+                                                                    checked={isSelected} 
+                                                                    onChange={() => handleSelectExpenseForPay(exp.id)} 
+                                                                    style={{ accentColor: '#059669', cursor: 'pointer', flexShrink: 0 }}
+                                                                />
+                                                                <div style={{ minWidth: 0 }}>
+                                                                    <div style={{ fontSize: '0.88rem', fontWeight: '800', color: isSelected ? '#065F46' : '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                        {exp.title}
+                                                                    </div>
+                                                                    <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '600', marginTop: '1px' }}>
+                                                                        Total: {activeSplit.currencySymbol || '₹'}{(parseFloat(exp.amount) || 0).toLocaleString()} • {exp.date}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '0.75rem' }}>
+                                                                <span style={{ fontSize: '0.65rem', fontWeight: '800', color: isSelected ? '#047857' : '#64748B', display: 'block', textTransform: 'uppercase' }}>
+                                                                    Your Share
+                                                                </span>
+                                                                <span style={{ fontSize: '0.88rem', fontWeight: '900', color: isSelected ? '#059669' : '#0F172A' }}>
+                                                                    {activeSplit.currencySymbol || '₹'}{exp.memberShare.toLocaleString()}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div style={{ padding: '1rem', background: '#F8FAFC', borderRadius: '14px', border: '1px solid #E2E8F0', fontSize: '0.8rem', color: '#64748B', textAlign: 'center' }}>
+                                                No individual itemized purchases found for {customPayDebt.to}. Settlement will be logged against the general debt.
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Amount Input */}
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                            <label style={{ fontSize: '0.72rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                                                Settlement Amount ({activeSplit.currencySymbol || '₹'})
+                                            </label>
+                                            {customPayExpenseId && eligibleExpenses.length > 0 && (
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const exp = eligibleExpenses.find(e => String(e.id) === String(customPayExpenseId));
+                                                        if (exp) setCustomPayAmount(String(exp.memberShare));
+                                                    }}
+                                                    style={{ background: 'none', border: 'none', color: '#059669', fontSize: '0.72rem', fontWeight: '850', cursor: 'pointer', padding: 0 }}
+                                                >
+                                                    Fill Share Amount
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div style={{ position: 'relative' }}>
+                                            <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', fontWeight: '850', color: '#94A3B8' }}>
+                                                {activeSplit.currencySymbol || '₹'}
+                                            </span>
+                                            <input 
+                                                required
+                                                type="number" 
+                                                min="0.01" 
+                                                step="any"
+                                                placeholder="0.00"
+                                                value={customPayAmount}
+                                                onChange={(e) => setCustomPayAmount(e.target.value)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.75rem 1rem 0.75rem 2.25rem',
+                                                    borderRadius: '14px',
+                                                    border: '1.5px solid #E2E8F0',
+                                                    outline: 'none',
+                                                    fontSize: '0.95rem',
+                                                    fontWeight: '800',
+                                                    color: '#0F172A',
+                                                    boxSizing: 'border-box'
+                                                }}
+                                                onFocus={(e) => e.target.style.borderColor = '#059669'}
+                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => {
+                                                setIsCustomPayModalOpen(false);
+                                                setCustomPayDebt(null);
+                                            }}
+                                            style={{ flex: 1, padding: '0.8rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', color: '#475569', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' }}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button 
+                                            type="submit" 
+                                            disabled={!customPayAmount || Number(customPayAmount) <= 0}
+                                            style={{ 
+                                                flex: 1.5, 
+                                                padding: '0.8rem', 
+                                                borderRadius: '14px', 
+                                                border: 'none', 
+                                                background: (!customPayAmount || Number(customPayAmount) <= 0) ? '#94A3B8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
+                                                color: 'white', 
+                                                fontWeight: '850', 
+                                                fontSize: '0.85rem', 
+                                                cursor: (!customPayAmount || Number(customPayAmount) <= 0) ? 'not-allowed' : 'pointer',
+                                                boxShadow: (!customPayAmount || Number(customPayAmount) <= 0) ? 'none' : '0 4px 14px rgba(5, 150, 105, 0.25)' 
+                                            }}
+                                        >
+                                            Record Settlement
+                                        </button>
+                                    </div>
+                                </form>
+                            </Motion.div>
+                        </div>
+                    );
+                })()}
             </AnimatePresence>
 
             {/* ──────── MODAL: ATTACHMENT PREVIEW ──────── */}
