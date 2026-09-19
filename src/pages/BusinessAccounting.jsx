@@ -236,6 +236,10 @@ const BusinessAccounting = () => {
         status: 'Active'
     });
     const [bankFormError, setBankFormError] = useState('');
+    const [bankFormTouched, setBankFormTouched] = useState({
+        account_number: false,
+        ifsc_code: false
+    });
 
     // Dropdown and Modals State for Cash & Bank Card settings
     const [activeDropdownAccId, setActiveDropdownAccId] = useState(null);
@@ -579,6 +583,7 @@ const BusinessAccounting = () => {
                 status: 'Active'
             });
             setBankFormError('');
+            setBankFormTouched({ account_number: false, ifsc_code: false });
             alert('Bank Account added successfully!');
         },
         onError: (err) => {
@@ -1681,6 +1686,7 @@ const BusinessAccounting = () => {
                                             status: 'Active'
                                         });
                                         setBankFormError('');
+                                        setBankFormTouched({ account_number: false, ifsc_code: false });
                                         setIsAddBankModalOpen(true);
                                     }}
                                     style={{ 
@@ -1724,7 +1730,10 @@ const BusinessAccounting = () => {
                                             <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#64748B', fontWeight: '500' }}>Add your first cash or bank account to start tracking your finances.</p>
                                         </div>
                                         <button
-                                            onClick={() => setIsAddBankModalOpen(true)}
+                                            onClick={() => {
+                                                setBankFormTouched({ account_number: false, ifsc_code: false });
+                                                setIsAddBankModalOpen(true);
+                                            }}
                                             style={{ 
                                                 marginTop: '0.5rem',
                                                 padding: '0.75rem 1.5rem',
@@ -3504,89 +3513,196 @@ const BusinessAccounting = () => {
                                 ⚠️ {bankFormError}
                             </div>
                         )}
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            setBankFormError('');
-                            
-                            // Validations
-                            if (!bankForm.bank_name || !bankForm.account_name || !bankForm.account_number || !bankForm.ifsc_code || bankForm.opening_balance === '') {
-                                setBankFormError('Bank Name, Account Name, Account Number, IFSC Code, and Opening Balance are mandatory.');
-                                return;
-                            }
+                        {(() => {
+                            const isAccountNumberValid = Boolean(bankForm.account_number && bankForm.account_number.length >= 9 && bankForm.account_number.length <= 18);
+                            const isIfscValid = Boolean(bankForm.ifsc_code && bankForm.ifsc_code.length === 11 && /^[A-Z]{4}0[A-Z0-9]{6}$/.test(bankForm.ifsc_code));
+                            const isFormComplete = Boolean(bankForm.bank_name?.trim() && bankForm.account_name?.trim() && bankForm.opening_balance !== '');
+                            const isSaveBankDisabled = createBankAccountMutation.isPending || !isAccountNumberValid || !isIfscValid || !isFormComplete;
 
-                            // Prevent duplicate account number in dbBankAccounts/mockBankAccounts
-                            const exists = dbBankAccounts.some(acc => acc.account_number === bankForm.account_number);
-                            if (exists) {
-                                setBankFormError('Account number already exists.');
-                                return;
-                            }
+                            const accountNumberError = bankFormTouched.account_number && !isAccountNumberValid
+                                ? 'Account number must be between 9 and 18 digits'
+                                : '';
 
-                            createBankAccountMutation.mutate({
-                                bank_name: bankForm.bank_name,
-                                account_name: bankForm.account_name,
-                                account_number: bankForm.account_number,
-                                ifsc_code: bankForm.ifsc_code,
-                                branch_name: bankForm.branch_name,
-                                opening_balance: parseFloat(bankForm.opening_balance) || 0,
-                                account_type: bankForm.account_type,
-                                status: bankForm.status
-                            });
-                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-                            
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Bank Name *</label>
-                                    <input required placeholder="e.g. HDFC Bank" value={bankForm.bank_name} onChange={(e) => setBankForm({ ...bankForm, bank_name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Name *</label>
-                                    <input required placeholder="e.g. Main Business Savings" value={bankForm.account_name} onChange={(e) => setBankForm({ ...bankForm, account_name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
-                                </div>
-                            </div>
+                            const ifscError = bankFormTouched.ifsc_code && !isIfscValid
+                                ? ((!bankForm.ifsc_code || bankForm.ifsc_code.length < 11)
+                                    ? 'IFSC Code must be exactly 11 characters'
+                                    : 'Invalid IFSC format (e.g. HDFC0000001)')
+                                : '';
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Number *</label>
-                                    <input required placeholder="e.g. 501002938128" value={bankForm.account_number} onChange={(e) => setBankForm({ ...bankForm, account_number: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>IFSC Code *</label>
-                                    <input required placeholder="e.g. HDFC0000001" value={bankForm.ifsc_code} onChange={(e) => setBankForm({ ...bankForm, ifsc_code: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
-                                </div>
-                            </div>
+                            return (
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    setBankFormError('');
+                                    setBankFormTouched({ account_number: true, ifsc_code: true });
+                                    
+                                    // Validations
+                                    if (!bankForm.bank_name?.trim() || !bankForm.account_name?.trim() || !bankForm.account_number || !bankForm.ifsc_code || bankForm.opening_balance === '') {
+                                        setBankFormError('Bank Name, Account Name, Account Number, IFSC Code, and Opening Balance are mandatory.');
+                                        return;
+                                    }
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Branch Name (Optional)</label>
-                                    <input placeholder="e.g. Bandra East" value={bankForm.branch_name} onChange={(e) => setBankForm({ ...bankForm, branch_name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Opening Balance ({currency.symbol}) *</label>
-                                    <input required type="number" placeholder="0.00" value={bankForm.opening_balance} onChange={(e) => setBankForm({ ...bankForm, opening_balance: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700' }} />
-                                </div>
-                            </div>
+                                    if (!isAccountNumberValid) {
+                                        setBankFormError('Account number must be between 9 and 18 digits');
+                                        return;
+                                    }
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Type</label>
-                                    <select value={bankForm.account_type} onChange={(e) => setBankForm({ ...bankForm, account_type: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600', fontSize: '0.85rem' }}>
-                                        <option value="Savings">Savings</option>
-                                        <option value="Current">Current</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Status</label>
-                                    <select value={bankForm.status} onChange={(e) => setBankForm({ ...bankForm, status: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600', fontSize: '0.85rem' }}>
-                                        <option value="Active">Active</option>
-                                        <option value="Inactive">Inactive</option>
-                                    </select>
-                                </div>
-                            </div>
+                                    if (!isIfscValid) {
+                                        if (bankForm.ifsc_code.length < 11) {
+                                            setBankFormError('IFSC Code must be exactly 11 characters');
+                                        } else {
+                                            setBankFormError('Invalid IFSC format (e.g. HDFC0000001)');
+                                        }
+                                        return;
+                                    }
 
-                            <button type="submit" disabled={createBankAccountMutation.isPending} style={{ width: '100%', padding: '0.85rem', borderRadius: '16px', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(245, 158, 11, 0.15)', marginTop: '0.5rem' }}>
-                                {createBankAccountMutation.isPending ? 'Saving Bank Account...' : 'Save Bank Account'}
-                            </button>
-                        </form>
+                                    // Prevent duplicate account number in dbBankAccounts/mockBankAccounts
+                                    const exists = dbBankAccounts.some(acc => acc.account_number === bankForm.account_number);
+                                    if (exists) {
+                                        setBankFormError('Account number already exists.');
+                                        return;
+                                    }
+
+                                    createBankAccountMutation.mutate({
+                                        bank_name: bankForm.bank_name.trim(),
+                                        account_name: bankForm.account_name.trim(),
+                                        account_number: bankForm.account_number,
+                                        ifsc_code: bankForm.ifsc_code,
+                                        branch_name: bankForm.branch_name?.trim() || '',
+                                        opening_balance: parseFloat(bankForm.opening_balance) || 0,
+                                        account_type: bankForm.account_type,
+                                        status: bankForm.status
+                                    });
+                                }} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                                    
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Bank Name *</label>
+                                            <input required placeholder="e.g. HDFC Bank" value={bankForm.bank_name} onChange={(e) => setBankForm({ ...bankForm, bank_name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Name *</label>
+                                            <input required placeholder="e.g. Main Business Savings" value={bankForm.account_name} onChange={(e) => setBankForm({ ...bankForm, account_name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Number *</label>
+                                            <input 
+                                                required 
+                                                maxLength={18}
+                                                placeholder="e.g. 501002938128" 
+                                                value={bankForm.account_number} 
+                                                onChange={(e) => {
+                                                    const cleanNum = e.target.value.replace(/\D/g, '').slice(0, 18);
+                                                    setBankForm({ ...bankForm, account_number: cleanNum });
+                                                    setBankFormTouched(prev => ({ ...prev, account_number: true }));
+                                                    if (bankFormError) setBankFormError('');
+                                                }} 
+                                                onBlur={() => setBankFormTouched(prev => ({ ...prev, account_number: true }))}
+                                                style={{ 
+                                                    width: '100%', 
+                                                    padding: '0.75rem', 
+                                                    borderRadius: '12px', 
+                                                    border: accountNumberError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', 
+                                                    fontSize: '0.85rem',
+                                                    outline: 'none',
+                                                    boxSizing: 'border-box'
+                                                }} 
+                                            />
+                                            {accountNumberError && (
+                                                <span style={{ display: 'block', fontSize: '0.72rem', color: '#DC2626', fontWeight: '600', marginTop: '0.35rem' }}>
+                                                    {accountNumberError}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>IFSC Code *</label>
+                                            <input 
+                                                required 
+                                                maxLength={11}
+                                                placeholder="e.g. HDFC0000001" 
+                                                value={bankForm.ifsc_code} 
+                                                onChange={(e) => {
+                                                    const cleanIFSC = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11);
+                                                    setBankForm({ ...bankForm, ifsc_code: cleanIFSC });
+                                                    setBankFormTouched(prev => ({ ...prev, ifsc_code: true }));
+                                                    if (bankFormError) setBankFormError('');
+                                                }} 
+                                                onBlur={() => setBankFormTouched(prev => ({ ...prev, ifsc_code: true }))}
+                                                style={{ 
+                                                    width: '100%', 
+                                                    padding: '0.75rem', 
+                                                    borderRadius: '12px', 
+                                                    border: ifscError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', 
+                                                    fontSize: '0.85rem',
+                                                    textTransform: 'uppercase',
+                                                    outline: 'none',
+                                                    boxSizing: 'border-box'
+                                                }} 
+                                            />
+                                            {ifscError && (
+                                                <span style={{ display: 'block', fontSize: '0.72rem', color: '#DC2626', fontWeight: '600', marginTop: '0.35rem' }}>
+                                                    {ifscError}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Branch Name (Optional)</label>
+                                            <input placeholder="e.g. Bandra East" value={bankForm.branch_name} onChange={(e) => setBankForm({ ...bankForm, branch_name: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Opening Balance ({currency.symbol}) *</label>
+                                            <input required type="number" placeholder="0.00" value={bankForm.opening_balance} onChange={(e) => setBankForm({ ...bankForm, opening_balance: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700' }} />
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Type</label>
+                                            <select value={bankForm.account_type} onChange={(e) => setBankForm({ ...bankForm, account_type: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600', fontSize: '0.85rem' }}>
+                                                <option value="Savings">Savings</option>
+                                                <option value="Current">Current</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Status</label>
+                                            <select value={bankForm.status} onChange={(e) => setBankForm({ ...bankForm, status: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600', fontSize: '0.85rem' }}>
+                                                <option value="Active">Active</option>
+                                                <option value="Inactive">Inactive</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <button 
+                                        type="submit" 
+                                        disabled={isSaveBankDisabled} 
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '0.85rem', 
+                                            borderRadius: '16px', 
+                                            background: isSaveBankDisabled 
+                                                ? '#CBD5E1' 
+                                                : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', 
+                                            color: 'white', 
+                                            border: 'none', 
+                                            fontWeight: '800', 
+                                            fontSize: '1rem', 
+                                            cursor: isSaveBankDisabled ? 'not-allowed' : 'pointer', 
+                                            boxShadow: isSaveBankDisabled ? 'none' : '0 6px 12px rgba(245, 158, 11, 0.15)', 
+                                            marginTop: '0.5rem',
+                                            opacity: isSaveBankDisabled && !createBankAccountMutation.isPending ? 0.7 : 1,
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        {createBankAccountMutation.isPending ? 'Saving Bank Account...' : 'Save Bank Account'}
+                                    </button>
+                                </form>
+                            );
+                        })()}
                     </div>
                 </div>
             )}
@@ -3625,11 +3741,21 @@ const BusinessAccounting = () => {
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Account Number</label>
-                                            <input value={editForm.account_number || ''} onChange={(e) => setEditForm({ ...editForm, account_number: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                            <input 
+                                                maxLength={18}
+                                                value={editForm.account_number || ''} 
+                                                onChange={(e) => setEditForm({ ...editForm, account_number: e.target.value.replace(/\D/g, '').slice(0, 18) })} 
+                                                style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} 
+                                            />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>IFSC Code</label>
-                                            <input value={editForm.ifsc_code || ''} onChange={(e) => setEditForm({ ...editForm, ifsc_code: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                            <input 
+                                                maxLength={11}
+                                                value={editForm.ifsc_code || ''} 
+                                                onChange={(e) => setEditForm({ ...editForm, ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11) })} 
+                                                style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', textTransform: 'uppercase' }} 
+                                            />
                                         </div>
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
