@@ -1070,16 +1070,12 @@ const BusinessPayments = () => {
                                     }}
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                                        <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#F0F9F4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>
-                                            {acc.bank_account_id}
+                                        <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>
+                                            {(acc.type || 'ASSET').toUpperCase()}
                                         </span>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
-                                            <span style={{ padding: '0.3rem 0.6rem', borderRadius: '8px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>
-                                                {(acc.type || 'ACCOUNT').toUpperCase()}
-                                            </span>
 
-                                            {/* Three-dot action button */}
-                                            <div style={{ position: 'relative' }}>
+                                        {/* Three-dot action button */}
+                                        <div style={{ position: 'relative' }}>
                                                 <button
                                                     type="button"
                                                     aria-label={`Options for ${acc.bank_account_name}`}
@@ -1200,7 +1196,6 @@ const BusinessPayments = () => {
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
 
                                     <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.5rem' }}>{acc.bank_account_name}</h3>
                                     <p style={{ color: '#64748B', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Account No: {acc.account_number || acc.bank_account_id}</p>
