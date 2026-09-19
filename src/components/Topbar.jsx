@@ -57,7 +57,9 @@ const staticPages = [
     { name: 'Sales Return', path: '/sales/returns', module: 'Sales', desc: 'Sales returns & credit notes', icon: 'ArrowDownRight', rank: 3, synonyms: ['sales return', 'refund', 'credit note', 'sa'] },
     { name: 'Customers', path: '/sales/customers', module: 'Sales', desc: 'CRM and Client list', icon: 'Users', rank: 3, synonyms: ['customers', 'crm', 'client', 'buyers', 'loyalty'] },
     { name: 'Delivery Challan', path: '/sales/delivery', module: 'Sales', desc: 'Logistics & shipping delivery challans', icon: 'Truck', rank: 3, synonyms: ['delivery', 'shipping', 'dispatch', 'challan'] },
-    { name: 'POS Billing', path: '/pos', module: 'Sales', desc: 'Retail point of sale counter', icon: 'Monitor', rank: 3, synonyms: ['pos billing', 'pos', 'counter', 'quick bill', 'sa'] },
+    { name: 'POS Billing', path: '/pos', module: 'Billing', desc: 'Retail point of sale counter', icon: 'Monitor', rank: 3, synonyms: ['pos billing', 'pos', 'counter', 'quick bill', 'sa'] },
+    { name: 'Simple Billing', path: '/billing/simple', module: 'Billing', desc: 'Quick bill generator & dynamic products', icon: 'Receipt', rank: 3, synonyms: ['simple billing', 'billing', 'quick bill', 'bill'] },
+    { name: 'Billing Records', path: '/billing/records', module: 'Billing', desc: 'Submitted bills & revenue records', icon: 'BarChart3', rank: 3, synonyms: ['billing records', 'records', 'bills history', 'invoices'] },
 
     { name: 'Purchase Invoice', path: '/purchases/purchases', module: 'Purchases', desc: 'Supplier bill entries', icon: 'ShoppingCart', rank: 3, synonyms: ['purchase invoice', 'purchases', 'bill', 'inward', 'pur'] },
     { name: 'Suppliers', path: '/purchases/suppliers', module: 'Purchases', desc: 'Vendor management', icon: 'UsersRound', rank: 3, synonyms: ['suppliers', 'vendor', 'seller', 'payee'] },
@@ -392,7 +394,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                     {navItems.map((item) => {
                         const Icon = item.icon;
                         const isItemActive = 
-                            (item.url === '/books' && (location.pathname === '/books' || location.pathname === '/dashboard' || location.pathname.startsWith('/finance') || location.pathname.startsWith('/sales') || location.pathname.startsWith('/inventory') || location.pathname.startsWith('/purchases') || location.pathname.startsWith('/hr') || location.pathname === '/pos' || location.pathname === '/reports' || location.pathname === '/barcode' || location.pathname === '/customization' || location.pathname === '/subscription')) ||
+                            (item.url === '/books' && (location.pathname === '/books' || location.pathname === '/dashboard' || location.pathname.startsWith('/finance') || location.pathname.startsWith('/sales') || location.pathname.startsWith('/inventory') || location.pathname.startsWith('/purchases') || location.pathname.startsWith('/hr') || location.pathname.startsWith('/billing') || location.pathname === '/pos' || location.pathname === '/reports' || location.pathname === '/barcode' || location.pathname === '/customization' || location.pathname === '/subscription')) ||
                             (item.url === '/payments/transaction' && (location.pathname === '/payments' || location.pathname.startsWith('/payments'))) ||
                             (item.url === '/social' && (location.pathname === '/social' || location.pathname.startsWith('/social')));
 

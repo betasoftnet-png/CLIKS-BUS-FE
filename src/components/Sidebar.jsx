@@ -372,6 +372,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/admin/logs')) return 'Audit Trail';
         if (path.includes('/admin/settings')) return 'Engine Overrides';
         if (path.includes('/pos')) return 'POS Billing';
+        if (path.includes('/billing/simple')) return 'Simple Billing';
+        if (path.includes('/billing/records')) return 'Billing Records';
         if (path.includes('/dashboard')) return 'Dashboard';
         if (path.includes('/sales/invoice')) return 'Sales Invoice';
         if (path.includes('/sales/orders')) return 'Orders';
@@ -441,7 +443,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
     const isSupportAgentMode = location.pathname.includes('/support-portal/');
 
     const [activeItem, setActiveItem] = useState(getActiveItemFromPath(location.pathname));
-    const [openMenus, setOpenMenus] = useState({});
+    const [openMenus, setOpenMenus] = useState({ HR: true });
     const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
 
     const defaultStorageData = {
@@ -558,11 +560,18 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 permission: PERMISSIONS.HR_ALL,
                 children: [
                     { label: 'Staff', icon: UsersRound, path: '/hr/staff', permission: PERMISSIONS.HR_STAFF_ALL },
-                    { label: 'Attendance', icon: Calendar, path: '/hr/attendance', permission: PERMISSIONS.HR_ATT_ALL },
                     { label: 'Payroll', icon: FileCheck, path: '/hr/payroll', permission: PERMISSIONS.HR_PAY_ALL }
                 ]
             },
-            { label: 'POS Billing', icon: Monitor, path: '/pos', permission: PERMISSIONS.POS_BILLING },
+            {
+                label: 'Billing',
+                icon: Receipt,
+                children: [
+                    { label: 'POS Billing', icon: Monitor, path: '/pos', permission: PERMISSIONS.POS_BILLING },
+                    { label: 'Simple Billing', icon: Receipt, path: '/billing/simple' },
+                    { label: 'Billing Records', icon: BarChart3, path: '/billing/records' }
+                ]
+            },
             { label: 'Reports', icon: BarChart3, path: '/reports', permission: PERMISSIONS.REPORTS },
             { label: 'Barcode Gen', icon: Barcode, path: '/barcode', permission: PERMISSIONS.BARCODE_GEN },
             { label: 'Marketing', icon: Megaphone, path: '/marketing', permission: PERMISSIONS.MARKETING }
@@ -586,7 +595,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         const newItem = getActiveItemFromPath(location.pathname);
         setActiveItem(newItem);
 
-        const initialOpenMenus = {};
+        const initialOpenMenus = { HR: true };
         const checkAndOpen = (items) => {
             items.forEach(item => {
                 if (item.children) {

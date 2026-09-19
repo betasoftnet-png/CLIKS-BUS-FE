@@ -71,6 +71,8 @@ import BusinessSubscription from './pages/BusinessSubscription';
 import BusinessBarcode from './pages/BusinessBarcode';
 import BusinessCustomization from './pages/BusinessCustomization';
 import BusinessPOS from './pages/BusinessPOS';
+import SimpleBilling from './pages/billing/SimpleBilling';
+import BillingRecords from './pages/billing/BillingRecords';
 import BusinessPurposeWallet from './pages/BusinessPurposeWallet';
 import BusinessReferral from './pages/BusinessReferral';
 import BusinessRewards from './pages/BusinessRewards';
@@ -324,6 +326,8 @@ function AuthenticatedApp() {
                 <Route path="/reports" element={<BusinessReports />} />
                 <Route path="/pos" element={<BusinessPOS />} />
                 <Route path="/sales/pos" element={<Navigate to="/pos" replace />} />
+                <Route path="/billing/simple" element={<SimpleBilling />} />
+                <Route path="/billing/records" element={<BillingRecords />} />
                 <Route path="/customization" element={<BusinessCustomization />} />
                 <Route path="/subscription" element={<BusinessSubscription />} />
                 <Route path="/social/meetup" element={<Navigate to="/social/betaclub" replace />} />
