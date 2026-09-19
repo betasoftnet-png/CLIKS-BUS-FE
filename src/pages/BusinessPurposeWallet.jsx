@@ -41,6 +41,11 @@ const BusinessPurposeWallet = () => {
         target_amount: '',
         description: ''
     });
+    const [error, setError] = useState('');
+
+    const targetAmount = formData.target_amount;
+    const isTargetAmountValid = Boolean(targetAmount && Number(targetAmount) > 0);
+    const isSubmitDisabled = createMutation.isPending || updateMutation.isPending || !targetAmount || Number(targetAmount) <= 0;
 
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [historyWalletId, setHistoryWalletId] = useState(null);
@@ -132,6 +137,7 @@ const BusinessPurposeWallet = () => {
         setIsCreateModalOpen(false);
         setEditingWalletId(null);
         setFormData({ name: '', target_amount: '', description: '' });
+        setError('');
     };
 
     const isWalletClaimed = (wallet) => Boolean(
@@ -151,9 +157,10 @@ const BusinessPurposeWallet = () => {
         const roundedTarget = Math.round(parseFloat(wallet.target_amount || 0));
         setFormData({
             name: wallet.name,
-            target_amount: roundedTarget >= 0 ? roundedTarget.toString() : '0',
+            target_amount: roundedTarget > 0 ? roundedTarget.toString() : '',
             description: wallet.description || ''
         });
+        setError('');
         setIsCreateModalOpen(true);
     };
 
@@ -173,11 +180,15 @@ const BusinessPurposeWallet = () => {
 
     const handleCreateSubmit = (e) => {
         e.preventDefault();
-        if (formData.target_amount === '' || formData.target_amount === null || formData.target_amount === undefined) {
-            return alert("Please enter a target cap amount.");
+        if (!targetAmount || Number(targetAmount) <= 0) {
+            setError("Target amount must be strictly greater than 0");
+            return; // Prevent API post completely
         }
-        const amt = parseInt(formData.target_amount, 10);
-        if (isNaN(amt) || amt < 0) return alert("Please provide a valid non-negative target amount (0 or greater).");
+        const amt = parseInt(targetAmount, 10);
+        if (isNaN(amt) || amt <= 0) {
+            setError("Target amount must be strictly greater than 0");
+            return;
+        }
         if (editingWalletId) {
             updateMutation.mutate({ id: editingWalletId, data: { ...formData, target_amount: amt } });
         } else {
@@ -419,10 +430,13 @@ const BusinessPurposeWallet = () => {
                             String(wallet.status || '').toLowerCase() === 'claimed'
                         );
                         const isCompleted = isClaimed;
-                        const current = parseFloat(wallet.current_amount || 0);
-                        const target = parseFloat(wallet.target_amount || 1);
-                        const pct = Math.min(Math.round((current / target) * 100), 100);
-                        const canClaim = current >= target && !isCompleted;
+                        const allocated = parseFloat(wallet.current_amount || 0);
+                        const targetCeiling = parseFloat(wallet.target_amount || 0);
+                        const percent = targetCeiling > 0 ? Math.round((allocated / targetCeiling) * 100) : 0;
+                        const pct = Math.min(percent, 100);
+                        const current = allocated;
+                        const target = targetCeiling;
+                        const canClaim = targetCeiling > 0 && current >= target && !isCompleted;
 
                         return (
                             <div key={wallet.id} style={{ 
@@ -613,7 +627,7 @@ const BusinessPurposeWallet = () => {
                                     <div style={{ marginBottom: '2rem' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                             <span style={{ color: '#334155', fontSize: '0.82rem', fontWeight: '800' }}>Goal Status</span>
-                                            <span style={{ color: '#059669', fontSize: '0.88rem', fontWeight: '950' }}>{pct}%</span>
+                                            <span style={{ color: '#059669', fontSize: '0.88rem', fontWeight: '950' }}>{percent}%</span>
                                         </div>
                                         <div style={{ height: '8px', borderRadius: '10px', background: '#E2E8F0', overflow: 'hidden' }}>
                                             <div style={{ 
@@ -725,7 +739,7 @@ const BusinessPurposeWallet = () => {
                                     <input 
                                         required 
                                         type="number" 
-                                        min="0"
+                                        min="1"
                                         step="1"
                                         placeholder="0" 
                                         value={formData.target_amount} 
@@ -740,10 +754,32 @@ const BusinessPurposeWallet = () => {
                                                 val = val.replace(/^0+/, '') || '0';
                                             }
                                             setFormData({ ...formData, target_amount: val });
+                                            if (val && Number(val) > 0) {
+                                                setError('');
+                                            } else if (val !== '') {
+                                                setError('Target amount must be greater than 0');
+                                            } else {
+                                                setError('');
+                                            }
                                         }}
-                                        style={{ width: '100%', padding: '0.9rem 1.1rem 0.9rem 2.25rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '800', fontSize: '1.1rem', color: '#0F172A' }}
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '0.9rem 1.1rem 0.9rem 2.25rem', 
+                                            borderRadius: '14px', 
+                                            border: (targetAmount !== '' && (!targetAmount || Number(targetAmount) <= 0)) ? '1px solid #EF4444' : '1px solid #E2E8F0', 
+                                            outline: 'none', 
+                                            fontWeight: '800', 
+                                            fontSize: '1.1rem', 
+                                            color: '#0F172A' 
+                                        }}
                                     />
                                 </div>
+                                {((targetAmount !== '' && Number(targetAmount) <= 0) || error) && (
+                                    <p style={{ color: '#EF4444', fontSize: '0.75rem', marginTop: '0.35rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                        <AlertCircle size={12} />
+                                        <span>{error || "Target amount must be greater than 0"}</span>
+                                    </p>
+                                )}
                             </div>
 
                             <div>
@@ -759,21 +795,21 @@ const BusinessPurposeWallet = () => {
 
                             <button 
                                 type="submit"
-                                disabled={createMutation.isPending || updateMutation.isPending || formData.target_amount === '' || Number(formData.target_amount) < 0}
-                                className={(formData.target_amount === '' || Number(formData.target_amount) < 0) ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
+                                disabled={isSubmitDisabled}
+                                className={isSubmitDisabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
                                 style={{ 
                                     padding: '1.1rem', 
                                     borderRadius: '14px', 
                                     border: 'none', 
-                                    background: (formData.target_amount === '' || Number(formData.target_amount) < 0) ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    background: isSubmitDisabled ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
                                     color: 'white', 
                                     fontWeight: '850', 
                                     fontSize: '1rem', 
                                     marginTop: '0.5rem', 
-                                    cursor: (createMutation.isPending || updateMutation.isPending || formData.target_amount === '' || Number(formData.target_amount) < 0) ? 'not-allowed' : 'pointer',
-                                    boxShadow: (formData.target_amount === '' || Number(formData.target_amount) < 0) ? 'none' : '0 8px 20px rgba(27, 107, 58, 0.2)',
-                                    opacity: (createMutation.isPending || updateMutation.isPending || formData.target_amount === '' || Number(formData.target_amount) < 0) ? 0.5 : 1,
-                                    pointerEvents: (formData.target_amount === '' || Number(formData.target_amount) < 0) ? 'none' : 'auto'
+                                    cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
+                                    boxShadow: isSubmitDisabled ? 'none' : '0 8px 20px rgba(27, 107, 58, 0.2)',
+                                    opacity: isSubmitDisabled ? 0.5 : 1,
+                                    pointerEvents: isSubmitDisabled ? 'none' : 'auto'
                                 }}
                             >
                                 {createMutation.isPending || updateMutation.isPending ? <Loader2 className="animate-spin" style={{ margin: '0 auto' }} /> : (editingWalletId ? 'Save Changes' : 'Activate Isolated Container')}
