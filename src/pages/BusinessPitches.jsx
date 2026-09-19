@@ -262,7 +262,7 @@ export default function BusinessPitches({ openAuthModal = null }) {
         }
     });
 
-    // Location Request
+    // Location Request with High Accuracy GPS and Accurate District Extraction
     const requestLocation = () => {
         if (!navigator.geolocation) {
             setLocationPermissionDenied(true);
@@ -270,20 +270,81 @@ export default function BusinessPitches({ openAuthModal = null }) {
             return;
         }
         setIsLocationLoading(true);
+        setLocationErrorMsg(null);
         navigator.geolocation.getCurrentPosition(
-            (position) => {
-                setIsLocationLoading(false);
+            async (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                setUserCoords({ latitude: lat, longitude: lon });
                 setLocationPermissionDenied(false);
-                setUserCoords({ latitude: position.coords.latitude, longitude: position.coords.longitude });
-                setCityName('Chennai');
-                setGpsState('Tamil Nadu');
-                setPincode('600001');
+
+                try {
+                    // 1. High Accuracy reverse geocoding via OpenStreetMap Nominatim
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`, {
+                        headers: { 'Accept-Language': 'en' }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        const address = data?.address || {};
+                        // Accurate District Extraction: address.state_district || address.county || address.district || address.city
+                        let rawDistrict = address.state_district || address.county || address.district || address.city || address.town || address.village || '';
+                        // Strip suffixes like " District" so "Tiruvallur District" formats cleanly to "Tiruvallur"
+                        const cleanDistrict = rawDistrict ? rawDistrict.replace(/\s+District$/i, '').trim() : '';
+                        const cleanState = (address.state || '').trim();
+                        const cleanPostcode = (address.postcode || '').trim();
+
+                        if (cleanDistrict || cleanState) {
+                            setCityName(cleanDistrict);
+                            setGpsState(cleanState);
+                            if (cleanPostcode) setPincode(cleanPostcode);
+                            setIsLocationLoading(false);
+                            return;
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Nominatim reverse geocode error:', err);
+                }
+
+                // 2. Secondary fallback via BigDataCloud reverse geocode
+                try {
+                    const bdcRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+                    if (bdcRes.ok) {
+                        const bdcData = await bdcRes.json();
+                        let bdcDistrict = '';
+                        if (bdcData.localityInfo && Array.isArray(bdcData.localityInfo.administrative)) {
+                            const distObj = bdcData.localityInfo.administrative.find(a =>
+                                (a.description && a.description.toLowerCase().includes('district')) ||
+                                a.adminLevel === 5 || a.adminLevel === 6
+                            );
+                            if (distObj) bdcDistrict = distObj.name;
+                        }
+                        if (!bdcDistrict) {
+                            bdcDistrict = bdcData.city || bdcData.locality || '';
+                        }
+                        bdcDistrict = bdcDistrict.replace(/\s+District$/i, '').trim();
+                        const bdcState = (bdcData.principalSubdivision || '').trim();
+
+                        if (bdcDistrict || bdcState) {
+                            setCityName(bdcDistrict);
+                            setGpsState(bdcState);
+                            if (bdcData.postcode) setPincode(bdcData.postcode);
+                            setIsLocationLoading(false);
+                            return;
+                        }
+                    }
+                } catch (err) {
+                    console.warn('BigDataCloud reverse geocode fallback error:', err);
+                }
+
+                setIsLocationLoading(false);
             },
-            () => {
+            (error) => {
+                console.warn('Geolocation access restricted by user:', error.message);
                 setIsLocationLoading(false);
                 setLocationPermissionDenied(true);
                 setLocationErrorMsg("Location permission denied. Please select a region manually.");
-            }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     };
 
@@ -478,7 +539,11 @@ export default function BusinessPitches({ openAuthModal = null }) {
                         >
                             <MapPin size={13} color="#34D399" />
                             <span>
-                                {isLocationLoading ? 'Detecting GPS Location...' : (gpsState ? `${cityName ? `${cityName}, ` : ''}${gpsState}` : 'Select Region / Lock GPS')}
+                                {isLocationLoading 
+                                    ? 'Detecting GPS Location...' 
+                                    : (cityName && gpsState 
+                                        ? `${cityName}, ${gpsState}` 
+                                        : (cityName || gpsState || 'Select Region / Lock GPS'))}
                             </span>
                             <span style={{ fontSize: '0.55rem', opacity: 0.8, marginLeft: '2px' }}>▼</span>
                         </button>
@@ -503,6 +568,9 @@ export default function BusinessPitches({ openAuthModal = null }) {
                                 }}>
                                     {[
                                         { label: '⚡ Detect GPS Location', state: 'GPS' },
+                                        ...(cityName && gpsState && !['Chennai', 'Mumbai', 'Bengaluru', 'Delhi NCR'].includes(cityName) ? [
+                                            { label: `📍 ${cityName}, ${gpsState} (Detected)`, city: cityName, state: gpsState }
+                                        ] : []),
                                         { label: '📍 Chennai, Tamil Nadu', city: 'Chennai', state: 'Tamil Nadu' },
                                         { label: '📍 Mumbai, Maharashtra', city: 'Mumbai', state: 'Maharashtra' },
                                         { label: '📍 Bengaluru, Karnataka', city: 'Bengaluru', state: 'Karnataka' },

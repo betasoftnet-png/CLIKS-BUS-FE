@@ -54,28 +54,60 @@ const BusinessMeetup = () => {
     const requestLocation = () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                (position) => {
+                async (position) => {
                     setLocationPermissionDenied(false);
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
-                    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
-                        .then(res => res.json())
-                        .then(data => {
-                            const state = data.principalSubdivision;
-                            const city = data.city || data.locality || data.village;
-                            if (state) {
-                                setGpsState(state);
-                            }
-                            if (city) {
-                                setCityName(city);
-                            }
-                            if (data.postcode) {
-                                setPincode(data.postcode);
-                            }
-                        })
-                        .catch(err => {
-                            console.warn('Geolocation reverse geocoding request interrupted:', err);
+
+                    try {
+                        // 1. High Accuracy reverse geocoding via OpenStreetMap Nominatim
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`, {
+                            headers: { 'Accept-Language': 'en' }
                         });
+                        if (res.ok) {
+                            const data = await res.json();
+                            const address = data?.address || {};
+                            let rawDistrict = address.state_district || address.county || address.district || address.city || address.town || address.village || '';
+                            const cleanDistrict = rawDistrict ? rawDistrict.replace(/\s+District$/i, '').trim() : '';
+                            const cleanState = (address.state || '').trim();
+                            const cleanPostcode = (address.postcode || '').trim();
+
+                            if (cleanDistrict) setCityName(cleanDistrict);
+                            if (cleanState) setGpsState(cleanState);
+                            if (cleanPostcode) setPincode(cleanPostcode);
+                            return;
+                        }
+                    } catch (err) {
+                        console.warn('Nominatim reverse geocode error in meetups:', err);
+                    }
+
+                    // 2. Secondary fallback via BigDataCloud
+                    try {
+                        const bdcRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+                        if (bdcRes.ok) {
+                            const bdcData = await bdcRes.json();
+                            let bdcDistrict = '';
+                            if (bdcData.localityInfo && Array.isArray(bdcData.localityInfo.administrative)) {
+                                const distObj = bdcData.localityInfo.administrative.find(a =>
+                                    (a.description && a.description.toLowerCase().includes('district')) ||
+                                    a.adminLevel === 5 || a.adminLevel === 6
+                                );
+                                if (distObj) bdcDistrict = distObj.name;
+                            }
+                            if (!bdcDistrict) {
+                                bdcDistrict = bdcData.city || bdcData.locality || '';
+                            }
+                            bdcDistrict = bdcDistrict.replace(/\s+District$/i, '').trim();
+                            const bdcState = (bdcData.principalSubdivision || '').trim();
+
+                            if (bdcDistrict) setCityName(bdcDistrict);
+                            if (bdcState) setGpsState(bdcState);
+                            if (bdcData.postcode) setPincode(bdcData.postcode);
+                            return;
+                        }
+                    } catch (err) {
+                        console.warn('BigDataCloud reverse geocode fallback error in meetups:', err);
+                    }
                 },
                 (error) => {
                     console.warn('Geolocation access restricted by user:', error.message);
