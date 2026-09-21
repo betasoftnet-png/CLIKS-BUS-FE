@@ -1205,11 +1205,6 @@ const BusinessPayments = () => {
                                 </div>
                             );
                         })}
-                        <div className="border border-dashed rounded-2xl p-6 bg-white flex flex-col items-center justify-center" style={{ background: 'white', borderRadius: '24px', border: '1px dashed #DDD6FE', padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }} onClick={() => setIsTransferModalOpen(true)}>
-                            <ArrowUpRight size={32} style={{ color: '#1B6B3A', marginBottom: '0.75rem' }} />
-                            <h4 style={{ fontWeight: '800', color: '#064E3B' }}>Internal Transfer Funds</h4>
-                            <p style={{ fontSize: '0.8rem', color: '#64748B' }}>Move money between Cash-In-Hand and Bank accounts</p>
-                        </div>
                     </div>
 
                     {/* Relocated Transaction Ledger */}
