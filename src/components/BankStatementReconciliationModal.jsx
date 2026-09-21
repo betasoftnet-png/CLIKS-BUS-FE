@@ -1032,98 +1032,6 @@ export const BankStatementReconciliationModal = ({
                                                                     )
                                                                 )}
 
-                                                                    {/* Column 2: Platform History */}
-                                                                    <div style={{ borderRight: '1px solid #F1F5F9', paddingRight: '1rem' }}>
-                                                                        {platform ? (
-                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{platform.description}</span>
-                                                                                    <span style={{
-                                                                                        padding: '2px 6px', borderRadius: '4px',
-                                                                                        fontSize: '0.65rem', fontWeight: '800',
-                                                                                        background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE'
-                                                                                    }}>{platform.voucherNumber}</span>
-                                                                                </div>
-                                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                                                    <span style={{ fontSize: '1.1rem', fontWeight: '950', color: '#0F172A' }}>{formatINR(platform.amount)}</span>
-                                                                                    <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '600' }}>{platform.date}</span>
-                                                                                </div>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <div style={{ color: '#94A3B8', fontSize: '0.75rem', textAlign: 'center', fontStyle: 'italic' }}>No platform record</div>
-                                                                        )}
-                                                                    </div>
-
-                                                                    {/* Column 3: Action Controls */}
-                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleMatchAccept(pair)}
-                                                                            style={{
-                                                                                padding: '0.4rem', borderRadius: '8px',
-                                                                                background: '#00875a', color: 'white',
-                                                                                border: 'none', fontWeight: '900',
-                                                                                fontSize: '0.75rem', cursor: 'pointer',
-                                                                                transition: 'all 0.15s'
-                                                                            }}
-                                                                            onMouseOver={(e) => e.currentTarget.style.background = '#006644'}
-                                                                            onMouseOut={(e) => e.currentTarget.style.background = '#00875a'}
-                                                                        >
-                                                                            <Check size={12} strokeWidth={3} style={{ display: 'inline', marginRight: '4px' }} /> Match
-                                                                        </button>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleRejectUnmatch(pair)}
-                                                                            style={{
-                                                                                padding: '0.4rem', borderRadius: '8px',
-                                                                                background: 'white', color: '#DC2626',
-                                                                                border: '1px solid #FCA5A5', fontWeight: '900',
-                                                                                fontSize: '0.75rem', cursor: 'pointer',
-                                                                                transition: 'all 0.15s'
-                                                                            }}
-                                                                            onMouseOver={(e) => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.borderColor = '#EF4444'; }}
-                                                                            onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#FCA5A5'; }}
-                                                                        >
-                                                                            <X size={12} strokeWidth={2.5} style={{ display: 'inline', marginRight: '4px' }} /> Reject
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        }
-
-                                                        return (
-                                                            <div key={idx} style={{
-                                                                background: '#FFFFFF', padding: '1.25rem 1.5rem',
-                                                                borderRadius: '18px',
-                                                                border: isExactAmount ? '1.5px solid #BBF7D0' : '1px solid #E2E8F0',
-                                                                boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-                                                                transition: 'all 0.2s'
-                                                            }}>
-                                                                {/* Step 0: Bank Statement */}
-                                                                {currentStep === 0 && (
-                                                                    statement ? (
-                                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                                                <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0F172A' }}>{statement.description}</span>
-                                                                                <span style={{
-                                                                                    padding: '3px 10px', borderRadius: '9999px',
-                                                                                    fontSize: '0.72rem', fontWeight: '800',
-                                                                                    background: statement.type === 'Credit' ? '#DCFCE7' : '#FEE2E2',
-                                                                                    color: statement.type === 'Credit' ? '#15803D' : '#B91C1C',
-                                                                                    border: statement.type === 'Credit' ? '1px solid #86EFAC' : '1px solid #FCA5A5'
-                                                                                }}>{statement.type}</span>
-                                                                            </div>
-                                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                                                <span style={{ fontSize: '1.3rem', fontWeight: '950', color: statement.type === 'Credit' ? '#059669' : '#DC2626' }}>
-                                                                                    {formatINR(statement.amount)}
-                                                                                </span>
-                                                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600' }}>{statement.date}</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div style={{ color: '#94A3B8', fontSize: '0.8rem', textAlign: 'center', fontStyle: 'italic', padding: '0.5rem' }}>No corresponding statement line</div>
-                                                                    )
-                                                                )}
                                                                 {/* Step 1: Platform History */}
                                                                 {currentStep === 1 && (
                                                                     platform ? (
@@ -1157,6 +1065,7 @@ export const BankStatementReconciliationModal = ({
                                                                         <div style={{ color: '#94A3B8', fontSize: '0.8rem', textAlign: 'center', fontStyle: 'italic', padding: '0.5rem' }}>No matching platform record</div>
                                                                     )
                                                                 )}
+
                                                                 {/* Step 2: Action Controls */}
                                                                 {currentStep === 2 && (
                                                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '0.5rem 0' }}>
