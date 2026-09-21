@@ -669,25 +669,6 @@ const BusinessPayments = () => {
         if (e && e.preventDefault) e.preventDefault();
         if (isSubmitting || payMutation.isPending) return;
 
-        const totalAmt = supplierForm.total_amount !== '' && supplierForm.total_amount !== null && supplierForm.total_amount !== undefined
-            ? parseFloat(supplierForm.total_amount)
-            : 0;
-        let paidAmt = parseFloat(supplierForm.paid_amount);
-
-        if (isNaN(paidAmt) || paidAmt <= 0) {
-            alert('Supplier payment amount must be strictly greater than 0.');
-            return;
-        }
-
-        if (isNaN(totalAmt) || totalAmt < 0) {
-            alert('Original due amount must be 0 or greater.');
-            return;
-        }
-
-        if (!isNaN(totalAmt) && totalAmt >= 0 && paidAmt > totalAmt) {
-            paidAmt = totalAmt;
-        }
-
         setIsSubmitting(true);
         const supplierPaymentAmount = supplierForm.paid_amount;
         const paidAmt = Number(supplierPaymentAmount);
