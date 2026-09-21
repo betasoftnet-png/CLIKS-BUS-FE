@@ -137,6 +137,7 @@ export const BankStatementReconciliationModal = ({
     const [isDragging, setIsDragging] = useState(false);
 
     const fileInputRef = useRef(null);
+    const scrollContainerRef = useRef(null);
 
     // Update target bank when modal opens or defaultAccountId changes
     useEffect(() => {
@@ -664,240 +665,318 @@ export const BankStatementReconciliationModal = ({
                                 </div>
                             </div>
 
-                            {/* 2. 3-Column Reconciliation Matrix Grid Header */}
-                            <div 
-                                style={{ 
-                                    display: 'grid', 
-                                    gridTemplateColumns: '1.4fr 1.4fr 0.8fr', 
-                                    gap: '1rem', 
-                                    padding: '0.65rem 1rem', 
-                                    background: '#F1F5F9', 
-                                    borderRadius: '12px', 
-                                    border: '1px solid #E2E8F0',
-                                    fontWeight: '850',
-                                    fontSize: '0.74rem',
-                                    color: '#475569',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.04em'
-                                }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span>Bank Statement (Uploaded Data)</span>
-                                    <span style={{ background: '#E2E8F0', color: '#1E293B', padding: '1px 6px', borderRadius: '9999px', fontSize: '0.68rem' }}>
-                                        {currentStatements.length}
-                                    </span>
-                                </div>
+                            {/* 2 & 3. Carousel: Reconciliation Matrix Header + Rows */}
+                            <div style={{ position: 'relative' }}>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span>Platform Sales & Transaction History</span>
-                                    <span style={{ background: '#E2E8F0', color: '#1E293B', padding: '1px 6px', borderRadius: '9999px', fontSize: '0.68rem' }}>
-                                        {currentPlatformRecords.length}
-                                    </span>
-                                </div>
+                                {/* Left Arrow */}
+                                <button
+                                    type="button"
+                                    onClick={() => scrollContainerRef.current?.scrollBy({ left: -380, behavior: 'smooth' })}
+                                    style={{
+                                        position: 'absolute',
+                                        left: '-18px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        zIndex: 10,
+                                        width: '36px',
+                                        height: '36px',
+                                        borderRadius: '50%',
+                                        background: '#0d3829',
+                                        color: 'white',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '1.1rem',
+                                        fontWeight: '900',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                                        transition: 'background 0.15s'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.background = '#0a2a1e'}
+                                    onMouseOut={(e) => e.currentTarget.style.background = '#0d3829'}
+                                    title="Scroll left"
+                                >
+                                    ⇦
+                                </button>
 
-                                <div style={{ textAlign: 'center' }}>
-                                    <span>Action Controls</span>
-                                </div>
-                            </div>
+                                {/* Right Arrow */}
+                                <button
+                                    type="button"
+                                    onClick={() => scrollContainerRef.current?.scrollBy({ left: 380, behavior: 'smooth' })}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '-18px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        zIndex: 10,
+                                        width: '36px',
+                                        height: '36px',
+                                        borderRadius: '50%',
+                                        background: '#0d3829',
+                                        color: 'white',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '1.1rem',
+                                        fontWeight: '900',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                                        transition: 'background 0.15s'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.background = '#0a2a1e'}
+                                    onMouseOut={(e) => e.currentTarget.style.background = '#0d3829'}
+                                    title="Scroll right"
+                                >
+                                    ⇨
+                                </button>
 
-                            {/* 3. Comparison Rows Matrix */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {comparisonPairs.length === 0 ? (
-                                    <div 
-                                        style={{ 
-                                            border: '2px dashed #E2E8F0', 
-                                            borderRadius: '20px', 
-                                            background: '#FFFFFF', 
-                                            padding: '3rem 2rem', 
-                                            textAlign: 'center',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}
-                                    >
-                                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
-                                            <CheckCircle2 size={28} />
+                                {/* Scrollable inner container */}
+                                <div
+                                    ref={scrollContainerRef}
+                                    style={{
+                                        overflowX: 'auto',
+                                        scrollBehavior: 'smooth',
+                                        msOverflowStyle: 'none',
+                                        scrollbarWidth: 'none'
+                                    }}
+                                >
+                                    <div style={{ minWidth: '1050px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+
+                                        {/* Grid Header */}
+                                        <div 
+                                            style={{ 
+                                                display: 'grid', 
+                                                gridTemplateColumns: '1.4fr 1.4fr 0.8fr', 
+                                                gap: '1rem', 
+                                                padding: '0.65rem 1rem', 
+                                                background: '#F1F5F9', 
+                                                borderRadius: '12px', 
+                                                border: '1px solid #E2E8F0',
+                                                fontWeight: '850',
+                                                fontSize: '0.74rem',
+                                                color: '#475569',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.04em'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <span>Bank Statement (Uploaded Data)</span>
+                                                <span style={{ background: '#E2E8F0', color: '#1E293B', padding: '1px 6px', borderRadius: '9999px', fontSize: '0.68rem' }}>
+                                                    {currentStatements.length}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <span>Platform Sales & Transaction History</span>
+                                                <span style={{ background: '#E2E8F0', color: '#1E293B', padding: '1px 6px', borderRadius: '9999px', fontSize: '0.68rem' }}>
+                                                    {currentPlatformRecords.length}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ textAlign: 'center' }}>
+                                                <span>Action Controls</span>
+                                            </div>
                                         </div>
-                                        <h4 style={{ fontSize: '1rem', fontWeight: '850', color: '#0F172A', margin: '0 0 0.25rem 0' }}>
-                                            All Accounts Completely Reconciled!
-                                        </h4>
-                                        <p style={{ fontSize: '0.8rem', color: '#64748B', maxWidth: '340px', margin: '0 auto' }}>
-                                            There are no pending statement rows or unlinked transactions for {currentAccount.bank_account_name}. Upload a new statement or review completed entries in the Matched List.
-                                        </p>
-                                    </div>
-                                ) : (
-                                    comparisonPairs.map((pair, idx) => {
-                                        const { statement, platform } = pair;
-                                        const isExactAmount = statement && platform && (parseFloat(statement.amount) === parseFloat(platform.amount));
 
-                                        return (
+                                        {/* Comparison Rows */}
+                                        {comparisonPairs.length === 0 ? (
                                             <div 
-                                                key={idx}
                                                 style={{ 
-                                                    display: 'grid', 
-                                                    gridTemplateColumns: '1.4fr 1.4fr 0.8fr', 
-                                                    gap: '1rem', 
+                                                    border: '2px dashed #E2E8F0', 
+                                                    borderRadius: '20px', 
                                                     background: '#FFFFFF', 
-                                                    padding: '1rem', 
-                                                    borderRadius: '16px', 
-                                                    border: isExactAmount ? '1.5px solid #BBF7D0' : '1px solid #E2E8F0',
-                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                                                    padding: '3rem 2rem', 
+                                                    textAlign: 'center',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
                                                     alignItems: 'center',
-                                                    transition: 'all 0.15s'
+                                                    justifyContent: 'center'
                                                 }}
                                             >
-                                                {/* Left Column: Bank Statement Line */}
-                                                {statement ? (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                                                            <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0F172A' }}>
-                                                                {statement.description}
-                                                            </span>
-                                                            <span 
-                                                                style={{ 
-                                                                    display: 'inline-flex',
-                                                                    alignItems: 'center',
-                                                                    padding: '2px 8px', 
-                                                                    borderRadius: '9999px', 
-                                                                    fontSize: '0.68rem', 
-                                                                    fontWeight: '800',
-                                                                    background: statement.type === 'Credit' ? '#DCFCE7' : '#FEE2E2',
-                                                                    color: statement.type === 'Credit' ? '#15803D' : '#B91C1C',
-                                                                    border: statement.type === 'Credit' ? '1px solid #86EFAC' : '1px solid #FCA5A5'
-                                                                }}
-                                                            >
-                                                                {statement.type}
-                                                            </span>
-                                                        </div>
+                                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
+                                                    <CheckCircle2 size={28} />
+                                                </div>
+                                                <h4 style={{ fontSize: '1rem', fontWeight: '850', color: '#0F172A', margin: '0 0 0.25rem 0' }}>
+                                                    All Accounts Completely Reconciled!
+                                                </h4>
+                                                <p style={{ fontSize: '0.8rem', color: '#64748B', maxWidth: '340px', margin: '0 auto' }}>
+                                                    There are no pending statement rows or unlinked transactions for {currentAccount.bank_account_name}. Upload a new statement or review completed entries in the Matched List.
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            comparisonPairs.map((pair, idx) => {
+                                                const { statement, platform } = pair;
+                                                const isExactAmount = statement && platform && (parseFloat(statement.amount) === parseFloat(platform.amount));
 
-                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                                                            <span style={{ fontSize: '1.05rem', fontWeight: '950', color: statement.type === 'Credit' ? '#059669' : '#DC2626' }}>
-                                                                {formatINR(statement.amount)}
-                                                            </span>
-                                                            <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>
-                                                                {statement.date}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div style={{ padding: '0.75rem', background: '#F8FAFC', borderRadius: '10px', border: '1px dashed #CBD5E1', color: '#94A3B8', fontSize: '0.75rem', textAlign: 'center', fontStyle: 'italic' }}>
-                                                        No corresponding statement line
-                                                    </div>
-                                                )}
-
-                                                {/* Middle Column: Platform Record */}
-                                                {platform ? (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                                                            <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#1E293B' }}>
-                                                                {platform.description}
-                                                            </span>
-                                                            <span 
-                                                                style={{ 
-                                                                    display: 'inline-flex', 
-                                                                    alignItems: 'center', 
-                                                                    padding: '2px 8px', 
-                                                                    borderRadius: '6px', 
-                                                                    fontSize: '0.68rem', 
-                                                                    fontWeight: '800', 
-                                                                    background: '#EFF6FF', 
-                                                                    color: '#2563EB', 
-                                                                    border: '1px solid #BFDBFE' 
-                                                                }}
-                                                            >
-                                                                {platform.voucherNumber}
-                                                            </span>
-                                                        </div>
-
-                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                <span style={{ fontSize: '1.05rem', fontWeight: '950', color: '#0F172A' }}>
-                                                                    {formatINR(platform.amount)}
-                                                                </span>
-                                                                {isExactAmount && (
+                                                return (
+                                                    <div 
+                                                        key={idx}
+                                                        style={{ 
+                                                            display: 'grid', 
+                                                            gridTemplateColumns: '1.4fr 1.4fr 0.8fr', 
+                                                            gap: '1rem', 
+                                                            background: '#FFFFFF', 
+                                                            padding: '1rem', 
+                                                            borderRadius: '16px', 
+                                                            border: isExactAmount ? '1.5px solid #BBF7D0' : '1px solid #E2E8F0',
+                                                            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                                                            alignItems: 'center',
+                                                            transition: 'all 0.15s'
+                                                        }}
+                                                    >
+                                                        {/* Left Column: Bank Statement Line */}
+                                                        {statement ? (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                                                                    <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0F172A' }}>
+                                                                        {statement.description}
+                                                                    </span>
                                                                     <span 
-                                                                        title="Exact Amount Match"
+                                                                        style={{ 
+                                                                            display: 'inline-flex',
+                                                                            alignItems: 'center',
+                                                                            padding: '2px 8px', 
+                                                                            borderRadius: '9999px', 
+                                                                            fontSize: '0.68rem', 
+                                                                            fontWeight: '800',
+                                                                            background: statement.type === 'Credit' ? '#DCFCE7' : '#FEE2E2',
+                                                                            color: statement.type === 'Credit' ? '#15803D' : '#B91C1C',
+                                                                            border: statement.type === 'Credit' ? '1px solid #86EFAC' : '1px solid #FCA5A5'
+                                                                        }}
+                                                                    >
+                                                                        {statement.type}
+                                                                    </span>
+                                                                </div>
+
+                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                                                                    <span style={{ fontSize: '1.05rem', fontWeight: '950', color: statement.type === 'Credit' ? '#059669' : '#DC2626' }}>
+                                                                        {formatINR(statement.amount)}
+                                                                    </span>
+                                                                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>
+                                                                        {statement.date}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ padding: '0.75rem', background: '#F8FAFC', borderRadius: '10px', border: '1px dashed #CBD5E1', color: '#94A3B8', fontSize: '0.75rem', textAlign: 'center', fontStyle: 'italic' }}>
+                                                                No corresponding statement line
+                                                            </div>
+                                                        )}
+
+                                                        {/* Middle Column: Platform Record */}
+                                                        {platform ? (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                                                                    <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#1E293B' }}>
+                                                                        {platform.description}
+                                                                    </span>
+                                                                    <span 
                                                                         style={{ 
                                                                             display: 'inline-flex', 
                                                                             alignItems: 'center', 
-                                                                            gap: '3px', 
-                                                                            background: '#ECFDF5', 
-                                                                            color: '#059669', 
-                                                                            fontSize: '0.65rem', 
+                                                                            padding: '2px 8px', 
+                                                                            borderRadius: '6px', 
+                                                                            fontSize: '0.68rem', 
                                                                             fontWeight: '800', 
-                                                                            padding: '1px 6px', 
-                                                                            borderRadius: '4px',
-                                                                            border: '1px solid #A7F3D0'
+                                                                            background: '#EFF6FF', 
+                                                                            color: '#2563EB', 
+                                                                            border: '1px solid #BFDBFE' 
                                                                         }}
                                                                     >
-                                                                        <Sparkles size={10} /> Exact Match
+                                                                        {platform.voucherNumber}
                                                                     </span>
-                                                                )}
+                                                                </div>
+
+                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                        <span style={{ fontSize: '1.05rem', fontWeight: '950', color: '#0F172A' }}>
+                                                                            {formatINR(platform.amount)}
+                                                                        </span>
+                                                                        {isExactAmount && (
+                                                                            <span 
+                                                                                title="Exact Amount Match"
+                                                                                style={{ 
+                                                                                    display: 'inline-flex', 
+                                                                                    alignItems: 'center', 
+                                                                                    gap: '3px', 
+                                                                                    background: '#ECFDF5', 
+                                                                                    color: '#059669', 
+                                                                                    fontSize: '0.65rem', 
+                                                                                    fontWeight: '800', 
+                                                                                    padding: '1px 6px', 
+                                                                                    borderRadius: '4px',
+                                                                                    border: '1px solid #A7F3D0'
+                                                                                }}
+                                                                            >
+                                                                                <Sparkles size={10} /> Exact Match
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>
+                                                                        {platform.date}
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                            <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>
-                                                                {platform.date}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div style={{ padding: '0.75rem', background: '#F8FAFC', borderRadius: '10px', border: '1px dashed #CBD5E1', color: '#94A3B8', fontSize: '0.75rem', textAlign: 'center', fontStyle: 'italic' }}>
-                                                        No matching platform record
-                                                    </div>
-                                                )}
+                                                        ) : (
+                                                            <div style={{ padding: '0.75rem', background: '#F8FAFC', borderRadius: '10px', border: '1px dashed #CBD5E1', color: '#94A3B8', fontSize: '0.75rem', textAlign: 'center', fontStyle: 'italic' }}>
+                                                                No matching platform record
+                                                            </div>
+                                                        )}
 
-                                                {/* Right Column: One-Click Match / Reject Action Controls */}
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleMatchAccept(pair)}
-                                                        title="Accept & Match these records"
-                                                        style={{
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '4px',
-                                                            padding: '0.5rem 0.85rem',
-                                                            background: '#059669',
-                                                            color: '#FFFFFF',
-                                                            border: 'none',
-                                                            borderRadius: '10px',
-                                                            fontWeight: '850',
-                                                            fontSize: '0.75rem',
-                                                            cursor: 'pointer',
-                                                            boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)',
-                                                            transition: 'all 0.15s'
-                                                        }}
-                                                        onMouseOver={(e) => e.currentTarget.style.background = '#047857'}
-                                                        onMouseOut={(e) => e.currentTarget.style.background = '#059669'}
-                                                    >
-                                                        <Check size={14} strokeWidth={3} /> Match
-                                                    </button>
+                                                        {/* Right Column: One-Click Match / Reject Action Controls */}
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleMatchAccept(pair)}
+                                                                title="Accept & Match these records"
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '4px',
+                                                                    padding: '0.5rem 0.85rem',
+                                                                    background: '#059669',
+                                                                    color: '#FFFFFF',
+                                                                    border: 'none',
+                                                                    borderRadius: '10px',
+                                                                    fontWeight: '850',
+                                                                    fontSize: '0.75rem',
+                                                                    cursor: 'pointer',
+                                                                    boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)',
+                                                                    transition: 'all 0.15s'
+                                                                }}
+                                                                onMouseOver={(e) => e.currentTarget.style.background = '#047857'}
+                                                                onMouseOut={(e) => e.currentTarget.style.background = '#059669'}
+                                                            >
+                                                                <Check size={14} strokeWidth={3} /> Match
+                                                            </button>
 
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRejectUnmatch(pair)}
-                                                        title="Reject or Flag as Unmatched"
-                                                        style={{
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '4px',
-                                                            padding: '0.5rem 0.85rem',
-                                                            background: '#FFFFFF',
-                                                            color: '#DC2626',
-                                                            border: '1px solid #FCA5A5',
-                                                            borderRadius: '10px',
-                                                            fontWeight: '800',
-                                                            fontSize: '0.75rem',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.15s'
-                                                        }}
-                                                        onMouseOver={(e) => {
-                                                            e.currentTarget.style.background = '#FEF2F2';
-                                                            e.currentTarget.style.borderColor = '#EF4444';
-                                                        }}
-                                                        onMouseOut={(e) => {
-                                                            e.currentTarget.style.background = '#FFFFFF';
-                                                            e.currentTarget.style.borderColor = '#FCA5A5';
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleRejectUnmatch(pair)}
+                                                                title="Reject or Flag as Unmatched"
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '4px',
+                                                                    padding: '0.5rem 0.85rem',
+                                                                    background: '#FFFFFF',
+                                                                    color: '#DC2626',
+                                                                    border: '1px solid #FCA5A5',
+                                                                    borderRadius: '10px',
+                                                                    fontWeight: '800',
+                                                                    fontSize: '0.75rem',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s'
+                                                                }}
+                                                                onMouseOver={(e) => {
+                                                                    e.currentTarget.style.background = '#FEF2F2';
+                                                                    e.currentTarget.style.borderColor = '#EF4444';
+                                                                }}
+                                                                onMouseOut={(e) => {
+                                                                    e.currentTarget.style.background = '#FFFFFF';
+                                                                    e.currentTarget.style.borderColor = '#FCA5A5';
                                                         }}
                                                     >
                                                         <X size={14} strokeWidth={2.5} /> Reject
@@ -907,6 +986,8 @@ export const BankStatementReconciliationModal = ({
                                         );
                                     })
                                 )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

@@ -46,7 +46,7 @@ const BusinessPeople = () => {
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
     const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
-    const [isSubmittingAlert, setIsSubmittingAlert] = useState(false);
+    const [isDispatching, setIsDispatching] = useState(false);
     const [selectedPersonId, setSelectedPersonId] = useState(null);
     const [editingContactId, setEditingContactId] = useState(null);
     const [editingTxId, setEditingTxId] = useState(null);
@@ -418,7 +418,7 @@ const BusinessPeople = () => {
             alert('Repayment alert dispatched successfully.');
         },
         onSettled: () => {
-            setIsSubmittingAlert(false);
+            setIsDispatching(false);
         }
     });
 
@@ -651,20 +651,29 @@ const BusinessPeople = () => {
         }
     };
 
-    const handleSaveReminder = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+    const handleDispatchAlert = (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
 
-        if (isSubmittingAlert) return;
-        setIsSubmittingAlert(true);
+        if (isDispatching || createReminderMutation.isPending) return;
+        setIsDispatching(true);
 
         setReminderAmountError('');
-        if (!reminderForm.person_id) return alert('Please select a target contact.');
-        if (!reminderForm.due_date) return alert('Please select a maturity / due date.');
+        if (!reminderForm.person_id) {
+            setIsDispatching(false);
+            return alert('Please select a target contact.');
+        }
+        if (!reminderForm.due_date) {
+            setIsDispatching(false);
+            return alert('Please select a maturity / due date.');
+        }
 
         const amt = parseFloat(reminderForm.amount);
         if (!isNaN(amt) && amt < 0) {
             setReminderAmountError('Cap value cannot be negative.');
+            setIsDispatching(false);
             return;
         }
 
@@ -1554,7 +1563,7 @@ const BusinessPeople = () => {
                                 <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Schedule Repayment Alert</h3>
                                 <button onClick={() => setIsReminderModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                             </div>
-                            <form onSubmit={handleSaveReminder} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <form onSubmit={handleDispatchAlert} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Target Contact <span style={{ color: '#EF4444' }}>*</span></label>
                                     <select required value={reminderForm.person_id} onChange={(e) => setReminderForm({ ...reminderForm, person_id: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '600' }}>
@@ -1597,8 +1606,8 @@ const BusinessPeople = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Maturity / Due Date <span style={{ color: '#EF4444' }}>*</span></label>
                                     <input required type="date" value={reminderForm.due_date} onChange={(e) => setReminderForm({ ...reminderForm, due_date: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
-                                <button type="submit" disabled={isSubmittingAlert || createReminderMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer' }}>
-                                    {isSubmittingAlert || createReminderMutation.isPending ? 'Scheduling Alert...' : 'Dispatch Repayment Alert'}
+                                <button type="submit" disabled={isDispatching || createReminderMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer' }}>
+                                    {isDispatching || createReminderMutation.isPending ? 'Scheduling Alert...' : 'Dispatch Repayment Alert'}
                                 </button>
                             </form>
                         </Motion.div>

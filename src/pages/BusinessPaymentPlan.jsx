@@ -388,9 +388,9 @@ const BusinessPaymentPlan = () => {
                                                         <User size={12} /> {plan.person_name}
                                                     </span>
                                                 )}
-                                                {(plan.description || plan.notes) && (
+                                                {(plan.description || plan.notes || plan.remark) && (
                                                     <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
-                                                        description : {plan.description || plan.notes}
+                                                        description : {plan.description || plan.notes || plan.remark}
                                                     </span>
                                                 )}
                                             </div>
@@ -446,9 +446,13 @@ const BusinessPaymentPlan = () => {
                                     alert('Payment amount must be strictly greater than 0.');
                                     return;
                                 }
+                                const desc = (formData.description || '').trim();
                                 createMutation.mutate({
                                     ...formData,
-                                    amount: parsedAmount
+                                    amount: parsedAmount,
+                                    description: desc,
+                                    notes: desc,
+                                    remark: desc
                                 });
                             }}
                             style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
