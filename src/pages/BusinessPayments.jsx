@@ -36,6 +36,7 @@ import { bankAccountService } from '../services/bankAccountService';
 import { purchasesService } from '../services/purchasesService';
 import '../App.css';
 import { useCurrency } from '../context';
+import BankStatementReconciliationModal from '../components/BankStatementReconciliationModal';
 
 const BusinessPayments = () => {
     const { currency, formatCurrency } = useCurrency();
@@ -46,6 +47,7 @@ const BusinessPayments = () => {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Bank & Cash register cards action menu & edit/delete modal state
@@ -1237,7 +1239,7 @@ const BusinessPayments = () => {
 
                           <button 
                             type="button" 
-                            onClick={handleAttachTransaction}
+                            onClick={() => setIsReconcileModalOpen(true)}
                             className="px-3 py-1.5 text-xs font-semibold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center gap-1 transition-colors"
                             style={{ padding: '0.45rem 0.85rem', fontSize: '0.75rem', fontWeight: '750', color: '#2563EB', border: '1px solid #BFDBFE', borderRadius: '8px', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                           >
@@ -1865,6 +1867,17 @@ const BusinessPayments = () => {
                     </div>
                 </div>
             )}
+
+            {/* Bank Statement Reconciliation Workspace Modal */}
+            <BankStatementReconciliationModal
+                isOpen={isReconcileModalOpen}
+                onClose={() => setIsReconcileModalOpen(false)}
+                availableAccounts={accounts}
+                defaultAccountId={selectedLedgerAccount?.id || selectedLedgerAccount?.bank_account_id || 'cash-in-hand'}
+                platformLedger={dbLedger}
+                receivables={receivables}
+                payables={supplierPayables || payables}
+            />
         </div>
     );
 };

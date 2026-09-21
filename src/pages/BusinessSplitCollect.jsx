@@ -133,7 +133,7 @@ export const getViewableUrl = (rawFilePath) => {
 // Pure calculation function to compute total outlay across both list cards and details view
 export const calculateGroupOutlay = (expenses) => {
     return (expenses || [])
-        .filter(item => !item.isSettlement && item.type !== 'SETTLEMENT' && item.type !== 'REPAYMENT' && (!item.title || !item.title.toLowerCase().startsWith('settlement')))
+        .filter(item => isPrimaryExpense(item))
         .reduce((sum, item) => sum + Number(item.amount || 0), 0);
 };
 
@@ -143,19 +143,11 @@ export const getEligibleExpensesForDebt = (debt, expenses = [], participants = [
     
     // Non-settlement expenses paid by the creditor (debt.to)
     const creditorExpenses = expenses.filter(exp => 
-        !exp.isSettlement && 
-        exp.type !== 'SETTLEMENT' && 
-        exp.type !== 'REPAYMENT' && 
-        (!exp.title || !exp.title.toLowerCase().startsWith('settlement')) &&
+        isPrimaryExpense(exp) &&
         exp.paidBy === debt.to
     );
 
-    const pool = creditorExpenses.length > 0 ? creditorExpenses : expenses.filter(exp => 
-        !exp.isSettlement && 
-        exp.type !== 'SETTLEMENT' && 
-        exp.type !== 'REPAYMENT' && 
-        (!exp.title || !exp.title.toLowerCase().startsWith('settlement'))
-    );
+    const pool = creditorExpenses.length > 0 ? creditorExpenses : expenses.filter(exp => isPrimaryExpense(exp));
 
     return pool.map(exp => {
         let memberShare = 0;
@@ -174,20 +166,35 @@ export const getEligibleExpensesForDebt = (debt, expenses = [], participants = [
 
 export const isPrimaryExpense = (item) => {
     if (!item) return false;
-    return !item.isSettlement && item.type !== 'SETTLEMENT';
+    if (item.isSettlement === true || item.is_settlement === true) return false;
+    if (item.type === 'SETTLEMENT' || item.type === 'REPAYMENT') return false;
+    if (typeof item.title === 'string' && item.title.toLowerCase().trim().startsWith('settlement')) return false;
+    return true;
 };
 
-export const isSettlementLinkedToExpense = (settlement, exp) => {
+export const isSettlementLinkedToExpense = (settlement, exp, allPrimaryExpenses = []) => {
     if (!settlement || !exp) return false;
+    if (settlement.linked_expense_id && String(settlement.linked_expense_id) === String(exp.id)) return true;
     if (settlement.expenseId && String(settlement.expenseId) === String(exp.id)) return true;
     if (settlement.relatedExpenseId && String(settlement.relatedExpenseId) === String(exp.id)) return true;
     if (settlement.linkedExpenseId && String(settlement.linkedExpenseId) === String(exp.id)) return true;
     if (settlement.title && exp.title) {
-        const sTitle = settlement.title.toLowerCase();
+        const sTitle = settlement.title.toLowerCase().trim();
         const expTitle = exp.title.toLowerCase().trim();
+        const titleMatch = sTitle.match(/^settlement\s+for\s+(.*?):\s*/);
+        if (titleMatch && titleMatch[1]) {
+            const extracted = titleMatch[1].trim().toLowerCase();
+            if (extracted === expTitle || expTitle.includes(extracted) || extracted.includes(expTitle)) {
+                return true;
+            }
+        }
         if (expTitle && (sTitle.includes(`for ${expTitle}:`) || sTitle.includes(`for ${expTitle}`) || sTitle.includes(expTitle))) {
             return true;
         }
+    }
+    // Fallback: If only 1 primary expense exists in the ticket, link settlement to it
+    if (allPrimaryExpenses && allPrimaryExpenses.length === 1 && String(allPrimaryExpenses[0].id) === String(exp.id)) {
+        return true;
     }
     return false;
 };
@@ -853,10 +860,14 @@ const BusinessSplitCollect = () => {
     const handleSettleDebt = async (debt) => {
         if (!activeSplit) return;
         if (await window.confirm(`Mark settlement: does ${debt.from} paid ${activeSplit.currencySymbol}${debt.amount.toLocaleString()} to ${debt.to}?`)) {
+            const allPrimaries = (activeSplit.expenses || []).filter(item => isPrimaryExpense(item));
+            const targetExpenseId = debt.expenseId || (allPrimaries.length === 1 ? allPrimaries[0].id : null);
+            const expenseTitle = debt.expenseTitle || (targetExpenseId ? allPrimaries.find(e => String(e.id) === String(targetExpenseId))?.title : null);
+
             // Settle creates a custom expense compensating the debt
             const settlementExpense = {
                 id: 'exp-settle-' + Date.now(),
-                title: debt.expenseTitle ? `Settlement for ${debt.expenseTitle}: ${debt.from} paid ${debt.to}` : `Settlement: ${debt.from} paid ${debt.to}`,
+                title: expenseTitle ? `Settlement for ${expenseTitle}: ${debt.from} paid ${debt.to}` : `Settlement: ${debt.from} paid ${debt.to}`,
                 amount: debt.amount,
                 paidBy: debt.from,
                 date: new Date().toISOString().split('T')[0],
@@ -864,8 +875,9 @@ const BusinessSplitCollect = () => {
                 splitType: 'custom',
                 isSettlement: true,
                 type: 'SETTLEMENT',
-                expenseId: debt.expenseId || null,
-                relatedExpenseId: debt.expenseId || null,
+                linked_expense_id: targetExpenseId,
+                expenseId: targetExpenseId,
+                relatedExpenseId: targetExpenseId,
                 shares: {
                     [debt.to]: debt.amount
                 }
@@ -880,11 +892,19 @@ const BusinessSplitCollect = () => {
 
             try {
                 const createdSettlement = await splitExpenseService.addExpense(selectedSplitId, settlementExpense);
+                const finalSettlement = {
+                    ...createdSettlement,
+                    isSettlement: true,
+                    type: 'SETTLEMENT',
+                    linked_expense_id: targetExpenseId,
+                    expenseId: targetExpenseId,
+                    relatedExpenseId: targetExpenseId
+                };
                 const updatedSplits = splits.map(s => {
                     if (s.id === selectedSplitId) {
                         return {
                             ...s,
-                            expenses: [createdSettlement, ...s.expenses]
+                            expenses: [finalSettlement, ...s.expenses]
                         };
                     }
                     return s;
@@ -961,6 +981,15 @@ const BusinessSplitCollect = () => {
         if (!chosenExp && customPayExpenseId !== 'general') {
             chosenExp = activeSplit.expenses.find(exp => String(exp.id) === String(customPayExpenseId));
         }
+        if (!chosenExp && customPayDebt.expenseId) {
+            chosenExp = activeSplit.expenses.find(exp => String(exp.id) === String(customPayDebt.expenseId));
+        }
+        const allPrimaries = (activeSplit.expenses || []).filter(item => isPrimaryExpense(item));
+        if (!chosenExp && allPrimaries.length === 1) {
+            chosenExp = allPrimaries[0];
+        }
+
+        const targetExpenseId = chosenExp ? chosenExp.id : (customPayExpenseId !== 'general' && customPayExpenseId ? customPayExpenseId : (customPayDebt.expenseId || (allPrimaries.length === 1 ? allPrimaries[0].id : null)));
         const expenseTitle = chosenExp ? chosenExp.title : (customPayDebt.expenseTitle || 'Expense');
 
         // Requirement: Settlement for [Expense Title]: [From] paid [To]
@@ -976,8 +1005,9 @@ const BusinessSplitCollect = () => {
             splitType: 'custom',
             isSettlement: true,
             type: 'SETTLEMENT',
-            expenseId: chosenExp ? chosenExp.id : (customPayExpenseId !== 'general' ? customPayExpenseId : (customPayDebt.expenseId || null)),
-            relatedExpenseId: chosenExp ? chosenExp.id : (customPayExpenseId !== 'general' ? customPayExpenseId : (customPayDebt.expenseId || null)),
+            linked_expense_id: targetExpenseId,
+            expenseId: targetExpenseId,
+            relatedExpenseId: targetExpenseId,
             shares: {
                 [customPayDebt.to]: payAmt
             }
@@ -992,11 +1022,19 @@ const BusinessSplitCollect = () => {
 
         try {
             const createdSettlement = await splitExpenseService.addExpense(selectedSplitId, settlementExpense);
+            const finalSettlement = {
+                ...createdSettlement,
+                isSettlement: true,
+                type: 'SETTLEMENT',
+                linked_expense_id: targetExpenseId,
+                expenseId: targetExpenseId,
+                relatedExpenseId: targetExpenseId
+            };
             const updatedSplits = splits.map(s => {
                 if (s.id === selectedSplitId) {
                     return {
                         ...s,
-                        expenses: [createdSettlement, ...s.expenses]
+                        expenses: [finalSettlement, ...s.expenses]
                     };
                 }
                 return s;
@@ -1640,7 +1678,7 @@ const BusinessSplitCollect = () => {
                                                String(e.amount).includes(term) ||
                                                (e.attachment || '').toLowerCase().includes(term);
                                         if (matchesExp) return true;
-                                        return settlements.some(s => isSettlementLinkedToExpense(s, e) && (
+                                        return settlements.some(s => isSettlementLinkedToExpense(s, e, primaryExpenses) && (
                                             s.title.toLowerCase().includes(term) ||
                                             s.paidBy.toLowerCase().includes(term) ||
                                             String(s.amount).includes(term)
@@ -1649,7 +1687,7 @@ const BusinessSplitCollect = () => {
 
                                     // Settlements not linked to any primary expense
                                     const generalSettlements = settlements.filter(s => {
-                                        const isLinked = primaryExpenses.some(exp => isSettlementLinkedToExpense(s, exp));
+                                        const isLinked = primaryExpenses.some(exp => isSettlementLinkedToExpense(s, exp, primaryExpenses));
                                         if (isLinked) return false;
                                         if (!detailSearchQuery.trim()) return true;
                                         const term = detailSearchQuery.toLowerCase().trim();
@@ -1685,7 +1723,7 @@ const BusinessSplitCollect = () => {
                                                     ? { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE' }
                                                     : { bg: '#F5F3FF', color: '#7C3AED', border: '#DDD6FE' };
 
-                                                const linkedSettlements = settlements.filter(s => isSettlementLinkedToExpense(s, e));
+                                                const linkedSettlements = settlements.filter(s => isSettlementLinkedToExpense(s, e, primaryExpenses));
                                                 const sessionBalances = calculateSessionBalances(e, linkedSettlements, activeSplit.participants);
 
                                                 return (
@@ -1943,7 +1981,7 @@ const BusinessSplitCollect = () => {
                                                                     {sessionBalances.debts.length === 0 ? (
                                                                         <div style={{ textAlign: 'center', padding: '0.75rem 0' }}>
                                                                             <Check size={22} color="#34D399" style={{ marginBottom: '0.35rem' }} />
-                                                                            <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600' }}>All accounts completely settled!</p>
+                                                                            <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600' }}>✓ All accounts completely settled!</p>
                                                                         </div>
                                                                     ) : (
                                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
