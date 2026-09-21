@@ -388,12 +388,12 @@ const BusinessPaymentPlan = () => {
                                                         <User size={12} /> {plan.person_name}
                                                     </span>
                                                 )}
+                                                {(plan.description || plan.notes) && (
+                                                    <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                                                        description : {plan.description || plan.notes}
+                                                    </span>
+                                                )}
                                             </div>
-                                            {(plan.description || plan.notes) && (
-                                                <p className="text-xs text-gray-500 mt-1 line-clamp-2" style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: '#64748B' }}>
-                                                    {plan.description || plan.notes}
-                                                </p>
-                                            )}
                                         </div>
                                     </div>
                                     <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '2rem' }}>
