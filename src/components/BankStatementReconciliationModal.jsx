@@ -21,6 +21,7 @@ import {
     Wallet
 } from 'lucide-react';
 import { useCurrency } from '../context';
+import * as XLSX from 'xlsx';
 
 // Core registered accounts matching standard accounting configuration
 const STANDARD_ACCOUNTS = [
@@ -204,80 +205,155 @@ export const BankStatementReconciliationModal = ({
         const ext = fileName.split('.').pop().toLowerCase();
 
         try {
-            if (ext === 'csv') {
-                const text = await file.text();
-                const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-                if (lines.length <= 1) {
-                    setUploadNotification(`Parsed empty CSV file "${fileName}".`);
+            const accountId = currentAccount.id || currentAccount.bank_account_id;
+
+            // ── Parse rows from file ──────────────────────────────────────────
+            let rawRows = []; // array of plain objects {[colName]: value}
+
+            if (ext === 'xlsx' || ext === 'xls') {
+                // Read via SheetJS
+                const buffer = await file.arrayBuffer();
+                const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                // Convert to 2D array (raw, no header inference yet)
+                const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+                // ── Dynamic header detection: find row with 'date' AND 'narration' ──
+                let headerRowIdx = -1;
+                for (let r = 0; r < Math.min(aoa.length, 20); r++) {
+                    const row = aoa[r].map(c => String(c).toLowerCase().trim());
+                    const hasDate = row.some(c => c === 'date');
+                    const hasNarration = row.some(c => c === 'narration' || c === 'description' || c === 'particulars');
+                    if (hasDate && hasNarration) { headerRowIdx = r; break; }
+                }
+                if (headerRowIdx === -1) {
+                    setUploadNotification(`⚠️ Could not detect header row in "${fileName}". Ensure columns include Date & Narration/Description.`);
                     return;
                 }
 
-                // Simple smart CSV parse
-                const delimiter = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
-                const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase());
-                
-                let descIdx = headers.findIndex(h => h.includes('desc') || h.includes('narrat') || h.includes('partic') || h.includes('detail'));
-                let amtIdx = headers.findIndex(h => h.includes('amount') || h.includes('amt') || h.includes('deposit') || h.includes('credit'));
-                let dateIdx = headers.findIndex(h => h.includes('date') || h.includes('time'));
-                let typeIdx = headers.findIndex(h => h.includes('type') || h.includes('cr/dr'));
+                const headers = aoa[headerRowIdx].map(c => String(c).trim());
+                for (let r = headerRowIdx + 1; r < aoa.length; r++) {
+                    const obj = {};
+                    headers.forEach((h, i) => { obj[h] = aoa[r][i] ?? ''; });
+                    rawRows.push(obj);
+                }
 
-                if (descIdx === -1) descIdx = 1;
-                if (amtIdx === -1) amtIdx = headers.length > 2 ? 2 : 1;
-                if (dateIdx === -1) dateIdx = 0;
+            } else if (ext === 'csv') {
+                const text = await file.text();
+                const csvLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
-                const newRows = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const cols = lines[i].split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
-                    if (cols.length >= 2) {
-                        const rawAmt = parseFloat(cols[amtIdx]?.replace(/[^0-9.-]+/g, '')) || 0;
-                        if (rawAmt !== 0) {
-                            const rawType = cols[typeIdx]?.toLowerCase() || '';
-                            const isCredit = rawType.includes('cr') || rawType.includes('credit') || rawType.includes('deposit') || rawAmt > 0;
-                            newRows.push({
-                                id: `stmt-up-${Date.now()}-${i}`,
-                                accountId: currentAccount.id || currentAccount.bank_account_id,
-                                description: cols[descIdx] || `Bank Transaction ${i}`,
-                                amount: Math.abs(rawAmt),
-                                date: cols[dateIdx] || new Date().toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }),
-                                type: isCredit ? 'Credit' : 'Debit'
-                            });
-                        }
+                // Dynamic header detection for CSV
+                const delimiter = csvLines[0]?.includes('\t') ? '\t' : (csvLines[0]?.includes(';') ? ';' : ',');
+                let headerRowIdx = -1;
+                for (let r = 0; r < Math.min(csvLines.length, 20); r++) {
+                    const cols = csvLines[r].toLowerCase();
+                    if ((cols.includes('date') || cols.includes('txn date')) &&
+                        (cols.includes('narration') || cols.includes('description') || cols.includes('particulars'))) {
+                        headerRowIdx = r;
+                        break;
                     }
                 }
+                if (headerRowIdx === -1) headerRowIdx = 0; // fallback to first row
 
-                if (newRows.length > 0) {
-                    setStatementRecords(prev => [...newRows, ...prev]);
-                    setUploadNotification(`✅ Successfully loaded ${newRows.length} transactions from "${fileName}" for ${currentAccount.bank_account_name}!`);
-                    return;
+                const headers = csvLines[headerRowIdx].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+                for (let r = headerRowIdx + 1; r < csvLines.length; r++) {
+                    const vals = csvLines[r].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+                    const obj = {};
+                    headers.forEach((h, i) => { obj[h] = vals[i] ?? ''; });
+                    rawRows.push(obj);
                 }
+            } else {
+                setUploadNotification(`⚠️ Unsupported format ".${ext}". Please upload .xlsx, .xls, or .csv files.`);
+                return;
             }
 
-            // Fallback for xlsx/pdf or non-standard csv: generate parsed statement lines from file metadata
-            const syntheticCount = 3;
-            const newRows = [
-                {
-                    id: `stmt-up-${Date.now()}-1`,
-                    accountId: currentAccount.id || currentAccount.bank_account_id,
-                    description: `Statement entry [${fileName}] received from client`,
-                    amount: 4500,
-                    date: new Date().toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }),
-                    type: 'Credit'
-                },
-                {
-                    id: `stmt-up-${Date.now()}-2`,
-                    accountId: currentAccount.id || currentAccount.bank_account_id,
-                    description: `Statement entry [${fileName}] vendor reimbursement`,
-                    amount: 1200,
-                    date: new Date().toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }),
-                    type: 'Debit'
+            // ── Column mapping: HDFC & standard bank formats ──────────────────
+            const findCol = (row, candidates) => {
+                for (const key of Object.keys(row)) {
+                    const k = key.toLowerCase().trim();
+                    if (candidates.some(c => k === c || k.includes(c))) return key;
                 }
-            ];
+                return null;
+            };
 
-            setStatementRecords(prev => [...newRows, ...prev]);
-            setUploadNotification(`✅ Imported statement "${fileName}" (${newRows.length} transactions parsed for ${currentAccount.bank_account_name}).`);
+            // Detect columns from first data row
+            const sampleRow = rawRows[0] || {};
+            const narrationKey  = findCol(sampleRow, ['narration', 'description', 'particulars', 'details', 'remarks']);
+            const dateKey        = findCol(sampleRow, ['date', 'txn date', 'value date', 'transaction date']);
+            const withdrawalKey  = findCol(sampleRow, ['withdrawal amt', 'withdrawal amount', 'debit', 'debit amount', 'debit amt', 'dr']);
+            const depositKey     = findCol(sampleRow, ['deposit amt', 'deposit amount', 'credit', 'credit amount', 'credit amt', 'cr']);
+            const amountKey      = findCol(sampleRow, ['amount', 'amt']); // generic fallback
+            const typeKey        = findCol(sampleRow, ['type', 'cr/dr', 'txn type', 'transaction type']);
+
+            // ── Build statement records ───────────────────────────────────────
+            const newRows = [];
+            for (let i = 0; i < rawRows.length; i++) {
+                const row = rawRows[i];
+
+                const rawNarration = String(row[narrationKey] ?? '').trim();
+                // Skip blank rows, opening balance rows, zero-value carry-forwards
+                if (!rawNarration) continue;
+                if (/opening balance|ob |closing balance/i.test(rawNarration)) continue;
+
+                // Parse withdrawal (debit) and deposit (credit)
+                const cleanNum = v => parseFloat(String(v).replace(/[^0-9.-]+/g, '')) || 0;
+                const withdrawalAmt = withdrawalKey ? cleanNum(row[withdrawalKey]) : 0;
+                const depositAmt    = depositKey    ? cleanNum(row[depositKey])    : 0;
+
+                // If both columns exist, use the non-zero one; if neither, fall back to generic amount
+                let amount = 0;
+                let type = 'Credit';
+                if (withdrawalKey || depositKey) {
+                    if (depositAmt > 0 && withdrawalAmt === 0) { amount = depositAmt; type = 'Credit'; }
+                    else if (withdrawalAmt > 0 && depositAmt === 0) { amount = withdrawalAmt; type = 'Debit'; }
+                    else if (depositAmt > 0 && withdrawalAmt > 0) { amount = depositAmt; type = 'Credit'; } // unusual; prefer deposit
+                    else continue; // both zero — skip
+                } else if (amountKey) {
+                    const raw = cleanNum(row[amountKey]);
+                    if (raw === 0) continue;
+                    // Use type column or sign to determine cr/dr
+                    const rawType = String(row[typeKey] ?? '').toLowerCase();
+                    type = rawType.includes('cr') || rawType.includes('credit') || rawType.includes('deposit') ? 'Credit' : 'Debit';
+                    amount = Math.abs(raw);
+                } else {
+                    continue; // no amount info
+                }
+
+                // Format date
+                let dateStr = '';
+                const rawDate = row[dateKey];
+                if (rawDate instanceof Date) {
+                    dateStr = rawDate.toLocaleDateString('en-GB'); // DD/MM/YYYY
+                } else if (rawDate) {
+                    // Try to parse HDFC format: DD/MM/YY or DD-MM-YYYY etc.
+                    const parsed = new Date(String(rawDate).replace(/(\d{2})\/(\d{2})\/(\d{2,4})/, '$2/$1/$3'));
+                    dateStr = isNaN(parsed) ? String(rawDate) : parsed.toLocaleDateString('en-GB');
+                } else {
+                    dateStr = new Date().toLocaleDateString('en-GB');
+                }
+
+                newRows.push({
+                    id: `stmt-up-${accountId}-${Date.now()}-${i}`,
+                    accountId,
+                    description: rawNarration,
+                    amount,
+                    date: dateStr,
+                    type
+                });
+            }
+
+            if (newRows.length === 0) {
+                setUploadNotification(`⚠️ No valid transactions found in "${fileName}". Check that Narration/Date/Amount columns exist and are not all zero.`);
+                return;
+            }
+
+            setStatementRecords(prev => [...newRows, ...prev.filter(r => r.accountId !== accountId)]);
+            setUploadNotification(`✅ Loaded ${newRows.length} transactions from "${fileName}" for ${currentAccount.bank_account_name}!`);
+
         } catch (err) {
-            console.error("Error reading statement file:", err);
-            setUploadNotification(`⚠️ Error parsing "${fileName}". Please ensure valid statement format.`);
+            console.error('Error reading statement file:', err);
+            setUploadNotification(`⚠️ Error parsing "${fileName}": ${err.message}. Please check file format.`);
         }
     };
 
@@ -671,13 +747,14 @@ export const BankStatementReconciliationModal = ({
                                 const STEPS = [
                                     'BANK STATEMENT (UPLOADED DATA)',
                                     'PLATFORM SALES & TRANSACTION HISTORY',
-                                    'ACTION CONTROLS'
+                                    'ACTION CONTROLS',
+                                    'OVERALL VISIT'
                                 ];
                                 return (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
                                         {/* Step indicator bar */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1rem', background: '#F1F5F9', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1rem', background: '#F1F5F9', borderRadius: '12px', border: '1px solid #E2E8F0', overflowX: 'auto' }}>
                                             {STEPS.map((label, i) => (
                                                 <React.Fragment key={i}>
                                                     <div
@@ -688,7 +765,8 @@ export const BankStatementReconciliationModal = ({
                                                             color: currentStep === i ? '#fff' : '#64748B',
                                                             fontSize: '0.7rem', fontWeight: '850',
                                                             textTransform: 'uppercase', letterSpacing: '0.04em',
-                                                            cursor: 'pointer', transition: 'all 0.15s'
+                                                            cursor: 'pointer', transition: 'all 0.15s',
+                                                            whiteSpace: 'nowrap'
                                                         }}
                                                         onClick={() => setCurrentStep(i)}
                                                     >
@@ -703,7 +781,7 @@ export const BankStatementReconciliationModal = ({
                                                         {i === 0 && <span style={{ background: 'rgba(255,255,255,0.2)', color: currentStep === 0 ? '#fff' : '#475569', padding: '0px 5px', borderRadius: '9999px', fontSize: '0.65rem' }}>{currentStatements.length}</span>}
                                                         {i === 1 && <span style={{ background: 'rgba(255,255,255,0.2)', color: currentStep === 1 ? '#fff' : '#475569', padding: '0px 5px', borderRadius: '9999px', fontSize: '0.65rem' }}>{currentPlatformRecords.length}</span>}
                                                     </div>
-                                                    {i < 2 && <div style={{ flex: 1, height: '2px', background: currentStep > i ? '#0d3829' : '#E2E8F0', borderRadius: '9999px', transition: 'background 0.3s' }} />}
+                                                    {i < 3 && <div style={{ flex: 1, minWidth: '10px', height: '2px', background: currentStep > i ? '#0d3829' : '#E2E8F0', borderRadius: '9999px', transition: 'background 0.3s' }} />}
                                                 </React.Fragment>
                                             ))}
                                         </div>
@@ -712,7 +790,7 @@ export const BankStatementReconciliationModal = ({
                                         <div style={{ position: 'relative' }}>
 
                                             {/* Left Arrow */}
-                                            {currentStep > 0 && (
+                                            {currentStep > 0 && currentStep < 3 && (
                                                 <button
                                                     type="button"
                                                     onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
@@ -772,6 +850,104 @@ export const BankStatementReconciliationModal = ({
                                                     {comparisonPairs.map((pair, idx) => {
                                                         const { statement, platform } = pair;
                                                         const isExactAmount = statement && platform && (parseFloat(statement.amount) === parseFloat(platform.amount));
+
+                                                        // side-by-side visit mode
+                                                        if (currentStep === 3) {
+                                                            return (
+                                                                <div key={idx} style={{
+                                                                    background: '#FFFFFF', padding: '1rem',
+                                                                    borderRadius: '18px',
+                                                                    border: isExactAmount ? '1.5px solid #BBF7D0' : '1px solid #E2E8F0',
+                                                                    boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                                                                    display: 'grid',
+                                                                    gridTemplateColumns: '1fr 1fr 200px',
+                                                                    gap: '1.5rem',
+                                                                    alignItems: 'center'
+                                                                }}>
+                                                                    {/* Column 1: Bank Statement */}
+                                                                    <div style={{ borderRight: '1px solid #F1F5F9', paddingRight: '1rem' }}>
+                                                                        {statement ? (
+                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{statement.description}</span>
+                                                                                    <span style={{
+                                                                                        padding: '2px 8px', borderRadius: '9999px',
+                                                                                        fontSize: '0.65rem', fontWeight: '800',
+                                                                                        background: statement.type === 'Credit' ? '#DCFCE7' : '#FEE2E2',
+                                                                                        color: statement.type === 'Credit' ? '#15803D' : '#B91C1C'
+                                                                                    }}>{statement.type}</span>
+                                                                                </div>
+                                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                                    <span style={{ fontSize: '1.1rem', fontWeight: '950', color: statement.type === 'Credit' ? '#059669' : '#DC2626' }}>
+                                                                                        {formatINR(statement.amount)}
+                                                                                    </span>
+                                                                                    <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '600' }}>{statement.date}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div style={{ color: '#94A3B8', fontSize: '0.75rem', textAlign: 'center', fontStyle: 'italic' }}>No statement line</div>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Column 2: Platform History */}
+                                                                    <div style={{ borderRight: '1px solid #F1F5F9', paddingRight: '1rem' }}>
+                                                                        {platform ? (
+                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{platform.description}</span>
+                                                                                    <span style={{
+                                                                                        padding: '2px 6px', borderRadius: '4px',
+                                                                                        fontSize: '0.65rem', fontWeight: '800',
+                                                                                        background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE'
+                                                                                    }}>{platform.voucherNumber}</span>
+                                                                                </div>
+                                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                                    <span style={{ fontSize: '1.1rem', fontWeight: '950', color: '#0F172A' }}>{formatINR(platform.amount)}</span>
+                                                                                    <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '600' }}>{platform.date}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div style={{ color: '#94A3B8', fontSize: '0.75rem', textAlign: 'center', fontStyle: 'italic' }}>No platform record</div>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Column 3: Action Controls */}
+                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleMatchAccept(pair)}
+                                                                            style={{
+                                                                                padding: '0.4rem', borderRadius: '8px',
+                                                                                background: '#00875a', color: 'white',
+                                                                                border: 'none', fontWeight: '900',
+                                                                                fontSize: '0.75rem', cursor: 'pointer',
+                                                                                transition: 'all 0.15s'
+                                                                            }}
+                                                                            onMouseOver={(e) => e.currentTarget.style.background = '#006644'}
+                                                                            onMouseOut={(e) => e.currentTarget.style.background = '#00875a'}
+                                                                        >
+                                                                            <Check size={12} strokeWidth={3} style={{ display: 'inline', marginRight: '4px' }} /> Match
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleRejectUnmatch(pair)}
+                                                                            style={{
+                                                                                padding: '0.4rem', borderRadius: '8px',
+                                                                                background: 'white', color: '#DC2626',
+                                                                                border: '1px solid #FCA5A5', fontWeight: '900',
+                                                                                fontSize: '0.75rem', cursor: 'pointer',
+                                                                                transition: 'all 0.15s'
+                                                                            }}
+                                                                            onMouseOver={(e) => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.borderColor = '#EF4444'; }}
+                                                                            onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#FCA5A5'; }}
+                                                                        >
+                                                                            <X size={12} strokeWidth={2.5} style={{ display: 'inline', marginRight: '4px' }} /> Reject
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        }
+
                                                         return (
                                                             <div key={idx} style={{
                                                                 background: '#FFFFFF', padding: '1.25rem 1.5rem',
