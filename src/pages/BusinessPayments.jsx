@@ -1225,7 +1225,7 @@ const BusinessPayments = () => {
                             className="px-3 py-1.5 text-xs font-semibold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center gap-1 transition-colors"
                             style={{ padding: '0.45rem 0.85rem', fontSize: '0.75rem', fontWeight: '750', color: '#2563EB', border: '1px solid #BFDBFE', borderRadius: '8px', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                           >
-                            <span>👁️</span> attach your transaction detail
+                            ATTACH YOUR TRANSACTION DETAILS
                           </button>
                         </div>
                       </div>
