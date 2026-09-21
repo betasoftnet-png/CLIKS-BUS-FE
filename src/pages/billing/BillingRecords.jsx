@@ -12,7 +12,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { getSavedBillingRecords, LOCAL_STORAGE_KEY } from './SimpleBilling';
 
-const BillingRecords = () => {
+const BillingRecords = ({ onNavigateToCreate }) => {
     const navigate = useNavigate();
     const [records, setRecords] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -82,26 +82,14 @@ const BillingRecords = () => {
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                     <button
                         id="btn-create-new-bill"
-                        onClick={() => navigate('/billing/simple')}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '0.65rem 1.25rem',
-                            background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: '12px',
-                            fontWeight: 700,
-                            fontSize: '0.875rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)'
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                        onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                        type="button"
+                        onClick={onNavigateToCreate ? onNavigateToCreate : () => navigate('/billing/simple')}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold rounded-xl transition-colors shadow-sm cursor-pointer"
                     >
-                        <Plus size={16} /> + Create New Bill
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span>Create New Bill</span>
                     </button>
                 </div>
             </div>
@@ -361,19 +349,14 @@ const BillingRecords = () => {
                                         </p>
                                         {!searchTerm && (
                                             <button
-                                                onClick={() => navigate('/billing/simple')}
-                                                style={{
-                                                    background: '#1B6B3A',
-                                                    color: '#FFFFFF',
-                                                    border: 'none',
-                                                    padding: '0.6rem 1.2rem',
-                                                    borderRadius: '10px',
-                                                    fontWeight: 700,
-                                                    fontSize: '0.85rem',
-                                                    cursor: 'pointer'
-                                                }}
+                                                type="button"
+                                                onClick={onNavigateToCreate ? onNavigateToCreate : () => navigate('/billing/simple')}
+                                                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold rounded-xl transition-colors shadow-sm cursor-pointer"
                                             >
-                                                Create First Bill
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                                                </svg>
+                                                <span>Create First Bill</span>
                                             </button>
                                         )}
                                     </td>

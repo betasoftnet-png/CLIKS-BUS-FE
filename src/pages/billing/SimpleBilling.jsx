@@ -9,6 +9,7 @@ import {
     ShoppingBag
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import BillingRecords from './BillingRecords';
 
 export const LOCAL_STORAGE_KEY = 'cliks_billing_records_v1';
 
@@ -43,6 +44,7 @@ const createEmptyProduct = () => ({
 
 const SimpleBilling = () => {
     const navigate = useNavigate();
+    const [activeTab, setActiveTab] = useState('create'); // 'create' | 'records'
     const [billingOrder, setBillingOrder] = useState(() => 'ORD-' + Math.floor(100000 + Math.random() * 900000));
     const [customerName, setCustomerName] = useState('');
     const [products, setProducts] = useState([createEmptyProduct()]);
@@ -138,6 +140,10 @@ const SimpleBilling = () => {
         }, 5000);
     };
 
+    if (activeTab === 'records') {
+        return <BillingRecords onNavigateToCreate={() => setActiveTab('create')} />;
+    }
+
     return (
         <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif" }}>
             
@@ -165,30 +171,14 @@ const SimpleBilling = () => {
 
                 <button
                     id="btn-view-billing-records"
-                    onClick={() => navigate('/billing/records')}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.65rem 1.25rem',
-                        background: '#FFFFFF',
-                        color: '#1B6B3A',
-                        border: '1.5px solid #1B6B3A',
-                        borderRadius: '12px',
-                        fontWeight: 700,
-                        fontSize: '0.875rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-                    }}
-                    onMouseOver={(e) => {
-                        e.currentTarget.style.background = '#F0FDF4';
-                    }}
-                    onMouseOut={(e) => {
-                        e.currentTarget.style.background = '#FFFFFF';
-                    }}
+                    type="button"
+                    onClick={() => setActiveTab('records')}
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
                 >
-                    View Billing Records <ArrowRight size={16} />
+                    <span>View Billing Records</span>
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
                 </button>
             </div>
 
@@ -220,7 +210,8 @@ const SimpleBilling = () => {
                         </div>
                     </div>
                     <button
-                        onClick={() => navigate('/billing/records')}
+                        type="button"
+                        onClick={() => setActiveTab('records')}
                         style={{
                             background: '#059669',
                             color: '#FFFFFF',
