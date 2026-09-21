@@ -281,8 +281,10 @@ export const BankStatementReconciliationModal = ({
             const sampleRow = rawRows[0] || {};
             const narrationKey  = findCol(sampleRow, ['narration', 'description', 'particulars', 'details', 'remarks']);
             const dateKey        = findCol(sampleRow, ['date', 'txn date', 'value date', 'transaction date']);
+            const refKey         = findCol(sampleRow, ['chq/ref no', 'ref no', 'reference number', 'cheque no', 'transaction reference', 'ref']);
             const withdrawalKey  = findCol(sampleRow, ['withdrawal amt', 'withdrawal amount', 'debit', 'debit amount', 'debit amt', 'dr']);
             const depositKey     = findCol(sampleRow, ['deposit amt', 'deposit amount', 'credit', 'credit amount', 'credit amt', 'cr']);
+            const balanceKey     = findCol(sampleRow, ['closing balance', 'balance', 'closing bal']);
             const amountKey      = findCol(sampleRow, ['amount', 'amt']); // generic fallback
             const typeKey        = findCol(sampleRow, ['type', 'cr/dr', 'txn type', 'transaction type']);
 
@@ -300,6 +302,7 @@ export const BankStatementReconciliationModal = ({
                 const cleanNum = v => parseFloat(String(v).replace(/[^0-9.-]+/g, '')) || 0;
                 const withdrawalAmt = withdrawalKey ? cleanNum(row[withdrawalKey]) : 0;
                 const depositAmt    = depositKey    ? cleanNum(row[depositKey])    : 0;
+                const closingBalance = balanceKey   ? cleanNum(row[balanceKey])    : 0;
 
                 // If both columns exist, use the non-zero one; if neither, fall back to generic amount
                 let amount = 0;
@@ -308,7 +311,8 @@ export const BankStatementReconciliationModal = ({
                     if (depositAmt > 0 && withdrawalAmt === 0) { amount = depositAmt; type = 'Credit'; }
                     else if (withdrawalAmt > 0 && depositAmt === 0) { amount = withdrawalAmt; type = 'Debit'; }
                     else if (depositAmt > 0 && withdrawalAmt > 0) { amount = depositAmt; type = 'Credit'; } // unusual; prefer deposit
-                    else continue; // both zero — skip
+                    else if (depositAmt === 0 && withdrawalAmt === 0) continue; // both zero — skip
+                    else { amount = depositAmt || withdrawalAmt; type = depositAmt > 0 ? 'Credit' : 'Debit'; }
                 } else if (amountKey) {
                     const raw = cleanNum(row[amountKey]);
                     if (raw === 0) continue;
@@ -336,10 +340,16 @@ export const BankStatementReconciliationModal = ({
                 newRows.push({
                     id: `stmt-up-${accountId}-${Date.now()}-${i}`,
                     accountId,
-                    description: rawNarration,
+                    statementTitle: rawNarration,
+                    description: rawNarration, // keep for compat
+                    statementRef: String(row[refKey] ?? '').trim(),
+                    statementDate: dateStr,
+                    date: dateStr, // keep for compat
+                    Debit: withdrawalAmt,
+                    Credit: depositAmt,
                     amount,
-                    date: dateStr,
-                    type
+                    type,
+                    closingBalance
                 });
             }
 
@@ -348,8 +358,9 @@ export const BankStatementReconciliationModal = ({
                 return;
             }
 
-            setStatementRecords(prev => [...newRows, ...prev.filter(r => r.accountId !== accountId)]);
-            setUploadNotification(`✅ Loaded ${newRows.length} transactions from "${fileName}" for ${currentAccount.bank_account_name}!`);
+            // Overwrite existing statement state completely
+            setStatementRecords(newRows);
+            setUploadNotification(`✅ Loaded ${newRows.length} transactions from "${fileName}" for ${currentAccount.bank_account_name}! Mock data has been removed.`);
 
         } catch (err) {
             console.error('Error reading statement file:', err);
@@ -795,17 +806,20 @@ export const BankStatementReconciliationModal = ({
                                                     type="button"
                                                     onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
                                                     style={{
-                                                        position: 'absolute', left: '-20px', top: '50%',
-                                                        transform: 'translateY(-50%)', zIndex: 10,
-                                                        width: '40px', height: '40px', borderRadius: '50%',
+                                                        position: 'absolute',
+                                                        left: '-25px',
+                                                        top: '50%',
+                                                        transform: 'translateY(-50%)',
+                                                        zIndex: 50,
+                                                        width: '44px', height: '44px', borderRadius: '50%',
                                                         background: '#0d3829', color: 'white',
                                                         border: '2px solid white', cursor: 'pointer',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        fontSize: '1.15rem', fontWeight: '900',
-                                                        boxShadow: '0 4px 14px rgba(0,0,0,0.22)', transition: 'background 0.15s'
+                                                        fontSize: '1.25rem', fontWeight: '900',
+                                                        boxShadow: '0 4px 20px rgba(0,0,0,0.3)', transition: 'all 0.2s'
                                                     }}
-                                                    onMouseOver={(e) => e.currentTarget.style.background = '#0a2a1e'}
-                                                    onMouseOut={(e) => e.currentTarget.style.background = '#0d3829'}
+                                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#155c41'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}
+                                                    onMouseLeave={(e) => { e.currentTarget.style.background = '#0d3829'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
                                                     title="Previous step"
                                                 >⇦</button>
                                             )}
@@ -816,17 +830,20 @@ export const BankStatementReconciliationModal = ({
                                                     type="button"
                                                     onClick={() => setCurrentStep(s => Math.min(2, s + 1))}
                                                     style={{
-                                                        position: 'absolute', right: '-20px', top: '50%',
-                                                        transform: 'translateY(-50%)', zIndex: 10,
-                                                        width: '40px', height: '40px', borderRadius: '50%',
+                                                        position: 'absolute',
+                                                        right: '-25px',
+                                                        top: '50%',
+                                                        transform: 'translateY(-50%)',
+                                                        zIndex: 50,
+                                                        width: '44px', height: '44px', borderRadius: '50%',
                                                         background: '#0d3829', color: 'white',
                                                         border: '2px solid white', cursor: 'pointer',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        fontSize: '1.15rem', fontWeight: '900',
-                                                        boxShadow: '0 4px 14px rgba(0,0,0,0.22)', transition: 'background 0.15s'
+                                                        fontSize: '1.25rem', fontWeight: '900',
+                                                        boxShadow: '0 4px 20px rgba(0,0,0,0.3)', transition: 'all 0.2s'
                                                     }}
-                                                    onMouseOver={(e) => e.currentTarget.style.background = '#0a2a1e'}
-                                                    onMouseOut={(e) => e.currentTarget.style.background = '#0d3829'}
+                                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#155c41'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}
+                                                    onMouseLeave={(e) => { e.currentTarget.style.background = '#0d3829'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
                                                     title="Next step"
                                                 >⇨</button>
                                             )}
@@ -860,7 +877,7 @@ export const BankStatementReconciliationModal = ({
                                                                     border: isExactAmount ? '1.5px solid #BBF7D0' : '1px solid #E2E8F0',
                                                                     boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
                                                                     display: 'grid',
-                                                                    gridTemplateColumns: '1fr 1fr 200px',
+                                                                    gridTemplateColumns: '1.1fr 1fr 180px',
                                                                     gap: '1.5rem',
                                                                     alignItems: 'center'
                                                                 }}>
@@ -868,26 +885,152 @@ export const BankStatementReconciliationModal = ({
                                                                     <div style={{ borderRight: '1px solid #F1F5F9', paddingRight: '1rem' }}>
                                                                         {statement ? (
                                                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{statement.description}</span>
+                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                                                    <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>
+                                                                                        {statement.statementTitle || statement.description}
+                                                                                    </span>
+                                                                                    {statement.statementRef && (
+                                                                                        <span style={{ fontSize: '0.62rem', fontWeight: '900', background: '#F1F5F9', color: '#475569', padding: '1px 6px', borderRadius: '4px', border: '1px solid #E2E8F0' }}>
+                                                                                            REF: {statement.statementRef}
+                                                                                        </span>
+                                                                                    )}
                                                                                     <span style={{
                                                                                         padding: '2px 8px', borderRadius: '9999px',
-                                                                                        fontSize: '0.65rem', fontWeight: '800',
+                                                                                        fontSize: '0.62rem', fontWeight: '800',
                                                                                         background: statement.type === 'Credit' ? '#DCFCE7' : '#FEE2E2',
-                                                                                        color: statement.type === 'Credit' ? '#15803D' : '#B91C1C'
+                                                                                        color: statement.type === 'Credit' ? '#15803D' : '#B91C1C',
+                                                                                        marginLeft: 'auto'
                                                                                     }}>{statement.type}</span>
                                                                                 </div>
-                                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                                                    <span style={{ fontSize: '1.1rem', fontWeight: '950', color: statement.type === 'Credit' ? '#059669' : '#DC2626' }}>
-                                                                                        {formatINR(statement.amount)}
-                                                                                    </span>
-                                                                                    <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '600' }}>{statement.date}</span>
+                                                                                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                                                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                                        <span style={{ fontSize: '1.15rem', fontWeight: '950', color: statement.type === 'Credit' ? '#059669' : '#DC2626' }}>
+                                                                                            {formatINR(statement.amount)}
+                                                                                        </span>
+                                                                                        {statement.closingBalance !== undefined && statement.closingBalance !== 0 && (
+                                                                                            <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '600' }}>Balance: {formatINR(statement.closingBalance)}</span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '700' }}>{statement.statementDate || statement.date}</span>
                                                                                 </div>
                                                                             </div>
                                                                         ) : (
                                                                             <div style={{ color: '#94A3B8', fontSize: '0.75rem', textAlign: 'center', fontStyle: 'italic' }}>No statement line</div>
                                                                         )}
                                                                     </div>
+
+                                                                    {/* Column 2: Platform History */}
+                                                                    <div style={{ borderRight: '1px solid #F1F5F9', paddingRight: '1rem' }}>
+                                                                        {platform ? (
+                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                                                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{platform.description}</span>
+                                                                                    <span style={{
+                                                                                        padding: '2px 6px', borderRadius: '4px',
+                                                                                        fontSize: '0.65rem', fontWeight: '800',
+                                                                                        background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE',
+                                                                                        flexShrink: 0
+                                                                                    }}>{platform.voucherNumber}</span>
+                                                                                </div>
+                                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                                    <span style={{ fontSize: '1.1rem', fontWeight: '950', color: '#0F172A' }}>{formatINR(platform.amount)}</span>
+                                                                                    <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '600' }}>{platform.date}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div style={{ color: '#94A3B8', fontSize: '0.75rem', textAlign: 'center', fontStyle: 'italic' }}>No platform record</div>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Column 3: Action Controls */}
+                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleMatchAccept(pair)}
+                                                                            style={{
+                                                                                padding: '0.45rem', borderRadius: '10px',
+                                                                                background: '#00875a', color: 'white',
+                                                                                border: 'none', fontWeight: '900',
+                                                                                fontSize: '0.78rem', cursor: 'pointer',
+                                                                                transition: 'all 0.15s',
+                                                                                boxShadow: '0 2px 8px rgba(0,135,90,0.2)'
+                                                                            }}
+                                                                            onMouseOver={(e) => e.currentTarget.style.background = '#006644'}
+                                                                            onMouseOut={(e) => e.currentTarget.style.background = '#00875a'}
+                                                                        >
+                                                                            <Check size={12} strokeWidth={3} style={{ display: 'inline', marginRight: '4px' }} /> Match
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleRejectUnmatch(pair)}
+                                                                            style={{
+                                                                                padding: '0.45rem', borderRadius: '10px',
+                                                                                background: 'white', color: '#DC2626',
+                                                                                border: '1.5px solid #FCA5A5', fontWeight: '900',
+                                                                                fontSize: '0.78rem', cursor: 'pointer',
+                                                                                transition: 'all 0.15s'
+                                                                            }}
+                                                                            onMouseOver={(e) => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.borderColor = '#EF4444'; }}
+                                                                            onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#FCA5A5'; }}
+                                                                        >
+                                                                            <X size={12} strokeWidth={2.5} style={{ display: 'inline', marginRight: '4px' }} /> Reject
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        }
+
+                                                        return (
+                                                            <div key={idx} style={{
+                                                                background: '#FFFFFF', padding: '1.25rem 1.5rem',
+                                                                borderRadius: '18px',
+                                                                border: isExactAmount ? '1.5px solid #BBF7D0' : '1px solid #E2E8F0',
+                                                                boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                                                                transition: 'all 0.2s'
+                                                            }}>
+                                                                {/* Step 0: Bank Statement */}
+                                                                {currentStep === 0 && (
+                                                                    statement ? (
+                                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                                                    <span style={{ fontSize: '1rem', fontWeight: '850', color: '#0F172A' }}>{statement.statementTitle || statement.description}</span>
+                                                                                    {statement.statementRef && (
+                                                                                        <span style={{ fontSize: '0.68rem', fontWeight: '900', background: '#F8FAFC', color: '#475569', padding: '2px 8px', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                                                                                            REF: {statement.statementRef}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <span style={{
+                                                                                    padding: '4px 12px', borderRadius: '9999px',
+                                                                                    fontSize: '0.75rem', fontWeight: '800',
+                                                                                    background: statement.type === 'Credit' ? '#DCFCE7' : '#FEE2E2',
+                                                                                    color: statement.type === 'Credit' ? '#15803D' : '#B91C1C',
+                                                                                    border: statement.type === 'Credit' ? '1px solid #86EFAC' : '1px solid #FCA5A5'
+                                                                                }}>{statement.type}</span>
+                                                                            </div>
+                                                                            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                                    <span style={{ fontSize: '1.6rem', fontWeight: '950', color: statement.type === 'Credit' ? '#059669' : '#DC2626', letterSpacing: '-0.02em' }}>
+                                                                                        {formatINR(statement.amount)}
+                                                                                    </span>
+                                                                                    {statement.closingBalance !== undefined && statement.closingBalance !== 0 && (
+                                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>
+                                                                                            <span>Closing Balance:</span>
+                                                                                            <span style={{ color: '#0F172A', fontWeight: '800' }}>{formatINR(statement.closingBalance)}</span>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: '#94A3B8', fontWeight: '700' }}>
+                                                                                    <Calendar size={14} />
+                                                                                    {statement.statementDate || statement.date}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div style={{ color: '#94A3B8', fontSize: '0.8rem', textAlign: 'center', fontStyle: 'italic', padding: '1rem' }}>No corresponding statement line</div>
+                                                                    )
+                                                                )}
 
                                                                     {/* Column 2: Platform History */}
                                                                     <div style={{ borderRight: '1px solid #F1F5F9', paddingRight: '1rem' }}>
