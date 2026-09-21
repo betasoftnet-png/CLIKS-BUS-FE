@@ -172,6 +172,26 @@ export const getEligibleExpensesForDebt = (debt, expenses = [], participants = [
     });
 };
 
+export const isPrimaryExpense = (item) => {
+    if (!item) return false;
+    return !item.isSettlement && item.type !== 'SETTLEMENT';
+};
+
+export const isSettlementLinkedToExpense = (settlement, exp) => {
+    if (!settlement || !exp) return false;
+    if (settlement.expenseId && String(settlement.expenseId) === String(exp.id)) return true;
+    if (settlement.relatedExpenseId && String(settlement.relatedExpenseId) === String(exp.id)) return true;
+    if (settlement.linkedExpenseId && String(settlement.linkedExpenseId) === String(exp.id)) return true;
+    if (settlement.title && exp.title) {
+        const sTitle = settlement.title.toLowerCase();
+        const expTitle = exp.title.toLowerCase().trim();
+        if (expTitle && (sTitle.includes(`for ${expTitle}:`) || sTitle.includes(`for ${expTitle}`) || sTitle.includes(expTitle))) {
+            return true;
+        }
+    }
+    return false;
+};
+
 const BusinessSplitCollect = () => {
     const { currency } = useCurrency();
     // ── State Management ───────────────────────────────────────────────────
@@ -775,7 +795,9 @@ const BusinessSplitCollect = () => {
         const eligible = getEligibleExpensesForDebt(debt, activeSplit?.expenses || [], activeSplit?.participants || []);
         if (eligible.length > 0) {
             setCustomPayExpenseId(eligible[0].id);
-            setCustomPayAmount(String(eligible[0].memberShare || debt.amount));
+            const rawShare = parseFloat(eligible[0].memberShare) || debt.amount;
+            const amountToPay = Math.min(rawShare, debt.amount);
+            setCustomPayAmount(String(amountToPay));
         } else {
             setCustomPayExpenseId('general');
             setCustomPayAmount(String(debt.amount));
@@ -788,7 +810,9 @@ const BusinessSplitCollect = () => {
         const eligible = getEligibleExpensesForDebt(customPayDebt, activeSplit?.expenses || [], activeSplit?.participants || []);
         const chosen = eligible.find(e => String(e.id) === String(expId));
         if (chosen) {
-            setCustomPayAmount(String(chosen.memberShare || customPayDebt?.amount || ''));
+            const rawShare = parseFloat(chosen.memberShare) || (customPayDebt?.amount || 0);
+            const amountToPay = customPayDebt ? Math.min(rawShare, customPayDebt.amount) : rawShare;
+            setCustomPayAmount(String(amountToPay));
         }
     };
 
@@ -799,6 +823,11 @@ const BusinessSplitCollect = () => {
         const payAmt = parseFloat(customPayAmount);
         if (!payAmt || payAmt <= 0) {
             alert("Please enter a valid payment amount greater than 0.");
+            return;
+        }
+
+        if (customPayDebt && payAmt > customPayDebt.amount) {
+            alert(`Payment amount cannot exceed the debtor's net outstanding debt of ${activeSplit.currencySymbol || '₹'}${customPayDebt.amount.toLocaleString()}.`);
             return;
         }
 
@@ -819,6 +848,8 @@ const BusinessSplitCollect = () => {
             splitType: 'custom',
             isSettlement: true,
             type: 'SETTLEMENT',
+            expenseId: chosenExp ? chosenExp.id : (customPayExpenseId !== 'general' ? customPayExpenseId : null),
+            relatedExpenseId: chosenExp ? chosenExp.id : (customPayExpenseId !== 'general' ? customPayExpenseId : null),
             shares: {
                 [customPayDebt.to]: payAmt
             }
@@ -1452,209 +1483,216 @@ const BusinessSplitCollect = () => {
                                      </div>
                                     
                                     {(() => {
-                                        const filteredExpenses = (activeSplit.expenses || []).filter(e => {
+                                        // Separate primary expenses and settlements
+                                        const allItems = activeSplit.expenses || [];
+                                        const primaryExpenses = allItems.filter(item => isPrimaryExpense(item));
+                                        const settlements = allItems.filter(item => !isPrimaryExpense(item));
+
+                                        // Filter primary expenses by search query (or if any of its linked settlements match)
+                                        const filteredPrimaryExpenses = primaryExpenses.filter(e => {
                                             if (!detailSearchQuery.trim()) return true;
                                             const term = detailSearchQuery.toLowerCase().trim();
-                                            return e.title.toLowerCase().includes(term) ||
+                                            const matchesExp = e.title.toLowerCase().includes(term) ||
                                                    e.paidBy.toLowerCase().includes(term) ||
                                                    String(e.amount).includes(term) ||
                                                    (e.attachment || '').toLowerCase().includes(term);
+                                            if (matchesExp) return true;
+                                            return settlements.some(s => isSettlementLinkedToExpense(s, e) && (
+                                                s.title.toLowerCase().includes(term) ||
+                                                s.paidBy.toLowerCase().includes(term) ||
+                                                String(s.amount).includes(term)
+                                            ));
                                         });
-                                        return filteredExpenses.length === 0 ? (
-                                            <div style={{ border: '2px dashed #E2E8F0', borderRadius: '24px', background: 'white', padding: '3.5rem 2rem', textAlign: 'center' }}>
-                                                <Receipt size={36} style={{ color: '#CBD5E1', marginBottom: '0.75rem' }} />
-                                                <h4 style={{ fontSize: '0.95rem', fontWeight: '850', color: '#334155', margin: '0 0 0.15rem 0' }}>No Expenses Found</h4>
-                                                <p style={{ fontSize: '0.8rem', color: '#64748B', maxWidth: '280px', margin: '0 auto' }}>
-                                                    {activeSplit.expenses.length === 0 
-                                                        ? 'Click "Add Expense" to record dinners, travel costs, or team bills in this split ticket.'
-                                                        : `No expenses match your search query "${detailSearchQuery}".`
-                                                    }
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-3" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                                {filteredExpenses.map(e => {
-                                                    const isSettlement = e.isSettlement || e.type === 'SETTLEMENT' || e.type === 'REPAYMENT' || (e.title && e.title.toLowerCase().startsWith('settlement'));
-                                                    
+
+                                        // Settlements not linked to any primary expense
+                                        const generalSettlements = settlements.filter(s => {
+                                            const isLinked = primaryExpenses.some(exp => isSettlementLinkedToExpense(s, exp));
+                                            if (isLinked) return false;
+                                            if (!detailSearchQuery.trim()) return true;
+                                            const term = detailSearchQuery.toLowerCase().trim();
+                                            return s.title.toLowerCase().includes(term) ||
+                                                   s.paidBy.toLowerCase().includes(term) ||
+                                                   String(s.amount).includes(term);
+                                        });
+
+                                        const hasItems = filteredPrimaryExpenses.length > 0 || generalSettlements.length > 0;
+
+                                        if (!hasItems) {
+                                            return (
+                                                <div style={{ border: '2px dashed #E2E8F0', borderRadius: '24px', background: 'white', padding: '3.5rem 2rem', textAlign: 'center' }}>
+                                                    <Receipt size={36} style={{ color: '#CBD5E1', marginBottom: '0.75rem' }} />
+                                                    <h4 style={{ fontSize: '0.95rem', fontWeight: '850', color: '#334155', margin: '0 0 0.15rem 0' }}>No Expenses Found</h4>
+                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', maxWidth: '280px', margin: '0 auto' }}>
+                                                        {activeSplit.expenses.length === 0 
+                                                            ? 'Click "Add Expense" to record dinners, travel costs, or team bills in this split ticket.'
+                                                            : `No expenses match your search query "${detailSearchQuery}".`
+                                                        }
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                {/* Primary Expenses Standalone Cards */}
+                                                {filteredPrimaryExpenses.map(e => {
                                                     // Determine split type badge
-                                                    const splitBadgeText = isSettlement 
-                                                        ? 'Settlement' 
-                                                        : (e.splitType && !e.splitType.toLowerCase().includes('equal') ? 'Custom Split' : 'Equal Split');
-                                                    
-                                                    const badgeStyle = isSettlement
-                                                        ? { bg: '#ECFDF5', color: '#059669', border: '#A7F3D0' }
-                                                        : (splitBadgeText === 'Equal Split'
-                                                            ? { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE' }
-                                                            : { bg: '#F5F3FF', color: '#7C3AED', border: '#DDD6FE' });
+                                                    const splitBadgeText = e.splitType && !e.splitType.toLowerCase().includes('equal') ? 'Custom Split' : 'Equal Split';
+                                                    const badgeStyle = splitBadgeText === 'Equal Split'
+                                                        ? { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE' }
+                                                        : { bg: '#F5F3FF', color: '#7C3AED', border: '#DDD6FE' };
+
+                                                    const linkedSettlements = settlements.filter(s => isSettlementLinkedToExpense(s, e));
 
                                                     return (
                                                         <div 
                                                             key={e.id} 
-                                                            className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:border-gray-200"
-                                                            style={{ 
-                                                                background: '#FFFFFF', 
-                                                                borderRadius: '16px', 
-                                                                border: '1px solid #F1F5F9', 
-                                                                padding: '1rem 1.25rem', 
-                                                                display: 'flex', 
-                                                                alignItems: 'center', 
-                                                                justifyContent: 'space-between',
-                                                                gap: '1rem',
-                                                                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
-                                                                position: 'relative'
+                                                            className="bg-white border rounded-3xl p-6 shadow-sm mb-6 transition-all duration-200 hover:shadow-md"
+                                                            style={{
+                                                                background: '#FFFFFF',
+                                                                borderRadius: '24px',
+                                                                border: '1px solid #E2E8F0',
+                                                                padding: '1.5rem',
+                                                                marginBottom: '1.5rem',
+                                                                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)'
                                                             }}
                                                         >
-                                                            {/* Left info: Icon & Content */}
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flex: 1, minWidth: 0 }}>
-                                                                {/* Icon indicator */}
-                                                                <div 
-                                                                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                                                                        isSettlement ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-50 text-slate-600 border border-gray-100'
-                                                                    }`}
-                                                                    style={{ 
-                                                                        width: '40px', 
-                                                                        height: '40px', 
-                                                                        borderRadius: '12px', 
-                                                                        background: isSettlement ? '#ECFDF5' : '#F8FAFC', 
-                                                                        color: isSettlement ? '#059669' : '#475569', 
-                                                                        border: isSettlement ? '1px solid #A7F3D0' : '1px solid #E2E8F0',
-                                                                        display: 'flex', 
-                                                                        alignItems: 'center', 
-                                                                        justifyContent: 'center', 
-                                                                        flexShrink: 0 
-                                                                    }}
-                                                                >
-                                                                    {isSettlement ? <Check size={19} strokeWidth={2.5} /> : <Receipt size={19} />}
-                                                                </div>
-
-                                                                {/* Details */}
-                                                                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                                        <h4 
-                                                                            className="font-bold text-gray-900"
-                                                                            style={{ 
-                                                                                margin: 0, 
-                                                                                fontSize: '0.95rem', 
-                                                                                fontWeight: '800', 
-                                                                                color: isSettlement ? '#065F46' : '#0F172A',
-                                                                                letterSpacing: '-0.01em'
-                                                                            }}
-                                                                        >
-                                                                            {e.title}
-                                                                        </h4>
-
-                                                                        {/* Distinct tag badge for "Equal Split", "Custom Split", or "Settlement" */}
-                                                                        <span 
-                                                                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                                                                                isSettlement 
-                                                                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                                                                                    : (splitBadgeText === 'Equal Split' 
-                                                                                        ? 'bg-blue-50 text-blue-700 border border-blue-200' 
-                                                                                        : 'bg-purple-50 text-purple-700 border border-purple-200')
-                                                                            }`}
-                                                                            style={{
-                                                                                display: 'inline-flex',
-                                                                                alignItems: 'center',
-                                                                                padding: '2px 8px',
-                                                                                borderRadius: '9999px',
-                                                                                fontSize: '0.68rem',
-                                                                                fontWeight: '750',
-                                                                                background: badgeStyle.bg,
-                                                                                color: badgeStyle.color,
-                                                                                border: `1px solid ${badgeStyle.border}`
-                                                                            }}
-                                                                        >
-                                                                            {splitBadgeText}
-                                                                        </span>
-                                                                    </div>
-
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                                        <span style={{ fontSize: '0.72rem', fontWeight: '500', color: '#64748B' }}>
-                                                                            Paid by <strong style={{ color: '#1E293B', fontWeight: '750' }}>{e.paidBy}</strong>
-                                                                        </span>
-                                                                        
-                                                                        <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#CBD5E1' }} />
-                                                                        
-                                                                        {/* Date pill / metadata */}
-                                                                        <span 
-                                                                            style={{ 
-                                                                                display: 'inline-flex', 
-                                                                                alignItems: 'center', 
-                                                                                gap: '4px',
-                                                                                fontSize: '0.7rem', 
-                                                                                fontWeight: '600', 
-                                                                                color: '#64748B',
-                                                                                background: '#F8FAFC',
-                                                                                border: '1px solid #E2E8F0',
-                                                                                padding: '1px 7px',
-                                                                                borderRadius: '6px'
-                                                                            }}
-                                                                        >
-                                                                            <Calendar size={11} style={{ color: '#94A3B8' }} /> {e.date}
-                                                                        </span>
-
-                                                                        {e.attachment && (
-                                                                            <>
-                                                                                <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#CBD5E1' }} />
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={(ev) => {
-                                                                                        ev.stopPropagation();
-                                                                                        const cleanName = e.attachment.split('/').pop().replace(/^\d+_/, '') || e.attachment;
-                                                                                        setPreviewAttachment({
-                                                                                            url: resolveFileUrl(e.attachment),
-                                                                                            name: cleanName
-                                                                                        });
-                                                                                    }}
-                                                                                    style={{
-                                                                                        display: 'inline-flex',
-                                                                                        alignItems: 'center',
-                                                                                        gap: '4px',
-                                                                                        background: '#EFF6FF',
-                                                                                        color: '#2563EB',
-                                                                                        border: '1px solid #BFDBFE',
-                                                                                        padding: '1px 8px',
-                                                                                        borderRadius: '6px',
-                                                                                        fontSize: '0.68rem',
-                                                                                        fontWeight: '750',
-                                                                                        cursor: 'pointer',
-                                                                                        maxWidth: '160px',
-                                                                                        transition: 'all 0.15s'
-                                                                                    }}
-                                                                                    title="Click to view attachment inline"
-                                                                                    onMouseOver={(ev) => ev.currentTarget.style.background = '#DBEAFE'}
-                                                                                    onMouseOut={(ev) => ev.currentTarget.style.background = '#EFF6FF'}
-                                                                                >
-                                                                                    <FileText size={11} style={{ flexShrink: 0 }} />
-                                                                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                                        {e.attachment.split('/').pop().replace(/^\d+_/, '') || 'Attachment'}
-                                                                                    </span>
-                                                                                </button>
-                                                                            </>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Amount & Actions */}
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexShrink: 0 }}>
-                                                                <div style={{ textAlign: 'right' }}>
-                                                                    <span 
-                                                                        className="font-black"
+                                                            {/* Expense Header */}
+                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                                                                {/* Left: Icon & Content */}
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flex: 1, minWidth: '240px' }}>
+                                                                    <div 
                                                                         style={{ 
-                                                                            fontSize: '1.1rem', 
-                                                                            fontWeight: '900', 
-                                                                            color: isSettlement ? '#059669' : '#0F172A',
-                                                                            letterSpacing: '-0.02em',
-                                                                            display: 'block'
+                                                                            width: '42px', 
+                                                                            height: '42px', 
+                                                                            borderRadius: '12px', 
+                                                                            background: '#F8FAFC', 
+                                                                            color: '#475569', 
+                                                                            border: '1px solid #E2E8F0',
+                                                                            display: 'flex', 
+                                                                            alignItems: 'center', 
+                                                                            justifyContent: 'center', 
+                                                                            flexShrink: 0 
                                                                         }}
                                                                     >
-                                                                        {activeSplit.currencySymbol || '₹'}{(parseFloat(e.amount) || 0).toLocaleString()}
-                                                                    </span>
+                                                                        <Receipt size={20} />
+                                                                    </div>
+
+                                                                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                                            <h4 
+                                                                                style={{ 
+                                                                                    margin: 0, 
+                                                                                    fontSize: '1rem', 
+                                                                                    fontWeight: '800', 
+                                                                                    color: '#0F172A',
+                                                                                    letterSpacing: '-0.01em'
+                                                                                }}
+                                                                            >
+                                                                                {e.title}
+                                                                            </h4>
+
+                                                                            <span 
+                                                                                style={{
+                                                                                    display: 'inline-flex',
+                                                                                    alignItems: 'center',
+                                                                                    padding: '2px 8px',
+                                                                                    borderRadius: '9999px',
+                                                                                    fontSize: '0.68rem',
+                                                                                    fontWeight: '750',
+                                                                                    background: badgeStyle.bg,
+                                                                                    color: badgeStyle.color,
+                                                                                    border: `1px solid ${badgeStyle.border}`
+                                                                                }}
+                                                                            >
+                                                                                {splitBadgeText}
+                                                                            </span>
+                                                                        </div>
+
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                                            <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#64748B' }}>
+                                                                                Paid by <strong style={{ color: '#1E293B', fontWeight: '750' }}>{e.paidBy}</strong>
+                                                                            </span>
+                                                                            
+                                                                            <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#CBD5E1' }} />
+                                                                            
+                                                                            <span 
+                                                                                style={{ 
+                                                                                    display: 'inline-flex', 
+                                                                                    alignItems: 'center', 
+                                                                                    gap: '4px',
+                                                                                    fontSize: '0.7rem', 
+                                                                                    fontWeight: '600', 
+                                                                                    color: '#64748B',
+                                                                                    background: '#F8FAFC',
+                                                                                    border: '1px solid #E2E8F0',
+                                                                                    padding: '1px 7px',
+                                                                                    borderRadius: '6px'
+                                                                                }}
+                                                                            >
+                                                                                <Calendar size={11} style={{ color: '#94A3B8' }} /> {e.date}
+                                                                            </span>
+
+                                                                            {e.attachment && (
+                                                                                <>
+                                                                                    <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#CBD5E1' }} />
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={(ev) => {
+                                                                                            ev.stopPropagation();
+                                                                                            const cleanName = e.attachment.split('/').pop().replace(/^\d+_/, '') || e.attachment;
+                                                                                            setPreviewAttachment({
+                                                                                                url: resolveFileUrl(e.attachment),
+                                                                                                name: cleanName
+                                                                                            });
+                                                                                        }}
+                                                                                        style={{
+                                                                                            display: 'inline-flex',
+                                                                                            alignItems: 'center',
+                                                                                            gap: '4px',
+                                                                                            background: '#EFF6FF',
+                                                                                            color: '#2563EB',
+                                                                                            border: '1px solid #BFDBFE',
+                                                                                            padding: '1px 8px',
+                                                                                            borderRadius: '6px',
+                                                                                            fontSize: '0.68rem',
+                                                                                            fontWeight: '750',
+                                                                                            cursor: 'pointer',
+                                                                                            maxWidth: '160px',
+                                                                                            transition: 'all 0.15s'
+                                                                                        }}
+                                                                                        title="Click to view attachment inline"
+                                                                                        onMouseOver={(ev) => ev.currentTarget.style.background = '#DBEAFE'}
+                                                                                        onMouseOut={(ev) => ev.currentTarget.style.background = '#EFF6FF'}
+                                                                                    >
+                                                                                        <FileText size={11} style={{ flexShrink: 0 }} />
+                                                                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                                            {e.attachment.split('/').pop().replace(/^\d+_/, '') || 'Attachment'}
+                                                                                        </span>
+                                                                                    </button>
+                                                                                </>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
 
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                                                    {!isSettlement && (
+                                                                {/* Right: Amount & Actions */}
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexShrink: 0 }}>
+                                                                    <div style={{ textAlign: 'right' }}>
+                                                                        <span 
+                                                                            style={{ 
+                                                                                fontSize: '1.2rem', 
+                                                                                fontWeight: '900', 
+                                                                                color: '#0F172A',
+                                                                                letterSpacing: '-0.02em',
+                                                                                display: 'block'
+                                                                            }}
+                                                                        >
+                                                                            {activeSplit.currencySymbol || '₹'}{(parseFloat(e.amount) || 0).toLocaleString()}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                                                                         <button 
                                                                             type="button"
                                                                             onClick={() => openEditExpenseModal(e)}
@@ -1682,39 +1720,216 @@ const BusinessSplitCollect = () => {
                                                                         >
                                                                             <Pencil size={14} />
                                                                         </button>
-                                                                    )}
-                                                                    <button 
-                                                                        type="button"
-                                                                        onClick={() => handleDeleteExpense(e.id)}
-                                                                        title="Delete Expense"
-                                                                        style={{ 
-                                                                            background: 'transparent', 
-                                                                            border: 'none', 
-                                                                            color: '#94A3B8', 
-                                                                            cursor: 'pointer', 
-                                                                            padding: '6px', 
-                                                                            borderRadius: '8px',
-                                                                            display: 'flex', 
-                                                                            alignItems: 'center', 
-                                                                            justifyContent: 'center',
-                                                                            transition: 'all 0.15s'
-                                                                        }}
-                                                                        onMouseOver={(ev) => {
-                                                                            ev.currentTarget.style.color = '#EF4444';
-                                                                            ev.currentTarget.style.background = '#FEF2F2';
-                                                                        }}
-                                                                        onMouseOut={(ev) => {
-                                                                            ev.currentTarget.style.color = '#94A3B8';
-                                                                            ev.currentTarget.style.background = 'transparent';
-                                                                        }}
-                                                                    >
-                                                                        <X size={16} />
-                                                                    </button>
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={() => handleDeleteExpense(e.id)}
+                                                                            title="Delete Expense"
+                                                                            style={{ 
+                                                                                background: 'transparent', 
+                                                                                border: 'none', 
+                                                                                color: '#94A3B8', 
+                                                                                cursor: 'pointer', 
+                                                                                padding: '6px', 
+                                                                                borderRadius: '8px',
+                                                                                display: 'flex', 
+                                                                                alignItems: 'center', 
+                                                                                justifyContent: 'center',
+                                                                                transition: 'all 0.15s'
+                                                                            }}
+                                                                            onMouseOver={(ev) => {
+                                                                                ev.currentTarget.style.color = '#EF4444';
+                                                                                ev.currentTarget.style.background = '#FEF2F2';
+                                                                            }}
+                                                                            onMouseOut={(ev) => {
+                                                                                ev.currentTarget.style.color = '#94A3B8';
+                                                                                ev.currentTarget.style.background = 'transparent';
+                                                                            }}
+                                                                        >
+                                                                            <X size={16} />
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             </div>
+
+                                                            {/* Settlements linked directly inside this card container */}
+                                                            {linkedSettlements.length > 0 && (
+                                                                <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px dashed #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.15rem' }}>
+                                                                        <span style={{ fontSize: '0.72rem', fontWeight: '850', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                            <Check size={14} strokeWidth={2.5} /> Settlements ({linkedSettlements.length})
+                                                                        </span>
+                                                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#059669' }}>
+                                                                            Settled: {activeSplit.currencySymbol || '₹'}{linkedSettlements.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0).toLocaleString()}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {linkedSettlements.map(s => (
+                                                                        <div 
+                                                                            key={s.id}
+                                                                            style={{
+                                                                                background: '#F0FDF4',
+                                                                                border: '1px solid #BBF7D0',
+                                                                                borderRadius: '16px',
+                                                                                padding: '0.75rem 1rem',
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'space-between',
+                                                                                gap: '0.75rem'
+                                                                            }}
+                                                                        >
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                                                                                <div style={{ 
+                                                                                    width: '32px', 
+                                                                                    height: '32px', 
+                                                                                    borderRadius: '10px', 
+                                                                                    background: '#DCFCE7', 
+                                                                                    color: '#059669', 
+                                                                                    border: '1px solid #86EFAC', 
+                                                                                    display: 'flex', 
+                                                                                    alignItems: 'center', 
+                                                                                    justifyContent: 'center', 
+                                                                                    flexShrink: 0 
+                                                                                }}>
+                                                                                    <Check size={16} strokeWidth={2.5} />
+                                                                                </div>
+                                                                                <div style={{ minWidth: 0 }}>
+                                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                                                                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#065F46', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                                            {s.title}
+                                                                                        </span>
+                                                                                        <span style={{
+                                                                                            display: 'inline-flex',
+                                                                                            alignItems: 'center',
+                                                                                            padding: '1px 6px',
+                                                                                            borderRadius: '9999px',
+                                                                                            fontSize: '0.62rem',
+                                                                                            fontWeight: '750',
+                                                                                            background: '#DCFCE7',
+                                                                                            color: '#059669',
+                                                                                            border: '1px solid #86EFAC'
+                                                                                        }}>
+                                                                                            Settlement
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div style={{ fontSize: '0.7rem', color: '#16A34A', fontWeight: '600', marginTop: '1px' }}>
+                                                                                        Paid by <strong style={{ color: '#065F46' }}>{s.paidBy}</strong> • {s.date}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                                                                                <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#059669' }}>
+                                                                                    +{activeSplit.currencySymbol || '₹'}{(parseFloat(s.amount) || 0).toLocaleString()}
+                                                                                </span>
+                                                                                <button 
+                                                                                    type="button"
+                                                                                    onClick={() => handleDeleteExpense(s.id)}
+                                                                                    title="Delete Settlement"
+                                                                                    style={{ 
+                                                                                        background: 'transparent', 
+                                                                                        border: 'none', 
+                                                                                        color: '#94A3B8', 
+                                                                                        cursor: 'pointer', 
+                                                                                        padding: '4px', 
+                                                                                        borderRadius: '6px',
+                                                                                        display: 'flex', 
+                                                                                        alignItems: 'center', 
+                                                                                        justifyContent: 'center',
+                                                                                        transition: 'all 0.15s'
+                                                                                    }}
+                                                                                    onMouseOver={(ev) => ev.currentTarget.style.color = '#EF4444'}
+                                                                                    onMouseOut={(ev) => ev.currentTarget.style.color = '#94A3B8'}
+                                                                                >
+                                                                                    <X size={15} />
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     );
                                                 })}
+
+                                                {/* Unlinked / General Settlements Card (if any) */}
+                                                {generalSettlements.length > 0 && (
+                                                    <div 
+                                                        className="bg-white border rounded-3xl p-6 shadow-sm mb-6"
+                                                        style={{
+                                                            background: '#FFFFFF',
+                                                            borderRadius: '24px',
+                                                            border: '1px solid #E2E8F0',
+                                                            padding: '1.5rem',
+                                                            marginBottom: '1.5rem',
+                                                            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)'
+                                                        }}
+                                                    >
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.85rem' }}>
+                                                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                                <Check size={18} strokeWidth={2.5} />
+                                                            </div>
+                                                            <div>
+                                                                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800', color: '#065F46' }}>Other Settlements</h4>
+                                                                <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748B' }}>Direct or group debt settlements</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                            {generalSettlements.map(s => (
+                                                                <div 
+                                                                    key={s.id}
+                                                                    style={{
+                                                                        background: '#F0FDF4',
+                                                                        border: '1px solid #BBF7D0',
+                                                                        borderRadius: '16px',
+                                                                        padding: '0.75rem 1rem',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'space-between',
+                                                                        gap: '0.75rem'
+                                                                    }}
+                                                                >
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                                                                        <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#DCFCE7', color: '#059669', border: '1px solid #86EFAC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                                            <Check size={16} strokeWidth={2.5} />
+                                                                        </div>
+                                                                        <div style={{ minWidth: 0 }}>
+                                                                            <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#065F46' }}>
+                                                                                {s.title}
+                                                                            </div>
+                                                                            <div style={{ fontSize: '0.7rem', color: '#16A34A', fontWeight: '600' }}>
+                                                                                Paid by <strong style={{ color: '#065F46' }}>{s.paidBy}</strong> • {s.date}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                                                                        <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#059669' }}>
+                                                                            +{activeSplit.currencySymbol || '₹'}{(parseFloat(s.amount) || 0).toLocaleString()}
+                                                                        </span>
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={() => handleDeleteExpense(s.id)}
+                                                                            title="Delete Settlement"
+                                                                            style={{ 
+                                                                                background: 'transparent', 
+                                                                                border: 'none', 
+                                                                                color: '#94A3B8', 
+                                                                                cursor: 'pointer', 
+                                                                                padding: '4px', 
+                                                                                borderRadius: '6px' 
+                                                                            }}
+                                                                            onMouseOver={(ev) => ev.currentTarget.style.color = '#EF4444'}
+                                                                            onMouseOut={(ev) => ev.currentTarget.style.color = '#94A3B8'}
+                                                                        >
+                                                                            <X size={15} />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })()}
@@ -2299,7 +2514,7 @@ const BusinessSplitCollect = () => {
                                                             </div>
                                                             <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '0.75rem' }}>
                                                                 <span style={{ fontSize: '0.65rem', fontWeight: '800', color: isSelected ? '#047857' : '#64748B', display: 'block', textTransform: 'uppercase' }}>
-                                                                    Your Share
+                                                                    Member Share
                                                                 </span>
                                                                 <span style={{ fontSize: '0.88rem', fontWeight: '900', color: isSelected ? '#059669' : '#0F172A' }}>
                                                                     {activeSplit.currencySymbol || '₹'}{exp.memberShare.toLocaleString()}
@@ -2327,7 +2542,11 @@ const BusinessSplitCollect = () => {
                                                     type="button"
                                                     onClick={() => {
                                                         const exp = eligibleExpenses.find(e => String(e.id) === String(customPayExpenseId));
-                                                        if (exp) setCustomPayAmount(String(exp.memberShare));
+                                                        if (exp && customPayDebt) {
+                                                            const rawShare = parseFloat(exp.memberShare) || customPayDebt.amount;
+                                                            const amountToPay = Math.min(rawShare, customPayDebt.amount);
+                                                            setCustomPayAmount(String(amountToPay));
+                                                        }
                                                     }}
                                                     style={{ background: 'none', border: 'none', color: '#059669', fontSize: '0.72rem', fontWeight: '850', cursor: 'pointer', padding: 0 }}
                                                 >
@@ -2343,10 +2562,23 @@ const BusinessSplitCollect = () => {
                                                 required
                                                 type="number" 
                                                 min="0.01" 
+                                                max={customPayDebt.amount}
                                                 step="any"
                                                 placeholder="0.00"
                                                 value={customPayAmount}
-                                                onChange={(e) => setCustomPayAmount(e.target.value)}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (val === '') {
+                                                        setCustomPayAmount('');
+                                                        return;
+                                                    }
+                                                    const num = parseFloat(val);
+                                                    if (customPayDebt && num > customPayDebt.amount) {
+                                                        setCustomPayAmount(String(customPayDebt.amount));
+                                                    } else {
+                                                        setCustomPayAmount(val);
+                                                    }
+                                                }}
                                                 style={{
                                                     width: '100%',
                                                     padding: '0.75rem 1rem 0.75rem 2.25rem',
@@ -2362,6 +2594,11 @@ const BusinessSplitCollect = () => {
                                                 onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
                                             />
                                         </div>
+                                        {customPayDebt && Number(customPayAmount) >= customPayDebt.amount && (
+                                            <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: '700', marginTop: '0.3rem' }}>
+                                                Capped at debtor's net outstanding debt ({activeSplit.currencySymbol || '₹'}{customPayDebt.amount.toLocaleString()})
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Action Buttons */}
@@ -2378,18 +2615,18 @@ const BusinessSplitCollect = () => {
                                         </button>
                                         <button 
                                             type="submit" 
-                                            disabled={!customPayAmount || Number(customPayAmount) <= 0}
+                                            disabled={!customPayAmount || Number(customPayAmount) <= 0 || (customPayDebt && Number(customPayAmount) > customPayDebt.amount)}
                                             style={{ 
                                                 flex: 1.5, 
                                                 padding: '0.8rem', 
                                                 borderRadius: '14px', 
                                                 border: 'none', 
-                                                background: (!customPayAmount || Number(customPayAmount) <= 0) ? '#94A3B8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
+                                                background: (!customPayAmount || Number(customPayAmount) <= 0 || (customPayDebt && Number(customPayAmount) > customPayDebt.amount)) ? '#94A3B8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
                                                 color: 'white', 
                                                 fontWeight: '850', 
                                                 fontSize: '0.85rem', 
-                                                cursor: (!customPayAmount || Number(customPayAmount) <= 0) ? 'not-allowed' : 'pointer',
-                                                boxShadow: (!customPayAmount || Number(customPayAmount) <= 0) ? 'none' : '0 4px 14px rgba(5, 150, 105, 0.25)' 
+                                                cursor: (!customPayAmount || Number(customPayAmount) <= 0 || (customPayDebt && Number(customPayAmount) > customPayDebt.amount)) ? 'not-allowed' : 'pointer',
+                                                boxShadow: (!customPayAmount || Number(customPayAmount) <= 0 || (customPayDebt && Number(customPayAmount) > customPayDebt.amount)) ? 'none' : '0 4px 14px rgba(5, 150, 105, 0.25)' 
                                             }}
                                         >
                                             Record Settlement
