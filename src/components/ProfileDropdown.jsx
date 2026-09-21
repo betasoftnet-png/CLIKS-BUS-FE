@@ -854,7 +854,20 @@ export function ProfileDropdown({
 
                                     {/* Manage Account Button */}
                                     <button
-                                        onClick={() => { onAccount?.(); setOpen(false); }}
+                                        onClick={() => {
+                                            const token = localStorage.getItem('bnx_auth_token') ||
+                                                          localStorage.getItem('books_auth_token') ||
+                                                          localStorage.getItem('bnx_token') ||
+                                                          localStorage.getItem('token') ||
+                                                          localStorage.getItem('authToken');
+
+                                            const targetUrl = token
+                                                ? `https://account.beta-softnet.com/security?token=${encodeURIComponent(token)}`
+                                                : 'https://account.beta-softnet.com/security';
+
+                                            window.open(targetUrl, "_blank");
+                                            setOpen(false);
+                                        }}
                                         style={{
                                             display: 'flex',
                                             alignItems: 'center',
