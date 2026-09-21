@@ -390,7 +390,9 @@ const SimpleBilling = () => {
                                     <th style={{ padding: '0.5rem 0.75rem', width: '20%' }}>Selling Rate (₹)</th>
                                     <th style={{ padding: '0.5rem 0.75rem', width: '15%' }}>Quantity</th>
                                     <th style={{ padding: '0.5rem 0.75rem', width: '20%', textAlign: 'right' }}>Automatic Total (₹)</th>
-                                    <th style={{ padding: '0.5rem 0.75rem', width: '5%', textAlign: 'center' }}>Action</th>
+                                    <th style={{ padding: '0.5rem 0.75rem', width: '5%' }}>
+                                        <div className="flex justify-center whitespace-nowrap">ACTION</div>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -477,31 +479,17 @@ const SimpleBilling = () => {
                                             </td>
 
                                             {/* Action Delete */}
-                                            <td style={{ padding: '0.75rem', textAlign: 'center', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveProduct(index)}
-                                                    style={{
-                                                        background: 'transparent',
-                                                        border: 'none',
-                                                        color: '#94A3B8',
-                                                        cursor: 'pointer',
-                                                        padding: '6px',
-                                                        borderRadius: '8px',
-                                                        transition: 'all 0.2s ease'
-                                                    }}
-                                                    onMouseOver={(e) => {
-                                                        e.currentTarget.style.color = '#EF4444';
-                                                        e.currentTarget.style.background = '#FEE2E2';
-                                                    }}
-                                                    onMouseOut={(e) => {
-                                                        e.currentTarget.style.color = '#94A3B8';
-                                                        e.currentTarget.style.background = 'transparent';
-                                                    }}
-                                                    title="Remove Product"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
+                                            <td style={{ padding: '0.75rem', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }}>
+                                                <div className="flex justify-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveProduct(index)}
+                                                        className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                                        title="Remove Product"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );

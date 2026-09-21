@@ -46,6 +46,7 @@ const BusinessPeople = () => {
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
     const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+    const [isSubmittingAlert, setIsSubmittingAlert] = useState(false);
     const [selectedPersonId, setSelectedPersonId] = useState(null);
     const [editingContactId, setEditingContactId] = useState(null);
     const [editingTxId, setEditingTxId] = useState(null);
@@ -415,6 +416,9 @@ const BusinessPeople = () => {
             setIsReminderModalOpen(false);
             setReminderForm({ person_id: '', title: '', amount: '', due_date: new Date().toISOString().split('T')[0], notes: '' });
             alert('Repayment alert dispatched successfully.');
+        },
+        onSettled: () => {
+            setIsSubmittingAlert(false);
         }
     });
 
@@ -649,6 +653,11 @@ const BusinessPeople = () => {
 
     const handleSaveReminder = (e) => {
         e.preventDefault();
+        e.stopPropagation();
+
+        if (isSubmittingAlert) return;
+        setIsSubmittingAlert(true);
+
         setReminderAmountError('');
         if (!reminderForm.person_id) return alert('Please select a target contact.');
         if (!reminderForm.due_date) return alert('Please select a maturity / due date.');
@@ -1588,8 +1597,8 @@ const BusinessPeople = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Maturity / Due Date <span style={{ color: '#EF4444' }}>*</span></label>
                                     <input required type="date" value={reminderForm.due_date} onChange={(e) => setReminderForm({ ...reminderForm, due_date: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
-                                <button type="submit" disabled={createReminderMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer' }}>
-                                    {createReminderMutation.isPending ? 'Scheduling Alert...' : 'Dispatch Repayment Alert'}
+                                <button type="submit" disabled={isSubmittingAlert || createReminderMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer' }}>
+                                    {isSubmittingAlert || createReminderMutation.isPending ? 'Scheduling Alert...' : 'Dispatch Repayment Alert'}
                                 </button>
                             </form>
                         </Motion.div>
@@ -1900,9 +1909,9 @@ const BusinessPeople = () => {
                         </p>
                     </div>
                 ) : (
-                    filtered.map((t, i) => (
+                    filtered.map((t) => (
                         <div
-                            key={i}
+                            key={t.id}
                             style={{
                                 padding: '1.1rem 1.25rem',
                                 background: 'white',
@@ -2191,8 +2200,8 @@ const BusinessPeople = () => {
                                                                     <p style={{ margin: 0, color: '#94A3B8', fontSize: '0.85rem', fontStyle: 'italic', fontWeight: '600' }}>All accounts cleared.</p>
                                                                 </div>
                                                             ) : (
-                                                                (personReminders.data || personReminders || []).slice(0, 4).map((rem, i) => (
-                                                                    <div key={i} style={{ padding: '1.1rem 1.25rem', background: 'white', border: '1px solid #E2E8F0', borderLeft: '4px solid #F59E0B', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
+                                                                (personReminders.data || personReminders || []).slice(0, 4).map((rem) => (
+                                                                    <div key={rem.id} style={{ padding: '1.1rem 1.25rem', background: 'white', border: '1px solid #E2E8F0', borderLeft: '4px solid #F59E0B', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
                                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                                             <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#334155' }}>{rem.title}</span>
                                                                             <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#1E293B' }}>{formatCurr(rem.amount)}</span>
