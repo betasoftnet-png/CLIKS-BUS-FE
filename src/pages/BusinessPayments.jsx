@@ -116,10 +116,6 @@ const BusinessPayments = () => {
         queryFn: () => accountingService.getLedger()
     });
 
-    const handleTemplateVisibility = () => {
-        alert("Cash in Hand Template Visibility: Displaying default standard ledger format.");
-    };
-
     const handleAttachTransaction = () => {
         alert("Attach Transaction Detail: Please select a transaction or upload attachment.");
     };
@@ -1228,15 +1224,6 @@ const BusinessPayments = () => {
                         </div>
 
                         <div className="flex items-center gap-2" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <button 
-                            type="button" 
-                            onClick={handleTemplateVisibility}
-                            className="px-3 py-1.5 text-xs font-semibold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
-                            style={{ padding: '0.45rem 0.85rem', fontSize: '0.75rem', fontWeight: '750', color: '#2563EB', border: '1px solid #BFDBFE', borderRadius: '8px', background: 'white', cursor: 'pointer' }}
-                          >
-                            CASH IN HAND TEMPLATE VISIBILITY
-                          </button>
-
                           <button 
                             type="button" 
                             onClick={() => setIsReconcileModalOpen(true)}
