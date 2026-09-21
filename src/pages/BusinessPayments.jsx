@@ -689,34 +689,47 @@ const BusinessPayments = () => {
         }
 
         setIsSubmitting(true);
+        const supplierPaymentAmount = supplierForm.paid_amount;
+        const paidAmt = Number(supplierPaymentAmount);
+
+        if (isNaN(paidAmt) || paidAmt <= 0) {
+            alert('Supplier payment amount must be strictly greater than 0.');
+            setIsSubmitting(false);
+            return;
+        }
+
+        const totalAmt = Number(supplierForm.total_amount || 0);
+
+        if (isNaN(totalAmt) || totalAmt < 0) {
+            alert('Original due amount must be 0 or greater.');
+            setIsSubmitting(false);
+            return;
+        }
+
+        const finalPaidAmt = (totalAmt > 0 && paidAmt > totalAmt) ? totalAmt : paidAmt;
+
         const payload = {
             supplier_name: supplierForm.supplier_name,
             purchase_id: supplierForm.purchase_id,
-            amount: paidAmt,
-            paid_amount: paidAmt,
+            amount: finalPaidAmt,
+            paid_amount: finalPaidAmt,
             original_due_amount: totalAmt,
             total_original: totalAmt,
             total_amount: totalAmt,
             payment_mode: supplierForm.payment_mode,
             reference_number: supplierForm.transaction_reference,
-            notes: JSON.stringify({ original_due_amount: totalAmt, paid_amount: paidAmt })
+            notes: JSON.stringify({ original_due_amount: totalAmt, paid_amount: finalPaidAmt })
         };
-
-        let isSuccess = false;
-        let returnedTx = {};
 
         try {
             const rawRes = await apiClient.post('/payments/pay', payload);
 
             // Treat any HTTP status between 200 and 299 as a complete success.
-            // Do NOT display the failure popup if res.status is 200 or 201.
             const statusCode = rawRes?.status ?? rawRes?.statusCode ?? (rawRes?.ok ? 200 : 201);
             const resData = rawRes?.data ?? rawRes;
-            returnedTx = (resData && typeof resData === 'object' && resData.data) ? resData.data : (resData || {});
+            const returnedTx = (resData && typeof resData === 'object' && resData.data) ? resData.data : (resData || {});
 
             const isStatusSuccess = (typeof statusCode === 'number' && statusCode >= 200 && statusCode <= 299) ||
-                statusCode === 200 ||
-                statusCode === 201 ||
                 rawRes?.status === 'ok' ||
                 rawRes?.success === true ||
                 rawRes?.ok === true ||
@@ -724,28 +737,6 @@ const BusinessPayments = () => {
                 returnedTx?.payment_id !== undefined;
 
             if (isStatusSuccess) {
-                isSuccess = true;
-            } else {
-                alert(rawRes?.data?.message || rawRes?.message || 'Failed to process supplier payment. Please try again.');
-            }
-        } catch (err) {
-            const errStatus = err?.status ?? err?.response?.status;
-            // Never treat 200, 201, or 200-299 as an error
-            if (
-                (typeof errStatus === 'number' && errStatus >= 200 && errStatus <= 299) ||
-                errStatus === 200 ||
-                errStatus === 201
-            ) {
-                isSuccess = true;
-                returnedTx = err?.response?.data?.data || err?.response?.data || {};
-            } else {
-                const msg = err?.response?.data?.message || err?.response?.data?.error?.message || err?.message || 'Failed to process supplier payment. Please try again.';
-                alert(msg);
-            }
-        }
-
-        if (isSuccess) {
-            try {
                 const newId = returnedTx?.id || returnedTx?.payment_id || Date.now();
                 const year = new Date().getFullYear();
                 const paymentNumber = returnedTx?.payment_number || `VCH-${year}-${newId}`;
@@ -761,40 +752,38 @@ const BusinessPayments = () => {
                     supplier_name: supplierForm.supplier_name || 'General Vendor',
                     purchase_id: supplierForm.purchase_id || `BILL-REF-${newId}`,
                     total_amount: totalAmt,
-                    paid_amount: paidAmt,
-                    pending_amount: Math.max(0, totalAmt - paidAmt),
+                    paid_amount: finalPaidAmt,
+                    pending_amount: Math.max(0, totalAmt - finalPaidAmt),
                     payment_mode: supplierForm.payment_mode || 'Bank Transfer',
                     cheque_number: supplierForm.transaction_reference || `CHQ-${newId}`,
                     reconciliation_status: 'matched',
                     ...returnedTx
                 };
 
-                // Instant UI Update:
-                // 1. Immediately close the modal
+                // Instant UI Update strictly within the success block
                 setIsSupplierModalOpen(false);
 
-                // 2. Prepend created item into supplierPayables state so VCH-... instantly appears at the top
                 setSupplierPayables(prev => {
                     const prevArray = Array.isArray(prev) ? prev : [];
                     return [newTransaction, ...prevArray.filter(item => item && item.payment_id !== newId)];
                 });
 
-                // 3. Reset form and ensure payables tab is active
                 setSupplierForm(prev => ({ ...prev, total_amount: '', paid_amount: '' }));
                 setActiveTab('payables');
 
-                // 4. Alert success
                 alert("Successfully paid");
 
-                // 5. Invalidate/refetch queries in background without throwing or showing error
+                // Invalidate/refetch queries in background
                 fetchSupplierPayables().catch(e => console.warn('Background sync:', e));
-            } catch (uiErr) {
-                console.error('Error updating UI state after payment:', uiErr);
-                setIsSupplierModalOpen(false);
+            } else {
+                alert(rawRes?.data?.message || rawRes?.message || 'Failed to process supplier payment. Please try again.');
             }
+        } catch (err) {
+            const msg = err?.response?.data?.message || err?.response?.data?.error?.message || err?.message || 'Failed to process supplier payment. Please try again.';
+            alert(msg);
+        } finally {
+            setIsSubmitting(false);
         }
-
-        setIsSubmitting(false);
     };
 
     const handleInternalTransfer = (e) => {
@@ -1437,14 +1426,16 @@ const BusinessPayments = () => {
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Paid amount (Receipt worth, {currency.symbol})</label>
                                 <input 
                                     required 
-                                    type="number" 
-                                    min="0.01"
-                                    step="any"
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    min="1"
+                                    step="1"
                                     max={customerForm.total_amount || undefined}
                                     value={customerForm.paid_amount} 
-                                    onKeyDown={(e) => { if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') e.preventDefault(); }}
+                                    onKeyDown={(e) => { if (['+', '-', '.', ',', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
                                     onChange={(e) => {
-                                        let val = e.target.value;
+                                        let val = e.target.value.replace(/[^0-9]/g, '');
                                         if (val !== '' && customerForm.total_amount !== '') {
                                             const maxVal = Number(customerForm.total_amount);
                                             if (!isNaN(maxVal) && Number(val) > maxVal) {
