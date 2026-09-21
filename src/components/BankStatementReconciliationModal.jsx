@@ -395,7 +395,7 @@ export const BankStatementReconciliationModal = ({
                 <div 
                     style={{ 
                         padding: '1.25rem 1.75rem', 
-                        background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', 
+                        background: 'linear-gradient(135deg, #0d3829 0%, #0d3829 100%)', 
                         color: 'white', 
                         display: 'flex', 
                         justifyContent: 'space-between', 
@@ -432,7 +432,7 @@ export const BankStatementReconciliationModal = ({
                                     Multi-Bank
                                 </span>
                             </div>
-                            <p style={{ color: '#94A3B8', fontSize: '0.78rem', margin: '2px 0 0 0', fontWeight: '500' }}>
+                            <p style={{ color: 'rgba(167, 243, 208, 0.7)', fontSize: '0.78rem', margin: '2px 0 0 0', fontWeight: '500' }}>
                                 Account-isolated statement parsing, platform transaction matching & reconciliation ledger
                             </p>
                         </div>
@@ -442,7 +442,7 @@ export const BankStatementReconciliationModal = ({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
                         
                         {/* Target Bank Dropdown */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.07)', padding: '0.35rem 0.75rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.07)', padding: '0.35rem 0.75rem', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
                             <label style={{ fontSize: '0.72rem', fontWeight: '850', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                                 Target Bank:
                             </label>
@@ -460,7 +460,7 @@ export const BankStatementReconciliationModal = ({
                                     fontWeight: '800', 
                                     color: '#F8FAFC', 
                                     outline: 'none', 
-                                    background: '#0F172A',
+                                    background: '#0d3829',
                                     cursor: 'pointer'
                                 }}
                             >
