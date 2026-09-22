@@ -198,9 +198,19 @@ const BusinessPurposeWallet = () => {
 
     const handleAddSubmit = (e) => {
         e.preventDefault();
-        if (!addAmount || Number(addAmount) <= 0) return alert("Enter a valid allocation amount greater than 0.");
-        const amt = parseFloat(addAmount);
-        if (isNaN(amt) || amt <= 0) return alert("Enter a valid allocation amount greater than 0.");
+        if (!selectedWallet) return;
+        const currentSaved = parseFloat(selectedWallet.current_amount || 0);
+        const targetCeiling = parseFloat(selectedWallet.target_amount || 0);
+        const remainingTarget = Math.max(0, targetCeiling - currentSaved);
+
+        if (!addAmount || Number(addAmount) <= 0) return alert("Enter a valid deposit amount greater than 0.");
+        let amt = parseFloat(addAmount);
+        if (isNaN(amt) || amt <= 0) return alert("Enter a valid deposit amount greater than 0.");
+
+        if (amt > remainingTarget) {
+            amt = remainingTarget;
+        }
+
         addMoneyMutation.mutate({ id: selectedWallet.id, amount: amt });
     };
 
@@ -820,79 +830,223 @@ const BusinessPurposeWallet = () => {
             )}
 
             {/* ALLOCATE CASH MODAL */}
-            {isAddMoneyModalOpen && selectedWallet && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.3)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '400px', borderRadius: '28px', padding: '2.5rem', border: '1px solid #E2E8F0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Fund Segregation</h3>
-                            <button onClick={closeAddMoneyModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}><X size={18} /></button>
-                        </div>
+            {isAddMoneyModalOpen && selectedWallet && (() => {
+                const currentSaved = parseFloat(selectedWallet.current_amount || 0);
+                const targetCeiling = parseFloat(selectedWallet.target_amount || 0);
+                const remainingTarget = Math.max(0, targetCeiling - currentSaved);
+                const enteredAmount = parseFloat(addAmount) || 0;
+                const projectedBalance = currentSaved + enteredAmount;
 
-                        <div style={{ padding: '0.85rem 1rem', background: '#F8FAFC', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                            <div style={{ background: '#DCF2E4', color: '#059669', padding: '8px', borderRadius: '8px' }}>
-                                <Target size={18} />
-                            </div>
-                            <div>
-                                <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Targeting Wallet</span>
-                                <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800', color: '#1F2937' }}>{selectedWallet.name}</p>
-                            </div>
-                        </div>
+                const handleAddAmountChange = (e) => {
+                    let raw = e.target.value.replace(/[^0-9.]/g, '');
+                    let num = parseFloat(raw) || 0;
+                    if (num > remainingTarget) {
+                        setAddAmount(String(remainingTarget));
+                    } else {
+                        setAddAmount(raw);
+                    }
+                };
 
-                        <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Allocation Value ({currency.code})</label>
-                                <div style={{ position: 'relative' }}>
-                                    <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#0F172A' }}>{currency.symbol}</span>
-                                    <input 
-                                        required 
-                                        autoFocus
-                                        type="number" 
-                                        placeholder="100" 
-                                        min="1"
-                                        step="any"
-                                        value={addAmount} 
-                                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === '+') e.preventDefault(); }}
-                                        onChange={e => setAddAmount(e.target.value)}
-                                        style={{ width: '100%', padding: '0.9rem 1.1rem 0.9rem 2.25rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '850', fontSize: '1.2rem', color: '#0F172A' }}
-                                    />
+                const handleQuickIncrement = (inc) => {
+                    const currentEntered = parseFloat(addAmount) || 0;
+                    let nextVal = currentEntered + inc;
+                    if (nextVal > remainingTarget) {
+                        nextVal = remainingTarget;
+                    }
+                    setAddAmount(String(nextVal));
+                };
+
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '28px', padding: '2rem', border: '1px solid #E2E8F0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+
+                            {/* Modal Header */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
+                                    <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#DCF2E4', color: '#15803D', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
+                                        <Plus size={22} strokeWidth={2.5} />
+                                    </div>
+                                    <div>
+                                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0, letterSpacing: '-0.01em' }}>
+                                            Add Cash to {selectedWallet.name}
+                                        </h3>
+                                        <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748B', fontWeight: '600' }}>
+                                            Saved: ₹{currentSaved.toLocaleString('en-IN')} of ₹{targetCeiling.toLocaleString('en-IN')} • Remaining: <strong style={{ color: '#DC2626' }}>₹{remainingTarget.toLocaleString('en-IN')}</strong>
+                                        </p>
+                                    </div>
                                 </div>
-                                <p style={{ color: '#64748B', fontSize: '0.75rem', margin: '0.5rem 0 0 0', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                    <AlertCircle size={12} /> Money is transferred from standard balances.
-                                </p>
+                                <button onClick={closeAddMoneyModal} style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.45rem', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <X size={18} />
+                                </button>
                             </div>
 
-                            <button 
-                                type="submit"
-                                disabled={addMoneyMutation.isLoading || !addAmount || Number(addAmount) <= 0}
-                                className={(!addAmount || Number(addAmount) <= 0) ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
-                                style={{ 
-                                    padding: '1.1rem', 
+                            <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                {/* Amount Input with Badge */}
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                        ENTER DEPOSIT AMOUNT (INR)
+                                    </label>
+                                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                        <span style={{
+                                            position: 'absolute',
+                                            left: '12px',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            background: '#F1F5F9',
+                                            color: '#334155',
+                                            border: '1px solid #CBD5E1',
+                                            padding: '3px 8px',
+                                            borderRadius: '6px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: '800',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            zIndex: 2
+                                        }}>
+                                            ₹ INR
+                                        </span>
+                                        <input
+                                            required
+                                            autoFocus
+                                            type="number"
+                                            placeholder="0"
+                                            min="1"
+                                            max={remainingTarget}
+                                            step="any"
+                                            value={addAmount}
+                                            onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === '+') e.preventDefault(); }}
+                                            onChange={handleAddAmountChange}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.85rem 1.1rem 0.85rem 4.5rem',
+                                                borderRadius: '14px',
+                                                border: '1.5px solid #CBD5E1',
+                                                outline: 'none',
+                                                fontWeight: '850',
+                                                fontSize: '1.2rem',
+                                                color: '#0F172A',
+                                                boxSizing: 'border-box'
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Quick Action Chips Row */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.65rem' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAddAmount(String(remainingTarget))}
+                                            style={{
+                                                background: '#FEF2F2',
+                                                color: '#DC2626',
+                                                border: '1px solid #FECACA',
+                                                padding: '0.3rem 0.65rem',
+                                                borderRadius: '8px',
+                                                fontSize: '0.72rem',
+                                                fontWeight: '800',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.15s'
+                                            }}
+                                            onMouseOver={(ev) => ev.currentTarget.style.background = '#FEE2E2'}
+                                            onMouseOut={(ev) => ev.currentTarget.style.background = '#FEF2F2'}
+                                        >
+                                            Fill Remaining (₹{remainingTarget.toLocaleString('en-IN')})
+                                        </button>
+
+                                        {[1000, 5000, 10000, 25000].map(inc => (
+                                            <button
+                                                key={inc}
+                                                type="button"
+                                                onClick={() => handleQuickIncrement(inc)}
+                                                style={{
+                                                    background: '#F0FDF4',
+                                                    color: '#15803D',
+                                                    border: '1px solid #BBF7D0',
+                                                    padding: '0.3rem 0.65rem',
+                                                    borderRadius: '8px',
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: '800',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.15s'
+                                                }}
+                                                onMouseOver={(ev) => ev.currentTarget.style.background = '#DCFCE7'}
+                                                onMouseOut={(ev) => ev.currentTarget.style.background = '#F0FDF4'}
+                                            >
+                                                +₹{inc.toLocaleString('en-IN')}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Projected Balance Box */}
+                                <div style={{
+                                    background: '#F8FAFC',
+                                    border: '1px solid #E2E8F0',
                                     borderRadius: '14px', 
-                                    border: 'none', 
-                                    background: (!addAmount || Number(addAmount) <= 0) ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
-                                    color: 'white', 
-                                    fontWeight: '850', 
-                                    fontSize: '1rem', 
-                                    cursor: (addMoneyMutation.isLoading || !addAmount || Number(addAmount) <= 0) ? 'not-allowed' : 'pointer',
-                                    boxShadow: (!addAmount || Number(addAmount) <= 0) ? 'none' : '0 8px 20px rgba(27, 107, 58, 0.2)',
-                                    opacity: (addMoneyMutation.isLoading || !addAmount || Number(addAmount) <= 0) ? 0.5 : 1,
-                                    pointerEvents: (!addAmount || Number(addAmount) <= 0) ? 'none' : 'auto',
+                                    padding: '0.85rem 1.1rem',
                                     display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem'
-                                }}
-                            >
-                                {addMoneyMutation.isLoading ? <Loader2 className="animate-spin" /> : (
-                                    <>
-                                        Execute Push <ArrowRight size={18} />
-                                    </>
-                                )}
-                            </button>
-                        </form>
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: '750', color: '#64748B' }}>
+                                        Projected Balance After Deposit:
+                                    </span>
+                                    <span style={{ fontSize: '1.05rem', fontWeight: '950', color: '#064E3B' }}>
+                                        ₹{projectedBalance.toLocaleString('en-IN')}
+                                    </span>
+                                </div>
+
+                                {/* Bottom Buttons */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                    <button
+                                        type="button"
+                                        onClick={closeAddMoneyModal}
+                                        style={{
+                                            padding: '0.75rem 1.4rem',
+                                            borderRadius: '12px',
+                                            border: '1px solid #CBD5E1',
+                                            background: '#FFFFFF',
+                                            color: '#334155',
+                                            fontWeight: '800',
+                                            fontSize: '0.88rem',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.15s'
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+
+                                    <button
+                                        type="submit"
+                                        disabled={addMoneyMutation.isPending || !enteredAmount || enteredAmount <= 0}
+                                        style={{
+                                            padding: '0.75rem 1.6rem',
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            background: (addMoneyMutation.isPending || !enteredAmount || enteredAmount <= 0) ? '#94A3B8' : '#0d3829',
+                                            color: '#FFFFFF',
+                                            fontWeight: '800',
+                                            fontSize: '0.88rem',
+                                            cursor: (addMoneyMutation.isPending || !enteredAmount || enteredAmount <= 0) ? 'not-allowed' : 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            boxShadow: (addMoneyMutation.isPending || !enteredAmount || enteredAmount <= 0) ? 'none' : '0 4px 14px rgba(13, 56, 41, 0.3)',
+                                            opacity: (addMoneyMutation.isPending || !enteredAmount || enteredAmount <= 0) ? 0.6 : 1,
+                                            transition: 'all 0.15s'
+                                        }}
+                                    >
+                                        {addMoneyMutation.isPending ? <Loader2 className="animate-spin" size={18} /> : (
+                                            <>
+                                                ✓ Deposit Cash
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* ALLOCATION HISTORY MODAL */}
             {isHistoryModalOpen && (
