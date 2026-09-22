@@ -506,15 +506,9 @@ const BusinessPeople = () => {
         }
 
         const meta = getContactMeta(contactForm.contact_info);
-        const pointsNum = parseFloat(meta.loyalty_points);
-        if (!isNaN(pointsNum) && pointsNum < 0) {
-            setContactLoyaltyError('Initial loyalty points cannot be negative.');
-            return;
-        }
-
         const payload = {
             ...contactForm,
-            contact_info: serializeContactMeta(meta.status, meta.loyalty_points)
+            contact_info: serializeContactMeta(meta.status, 0)
         };
         if (editingContactId) {
             updateContactMutation.mutate({ id: editingContactId, data: payload });
@@ -1444,38 +1438,6 @@ const BusinessPeople = () => {
                                     </div>
                                 )}
 
-                                {activeConfig.loyalty && (
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Initial Loyalty Points</label>
-                                        <input 
-                                            type="number" 
-                                            min="0"
-                                            placeholder="0" 
-                                            value={getContactMeta(contactForm.contact_info).loyalty_points || 0} 
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                const num = parseFloat(val);
-                                                if (!isNaN(num) && num < 0) {
-                                                    setContactLoyaltyError('Initial loyalty points cannot be negative.');
-                                                } else {
-                                                    setContactLoyaltyError('');
-                                                }
-                                                const meta = getContactMeta(contactForm.contact_info);
-                                                setContactForm({ 
-                                                    ...contactForm, 
-                                                    contact_info: serializeContactMeta(meta.status, val) 
-                                                });
-                                            }} 
-                                            style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: contactLoyaltyError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} 
-                                        />
-                                        {contactLoyaltyError && (
-                                            <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: '700', marginTop: '0.3rem', display: 'block' }}>
-                                                {contactLoyaltyError}
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
-
                                 <button type="submit" disabled={createContactMutation.isPending || updateContactMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', marginTop: '0.5rem' }}>
                                     {editingContactId ? (updateContactMutation.isPending ? 'Updating Profile...' : 'Save Profile Changes') : (createContactMutation.isPending ? 'Saving Contact...' : 'Create Contact Node')}
                                 </button>
@@ -1645,11 +1607,6 @@ const BusinessPeople = () => {
                                                         {getContactMeta(personDetails.contact_info).status}
                                                     </span>
                                                 )}
-                                                {activeConfig.loyalty && (
-                                                    <span style={{ padding: '0.25rem 0.75rem', borderRadius: '8px', background: '#F0FDF4', color: '#16A34A', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', border: '1px solid #DCFCE7', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        <Tag size={10} /> {getContactMeta(personDetails.contact_info).loyalty_points || 0} pts
-                                                    </span>
-                                                )}
                                             </div>
                                             <div style={{ margin: 0, color: '#64748B', fontWeight: '600', display: 'flex', gap: '1rem', fontSize: '0.85rem' }}>
                                                 {personDetails?.company && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Building2 size={14} /> {personDetails.company}</span>}
@@ -1677,44 +1634,6 @@ const BusinessPeople = () => {
                             <div style={{ padding: '2rem', overflowY: 'auto', flex: 1, background: '#FAFAF9' }}>
                                 {!isPersonDetailLoading && personDetails && (
                                     <>
-                                        {/* Loyalty & Action Center */}
-                                        {activeConfig.loyalty && (
-                                            <div style={{ background: '#F0FDF4', padding: '1.25rem 1.5rem', borderRadius: '24px', border: '1px solid #DCFCE7', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                                                <div>
-                                                    <span style={{ fontSize: '0.72rem', fontWeight: '850', color: '#15803D', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Loyalty Points Stand</span>
-                                                    <h4 style={{ margin: '0.15rem 0 0 0', fontSize: '1.15rem', fontWeight: '900', color: '#166534' }}>{getContactMeta(personDetails.contact_info).loyalty_points || 0} Points Available</h4>
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                    <button 
-                                                        onClick={() => {
-                                                            const meta = getContactMeta(personDetails.contact_info);
-                                                            const updatedMeta = serializeContactMeta(meta.status, (meta.loyalty_points || 0) + 10);
-                                                            updateContactMutation.mutate({
-                                                                id: personDetails.id,
-                                                                data: { ...personDetails, contact_info: updatedMeta }
-                                                            });
-                                                        }}
-                                                        style={{ padding: '0.45rem 0.85rem', borderRadius: '10px', background: '#16A34A', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer' }}
-                                                    >
-                                                        +10 PTS
-                                                    </button>
-                                                    <button 
-                                                        disabled={(getContactMeta(personDetails.contact_info).loyalty_points || 0) < 10}
-                                                        onClick={() => {
-                                                            const meta = getContactMeta(personDetails.contact_info);
-                                                            const updatedMeta = serializeContactMeta(meta.status, Math.max(0, (meta.loyalty_points || 0) - 10));
-                                                            updateContactMutation.mutate({
-                                                                id: personDetails.id,
-                                                                data: { ...personDetails, contact_info: updatedMeta }
-                                                            });
-                                                        }}
-                                                        style={{ padding: '0.45rem 0.85rem', borderRadius: '10px', background: '#EF4444', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', opacity: (getContactMeta(personDetails.contact_info).loyalty_points || 0) < 10 ? 0.5 : 1 }}
-                                                    >
-                                                        -10 PTS
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
 
                                         {/* Exposure Card */}
                                         <div style={{ background: computedNetBalance >= 0 ? '#ECFDF5' : '#FEF2F2', padding: '1.75rem', borderRadius: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', border: '1.5px solid', borderColor: computedNetBalance >= 0 ? '#A7F3D0' : '#FCA5A5', boxShadow: '0 4px 10px -2px rgba(0,0,0,0.02)' }}>
