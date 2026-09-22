@@ -101,7 +101,9 @@ const BusinessPeople = () => {
 
     React.useEffect(() => {
         if (shareModalData) {
-            setShareAmount(Math.abs(parseFloat(shareModalData.balance) || 0).toString());
+            const person = shareModalData.person;
+            const verifiedBalance = Math.max(0, Number(person?.netExposure || person?.net_balance || shareModalData.balance || 0));
+            setShareAmount(verifiedBalance.toString());
             setShareDate(new Date().toISOString().split('T')[0]);
         }
     }, [shareModalData]);
@@ -2194,7 +2196,7 @@ const BusinessPeople = () => {
             <AnimatePresence>
                 {isShareModalOpen && shareModalData && (() => {
                     const person = shareModalData.person;
-                    const balance = parseFloat(shareModalData.balance) || 0;
+                    const balance = Math.max(0, Number(person?.netExposure || person?.net_balance || shareModalData.balance || 0));
                     const isReceivable = balance >= 0;
                     
                     // Sender info
@@ -2374,10 +2376,11 @@ const BusinessPeople = () => {
                                             <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.45rem' }}>Outstanding Amount ({currency.symbol})</label>
                                             <div style={{ position: 'relative' }}>
                                                 <input 
-                                                    type="number" 
-                                                    value={shareAmount} 
-                                                    onChange={(e) => setShareAmount(e.target.value)} 
-                                                    style={{ width: '100%', padding: '0.85rem 1rem', paddingLeft: '2rem', borderRadius: '14px', border: '1.5px solid #E2E8F0', fontSize: '1.15rem', fontWeight: '900', outline: 'none', color: isReceivable ? '#DC2626' : '#16A34A', background: 'white' }} 
+                                                    type="text"
+                                                    readOnly
+                                                    disabled
+                                                    value={parseFloat(shareAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    style={{ width: '100%', padding: '0.85rem 1rem', paddingLeft: '2rem', borderRadius: '14px', border: '1.5px solid #E2E8F0', fontSize: '1.15rem', fontWeight: '900', outline: 'none', color: isReceivable ? '#DC2626' : '#16A34A', background: '#F1F5F9', cursor: 'not-allowed', boxSizing: 'border-box' }}
                                                 />
                                                 <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: '900', fontSize: '1.25rem', color: '#94A3B8' }}>{currency.symbol}</span>
                                             </div>
