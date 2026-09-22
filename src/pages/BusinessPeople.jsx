@@ -925,7 +925,6 @@ const BusinessPeople = () => {
                                     ...(activeConfig.partyStatus ? [{ key: 'status', label: 'Status', placeholder: 'Status...' }] : []),
                                     { key: 'company', label: 'Company / Link', placeholder: 'Company...' },
                                     { key: 'phone_email', label: 'Phone / Email', placeholder: 'Contact...' },
-                                    ...(activeConfig.loyalty ? [{ key: 'loyalty_points', label: 'Loyalty Points', placeholder: 'Points...', align: 'center' }] : []),
                                     { key: 'net_balance', label: 'Net Exposure', placeholder: 'Exposure...', align: 'right' },
                                     { key: '_actions', label: '', noFilter: true }
                                 ]} 
@@ -1026,13 +1025,6 @@ const BusinessPeople = () => {
                                                 <div style={{ fontSize: '0.85rem', fontWeight: '650' }}>{p.phone || 'N/A'}</div>
                                                 <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{p.email || ''}</div>
                                             </td>
-                                            {activeConfig.loyalty && (
-                                                <td style={{ padding: '1.5rem 2rem', textAlign: 'center' }}>
-                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0.3rem 0.6rem', borderRadius: '6px', background: '#F0FDF4', color: '#16A34A', border: '1px solid #DCFCE7', fontWeight: '800', fontSize: '0.72rem' }}>
-                                                        <Tag size={12} /> {meta.loyalty_points || 0} pts
-                                                    </span>
-                                                </td>
-                                            )}
                                             <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
                                                 <span style={{ fontWeight: '900', fontSize: '1.1rem', color: netBal >= 0 ? '#16A34A' : '#EF4444' }}>
                                                     {formatCurr(p.net_balance)}
