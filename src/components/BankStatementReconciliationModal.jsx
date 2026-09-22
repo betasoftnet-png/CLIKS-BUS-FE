@@ -138,8 +138,150 @@ export const BankStatementReconciliationModal = ({
     const [isDragging, setIsDragging] = useState(false);
     const [currentStep, setCurrentStep] = useState(0); // 0: Bank Statement | 1: Platform History | 2: Action Controls
 
+    // Date Period Filter States
+    const [statementFilter, setStatementFilter] = useState('all');
+    const [statementFromDate, setStatementFromDate] = useState('');
+    const [statementToDate, setStatementToDate] = useState('');
+
+    const [platformFilter, setPlatformFilter] = useState('all');
+    const [platformFromDate, setPlatformFromDate] = useState('');
+    const [platformToDate, setPlatformToDate] = useState('');
+
     const fileInputRef = useRef(null);
     const scrollContainerRef = useRef(null);
+
+    // Date parsing helper
+    const parseRecordDate = (dateStr) => {
+        if (!dateStr) return null;
+        if (dateStr instanceof Date) return isNaN(dateStr.getTime()) ? null : dateStr;
+        const str = String(dateStr).trim();
+
+        // Match DD/MM/YYYY or DD-MM-YYYY
+        const ddmmyyyy = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+        if (ddmmyyyy) {
+            let [, day, month, year] = ddmmyyyy;
+            if (year.length === 2) year = '20' + year;
+            const parsed = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+            if (!isNaN(parsed.getTime())) return parsed;
+        }
+
+        const parsed = new Date(str);
+        return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    const isDateInFilter = (dateStr, filterType, customFrom, customTo) => {
+        if (!filterType || filterType === 'all') return true;
+        const dateObj = parseRecordDate(dateStr);
+        if (!dateObj) return true;
+
+        const now = new Date();
+
+        if (filterType === '1m') {
+            const past = new Date(now);
+            past.setMonth(past.getMonth() - 1);
+            return dateObj >= past && dateObj <= now;
+        }
+        if (filterType === '2m') {
+            const past = new Date(now);
+            past.setMonth(past.getMonth() - 2);
+            return dateObj >= past && dateObj <= now;
+        }
+        if (filterType === '3m') {
+            const past = new Date(now);
+            past.setMonth(past.getMonth() - 3);
+            return dateObj >= past && dateObj <= now;
+        }
+        if (filterType === 'custom') {
+            let match = true;
+            if (customFrom) {
+                const fromD = new Date(customFrom);
+                fromD.setHours(0, 0, 0, 0);
+                if (dateObj < fromD) match = false;
+            }
+            if (customTo) {
+                const toD = new Date(customTo);
+                toD.setHours(23, 59, 59, 999);
+                if (dateObj > toD) match = false;
+            }
+            return match;
+        }
+        return true;
+    };
+
+    const renderFilterToolbar = (label, filterVal, setFilter, fromVal, setFrom, toVal, setTo) => (
+        <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            padding: '0.4rem 0.75rem',
+            borderRadius: '10px',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+            flexWrap: 'wrap'
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Calendar size={13} style={{ color: '#0d3829' }} />
+                <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    {label}:
+                </span>
+            </div>
+            <select
+                value={filterVal}
+                onChange={(e) => setFilter(e.target.value)}
+                style={{
+                    fontSize: '0.75rem',
+                    fontWeight: '750',
+                    color: '#0F172A',
+                    background: '#F8FAFC',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '6px',
+                    padding: '0.2rem 0.5rem',
+                    outline: 'none',
+                    cursor: 'pointer'
+                }}
+            >
+                <option value="all">All Dates</option>
+                <option value="1m">Last 1 Month</option>
+                <option value="2m">Last 2 Months</option>
+                <option value="3m">Last 3 Months</option>
+                <option value="custom">Custom Period</option>
+            </select>
+
+            {filterVal === 'custom' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '600' }}>From</span>
+                    <input
+                        type="date"
+                        value={fromVal}
+                        onChange={(e) => setFrom(e.target.value)}
+                        style={{
+                            fontSize: '0.72rem',
+                            padding: '0.15rem 0.4rem',
+                            border: '1px solid #CBD5E1',
+                            borderRadius: '6px',
+                            outline: 'none',
+                            color: '#0F172A'
+                        }}
+                    />
+                    <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '600' }}>To</span>
+                    <input
+                        type="date"
+                        value={toVal}
+                        onChange={(e) => setTo(e.target.value)}
+                        style={{
+                            fontSize: '0.72rem',
+                            padding: '0.15rem 0.4rem',
+                            border: '1px solid #CBD5E1',
+                            borderRadius: '6px',
+                            outline: 'none',
+                            color: '#0F172A'
+                        }}
+                    />
+                </div>
+            )}
+        </div>
+    );
 
     // Update target bank when modal opens or defaultAccountId changes
     useEffect(() => {
@@ -171,14 +313,18 @@ export const BankStatementReconciliationModal = ({
         return false;
     };
 
-    // Filtered data by selected target bank account
+    // Filtered data by selected target bank account and date filters
     const currentStatements = useMemo(() => {
-        return statementRecords.filter(s => isAccountMatch(s.accountId, currentAccount));
-    }, [statementRecords, currentAccount]);
+        return statementRecords
+            .filter(s => isAccountMatch(s.accountId, currentAccount))
+            .filter(s => isDateInFilter(s.statementDate || s.date, statementFilter, statementFromDate, statementToDate));
+    }, [statementRecords, currentAccount, statementFilter, statementFromDate, statementToDate]);
 
     const currentPlatformRecords = useMemo(() => {
-        return platformRecords.filter(p => isAccountMatch(p.accountId, currentAccount));
-    }, [platformRecords, currentAccount]);
+        return platformRecords
+            .filter(p => isAccountMatch(p.accountId, currentAccount))
+            .filter(p => isDateInFilter(p.date, platformFilter, platformFromDate, platformToDate));
+    }, [platformRecords, currentAccount, platformFilter, platformFromDate, platformToDate]);
 
     const currentMatchedRecords = useMemo(() => {
         return matchedRecords.filter(m => isAccountMatch(m.accountId, currentAccount));
@@ -796,6 +942,34 @@ export const BankStatementReconciliationModal = ({
                                                 </React.Fragment>
                                             ))}
                                         </div>
+
+                                        {/* Date Period Filter Toolbars */}
+                                        {currentStep === 0 && (
+                                            <div>
+                                                {renderFilterToolbar("Statement Period", statementFilter, setStatementFilter, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate)}
+                                            </div>
+                                        )}
+                                        {currentStep === 1 && (
+                                            <div>
+                                                {renderFilterToolbar("Platform Period", platformFilter, setPlatformFilter, platformFromDate, setPlatformFromDate, platformToDate, setPlatformToDate)}
+                                            </div>
+                                        )}
+                                        {currentStep === 3 && (
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: '1.1fr 1fr 180px',
+                                                gap: '1.5rem',
+                                                alignItems: 'center'
+                                            }}>
+                                                <div>
+                                                    {renderFilterToolbar("Statement Period", statementFilter, setStatementFilter, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate)}
+                                                </div>
+                                                <div>
+                                                    {renderFilterToolbar("Platform Period", platformFilter, setPlatformFilter, platformFromDate, setPlatformFromDate, platformToDate, setPlatformToDate)}
+                                                </div>
+                                                <div />
+                                            </div>
+                                        )}
 
                                         {/* Cards area with nav arrows */}
                                         <div style={{ position: 'relative' }}>
