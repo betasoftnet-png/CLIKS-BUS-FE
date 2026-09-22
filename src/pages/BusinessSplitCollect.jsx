@@ -1681,7 +1681,11 @@ const BusinessSplitCollect = () => {
                                 {isSummaryExpanded && (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
                                         {activeSplit.participants.map(m => {
-                                            const primaryExpenses = (activeSplit.expenses || []).filter(item => isPrimaryExpense(item));
+                                            const allExpenses = activeSplit.expenses || [];
+                                            const primaryExpenses = allExpenses.filter(item => isPrimaryExpense(item));
+                                            const settlementExpenses = allExpenses.filter(item => !isPrimaryExpense(item));
+
+                                            // Initial Audit Totals (Primary non-settlement expenses)
                                             const paid = primaryExpenses
                                                 .filter(e => e.paidBy === m)
                                                 .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
@@ -1699,8 +1703,29 @@ const BusinessSplitCollect = () => {
                                                 return sum + share;
                                             }, 0);
 
-                                            const net = paid - charged;
-                                            const isPositive = net >= 0;
+                                            // Settlements Paid (m was debtor who paid money)
+                                            const settledPaid = settlementExpenses
+                                                .filter(s => s.paidBy === m || s.from === m)
+                                                .reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
+
+                                            // Settlements Received (m was creditor who received money)
+                                            const settledReceived = settlementExpenses
+                                                .reduce((sum, s) => {
+                                                    let rec = 0;
+                                                    if (s.shares && s.shares[m] !== undefined) {
+                                                        rec = parseFloat(s.shares[m]) || 0;
+                                                    } else if (s.to === m || s.creditor === m) {
+                                                        rec = parseFloat(s.amount) || 0;
+                                                    }
+                                                    return sum + rec;
+                                                }, 0);
+
+                                            // Live Net Balance after settlements
+                                            let net = (paid + settledPaid) - (charged + settledReceived);
+                                            const isSettled = Math.abs(net) < 0.01;
+                                            if (isSettled) net = 0;
+
+                                            const isPositive = net > 0.001;
 
                                             return (
                                                 <div
@@ -1716,9 +1741,27 @@ const BusinessSplitCollect = () => {
                                                     }}
                                                 >
                                                     <div>
-                                                        <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#1E293B', display: 'block' }}>
-                                                            {m}
-                                                        </span>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                            <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#1E293B' }}>
+                                                                {m}
+                                                            </span>
+                                                            {isSettled && (
+                                                                <span style={{
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '3px',
+                                                                    fontSize: '0.65rem',
+                                                                    fontWeight: '800',
+                                                                    background: '#ECFDF5',
+                                                                    color: '#059669',
+                                                                    border: '1px solid #A7F3D0',
+                                                                    padding: '1px 6px',
+                                                                    borderRadius: '9999px'
+                                                                }}>
+                                                                    <Check size={11} strokeWidth={2.5} /> Settled
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>
                                                             Charged {formatCurrencyUniversal(charged, activeSplit.currency)}, Paid {formatCurrencyUniversal(paid, activeSplit.currency)}
                                                         </span>
@@ -1728,9 +1771,9 @@ const BusinessSplitCollect = () => {
                                                         <span style={{
                                                             fontSize: '0.98rem',
                                                             fontWeight: '950',
-                                                            color: isPositive ? '#059669' : '#DC2626'
+                                                            color: isSettled ? '#64748B' : (isPositive ? '#059669' : '#DC2626')
                                                         }}>
-                                                            {isPositive ? '+' : ''}{formatCurrencyUniversal(net, activeSplit.currency)}
+                                                            {isSettled ? formatCurrencyUniversal(0, activeSplit.currency) : `${isPositive ? '+' : ''}${formatCurrencyUniversal(net, activeSplit.currency)}`}
                                                         </span>
                                                     </div>
                                                 </div>
