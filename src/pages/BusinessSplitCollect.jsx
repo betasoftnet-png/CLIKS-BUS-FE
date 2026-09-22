@@ -360,6 +360,7 @@ const BusinessSplitCollect = () => {
     const [previewAttachment, setPreviewAttachment] = useState(null);
     const [expandedExpenseIds, setExpandedExpenseIds] = useState([]);
     const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
+    const [isSettleExpanded, setIsSettleExpanded] = useState(true);
 
     const toggleExpenseExpand = (expenseId) => {
         setExpandedExpenseIds(prev =>
@@ -1735,6 +1736,120 @@ const BusinessSplitCollect = () => {
                                                 </div>
                                             );
                                         })}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Expandable "How to settle?" Card */}
+                            <div
+                                style={{
+                                    background: '#FFFFFF',
+                                    borderRadius: '24px',
+                                    border: '1.5px solid #E2E8F0',
+                                    padding: '1.25rem 1.5rem',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
+                                }}
+                            >
+                                {/* Header Row */}
+                                <div
+                                    onClick={() => setIsSettleExpanded(!isSettleExpanded)}
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '900', color: '#0F172A' }}>
+                                            How to settle?
+                                        </h3>
+                                        <span style={{
+                                            fontSize: '0.68rem',
+                                            fontWeight: '850',
+                                            background: '#ECFDF5',
+                                            color: '#059669',
+                                            border: '1px solid #A7F3D0',
+                                            padding: '2px 8px',
+                                            borderRadius: '9999px',
+                                            textTransform: 'uppercase'
+                                        }}>
+                                            {calculatedBalances.debts.length} {calculatedBalances.debts.length === 1 ? 'Transfer' : 'Transfers'}
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={(ev) => {
+                                            ev.stopPropagation();
+                                            setIsSettleExpanded(!isSettleExpanded);
+                                        }}
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: '#64748B',
+                                            cursor: 'pointer',
+                                            padding: '4px',
+                                            borderRadius: '8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                        title={isSettleExpanded ? 'Collapse settlement instructions' : 'Expand settlement instructions'}
+                                    >
+                                        <ChevronDown
+                                            size={18}
+                                            strokeWidth={2.5}
+                                            style={{
+                                                transform: isSettleExpanded ? 'rotate(0deg)' : 'rotate(-180deg)',
+                                                transition: 'transform 0.2s ease'
+                                            }}
+                                        />
+                                    </button>
+                                </div>
+
+                                {/* Content Accordion */}
+                                {isSettleExpanded && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
+                                        {calculatedBalances.debts.length === 0 ? (
+                                            <div style={{ textAlign: 'center', padding: '0.85rem 0', color: '#059669', fontWeight: '750', fontSize: '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                                <Check size={18} strokeWidth={2.5} /> All accounts completely settled!
+                                            </div>
+                                        ) : (
+                                            calculatedBalances.debts.map((d, dIdx) => (
+                                                <div
+                                                    key={dIdx}
+                                                    style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        padding: '0.65rem 0.85rem',
+                                                        borderRadius: '12px',
+                                                        background: '#F8FAFC',
+                                                        border: '1px solid #F1F5F9'
+                                                    }}
+                                                >
+                                                    <div>
+                                                        <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#1E293B', display: 'block' }}>
+                                                            {d.from}
+                                                        </span>
+                                                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>
+                                                            should pay to <strong style={{ color: '#0F172A', fontWeight: '750' }}>{d.to}</strong>
+                                                        </span>
+                                                    </div>
+
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <span style={{
+                                                            fontSize: '0.98rem',
+                                                            fontWeight: '950',
+                                                            color: '#2563EB'
+                                                        }}>
+                                                            {formatCurrencyUniversal(d.amount, activeSplit.currency)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
                                 )}
                             </div>
