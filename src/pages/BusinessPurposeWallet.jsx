@@ -55,6 +55,7 @@ const BusinessPurposeWallet = () => {
     }, []);
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearch, setShowSearch] = useState(false);
+    const [categoryFilter, setCategoryFilter] = useState('all'); // 'all' | 'in_progress' | 'target_met' | 'claimed'
 
     // Fetch Singular Wallet Details & History
     const { data: historyWalletRes, isLoading: isHistoryLoading } = useQuery({
@@ -216,12 +217,51 @@ const BusinessPurposeWallet = () => {
 
     // Derived Statistics
     const wallets = Array.isArray(responseData) ? responseData : [];
-    const activeWallets = wallets.filter(w => w.status !== 'completed').length;
+    const activeWallets = wallets.filter(w => !isWalletClaimed(w)).length;
     const totalAllocated = wallets.reduce((sum, w) => sum + parseFloat(w.current_amount || 0), 0);
     const totalTarget = wallets.reduce((sum, w) => sum + parseFloat(w.target_amount || 0), 0);
     const globalProgress = totalTarget > 0 ? Math.round((totalAllocated / totalTarget) * 100) : 0;
 
+    const categoryCounts = React.useMemo(() => {
+        let inProgress = 0;
+        let targetMet = 0;
+        let claimed = 0;
+
+        wallets.forEach(w => {
+            const isClaimed = isWalletClaimed(w);
+            const saved = parseFloat(w.current_amount || 0);
+            const target = parseFloat(w.target_amount || 0);
+
+            if (isClaimed) {
+                claimed++;
+            } else if (target > 0 && saved >= target) {
+                targetMet++;
+            } else {
+                inProgress++;
+            }
+        });
+
+        return {
+            all: wallets.length,
+            inProgress,
+            targetMet,
+            claimed
+        };
+    }, [wallets]);
+
     const filteredWallets = wallets.filter(wallet => {
+        // 1. Category Filter
+        const isClaimed = isWalletClaimed(wallet);
+        const saved = parseFloat(wallet.current_amount || 0);
+        const target = parseFloat(wallet.target_amount || 0);
+        const isTargetMet = !isClaimed && target > 0 && saved >= target;
+        const isInProgress = !isClaimed && (target === 0 || saved < target);
+
+        if (categoryFilter === 'in_progress' && !isInProgress) return false;
+        if (categoryFilter === 'target_met' && !isTargetMet) return false;
+        if (categoryFilter === 'claimed' && !isClaimed) return false;
+
+        // 2. Search Term Filter
         if (!searchTerm.trim()) return true;
         const term = searchTerm.toLowerCase();
         return (
@@ -366,6 +406,44 @@ const BusinessPurposeWallet = () => {
                         </div>
                     </div>
                 ))}
+            </div>
+
+            {/* Container Category Filter Pill Navigation Bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+                {[
+                    { key: 'all', label: `All Containers [${categoryCounts.all}]` },
+                    { key: 'in_progress', label: `In Progress [${categoryCounts.inProgress}]` },
+                    { key: 'target_met', label: `Target Met [${categoryCounts.targetMet}]` },
+                    { key: 'claimed', label: `Claimed [${categoryCounts.claimed}]` }
+                ].map(pill => {
+                    const isActive = categoryFilter === pill.key;
+                    return (
+                        <button
+                            key={pill.key}
+                            type="button"
+                            onClick={() => setCategoryFilter(pill.key)}
+                            className={`rounded-full px-4 py-2 font-bold transition-all duration-150 ${
+                                isActive
+                                    ? 'bg-[#0d3829] text-white'
+                                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                            }`}
+                            style={{
+                                padding: '0.5rem 1.15rem',
+                                borderRadius: '9999px',
+                                fontWeight: '800',
+                                fontSize: '0.85rem',
+                                border: isActive ? 'none' : '1px solid #E2E8F0',
+                                background: isActive ? '#0d3829' : '#FFFFFF',
+                                color: isActive ? '#FFFFFF' : '#374151',
+                                cursor: 'pointer',
+                                boxShadow: isActive ? '0 4px 12px rgba(13, 56, 41, 0.25)' : '0 1px 2px rgba(0,0,0,0.03)',
+                                transition: 'all 0.15s ease'
+                            }}
+                        >
+                            {pill.label}
+                        </button>
+                    );
+                })}
             </div>
 
             {/* Dynamic Masonry/Grid of Purpose Wallets */}
@@ -652,66 +730,98 @@ const BusinessPurposeWallet = () => {
 
                                     {/* Interactive Controls */}
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                        <button
-                                            disabled={isClaimed}
-                                            onClick={() => openAddMoneyModal(wallet)}
-                                            className={isClaimed ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
-                                            style={{ 
-                                                padding: '0.85rem', 
-                                                borderRadius: '12px', 
-                                                border: '1px solid #D1FAE5', 
-                                                background: isClaimed ? '#F1F5F9' : '#ECFDF5', 
-                                                color: isClaimed ? '#94A3B8' : '#065F46', 
-                                                fontWeight: '800', 
-                                                fontSize: '0.88rem',
-                                                cursor: isClaimed ? 'not-allowed' : 'pointer',
-                                                opacity: isClaimed ? 0.5 : 1,
-                                                pointerEvents: isClaimed ? 'none' : 'auto',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '0.4rem'
-                                            }}
-                                        >
-                                            <Plus size={16} strokeWidth={3} /> Add Cash
-                                        </button>
+                                        {canClaim ? (
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    if (await customConfirm(`Extract ${formatCurrency(current)} accumulated for "${wallet.name}" into main reserves?`)) {
+                                                        claimMutation.mutate(wallet.id);
+                                                    }
+                                                }}
+                                                style={{
+                                                    gridColumn: 'span 2',
+                                                    padding: '0.85rem',
+                                                    borderRadius: '12px',
+                                                    border: 'none',
+                                                    background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
+                                                    color: 'white',
+                                                    fontWeight: '850',
+                                                    fontSize: '0.9rem',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '0.5rem',
+                                                    boxShadow: '0 4px 14px rgba(217, 119, 6, 0.25)',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                🏆 Claim Goal Target
+                                            </button>
+                                        ) : isClaimed ? (
+                                            <div
+                                                style={{
+                                                    gridColumn: 'span 2',
+                                                    padding: '0.85rem',
+                                                    borderRadius: '12px',
+                                                    background: '#F1F5F9',
+                                                    color: '#059669',
+                                                    fontWeight: '850',
+                                                    fontSize: '0.88rem',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '0.4rem',
+                                                    border: '1px solid #E2E8F0'
+                                                }}
+                                            >
+                                                <CheckCircle2 size={16} color="#059669" /> Claimed
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openAddMoneyModal(wallet)}
+                                                    style={{
+                                                        padding: '0.85rem',
+                                                        borderRadius: '12px',
+                                                        border: '1px solid #D1FAE5',
+                                                        background: '#ECFDF5',
+                                                        color: '#065F46',
+                                                        fontWeight: '800',
+                                                        fontSize: '0.88rem',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '0.4rem'
+                                                    }}
+                                                >
+                                                    <Plus size={16} strokeWidth={3} /> Add Cash
+                                                </button>
 
-                                        <button
-                                            disabled={!canClaim}
-                                            onClick={async () => { if(await customConfirm(`Extract ${formatCurrency(current)} accumulated for "${wallet.name}" into main reserves?`)) claimMutation.mutate(wallet.id); }}
-                                            style={{ 
-                                                padding: '0.85rem', 
-                                                borderRadius: '12px', 
-                                                background: canClaim 
-                                                    ? 'linear-gradient(135deg, #D97706 0%, #B45309 100%)' 
-                                                    : (isCompleted ? '#F1F5F9' : '#F8FAFC'), 
-                                                color: canClaim ? 'white' : '#94A3B8', 
-                                                fontWeight: '850', 
-                                                fontSize: '0.88rem',
-                                                cursor: canClaim ? 'pointer' : 'not-allowed',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '0.4rem',
-                                                boxShadow: canClaim ? '0 4px 12px rgba(217, 119, 6, 0.25)' : 'none',
-                                                border: isCompleted ? 'none' : (canClaim ? 'none' : '1px solid #E2E8F0')
-                                            }}
-
-                                        >
-                                            {isCompleted ? (
-                                                <>
-                                                    <CheckCircle2 size={16} color="#059669" /> Claimed
-                                                </>
-                                            ) : pct < 100 ? (
-                                                <>
+                                                <button
+                                                    type="button"
+                                                    disabled={true}
+                                                    style={{
+                                                        padding: '0.85rem',
+                                                        borderRadius: '12px',
+                                                        background: '#F8FAFC',
+                                                        color: '#94A3B8',
+                                                        fontWeight: '850',
+                                                        fontSize: '0.88rem',
+                                                        cursor: 'not-allowed',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '0.4rem',
+                                                        border: '1px solid #E2E8F0'
+                                                    }}
+                                                >
                                                     <Lock size={14} /> Locked
-                                                </>
-                                            ) : (
-                                                <>
-                                                    Claim Goal!
-                                                </>
-                                            )}
-                                        </button>
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>
