@@ -47,6 +47,8 @@ const BusinessPeople = () => {
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
     const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
     const [isDispatching, setIsDispatching] = useState(false);
+    const isDispatchingRef = React.useRef(false);
+    const isSavingInlineRemRef = React.useRef(false);
     const [selectedPersonId, setSelectedPersonId] = useState(null);
     const [editingContactId, setEditingContactId] = useState(null);
     const [editingTxId, setEditingTxId] = useState(null);
@@ -413,13 +415,20 @@ const BusinessPeople = () => {
 
     const createReminderMutation = useMutation({
         mutationFn: (data) => peopleService.createReminder(data),
-        onSuccess: () => {
-            queryClient.invalidateQueries(['people-reminders-all']);
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['people-reminders-all'] });
+            if (variables?.person_id || variables?.contact_id) {
+                queryClient.invalidateQueries({ queryKey: ['person-reminders', variables.person_id || variables.contact_id] });
+            } else {
+                queryClient.invalidateQueries({ queryKey: ['person-reminders'] });
+            }
             setIsReminderModalOpen(false);
             setReminderForm({ person_id: '', title: '', amount: '', due_date: new Date().toISOString().split('T')[0], notes: '' });
             alert('Repayment alert dispatched successfully.');
         },
         onSettled: () => {
+            isDispatchingRef.current = false;
+            isSavingInlineRemRef.current = false;
             setIsDispatching(false);
         }
     });
@@ -619,28 +628,46 @@ const BusinessPeople = () => {
     };
 
     const handleSaveInlineRem = (e) => {
-        e.preventDefault();
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        if (isSavingInlineRemRef.current || createReminderMutation.isPending || updateReminderMutation.isPending) return;
+        isSavingInlineRemRef.current = true;
+
         setInlineRemAmountError('');
-        if (!selectedPersonId) return alert('Target registry contact missing.');
+        if (!selectedPersonId) {
+            isSavingInlineRemRef.current = false;
+            return alert('Target registry contact missing.');
+        }
         
         const amt = parseFloat(inlineRemForm.amount);
         if (!isNaN(amt) && amt < 0) {
             setInlineRemAmountError('Expected amount cannot be negative.');
+            isSavingInlineRemRef.current = false;
             return;
         }
 
         if (editingRemId) {
             updateReminderMutation.mutate(
-                { ...inlineRemForm, person_id: selectedPersonId, id: editingRemId }
+                { ...inlineRemForm, person_id: selectedPersonId, id: editingRemId },
+                {
+                    onSettled: () => {
+                        isSavingInlineRemRef.current = false;
+                    }
+                }
             );
         } else {
             createReminderMutation.mutate(
                 { ...inlineRemForm, person_id: selectedPersonId },
                 {
                     onSuccess: () => {
-                        queryClient.invalidateQueries({ queryKey: ['person-reminders', selectedPersonId] });
                         setIsInlineRemOpen(false);
                         setInlineRemForm({ title: '', amount: '', due_date: new Date().toISOString().split('T')[0] });
+                    },
+                    onSettled: () => {
+                        isSavingInlineRemRef.current = false;
                     }
                 }
             );
@@ -653,15 +680,18 @@ const BusinessPeople = () => {
             e.stopPropagation();
         }
 
-        if (isDispatching || createReminderMutation.isPending) return;
+        if (isDispatchingRef.current || isDispatching || createReminderMutation.isPending) return;
+        isDispatchingRef.current = true;
         setIsDispatching(true);
 
         setReminderAmountError('');
         if (!reminderForm.person_id) {
+            isDispatchingRef.current = false;
             setIsDispatching(false);
             return alert('Please select a target contact.');
         }
         if (!reminderForm.due_date) {
+            isDispatchingRef.current = false;
             setIsDispatching(false);
             return alert('Please select a maturity / due date.');
         }
@@ -669,6 +699,7 @@ const BusinessPeople = () => {
         const amt = parseFloat(reminderForm.amount);
         if (!isNaN(amt) && amt < 0) {
             setReminderAmountError('Cap value cannot be negative.');
+            isDispatchingRef.current = false;
             setIsDispatching(false);
             return;
         }
