@@ -1703,28 +1703,10 @@ const BusinessSplitCollect = () => {
                                                 return sum + share;
                                             }, 0);
 
-                                            // Settlements Paid (m was debtor who paid money)
-                                            const settledPaid = settlementExpenses
-                                                .filter(s => s.paidBy === m || s.from === m)
-                                                .reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
-
-                                            // Settlements Received (m was creditor who received money)
-                                            const settledReceived = settlementExpenses
-                                                .reduce((sum, s) => {
-                                                    let rec = 0;
-                                                    if (s.shares && s.shares[m] !== undefined) {
-                                                        rec = parseFloat(s.shares[m]) || 0;
-                                                    } else if (s.to === m || s.creditor === m) {
-                                                        rec = parseFloat(s.amount) || 0;
-                                                    }
-                                                    return sum + rec;
-                                                }, 0);
-
-                                            // Live Net Balance after settlements
-                                            let net = (paid + settledPaid) - (charged + settledReceived);
-                                            const isSettled = Math.abs(net) < 0.01;
-                                            if (isSettled) net = 0;
-
+                                            // Live Net Balance from calculatedBalances.members
+                                            const rawNet = calculatedBalances.members[m] !== undefined ? calculatedBalances.members[m] : (paid - charged);
+                                            const isSettled = Math.abs(rawNet) < 0.01;
+                                            const net = isSettled ? 0 : rawNet;
                                             const isPositive = net > 0.001;
 
                                             return (
