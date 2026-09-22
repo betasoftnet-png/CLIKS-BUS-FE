@@ -138,6 +138,20 @@ export const calculateGroupOutlay = (expenses) => {
         .reduce((sum, item) => sum + Number(item.amount || 0), 0);
 };
 
+export const formatCurrencyUniversal = (amount, currencyCode) => {
+    const code = currencyCode || 'USD';
+    try {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: code,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(amount);
+    } catch {
+        return `${code} ${parseFloat(amount || 0).toFixed(2)}`;
+    }
+};
+
 // Helper to find specific unsettled expenses paid by creditor for a debt
 export const getEligibleExpensesForDebt = (debt, expenses = [], participants = []) => {
     if (!debt || !expenses) return [];
@@ -345,6 +359,7 @@ const BusinessSplitCollect = () => {
     const [editingExpenseId, setEditingExpenseId] = useState(null);
     const [previewAttachment, setPreviewAttachment] = useState(null);
     const [expandedExpenseIds, setExpandedExpenseIds] = useState([]);
+    const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
 
     const toggleExpenseExpand = (expenseId) => {
         setExpandedExpenseIds(prev =>
@@ -1591,6 +1606,137 @@ const BusinessSplitCollect = () => {
                                         </span>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Expandable Summary Card */}
+                            <div
+                                style={{
+                                    background: '#FFFFFF',
+                                    borderRadius: '24px',
+                                    border: '1.5px solid #E2E8F0',
+                                    padding: '1.25rem 1.5rem',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
+                                }}
+                            >
+                                {/* Summary Header Row */}
+                                <div
+                                    onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '900', color: '#0F172A' }}>
+                                            Summary
+                                        </h3>
+                                        <span style={{
+                                            fontSize: '0.68rem',
+                                            fontWeight: '850',
+                                            background: '#EFF6FF',
+                                            color: '#2563EB',
+                                            border: '1px solid #BFDBFE',
+                                            padding: '2px 8px',
+                                            borderRadius: '9999px',
+                                            textTransform: 'uppercase'
+                                        }}>
+                                            {activeSplit.currency || 'USD'}
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={(ev) => {
+                                            ev.stopPropagation();
+                                            setIsSummaryExpanded(!isSummaryExpanded);
+                                        }}
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: '#64748B',
+                                            cursor: 'pointer',
+                                            padding: '4px',
+                                            borderRadius: '8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}
+                                        title={isSummaryExpanded ? 'Collapse summary' : 'Expand summary'}
+                                    >
+                                        <ChevronDown
+                                            size={18}
+                                            strokeWidth={2.5}
+                                            style={{
+                                                transform: isSummaryExpanded ? 'rotate(0deg)' : 'rotate(-180deg)',
+                                                transition: 'transform 0.2s ease'
+                                            }}
+                                        />
+                                    </button>
+                                </div>
+
+                                {/* Members List Accordion Content */}
+                                {isSummaryExpanded && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
+                                        {activeSplit.participants.map(m => {
+                                            const primaryExpenses = (activeSplit.expenses || []).filter(item => isPrimaryExpense(item));
+                                            const paid = primaryExpenses
+                                                .filter(e => e.paidBy === m)
+                                                .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+
+                                            const charged = primaryExpenses.reduce((sum, e) => {
+                                                let share = 0;
+                                                if (e.shares && e.shares[m] !== undefined) {
+                                                    share = parseFloat(e.shares[m]) || 0;
+                                                } else if (e.splitType && !e.splitType.toLowerCase().includes('equal')) {
+                                                    share = parseFloat(e.shares?.[m]) || 0;
+                                                } else {
+                                                    const numParticipants = activeSplit.participants?.length || 1;
+                                                    share = (parseFloat(e.amount) || 0) / numParticipants;
+                                                }
+                                                return sum + share;
+                                            }, 0);
+
+                                            const net = paid - charged;
+                                            const isPositive = net >= 0;
+
+                                            return (
+                                                <div
+                                                    key={m}
+                                                    style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        padding: '0.65rem 0.85rem',
+                                                        borderRadius: '12px',
+                                                        background: '#F8FAFC',
+                                                        border: '1px solid #F1F5F9'
+                                                    }}
+                                                >
+                                                    <div>
+                                                        <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#1E293B', display: 'block' }}>
+                                                            {m}
+                                                        </span>
+                                                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>
+                                                            Charged {formatCurrencyUniversal(charged, activeSplit.currency)}, Paid {formatCurrencyUniversal(paid, activeSplit.currency)}
+                                                        </span>
+                                                    </div>
+
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <span style={{
+                                                            fontSize: '0.98rem',
+                                                            fontWeight: '950',
+                                                            color: isPositive ? '#059669' : '#DC2626'
+                                                        }}>
+                                                            {isPositive ? '+' : ''}{formatCurrencyUniversal(net, activeSplit.currency)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Sessions Content: Each primary expense creates its own self-contained session section */}
