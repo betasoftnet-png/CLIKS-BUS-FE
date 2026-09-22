@@ -1427,7 +1427,7 @@ const BusinessPeople = () => {
                                                 const meta = getContactMeta(contactForm.contact_info);
                                                 setContactForm({ 
                                                     ...contactForm, 
-                                                    contact_info: serializeContactMeta(e.target.value, meta.loyalty_points) 
+                                                    contact_info: serializeContactMeta(e.target.value, 0)
                                                 });
                                             }}
                                             style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white' }}
@@ -1595,7 +1595,7 @@ const BusinessPeople = () => {
                                                         onClick={() => {
                                                             const meta = getContactMeta(personDetails.contact_info);
                                                             const newStatus = meta.status === 'active' ? 'inactive' : 'active';
-                                                            const updatedMeta = serializeContactMeta(newStatus, meta.loyalty_points);
+                                                            const updatedMeta = serializeContactMeta(newStatus, 0);
                                                             updateContactMutation.mutate({
                                                                 id: personDetails.id,
                                                                 data: { ...personDetails, contact_info: updatedMeta }
