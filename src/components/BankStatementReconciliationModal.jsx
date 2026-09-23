@@ -136,7 +136,7 @@ export const BankStatementReconciliationModal = ({
     const [matchedRecords, setMatchedRecords] = useState([]);
     const [uploadNotification, setUploadNotification] = useState('');
     const [isDragging, setIsDragging] = useState(false);
-    const [currentStep, setCurrentStep] = useState(0); // 0: Bank Statement | 1: Platform History | 2: Action Controls
+    const [currentStep, setCurrentStep] = useState(0); // 0: Overall | 1: Platform History | 2: Bank Statement
 
     // Date Period Filter States
     const [statementFilter, setStatementFilter] = useState('all');
@@ -288,6 +288,7 @@ export const BankStatementReconciliationModal = ({
         if (isOpen) {
             setSelectedAccountId(resolveInitialAccountId());
             setActiveTab('reconcile');
+            setCurrentStep(0); // Default to Tab 1 (OVERALL) on modal launch
             setUploadNotification('');
         }
     }, [isOpen, defaultAccountId, bankAccount]);
@@ -899,62 +900,102 @@ export const BankStatementReconciliationModal = ({
                                 </div>
                             </div>
 
-                            {/* ── Step Panel Navigator ── */}
+                            {/* ── Tab Bar Navigator ── */}
                             {(() => {
-                                const STEPS = [
-                                    'BANK STATEMENT (UPLOADED DATA)',
-                                    'PLATFORM SALES & TRANSACTION HISTORY',
-                                    'ACTION CONTROLS',
-                                    'OVERALL VISIT'
+                                const TABS = [
+                                    { id: 'overall', number: 1, label: 'OVERALL', count: null },
+                                    { id: 'platform', number: 2, label: 'PLATFORM SALES & TRANSACTION HISTORY', count: currentPlatformRecords.length },
+                                    { id: 'statement', number: 3, label: 'BANK STATEMENT (UPLOADED DATA)', count: currentStatements.length }
                                 ];
                                 return (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
-                                        {/* Step indicator bar */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1rem', background: '#F1F5F9', borderRadius: '12px', border: '1px solid #E2E8F0', overflowX: 'auto' }}>
-                                            {STEPS.map((label, i) => (
-                                                <React.Fragment key={i}>
-                                                    <div
+                                        {/* Tab Bar Layout */}
+                                        <div 
+                                            className="flex items-center gap-2.5 w-full p-1 bg-[#F1F5F9] rounded-2xl border border-gray-200"
+                                            style={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '0.65rem', 
+                                                padding: '0.4rem', 
+                                                background: '#F1F5F9', 
+                                                borderRadius: '16px', 
+                                                border: '1px solid #E2E8F0', 
+                                                width: '100%' 
+                                            }}
+                                        >
+                                            {TABS.map((tab, i) => {
+                                                const isActive = currentStep === i;
+                                                return (
+                                                    <button
+                                                        key={tab.id}
+                                                        type="button"
+                                                        onClick={() => setCurrentStep(i)}
+                                                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl cursor-pointer text-xs font-bold uppercase tracking-wider transition-all ${
+                                                            isActive
+                                                                ? 'bg-[#0d3829] text-white'
+                                                                : 'bg-white text-gray-600 border border-gray-200/60'
+                                                        }`}
                                                         style={{
-                                                            display: 'flex', alignItems: 'center', gap: '0.4rem',
-                                                            padding: '0.25rem 0.75rem', borderRadius: '9999px',
-                                                            background: currentStep === i ? '#0d3829' : '#E2E8F0',
-                                                            color: currentStep === i ? '#fff' : '#64748B',
-                                                            fontSize: '0.7rem', fontWeight: '850',
-                                                            textTransform: 'uppercase', letterSpacing: '0.04em',
-                                                            cursor: 'pointer', transition: 'all 0.15s',
+                                                            flex: 1,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '0.5rem',
+                                                            padding: '0.65rem 1rem',
+                                                            borderRadius: '12px',
+                                                            background: isActive ? '#0d3829' : '#FFFFFF',
+                                                            color: isActive ? '#FFFFFF' : '#4B5563',
+                                                            border: isActive ? '1px solid #0d3829' : '1px solid rgba(229, 231, 235, 0.6)',
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: '850',
+                                                            textTransform: 'uppercase',
+                                                            letterSpacing: '0.04em',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.15s',
                                                             whiteSpace: 'nowrap'
                                                         }}
-                                                        onClick={() => setCurrentStep(i)}
                                                     >
-                                                        <span style={{
-                                                            width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
-                                                            background: currentStep === i ? 'rgba(255,255,255,0.25)' : '#CBD5E1',
-                                                            color: currentStep === i ? '#fff' : '#475569',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            fontSize: '0.65rem', fontWeight: '900'
-                                                        }}>{i + 1}</span>
-                                                        {label}
-                                                        {i === 0 && <span style={{ background: 'rgba(255,255,255,0.2)', color: currentStep === 0 ? '#fff' : '#475569', padding: '0px 5px', borderRadius: '9999px', fontSize: '0.65rem' }}>{currentStatements.length}</span>}
-                                                        {i === 1 && <span style={{ background: 'rgba(255,255,255,0.2)', color: currentStep === 1 ? '#fff' : '#475569', padding: '0px 5px', borderRadius: '9999px', fontSize: '0.65rem' }}>{currentPlatformRecords.length}</span>}
-                                                    </div>
-                                                    {i < 3 && <div style={{ flex: 1, minWidth: '10px', height: '2px', background: currentStep > i ? '#0d3829' : '#E2E8F0', borderRadius: '9999px', transition: 'background 0.3s' }} />}
-                                                </React.Fragment>
-                                            ))}
+                                                        <span 
+                                                            style={{
+                                                                width: '18px', 
+                                                                height: '18px', 
+                                                                borderRadius: '50%', 
+                                                                flexShrink: 0,
+                                                                background: isActive ? 'rgba(255,255,255,0.25)' : '#E2E8F0',
+                                                                color: isActive ? '#FFFFFF' : '#475569',
+                                                                display: 'flex', 
+                                                                alignItems: 'center', 
+                                                                justifyContent: 'center',
+                                                                fontSize: '0.65rem', 
+                                                                fontWeight: '900'
+                                                            }}
+                                                        >
+                                                            {tab.number}
+                                                        </span>
+                                                        <span>{tab.label}</span>
+                                                        {tab.count !== null && (
+                                                            <span 
+                                                                style={{ 
+                                                                    background: isActive ? 'rgba(255,255,255,0.2)' : '#F1F5F9', 
+                                                                    color: isActive ? '#FFFFFF' : '#475569', 
+                                                                    padding: '1px 6px', 
+                                                                    borderRadius: '9999px', 
+                                                                    fontSize: '0.68rem',
+                                                                    fontWeight: '850',
+                                                                    border: isActive ? '1px solid rgba(255,255,255,0.25)' : '1px solid #E2E8F0'
+                                                                }}
+                                                            >
+                                                                {tab.count}
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
 
                                         {/* Date Period Filter Toolbars */}
                                         {currentStep === 0 && (
-                                            <div>
-                                                {renderFilterToolbar("Statement Period", statementFilter, setStatementFilter, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate)}
-                                            </div>
-                                        )}
-                                        {currentStep === 1 && (
-                                            <div>
-                                                {renderFilterToolbar("Platform Period", platformFilter, setPlatformFilter, platformFromDate, setPlatformFromDate, platformToDate, setPlatformToDate)}
-                                            </div>
-                                        )}
-                                        {currentStep === 3 && (
                                             <div style={{
                                                 display: 'grid',
                                                 gridTemplateColumns: '1.1fr 1fr 180px',
@@ -970,12 +1011,22 @@ export const BankStatementReconciliationModal = ({
                                                 <div />
                                             </div>
                                         )}
+                                        {currentStep === 1 && (
+                                            <div>
+                                                {renderFilterToolbar("Platform Period", platformFilter, setPlatformFilter, platformFromDate, setPlatformFromDate, platformToDate, setPlatformToDate)}
+                                            </div>
+                                        )}
+                                        {currentStep === 2 && (
+                                            <div>
+                                                {renderFilterToolbar("Statement Period", statementFilter, setStatementFilter, statementFromDate, setStatementFromDate, statementToDate, setStatementToDate)}
+                                            </div>
+                                        )}
 
                                         {/* Cards area with nav arrows */}
                                         <div style={{ position: 'relative' }}>
 
                                             {/* Left Arrow */}
-                                            {currentStep > 0 && currentStep < 3 && (
+                                            {currentStep > 0 && (
                                                 <button
                                                     type="button"
                                                     onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
@@ -994,7 +1045,7 @@ export const BankStatementReconciliationModal = ({
                                                     }}
                                                     onMouseEnter={(e) => { e.currentTarget.style.background = '#155c41'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}
                                                     onMouseLeave={(e) => { e.currentTarget.style.background = '#0d3829'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
-                                                    title="Previous step"
+                                                    title="Previous tab"
                                                 >⇦</button>
                                             )}
 
@@ -1018,7 +1069,7 @@ export const BankStatementReconciliationModal = ({
                                                     }}
                                                     onMouseEnter={(e) => { e.currentTarget.style.background = '#155c41'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}
                                                     onMouseLeave={(e) => { e.currentTarget.style.background = '#0d3829'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
-                                                    title="Next step"
+                                                    title="Next tab"
                                                 >⇨</button>
                                             )}
 
@@ -1042,8 +1093,8 @@ export const BankStatementReconciliationModal = ({
                                                         const { statement, platform } = pair;
                                                         const isExactAmount = statement && platform && (parseFloat(statement.amount) === parseFloat(platform.amount));
 
-                                                        // side-by-side visit mode
-                                                        if (currentStep === 3) {
+                                                        // Tab 1 (currentStep === 0): OVERALL mode (side-by-side reconciliation matrix)
+                                                        if (currentStep === 0) {
                                                             return (
                                                                 <div key={idx} style={{
                                                                     background: '#FFFFFF', padding: '1rem',
@@ -1162,8 +1213,42 @@ export const BankStatementReconciliationModal = ({
                                                                 boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
                                                                 transition: 'all 0.2s'
                                                             }}>
-                                                                {/* Step 0: Bank Statement */}
-                                                                {currentStep === 0 && (
+                                                                {/* Tab 2 (currentStep === 1): Platform Sales & Transaction History */}
+                                                                {currentStep === 1 && (
+                                                                    platform ? (
+                                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                                <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B' }}>{platform.description}</span>
+                                                                                <span style={{
+                                                                                    padding: '3px 10px', borderRadius: '6px',
+                                                                                    fontSize: '0.72rem', fontWeight: '800',
+                                                                                    background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE'
+                                                                                }}>{platform.voucherNumber}</span>
+                                                                            </div>
+                                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                                    <span style={{ fontSize: '1.3rem', fontWeight: '950', color: '#0F172A' }}>{formatINR(platform.amount)}</span>
+                                                                                    {isExactAmount && (
+                                                                                        <span style={{
+                                                                                            display: 'inline-flex', alignItems: 'center', gap: '3px',
+                                                                                            background: '#ECFDF5', color: '#059669',
+                                                                                            fontSize: '0.68rem', fontWeight: '800',
+                                                                                            padding: '2px 8px', borderRadius: '6px', border: '1px solid #A7F3D0'
+                                                                                        }}>
+                                                                                            <Sparkles size={10} /> Exact Match
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600' }}>{platform.date}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div style={{ color: '#94A3B8', fontSize: '0.8rem', textAlign: 'center', fontStyle: 'italic', padding: '0.5rem' }}>No matching platform record</div>
+                                                                    )
+                                                                )}
+
+                                                                {/* Tab 3 (currentStep === 2): Bank Statement (Uploaded Data) */}
+                                                                {currentStep === 2 && (
                                                                     statement ? (
                                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
@@ -1204,77 +1289,6 @@ export const BankStatementReconciliationModal = ({
                                                                     ) : (
                                                                         <div style={{ color: '#94A3B8', fontSize: '0.8rem', textAlign: 'center', fontStyle: 'italic', padding: '1rem' }}>No corresponding statement line</div>
                                                                     )
-                                                                )}
-
-                                                                {/* Step 1: Platform History */}
-                                                                {currentStep === 1 && (
-                                                                    platform ? (
-                                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                                                <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B' }}>{platform.description}</span>
-                                                                                <span style={{
-                                                                                    padding: '3px 10px', borderRadius: '6px',
-                                                                                    fontSize: '0.72rem', fontWeight: '800',
-                                                                                    background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE'
-                                                                                }}>{platform.voucherNumber}</span>
-                                                                            </div>
-                                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                                    <span style={{ fontSize: '1.3rem', fontWeight: '950', color: '#0F172A' }}>{formatINR(platform.amount)}</span>
-                                                                                    {isExactAmount && (
-                                                                                        <span style={{
-                                                                                            display: 'inline-flex', alignItems: 'center', gap: '3px',
-                                                                                            background: '#ECFDF5', color: '#059669',
-                                                                                            fontSize: '0.68rem', fontWeight: '800',
-                                                                                            padding: '2px 8px', borderRadius: '6px', border: '1px solid #A7F3D0'
-                                                                                        }}>
-                                                                                            <Sparkles size={10} /> Exact Match
-                                                                                        </span>
-                                                                                    )}
-                                                                                </div>
-                                                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600' }}>{platform.date}</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div style={{ color: '#94A3B8', fontSize: '0.8rem', textAlign: 'center', fontStyle: 'italic', padding: '0.5rem' }}>No matching platform record</div>
-                                                                    )
-                                                                )}
-
-                                                                {/* Step 2: Action Controls */}
-                                                                {currentStep === 2 && (
-                                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '0.5rem 0' }}>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleMatchAccept(pair)}
-                                                                            style={{
-                                                                                padding: '0.6rem 2.5rem', borderRadius: '9999px',
-                                                                                background: '#00875a', color: 'white',
-                                                                                border: 'none', fontWeight: '900',
-                                                                                fontSize: '0.88rem', cursor: 'pointer',
-                                                                                boxShadow: '0 3px 10px rgba(0,135,90,0.3)',
-                                                                                transition: 'all 0.15s'
-                                                                            }}
-                                                                            onMouseOver={(e) => e.currentTarget.style.background = '#006644'}
-                                                                            onMouseOut={(e) => e.currentTarget.style.background = '#00875a'}
-                                                                        >
-                                                                            <Check size={14} strokeWidth={3} style={{ display: 'inline', marginRight: '6px' }} /> Match
-                                                                        </button>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleRejectUnmatch(pair)}
-                                                                            style={{
-                                                                                padding: '0.6rem 2.5rem', borderRadius: '9999px',
-                                                                                background: 'white', color: '#DC2626',
-                                                                                border: '2px solid #FCA5A5', fontWeight: '900',
-                                                                                fontSize: '0.88rem', cursor: 'pointer',
-                                                                                transition: 'all 0.15s'
-                                                                            }}
-                                                                            onMouseOver={(e) => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.borderColor = '#EF4444'; }}
-                                                                            onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#FCA5A5'; }}
-                                                                        >
-                                                                            <X size={14} strokeWidth={2.5} style={{ display: 'inline', marginRight: '6px' }} /> Reject
-                                                                        </button>
-                                                                    </div>
                                                                 )}
                                                             </div>
                                                         );
