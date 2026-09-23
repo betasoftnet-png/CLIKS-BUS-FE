@@ -38,11 +38,15 @@ const INITIAL_SPLITS = [];
 export const getBackendBaseUrl = () => {
     const envApi = config.api.baseUrl || (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_API_BASE_URL : '');
     if (envApi && (envApi.startsWith('http://') || envApi.startsWith('https://'))) {
-        return envApi.replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
+        return envApi.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '').replace(/\/+$/, '');
     }
     if (typeof window !== 'undefined') {
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        const host = window.location.hostname;
+        if (host === 'localhost' || host === '127.0.0.1') {
             return 'http://localhost:3000';
+        }
+        if (host.includes('cliksbusiness.com')) {
+            return 'https://cliksbusiness.com';
         }
         return window.location.origin;
     }
@@ -51,12 +55,26 @@ export const getBackendBaseUrl = () => {
 
 export const resolveFileUrl = (filePath) => {
     if (!filePath) return '';
-    if (filePath.startsWith('http://') || filePath.startsWith('https://') || filePath.startsWith('blob:') || filePath.startsWith('data:')) {
+    // If it's already an external or local scheme, clean up any wrong domain
+    if (filePath.startsWith('blob:') || filePath.startsWith('data:')) {
         return filePath;
     }
     const backendBase = getBackendBaseUrl();
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        // If an old stored URL points to consumer domain cliks.beta-softnet.com, re-route it to proper backend host
+        if (filePath.includes('cliks.beta-softnet.com/uploads/')) {
+            const relPath = filePath.split('cliks.beta-softnet.com')[1];
+            const cleanRel = relPath.startsWith('/uploads') ? `/api${relPath}` : relPath;
+            return `${backendBase}${cleanRel}`;
+        }
+        return filePath;
+    }
     const cleanPath = filePath.startsWith('/') ? filePath : `/uploads/${filePath}`;
-    const normalizedPath = cleanPath.startsWith('/uploads') ? cleanPath : `/uploads/${cleanPath.replace(/^\/+/, '')}`;
+    const normalizedPath = cleanPath.startsWith('/api/uploads') 
+        ? cleanPath 
+        : cleanPath.startsWith('/uploads')
+            ? `/api${cleanPath}`
+            : `/api/uploads/${cleanPath.replace(/^\/+/, '')}`;
     return `${backendBase}${normalizedPath}`;
 };
 export const getDirectAttachmentUrl = resolveFileUrl;
@@ -2619,9 +2637,11 @@ const BusinessSplitCollect = () => {
                                                                                         ev.stopPropagation();
                                                                                         const targetDoc = e.documentUrl || e.attachment;
                                                                                         const resolvedUrl = resolveFileUrl(targetDoc);
-                                                                                        if (resolvedUrl) {
-                                                                                            window.open(resolvedUrl, '_blank', 'noopener,noreferrer');
-                                                                                        }
+                                                                                        const cleanName = e.documentName || (e.attachment ? e.attachment.split('/').pop().replace(/^\d+_/, '') : 'Document');
+                                                                                        setPreviewAttachment({
+                                                                                            url: resolvedUrl,
+                                                                                            name: cleanName
+                                                                                        });
                                                                                     }}
                                                                                     style={{
                                                                                         display: 'inline-flex',
@@ -2638,7 +2658,7 @@ const BusinessSplitCollect = () => {
                                                                                         maxWidth: '160px',
                                                                                         transition: 'all 0.15s'
                                                                                     }}
-                                                                                    title="Click to open attachment in new tab"
+                                                                                    title="Click to view attachment inline"
                                                                                     onMouseOver={(ev) => ev.currentTarget.style.background = '#DBEAFE'}
                                                                                     onMouseOut={(ev) => ev.currentTarget.style.background = '#EFF6FF'}
                                                                                 >
@@ -3659,16 +3679,17 @@ const BusinessSplitCollect = () => {
             <AnimatePresence>
                 {previewAttachment && (
                     <div 
+                        className="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
                         style={{ 
                             position: 'fixed', 
                             inset: 0, 
-                            background: 'rgba(15, 23, 42, 0.75)', 
+                            background: 'rgba(2, 6, 23, 0.85)', 
                             backdropFilter: 'blur(8px)', 
                             display: 'flex', 
                             alignItems: 'center', 
                             justifyContent: 'center', 
                             zIndex: 1100,
-                            padding: '1.25rem'
+                            padding: '1rem'
                         }}
                         onClick={() => setPreviewAttachment(null)}
                     >
@@ -3677,13 +3698,14 @@ const BusinessSplitCollect = () => {
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             onClick={(e) => e.stopPropagation()}
+                            className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
                             style={{ 
-                                background: 'white', 
+                                background: '#FFFFFF', 
                                 width: '100%', 
-                                maxWidth: '840px', 
-                                height: '85vh', 
+                                maxWidth: '42rem', // max-w-2xl
+                                maxHeight: '90vh', 
                                 borderRadius: '24px', 
-                                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', 
+                                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.45)', 
                                 overflow: 'hidden', 
                                 display: 'flex', 
                                 flexDirection: 'column' 
@@ -3693,36 +3715,36 @@ const BusinessSplitCollect = () => {
                             <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, background: '#FAFAFA' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
                                     <FileText size={18} style={{ color: '#059669', flexShrink: 0 }} />
-                                    <h3 style={{ fontSize: '1rem', fontWeight: '900', color: '#0F172A', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    <h3 style={{ fontSize: '0.95rem', fontWeight: '900', color: '#0F172A', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                         {previewAttachment.name || 'Expense Attachment'}
                                     </h3>
                                 </div>
                                 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <button 
-                                        type="button"
-                                        onClick={() => {
-                                            if (previewAttachment?.url) {
-                                                window.open(previewAttachment.url, '_blank', 'noopener,noreferrer');
-                                            }
-                                        }}
-                                        style={{ 
-                                            display: 'inline-flex', 
-                                            alignItems: 'center', 
-                                            gap: '5px', 
-                                            padding: '0.45rem 0.85rem', 
-                                            borderRadius: '10px', 
-                                            background: '#ECFDF5', 
-                                            color: '#065F46', 
-                                            textDecoration: 'none', 
-                                            fontSize: '0.78rem', 
-                                            fontWeight: '850',
-                                            border: '1px solid #A7F3D0',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        <ExternalLink size={13} /> Open in New Tab
-                                    </button>
+                                    {previewAttachment.url && (
+                                        <a 
+                                            href={previewAttachment.url}
+                                            download={previewAttachment.name || 'document'}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{ 
+                                                display: 'inline-flex', 
+                                                alignItems: 'center', 
+                                                gap: '5px', 
+                                                padding: '0.45rem 0.85rem', 
+                                                borderRadius: '10px', 
+                                                background: '#ECFDF5', 
+                                                color: '#065F46', 
+                                                textDecoration: 'none', 
+                                                fontSize: '0.78rem', 
+                                                fontWeight: '850',
+                                                border: '1px solid #A7F3D0',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            <Download size={13} /> Download
+                                        </a>
+                                    )}
                                     <button 
                                         style={{ 
                                             background: '#F1F5F9', 
@@ -3744,23 +3766,23 @@ const BusinessSplitCollect = () => {
                             </div>
 
                             {/* Modal Content */}
-                            <div style={{ flex: 1, padding: '1rem', background: '#F8FAFC', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                            <div style={{ flex: 1, padding: '1rem', background: '#0F172A', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'auto', minHeight: '340px' }}>
                                 {isPdfFile(previewAttachment.url || previewAttachment.name) ? (
                                     <div className="w-full h-full flex flex-col items-center justify-center">
                                         <iframe 
                                             src={previewAttachment.url}
                                             title="PDF Preview"
                                             className="w-full h-[500px]"
-                                            style={{ width: '100%', height: '100%', minHeight: '500px', border: 'none', borderRadius: '12px', background: 'white' }}
+                                            style={{ width: '100%', height: '500px', border: 'none', borderRadius: '12px', background: 'white' }}
                                         />
-                                        <div className="mt-2 text-center text-xs text-slate-500">
+                                        <div className="mt-2 text-center text-xs text-slate-400">
                                             If PDF preview does not display,{' '}
                                             <a 
                                                 href={previewAttachment.url} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer" 
                                                 download={previewAttachment.name || 'document.pdf'}
-                                                className="font-bold text-emerald-600 hover:underline"
+                                                className="font-bold text-emerald-400 hover:underline"
                                             >
                                                 click here to download or open directly
                                             </a>.
@@ -3770,7 +3792,7 @@ const BusinessSplitCollect = () => {
                                     <img 
                                         src={previewAttachment.url} 
                                         alt={previewAttachment.name || 'Expense Attachment'} 
-                                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}
+                                        style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}
                                     />
                                 )}
                             </div>
