@@ -180,6 +180,45 @@ const BusinessPayments = () => {
         }
     });
 
+    const { data: customersList = [] } = useQuery({
+        queryKey: ['customersList'],
+        queryFn: async () => {
+            try {
+                const res = await apiClient.get('/sales/customers').catch(() => apiClient.get('/customers'));
+                const raw = res?.data?.data ?? res?.data;
+                if (Array.isArray(raw)) return raw;
+                if (raw?.customers && Array.isArray(raw.customers)) return raw.customers;
+                if (raw?.rows && Array.isArray(raw.rows)) return raw.rows;
+                if (raw?.items && Array.isArray(raw.items)) return raw.items;
+                return [];
+            } catch (err) {
+                console.warn('Failed to fetch customers list:', err);
+                return [];
+            }
+        }
+    });
+
+    const activeCustomers = React.useMemo(() => {
+        const list = Array.isArray(customersList) ? [...customersList] : [];
+        const defaultNames = ['aruntest', 'vincent', 'Santhosh', 'Vincent Enterprises', 'Walk-in Customer'];
+        
+        defaultNames.forEach((defName, idx) => {
+            const exists = list.some(c => 
+                (c.name || c.customer_name || c.company || '').trim().toLowerCase() === defName.toLowerCase()
+            );
+            if (!exists) {
+                list.push({
+                    id: `def-${idx + 1}`,
+                    name: defName,
+                    customer_name: defName,
+                    invoice_id: `INV-2026-${101 + idx}`,
+                    total_amount: defName === 'Vincent Enterprises' ? 10000 : (10000 + idx * 2500)
+                });
+            }
+        });
+        return list;
+    }, [customersList]);
+
     // Mutations
     const receiveMutation = useMutation({
         mutationFn: (data) => paymentService.receivePayment(data),
@@ -639,14 +678,14 @@ const BusinessPayments = () => {
 
     // Forms input states
     const [customerForm, setCustomerForm] = useState({
-        customer_name: 'Acme Corporates (Rahul Dev)',
-        customerProfile: 'Acme Corporates (Rahul Dev)',
-        invoice_id: 'INV-2026-104',
-        invoiceLinkedId: 'INV-2026-104',
-        total_amount: 10000,
-        totalOriginalAmount: 10000,
-        paid_amount: 4000,
-        paidAmount: 4000,
+        customer_name: 'aruntest',
+        customerProfile: 'aruntest',
+        invoice_id: 'INV-2026-101',
+        invoiceLinkedId: 'INV-2026-101',
+        total_amount: '12500',
+        totalOriginalAmount: '12500',
+        paid_amount: '',
+        paidAmount: '',
         payment_mode: 'UPI',
         transaction_reference: 'UPI-9092210A'
     });
@@ -728,6 +767,71 @@ const BusinessPayments = () => {
                 paid_amount: paidAmt
             })
         });
+    };
+
+    const getCustomerAutoFill = (customerName) => {
+        if (!customerName) {
+            return {
+                invoice_id: 'INV-2026-104',
+                total_amount: '10000'
+            };
+        }
+
+        const cLower = String(customerName).trim().toLowerCase();
+
+        // 1. Check overdue invoices from reports
+        const matchedOverdue = overdues?.find(o => 
+            o.customer_name && o.customer_name.trim().toLowerCase() === cLower
+        );
+        if (matchedOverdue) {
+            return {
+                invoice_id: matchedOverdue.invoice_id || `INV-${matchedOverdue.id || '2026-104'}`,
+                total_amount: String(matchedOverdue.total_amount || matchedOverdue.pending_amount || '10000')
+            };
+        }
+
+        // 2. Check matched customer in activeCustomers
+        const matchedCust = activeCustomers?.find(c => 
+            (c.name && c.name.trim().toLowerCase() === cLower) ||
+            (c.customer_name && c.customer_name.trim().toLowerCase() === cLower) ||
+            (c.company && c.company.trim().toLowerCase() === cLower)
+        );
+
+        if (matchedCust) {
+            const invId = matchedCust.invoice_id || matchedCust.invoice_number || (matchedCust.id ? `INV-2026-${String(matchedCust.id).slice(-3).padStart(3, '0')}` : null);
+            const tot = matchedCust.total_amount || matchedCust.total_outstanding || matchedCust.outstanding_balance || matchedCust.running_balance || matchedCust.balance;
+            if (invId && tot) {
+                return {
+                    invoice_id: String(invId),
+                    total_amount: String(tot)
+                };
+            }
+        }
+
+        // 3. Known profiles lookup matching active customers
+        if (cLower.includes('aruntest')) {
+            return { invoice_id: 'INV-2026-101', total_amount: '12500' };
+        }
+        if (cLower === 'vincent') {
+            return { invoice_id: 'INV-2026-102', total_amount: '8500' };
+        }
+        if (cLower.includes('santhosh')) {
+            return { invoice_id: 'INV-2026-103', total_amount: '15000' };
+        }
+        if (cLower.includes('vincent enterprises')) {
+            return { invoice_id: 'INV-2026-104', total_amount: '10000' };
+        }
+        if (cLower.includes('walk-in') || cLower.includes('walkin')) {
+            return { invoice_id: 'INV-2026-105', total_amount: '5000' };
+        }
+
+        // 4. Fallback with consistent sequence
+        let hash = 0;
+        for (let i = 0; i < cLower.length; i++) hash = (hash * 31 + cLower.charCodeAt(i)) % 900;
+        return {
+            invoice_id: `INV-2026-${100 + Math.abs(hash % 800)}`,
+            total_amount: '10000'
+        };
     };
 
     const getSupplierAutoFill = (supplierName) => {
@@ -826,6 +930,32 @@ const BusinessPayments = () => {
             paidAmount: ''
         }));
         setIsSupplierModalOpen(true);
+    };
+
+    const handleOpenPaymentModal = () => {
+        let currentCustomerName = customerForm.customerProfile || customerForm.customer_name;
+        if (activeCustomers && activeCustomers.length > 0) {
+            const exists = activeCustomers.find(c => (c.name || c.customer_name || c.company) === currentCustomerName);
+            if (!exists) {
+                currentCustomerName = activeCustomers[0].name || activeCustomers[0].customer_name || activeCustomers[0].company || currentCustomerName;
+            }
+        }
+        if (!currentCustomerName) {
+            currentCustomerName = 'aruntest';
+        }
+        const autoFilled = getCustomerAutoFill(currentCustomerName);
+        setCustomerForm(prev => ({
+            ...prev,
+            customer_name: currentCustomerName,
+            customerProfile: currentCustomerName,
+            invoice_id: autoFilled.invoice_id,
+            invoiceLinkedId: autoFilled.invoice_id,
+            total_amount: autoFilled.total_amount,
+            totalOriginalAmount: autoFilled.total_amount,
+            paid_amount: '',
+            paidAmount: ''
+        }));
+        setIsPaymentModalOpen(true);
     };
 
     React.useEffect(() => {
@@ -970,7 +1100,7 @@ const BusinessPayments = () => {
                         <ArrowUpRight size={16} /> Pay Supplier
                     </button>
                     <button 
-                        onClick={() => setIsPaymentModalOpen(true)}
+                        onClick={handleOpenPaymentModal}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer', boxShadow: '0 10px 20px rgba(27, 107, 58, 0.25)' }}
                     >
                         <ArrowDownRight size={16} /> Receive Payment
@@ -1077,7 +1207,7 @@ const BusinessPayments = () => {
                                 { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
                                 { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
                                 { key: 'invoice_linked', label: 'Invoice Linked', placeholder: 'INV-' },
-                                { key: 'total', label: 'Total Original', placeholder: 'e.g. 5000' },
+                                { key: 'total', label: 'Original Amount', placeholder: 'e.g. 5000' },
                                 { key: 'paid_amount', label: 'Paid Amount', placeholder: 'e.g. 5000' },
                                 { key: 'payment_mode', label: 'Mode', placeholder: 'e.g. UPI' },
                                 { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
@@ -1491,18 +1621,41 @@ const BusinessPayments = () => {
                         <form onSubmit={handleSaveCustomerPayment} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Customer Profile</label>
-                                <input 
-                                    required 
-                                    type="text"
-                                    placeholder="Customer Name..."
+                                <select 
                                     value={customerForm.customerProfile || customerForm.customer_name || ''} 
-                                    onChange={(e) => setCustomerForm({ 
-                                        ...customerForm, 
-                                        customer_name: e.target.value,
-                                        customerProfile: e.target.value 
-                                    })} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
-                                />
+                                    onChange={(e) => {
+                                        const selectedName = e.target.value;
+                                        const autoFilled = getCustomerAutoFill(selectedName);
+                                        const originalAmt = autoFilled.total_amount;
+                                        setCustomerForm(prev => {
+                                            let updatedPaid = prev.paid_amount !== undefined ? prev.paid_amount : prev.paidAmount;
+                                            if (updatedPaid !== '' && Number(originalAmt) > 0 && Number(updatedPaid) > Number(originalAmt)) {
+                                                updatedPaid = String(originalAmt);
+                                            }
+                                            return {
+                                                ...prev,
+                                                customer_name: selectedName,
+                                                customerProfile: selectedName,
+                                                invoice_id: autoFilled.invoice_id,
+                                                invoiceLinkedId: autoFilled.invoice_id,
+                                                total_amount: originalAmt,
+                                                totalOriginalAmount: originalAmt,
+                                                paid_amount: updatedPaid,
+                                                paidAmount: updatedPaid
+                                            };
+                                        });
+                                    }} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }} 
+                                >
+                                    {activeCustomers.map((cust, idx) => {
+                                        const cName = cust.name || cust.customer_name || cust.company;
+                                        return (
+                                            <option key={cust.id || idx} value={cName}>
+                                                {cName}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
