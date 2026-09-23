@@ -375,83 +375,87 @@ const BusinessReferral = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {referralsList.map((ref) => {
-                                            const isRegistered = ref.stage === 'REGISTERED';
-                                            const isSetup = ref.stage === 'SETUP_COMPLETE';
-                                            const isActive = ref.stage === 'ACTIVE';
-                                            const isPremium = ref.stage === 'PREMIUM';
+                                        {referralsList.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="4" style={{ padding: '2.5rem 1rem', textAlign: 'center', color: '#64748B', fontWeight: '500' }}>
+                                                    No referrals yet. Share your exclusive referral link above to start earning rewards!
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            referralsList.map((ref) => {
+                                                const isRegistered = ref.stage === 'REGISTERED' || ref.stage === 'Registered';
+                                                const isSetup = ref.stage === 'SETUP_COMPLETE' || ref.stage === 'Setup Complete';
+                                                const isActive = ref.stage === 'ACTIVE' || ref.stage === 'Active' || ref.stage === 'Active User';
+                                                const isPremium = ref.stage === 'PREMIUM' || ref.stage === 'Premium';
 
-                                            return (
-                                                <tr key={ref.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                    <td style={{ padding: '0.85rem 1rem' }}>
-                                                        <div style={{ fontWeight: '800', color: '#1E293B' }}>{ref.name}</div>
-                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{ref.email} • Joined {ref.registered_at}</div>
-                                                    </td>
-                                                    <td style={{ padding: '0.85rem 1rem' }}>
-                                                        {isRegistered && (
-                                                            <span style={{ background: '#FEF3C7', color: '#B45309', padding: '0.3rem 0.65rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800' }}>
-                                                                Registered (Pending)
-                                                            </span>
-                                                        )}
-                                                        {isSetup && (
-                                                            <span style={{ background: '#DBEAFE', color: '#1E40AF', padding: '0.3rem 0.65rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800' }}>
-                                                                Setup Complete
-                                                            </span>
-                                                        )}
-                                                        {isActive && (
-                                                            <span style={{ background: '#D1FAE5', color: '#065F46', padding: '0.3rem 0.65rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800' }}>
-                                                                Active User
-                                                            </span>
-                                                        )}
-                                                        {isPremium && (
-                                                            <span style={{ background: '#F3E8FF', color: '#6B21A8', padding: '0.3rem 0.65rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800' }}>
-                                                                Premium User 👑
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td style={{ padding: '0.85rem 1rem' }}>
-                                                        {isRegistered && <span style={{ color: '#94A3B8', fontWeight: '700' }}>Pending</span>}
-                                                        {isSetup && <span style={{ color: '#2563EB', fontWeight: '900' }}>100 Points</span>}
-                                                        {isActive && <span style={{ color: '#059669', fontWeight: '900' }}>600 Points (100 + 500)</span>}
-                                                        {isPremium && <span style={{ color: '#7C3AED', fontWeight: '900' }}>1,600 Points (+1,000 Bonus)</span>}
-                                                    </td>
-                                                    <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                                                        <div style={{ display: 'inline-flex', gap: '4px' }}>
+                                                const displayName = ref.refereeName || ref.name || 'Friend';
+                                                const displayEmail = ref.refereeEmail || ref.email || '';
+                                                const displayDate = ref.registered_at || ref.joinedDate || ref.joined_date || 'Today';
+                                                const displayReward = ref.rewardEarned || ref.reward_earned || (
+                                                    isRegistered ? 'Pending' :
+                                                    isSetup ? '100 Points' :
+                                                    isActive ? '200 Points' :
+                                                    isPremium ? '1,600 Points (+1,000 Bonus)' : '200 Points'
+                                                );
+
+                                                return (
+                                                    <tr key={ref.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '0.85rem 1rem' }}>
+                                                            <div style={{ fontWeight: '800', color: '#1E293B' }}>{displayName}</div>
+                                                            <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{displayEmail} • Joined {displayDate}</div>
+                                                        </td>
+                                                        <td style={{ padding: '0.85rem 1rem' }}>
                                                             {isRegistered && (
-                                                                <button 
-                                                                    onClick={() => handleAdvanceStage(ref.id, 'SETUP_COMPLETE')}
-                                                                    style={{ border: '1px solid #BFDBFE', background: '#EFF6FF', color: '#1D4ED8', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer' }}
-                                                                    title="Simulate completing business setup"
-                                                                >
-                                                                    + Complete Setup
-                                                                </button>
+                                                                <span style={{ background: '#FEF3C7', color: '#B45309', padding: '0.3rem 0.65rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                                    Registered
+                                                                </span>
                                                             )}
-                                                            {(isRegistered || isSetup) && (
-                                                                <button 
-                                                                    onClick={() => handleAdvanceStage(ref.id, 'ACTIVE')}
-                                                                    style={{ border: '1px solid #A7F3D0', background: '#ECFDF5', color: '#047857', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer' }}
-                                                                    title="Simulate becoming active user"
-                                                                >
-                                                                    + Activate (500 pts)
-                                                                </button>
+                                                            {isSetup && (
+                                                                <span style={{ background: '#DBEAFE', color: '#1E40AF', padding: '0.3rem 0.65rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                                    Setup Complete
+                                                                </span>
                                                             )}
                                                             {isActive && (
-                                                                <button 
-                                                                    onClick={() => handleAdvanceStage(ref.id, 'PREMIUM')}
-                                                                    style={{ border: '1px solid #DDD6FE', background: '#F5F3FF', color: '#6D28D9', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer' }}
-                                                                    title="Simulate upgrading to premium"
-                                                                >
-                                                                    + Upgrade Premium (1000 pts)
-                                                                </button>
+                                                                <span style={{ background: '#D1FAE5', color: '#065F46', padding: '0.3rem 0.65rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                                    Active User
+                                                                </span>
                                                             )}
                                                             {isPremium && (
-                                                                <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: '800' }}>✓ Max Rewards Earned</span>
+                                                                <span style={{ background: '#F3E8FF', color: '#6B21A8', padding: '0.3rem 0.65rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                                    Premium User 👑
+                                                                </span>
                                                             )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
+                                                        </td>
+                                                        <td style={{ padding: '0.85rem 1rem' }}>
+                                                            <span style={{ color: isActive ? '#059669' : isPremium ? '#7C3AED' : isSetup ? '#2563EB' : '#94A3B8', fontWeight: '900' }}>
+                                                                {displayReward}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                                                            <div style={{ display: 'inline-flex', gap: '4px' }}>
+                                                                {isRegistered && (
+                                                                    <button 
+                                                                        onClick={() => handleAdvanceStage(ref.id, 'ACTIVE')}
+                                                                        style={{ border: '1px solid #A7F3D0', background: '#ECFDF5', color: '#047857', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer' }}
+                                                                        title="Activate referred user"
+                                                                    >
+                                                                        + Activate
+                                                                    </button>
+                                                                )}
+                                                                {isActive && (
+                                                                    <span style={{ border: '1px solid #A7F3D0', background: '#ECFDF5', color: '#047857', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800' }}>
+                                                                        ✓ Active
+                                                                    </span>
+                                                                )}
+                                                                {isPremium && (
+                                                                    <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: '800' }}>✓ Max Rewards Earned</span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
                                     </tbody>
                                 </table>
                             </div>

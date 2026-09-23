@@ -21,45 +21,10 @@ export const STAGE_REWARDS = {
     PREMIUM: { name: 'Premium', points: 1000, label: '1,000 Bonus Points', statusKey: 'completed' }
 };
 
-// Initial Seed Data (if empty)
-const DEFAULT_REFERRALS = [
-    {
-        id: 'ref-101',
-        name: 'Apex Retailers (Sanjay Kumar)',
-        email: 'sanjay@apexretail.in',
-        stage: 'PREMIUM', // Registered -> Setup -> Active -> Premium
-        registered_at: '2026-08-20',
-        points_earned: 1600, // 100 + 500 + 1000
-        claimed_stages: ['SETUP_COMPLETE', 'ACTIVE', 'PREMIUM']
-    },
-    {
-        id: 'ref-102',
-        name: 'Siddharth Electronics',
-        email: 'info@siddharthelec.com',
-        stage: 'ACTIVE',
-        registered_at: '2026-08-24',
-        points_earned: 600, // 100 + 500
-        claimed_stages: ['SETUP_COMPLETE', 'ACTIVE']
-    },
-    {
-        id: 'ref-103',
-        name: 'Modern Bakeries & Sweets',
-        email: 'contact@modernbakeries.in',
-        stage: 'SETUP_COMPLETE',
-        registered_at: '2026-08-28',
-        points_earned: 100, // 100
-        claimed_stages: ['SETUP_COMPLETE']
-    },
-    {
-        id: 'ref-104',
-        name: 'Praveen Logistics Ltd',
-        email: 'operations@praveenlogistics.com',
-        stage: 'REGISTERED',
-        registered_at: '2026-08-30',
-        points_earned: 0,
-        claimed_stages: []
-    }
-];
+// Initial Seed Data: Empty list (live data fetched from API)
+const DEFAULT_REFERRALS = [];
+const MOCK_NAMES = ['Apex Retailers (Sanjay Kumar)', 'Siddharth Electronics', 'Modern Bakeries & Sweets', 'Praveen Logistics Ltd'];
+const isMock = (r) => MOCK_NAMES.includes(r.name) || ['ref-101', 'ref-102', 'ref-103', 'ref-104'].includes(r.id);
 
 export const REDEMPTION_CATALOG = [
     {
@@ -115,6 +80,18 @@ export const REDEMPTION_CATALOG = [
 export const referralService = {
     // Generate or fetch user's unique referral code
     getUserReferralCode: () => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                const u = JSON.parse(userStr);
+                if (u.referral_code || u.referralCode) {
+                    const c = u.referral_code || u.referralCode;
+                    localStorage.setItem(STORAGE_KEYS.REFERRAL_CODE, c);
+                    return c;
+                }
+            }
+        } catch (e) {}
+
         let code = localStorage.getItem(STORAGE_KEYS.REFERRAL_CODE);
         if (!code) {
             code = `CLIKS-BIZ-${Math.floor(10000 + Math.random() * 90000)}X`;
@@ -128,42 +105,48 @@ export const referralService = {
         return `https://cliksbusiness.com/join?ref=${code}`;
     },
 
-    // Get referral list
+    // Get referral list (filtering out any old mock records)
     getReferralsList: () => {
         try {
             const raw = localStorage.getItem(STORAGE_KEYS.REFERRALS_LIST);
-            return raw ? JSON.parse(raw) : DEFAULT_REFERRALS;
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed.filter(r => !isMock(r)) : [];
         } catch {
-            return DEFAULT_REFERRALS;
+            return [];
         }
     },
 
-    // Fetch referral list from backend API (GET /referrals) and synchronize with local storage
+    // Fetch referral list from backend API (GET /api/referrals/my-referrals or GET /referrals?code=...)
     fetchReferrals: async () => {
+        const code = referralService.getUserReferralCode();
         try {
-            const res = await apiClient.get('/referrals').then(r => r.data?.data || r.data || r);
-            if (Array.isArray(res) && res.length > 0) {
-                const mapped = res.map(r => ({
-                    id: r.id ? (String(r.id).startsWith('ref-') ? String(r.id) : `ref-${r.id}`) : `ref-${Date.now()}`,
-                    name: r.referee_name || r.refereeName || r.name || 'Friend',
-                    email: r.referee_email || r.refereeEmail || r.email || '',
-                    stage: (r.status === 'Active' || r.status === 'Joined') ? 'ACTIVE' : (r.stage || 'REGISTERED'),
-                    status: r.status || 'Joined',
-                    registered_at: (r.created_at || r.createdAt || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
-                    points_earned: Number(r.bonus_points || r.bonusPoints || r.points_earned || 200),
-                    claimed_stages: ['SETUP_COMPLETE', 'ACTIVE']
-                }));
+            const res = await apiClient.get(`/referrals/my-referrals?code=${encodeURIComponent(code)}`)
+                .catch(() => apiClient.get(`/referrals?code=${encodeURIComponent(code)}`))
+                .catch(() => apiClient.get('/referrals'))
+                .then(r => r.data?.data || r.data || r);
 
-                // Merge with local storage items avoiding duplicates
-                const local = referralService.getReferralsList();
-                const combined = [...mapped];
-                for (const item of local) {
-                    if (!combined.some(c => c.email && c.email.toLowerCase() === item.email?.toLowerCase())) {
-                        combined.push(item);
-                    }
-                }
-                localStorage.setItem(STORAGE_KEYS.REFERRALS_LIST, JSON.stringify(combined));
-                return combined;
+            if (Array.isArray(res)) {
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const mapped = res.map(r => {
+                    const rawDate = r.joinedDate || r.joined_date || (r.createdAt || r.created_at || '').slice(0, 10) || todayStr;
+                    const isToday = rawDate === todayStr;
+                    return {
+                        id: r.id ? (String(r.id).startsWith('ref-') ? String(r.id) : `ref-${r.id}`) : `ref-${Date.now()}`,
+                        name: r.refereeName || r.referee_name || r.name || 'Friend',
+                        email: r.refereeEmail || r.referee_email || r.email || '',
+                        stage: (r.stage === 'Active User' || r.status === 'Active' || r.status === 'Registered (Active)') ? 'ACTIVE' : (r.stage || 'REGISTERED'),
+                        status: r.status || 'Registered (Active)',
+                        reward_earned: r.rewardEarned || r.reward_earned || `${r.bonusPoints || r.bonus_points || 200} Points`,
+                        registered_at: isToday ? `Today / ${rawDate}` : rawDate,
+                        joined_date: rawDate,
+                        points_earned: Number(r.bonusPoints || r.bonus_points || r.points_earned || 200),
+                        claimed_stages: ['SETUP_COMPLETE', 'ACTIVE']
+                    };
+                });
+
+                localStorage.setItem(STORAGE_KEYS.REFERRALS_LIST, JSON.stringify(mapped));
+                return mapped;
             }
         } catch (err) {
             console.warn('[ReferralService] fetchReferrals network fallback:', err.message);
