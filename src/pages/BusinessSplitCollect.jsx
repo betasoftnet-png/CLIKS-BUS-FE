@@ -207,9 +207,38 @@ export const isSettlementLinkedToExpense = (settlement, exp, allPrimaryExpenses 
             return true;
         }
     }
-    // Fallback: If only 1 primary expense exists in the ticket, link settlement to it
+    // Fallback 1: If only 1 primary expense exists in the ticket, link settlement to it
     if (allPrimaryExpenses && allPrimaryExpenses.length === 1 && String(allPrimaryExpenses[0].id) === String(exp.id)) {
         return true;
+    }
+
+    // Fallback 2: If settlement has no explicit expense in title or IDs, link to the matching debt session
+    if (allPrimaryExpenses && allPrimaryExpenses.length > 1) {
+        const sTitle = (settlement.title || '').toLowerCase().trim();
+        // If settlement mentions another primary expense in title, do not link to this one
+        const mentionsOther = allPrimaryExpenses.some(otherExp => {
+            if (String(otherExp.id) === String(exp.id)) return false;
+            const oTitle = (otherExp.title || '').toLowerCase().trim();
+            return oTitle && (sTitle.includes(`for ${oTitle}:`) || sTitle.includes(`for ${oTitle}`));
+        });
+        if (!mentionsOther) {
+            let recipient = null;
+            if (settlement.shares && typeof settlement.shares === 'object') {
+                recipient = Object.keys(settlement.shares).find(k => k !== settlement.paidBy && (parseFloat(settlement.shares[k]) || 0) > 0);
+            }
+            if (!recipient && settlement.title) {
+                const match = settlement.title.match(/paid\s+(.+)$/i);
+                if (match && match[1]) recipient = match[1].trim();
+            }
+
+            if (recipient && exp.paidBy === recipient) {
+                const eligibleForRecipient = allPrimaryExpenses.filter(pe => pe.paidBy === recipient);
+                if (eligibleForRecipient.length === 1) return true;
+                const expAmt = parseFloat(exp.amount) || 0;
+                const sAmt = parseFloat(settlement.amount) || 0;
+                if (Math.abs(sAmt - (expAmt / 2)) < 0.01 || Math.abs(sAmt - expAmt) < 0.01) return true;
+            }
+        }
     }
     return false;
 };
@@ -801,6 +830,9 @@ const BusinessSplitCollect = () => {
                 return s;
             });
             setSplits(updatedSplits);
+            try {
+                localStorage.setItem('cliks_splits_data', JSON.stringify(updatedSplits));
+            } catch {}
         }
     };
 
@@ -809,7 +841,8 @@ const BusinessSplitCollect = () => {
         if (!activeSplit) return { members: {}, debts: [], totalSpent: 0 };
 
         const balances = {};
-        activeSplit.participants.forEach(p => {
+        const participants = activeSplit.participants || [];
+        participants.forEach(p => {
             balances[p] = 0;
         });
 
@@ -818,21 +851,76 @@ const BusinessSplitCollect = () => {
         const totalGroupOutlay = calculateGroupOutlay(activeSplit.expenses);
         const totalSpent = totalGroupOutlay;
 
-        activeSplit.expenses.forEach(exp => {
+        const allExpenses = activeSplit.expenses || [];
+        const allPrimaries = allExpenses.filter(item => isPrimaryExpense(item));
+        const allSettlements = allExpenses.filter(item => !isPrimaryExpense(item));
+
+        allExpenses.forEach(exp => {
             const payer = exp.paidBy;
             const amt = parseFloat(exp.amount) || 0;
 
-            // Credit the payer
-            if (balances[payer] !== undefined) {
-                balances[payer] += amt;
-            }
-
-            // Debit everyone who shared
-            Object.keys(exp.shares || {}).forEach(member => {
-                if (balances[member] !== undefined) {
-                    balances[member] -= parseFloat(exp.shares[member]) || 0;
+            if (isPrimaryExpense(exp)) {
+                // Primary Expense: Credit the payer
+                if (balances[payer] !== undefined) {
+                    balances[payer] += amt;
+                } else {
+                    balances[payer] = amt;
                 }
-            });
+
+                // Debit everyone who shared
+                const hasExplicitShares = exp.shares && typeof exp.shares === 'object' && Object.keys(exp.shares).length > 0;
+                if (hasExplicitShares) {
+                    Object.keys(exp.shares).forEach(member => {
+                        const share = parseFloat(exp.shares[member]) || 0;
+                        if (balances[member] !== undefined) {
+                            balances[member] -= share;
+                        } else {
+                            balances[member] = -share;
+                        }
+                    });
+                } else {
+                    const count = participants.length > 0 ? participants.length : 1;
+                    const equalShare = amt / count;
+                    participants.forEach(p => {
+                        if (balances[p] !== undefined) {
+                            balances[p] -= equalShare;
+                        } else {
+                            balances[p] = -equalShare;
+                        }
+                    });
+                }
+            } else {
+                // Settlement / Repayment Transaction
+                // Credit the settlement payer
+                if (balances[payer] !== undefined) {
+                    balances[payer] += amt;
+                } else {
+                    balances[payer] = amt;
+                }
+
+                // Debit the recipient
+                let recipient = null;
+                if (exp.shares && typeof exp.shares === 'object' && Object.keys(exp.shares).length > 0) {
+                    recipient = Object.keys(exp.shares).find(k => k !== payer && (parseFloat(exp.shares[k]) || 0) > 0);
+                }
+                if (!recipient && exp.title) {
+                    const match = exp.title.match(/paid\s+(.+)$/i);
+                    if (match && match[1]) {
+                        recipient = match[1].trim();
+                    }
+                }
+                if (!recipient && participants.length === 2) {
+                    recipient = participants.find(p => p !== payer);
+                }
+
+                if (recipient) {
+                    if (balances[recipient] !== undefined) {
+                        balances[recipient] -= amt;
+                    } else {
+                        balances[recipient] = -amt;
+                    }
+                }
+            }
         });
 
         // Deep copy balances for debt simplification
@@ -840,7 +928,7 @@ const BusinessSplitCollect = () => {
         const debts = [];
 
         // Simplify debts algorithm (Splitwise style)
-        const participants = Object.keys(tempBalances);
+        const memberKeys = Object.keys(tempBalances);
         
         while (true) {
             let debtor = null;
@@ -848,7 +936,7 @@ const BusinessSplitCollect = () => {
             let maxDebit = 0;
             let maxCredit = 0;
 
-            participants.forEach(p => {
+            memberKeys.forEach(p => {
                 const bal = tempBalances[p];
                 if (bal < -0.01 && bal < maxDebit) {
                     maxDebit = bal;
@@ -866,10 +954,19 @@ const BusinessSplitCollect = () => {
             tempBalances[debtor] += amtToSettle;
             tempBalances[creditor] -= amtToSettle;
 
+            // Link debt to matching primary expense session if identifiable
+            const matchingSession = allPrimaries.find(pe => {
+                const linked = allSettlements.filter(s => isSettlementLinkedToExpense(s, pe, allPrimaries));
+                const sess = calculateSessionBalances(pe, linked, participants);
+                return sess.debts.some(sd => sd.from === debtor && sd.to === creditor);
+            });
+
             debts.push({
                 from: debtor,
                 to: creditor,
-                amount: Math.round(amtToSettle * 100) / 100
+                amount: Math.round(amtToSettle * 100) / 100,
+                expenseId: matchingSession?.id,
+                expenseTitle: matchingSession?.title
             });
         }
 
@@ -885,8 +982,40 @@ const BusinessSplitCollect = () => {
         if (!activeSplit) return;
         if (await window.confirm(`Mark settlement: does ${debt.from} paid ${activeSplit.currencySymbol}${debt.amount.toLocaleString()} to ${debt.to}?`)) {
             const allPrimaries = (activeSplit.expenses || []).filter(item => isPrimaryExpense(item));
-            const targetExpenseId = debt.expenseId || (allPrimaries.length === 1 ? allPrimaries[0].id : null);
-            const expenseTitle = debt.expenseTitle || (targetExpenseId ? allPrimaries.find(e => String(e.id) === String(targetExpenseId))?.title : null);
+            let targetExpense = null;
+
+            if (debt.expenseId) {
+                targetExpense = allPrimaries.find(e => String(e.id) === String(debt.expenseId));
+            }
+
+            if (!targetExpense) {
+                // Find primary expense session where this debt originates
+                const candidates = [];
+                for (const exp of allPrimaries) {
+                    const linked = (activeSplit.expenses || []).filter(item => !isPrimaryExpense(item) && isSettlementLinkedToExpense(item, exp, allPrimaries));
+                    const sess = calculateSessionBalances(exp, linked, activeSplit.participants);
+                    const matchingDebt = sess.debts.find(d => d.from === debt.from && d.to === debt.to);
+                    if (matchingDebt) {
+                        candidates.push({ exp, debt: matchingDebt, diff: Math.abs(matchingDebt.amount - debt.amount) });
+                    }
+                }
+                if (candidates.length > 0) {
+                    candidates.sort((a, b) => a.diff - b.diff);
+                    targetExpense = candidates[0].exp;
+                }
+            }
+
+            if (!targetExpense) {
+                const eligible = getEligibleExpensesForDebt(debt, activeSplit.expenses, activeSplit.participants);
+                if (eligible.length > 0) {
+                    targetExpense = eligible[0];
+                } else if (allPrimaries.length === 1) {
+                    targetExpense = allPrimaries[0];
+                }
+            }
+
+            const targetExpenseId = targetExpense ? targetExpense.id : (debt.expenseId || null);
+            const expenseTitle = targetExpense ? targetExpense.title : (debt.expenseTitle || null);
 
             // Settle creates a custom expense compensating the debt
             const settlementExpense = {
@@ -918,6 +1047,10 @@ const BusinessSplitCollect = () => {
                 const createdSettlement = await splitExpenseService.addExpense(selectedSplitId, settlementExpense);
                 const finalSettlement = {
                     ...createdSettlement,
+                    title: settlementExpense.title,
+                    amount: settlementExpense.amount,
+                    paidBy: settlementExpense.paidBy,
+                    shares: settlementExpense.shares,
                     isSettlement: true,
                     type: 'SETTLEMENT',
                     linked_expense_id: targetExpenseId,
@@ -934,6 +1067,9 @@ const BusinessSplitCollect = () => {
                     return s;
                 });
                 setSplits(updatedSplits);
+                try {
+                    localStorage.setItem('cliks_splits_data', JSON.stringify(updatedSplits));
+                } catch {}
                 alert('Settlement logged perfectly!');
             } catch (err) {
                 console.error("Error saving settlement to backend:", err);
@@ -948,6 +1084,9 @@ const BusinessSplitCollect = () => {
                     return s;
                 });
                 setSplits(updatedSplits);
+                try {
+                    localStorage.setItem('cliks_splits_data', JSON.stringify(updatedSplits));
+                } catch {}
                 alert('Settlement logged perfectly!');
             }
         }
@@ -960,7 +1099,7 @@ const BusinessSplitCollect = () => {
             setCustomPayExpenseId(debt.expenseId);
             const chosen = eligible.find(e => String(e.id) === String(debt.expenseId));
             const rawShare = chosen ? (parseFloat(chosen.memberShare) || debt.amount) : debt.amount;
-            const amountToPay = Math.min(rawShare, debt.amount);
+            const amountToPay = customPayDebt ? Math.min(rawShare, customPayDebt.amount) : rawShare;
             setCustomPayAmount(String(amountToPay));
         } else if (eligible.length > 0) {
             setCustomPayExpenseId(eligible[0].id);
@@ -1048,6 +1187,10 @@ const BusinessSplitCollect = () => {
             const createdSettlement = await splitExpenseService.addExpense(selectedSplitId, settlementExpense);
             const finalSettlement = {
                 ...createdSettlement,
+                title: settlementExpense.title,
+                amount: settlementExpense.amount,
+                paidBy: settlementExpense.paidBy,
+                shares: settlementExpense.shares,
                 isSettlement: true,
                 type: 'SETTLEMENT',
                 linked_expense_id: targetExpenseId,
@@ -1064,6 +1207,9 @@ const BusinessSplitCollect = () => {
                 return s;
             });
             setSplits(updatedSplits);
+            try {
+                localStorage.setItem('cliks_splits_data', JSON.stringify(updatedSplits));
+            } catch {}
             alert(`✨ Settlement for "${expenseTitle}" logged successfully!`);
         } catch (err) {
             console.error("Error saving custom settlement to backend:", err);
@@ -1077,6 +1223,9 @@ const BusinessSplitCollect = () => {
                 return s;
             });
             setSplits(updatedSplits);
+            try {
+                localStorage.setItem('cliks_splits_data', JSON.stringify(updatedSplits));
+            } catch {}
             alert(`✨ Settlement for "${expenseTitle}" logged successfully!`);
         } finally {
             setIsCustomPayModalOpen(false);
