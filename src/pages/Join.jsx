@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context';
 import referralService from '../services/referralService';
+import { apiClient as api } from '../api/client';
 import logoPng from '../assets/cliks.png';
 import '../App.css';
 
@@ -61,7 +62,7 @@ const Join = () => {
         }
     }, [isAuthenticated, user, navigate]);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setErrorMsg('');
         setSuccessMsg('');
@@ -81,50 +82,66 @@ const Join = () => {
 
         setIsSubmitting(true);
 
+        const formData = {
+            fullName,
+            businessName: companyName,
+            email,
+            password,
+            referralCode
+        };
+
+        const queryParams = new URLSearchParams(location.search);
+        const payload = {
+            fullName: formData.fullName.trim(),
+            businessName: formData.businessName?.trim() || '',
+            email: formData.email.trim().toLowerCase(),
+            password: formData.password,
+            referralCode: formData.referralCode?.trim() || queryParams.get('ref') || queryParams.get('referral') || queryParams.get('code') || localStorage.getItem('cliks_referral_code') || '',
+        };
+
         try {
-            // Validate and link registration to referring user account
-            let appliedBonus = false;
-            if (referralCode.trim()) {
-                const cleanCode = referralCode.trim().toUpperCase();
-                localStorage.setItem('cliks_referral_code', cleanCode);
-                const refRes = referralService.validateAndApplyReferralCode(cleanCode, email.trim());
-                if (refRes.success) {
-                    appliedBonus = true;
-                    setSuccessMsg(refRes.message || 'Referral accepted! 200 Welcome Points awarded.');
-                } else if (refRes.message && !refRes.message.includes('cannot use your own')) {
-                    console.warn('[Join] Referral notice:', refRes.message);
+            // Validate and record referral code locally as fallback
+            if (payload.referralCode) {
+                try {
+                    const cleanCode = payload.referralCode.toUpperCase();
+                    localStorage.setItem('cliks_referral_code', cleanCode);
+                    referralService.validateAndApplyReferralCode(cleanCode, payload.email);
+                } catch (e) {}
+            }
+
+            const res = await api.post('/auth/register', payload);
+
+            // Do NOT show a success toast or redirect to /login if res.status is not 200/201.
+            const status = res?.status || res?.statusCode || (res?.success ? 201 : null);
+            if (status !== 200 && status !== 201) {
+                throw new Error(res?.message || res?.data?.message || 'Registration failed with status ' + status);
+            }
+
+            const responseData = res?.data || res || {};
+            const authToken = responseData.accessToken || responseData.token;
+            const authUser = responseData.user;
+
+            setSuccessMsg('🎉 Account registered successfully! Redirecting...');
+
+            // Auto-login or redirect to /login with the prefilled email.
+            if (authToken) {
+                localStorage.setItem('books_auth_token', authToken);
+                if (authUser) {
+                    localStorage.setItem('cliks_user_profile', JSON.stringify(authUser));
                 }
+                setTimeout(() => {
+                    navigate('/dashboard', { replace: true });
+                    window.location.reload();
+                }, 800);
+            } else {
+                setTimeout(() => {
+                    navigate(`/login?email=${encodeURIComponent(payload.email)}`, { replace: true });
+                }, 800);
             }
-
-            // Create user registration session
-            const newUserData = {
-                id: `usr-${Date.now()}`,
-                name: fullName.trim(),
-                business_name: companyName.trim() || `${fullName.trim()}'s Business`,
-                email: email.trim(),
-                role: 'business',
-                tier: 'Starter Plan',
-                referral_points: appliedBonus ? 2200 : 2000,
-                subscription_days_remaining: 365,
-                created_at: new Date().toISOString()
-            };
-
-            const token = `cliks-token-${Date.now()}`;
-            localStorage.setItem('books_auth_token', token);
-            localStorage.setItem('cliks_user_profile', JSON.stringify(newUserData));
-
-            // Log in via mockLogin or direct auth context
-            if (typeof mockLogin === 'function') {
-                mockLogin();
-            }
-
-            setTimeout(() => {
-                navigate('/dashboard', { replace: true });
-            }, 800);
-
         } catch (err) {
             console.error('[Join] Registration error:', err);
-            setErrorMsg(err.message || 'Registration failed. Please try again.');
+            const msg = err.response?.data?.error?.message || err.response?.data?.message || err.message || 'Registration failed. Please check your details.';
+            setErrorMsg(msg);
             setIsSubmitting(false);
         }
     };

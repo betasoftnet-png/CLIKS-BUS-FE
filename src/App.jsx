@@ -339,6 +339,7 @@ function AuthenticatedApp() {
                 <Route path="/auth/investor-login" element={<BusinessPitches openAuthModal="investor" />} />
                 <Route path="/social/trading" element={<BusinessTrading />} />
                 <Route path="/referral" element={<BusinessReferral />} />
+                <Route path="/refer-earn" element={<BusinessReferral />} />
                 <Route path="/cliks" element={<BusinessPlaceholder title="Cliks" />} />
                 <Route path="/bnxmail" element={<BusinessPlaceholder title="BNXmail" />} />
                 <Route path="/bit-tool" element={<BusinessPlaceholder title="Bit-Tool" />} />

@@ -44,9 +44,10 @@ const BusinessReferral = () => {
     const [inputReferralCode, setInputReferralCode] = useState('');
     const [redeemMessage, setRedeemMessage] = useState(null);
 
-    const refreshData = () => {
+    const refreshData = async () => {
         const code = referralService.getUserReferralCode();
         const link = referralService.getReferralLink();
+        await referralService.fetchReferrals();
         const w = referralService.getWallet();
         const refs = referralService.getReferralsList();
         const rdms = referralService.getRedemptions();

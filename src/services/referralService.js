@@ -4,6 +4,8 @@
  * anti-fraud validation, and point redemption options.
  */
 
+import { apiClient } from '../api/client';
+
 const STORAGE_KEYS = {
     REFERRAL_CODE: 'cliks_user_referral_code',
     WALLET: 'cliks_referral_wallet',
@@ -134,6 +136,39 @@ export const referralService = {
         } catch {
             return DEFAULT_REFERRALS;
         }
+    },
+
+    // Fetch referral list from backend API (GET /referrals) and synchronize with local storage
+    fetchReferrals: async () => {
+        try {
+            const res = await apiClient.get('/referrals').then(r => r.data?.data || r.data || r);
+            if (Array.isArray(res) && res.length > 0) {
+                const mapped = res.map(r => ({
+                    id: r.id ? (String(r.id).startsWith('ref-') ? String(r.id) : `ref-${r.id}`) : `ref-${Date.now()}`,
+                    name: r.referee_name || r.refereeName || r.name || 'Friend',
+                    email: r.referee_email || r.refereeEmail || r.email || '',
+                    stage: (r.status === 'Active' || r.status === 'Joined') ? 'ACTIVE' : (r.stage || 'REGISTERED'),
+                    status: r.status || 'Joined',
+                    registered_at: (r.created_at || r.createdAt || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
+                    points_earned: Number(r.bonus_points || r.bonusPoints || r.points_earned || 200),
+                    claimed_stages: ['SETUP_COMPLETE', 'ACTIVE']
+                }));
+
+                // Merge with local storage items avoiding duplicates
+                const local = referralService.getReferralsList();
+                const combined = [...mapped];
+                for (const item of local) {
+                    if (!combined.some(c => c.email && c.email.toLowerCase() === item.email?.toLowerCase())) {
+                        combined.push(item);
+                    }
+                }
+                localStorage.setItem(STORAGE_KEYS.REFERRALS_LIST, JSON.stringify(combined));
+                return combined;
+            }
+        } catch (err) {
+            console.warn('[ReferralService] fetchReferrals network fallback:', err.message);
+        }
+        return referralService.getReferralsList();
     },
 
     // Get Wallet Metrics (Available, Pending, Total Earned)
