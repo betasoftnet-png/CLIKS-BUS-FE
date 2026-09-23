@@ -2091,23 +2091,27 @@ const BusinessSplitCollect = () => {
                                                     </div>
                                                 ) : (
                                                     <div 
-                                                        className="flex flex-col gap-3 pr-1.5 max-h-[250px] overflow-y-auto" 
+                                                        className="flex flex-col gap-2.5 pr-1.5 max-h-[226px] overflow-y-auto" 
                                                         style={{ 
                                                             display: 'flex', 
                                                             flexDirection: 'column', 
-                                                            gap: '0.75rem',
-                                                            maxHeight: '250px',
+                                                            gap: '0.625rem',
+                                                            maxHeight: '226px',
                                                             overflowY: 'auto',
                                                             paddingRight: '6px',
                                                             scrollbarWidth: 'thin',
-                                                            scrollbarColor: '#cbd5e1 transparent'
+                                                            scrollbarColor: '#CBD5E1 transparent'
                                                         }}
                                                     >
                                                         {splitSettlements.map(s => (
                                                             <div
                                                                 key={s.id}
-                                                                className="bg-emerald-50/50 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm transition-all"
+                                                                className="h-[68px] min-h-[68px] shrink-0 bg-emerald-50/50 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm transition-all"
                                                                 style={{
+                                                                    height: '68px',
+                                                                    minHeight: '68px',
+                                                                    flexShrink: 0,
+                                                                    boxSizing: 'border-box',
                                                                     background: 'rgba(236, 253, 245, 0.5)',
                                                                     border: '1px solid #A7F3D0',
                                                                     borderRadius: '16px',
