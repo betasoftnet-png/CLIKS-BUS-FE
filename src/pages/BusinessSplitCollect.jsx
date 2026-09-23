@@ -600,7 +600,7 @@ const BusinessSplitCollect = () => {
             amount: expense.amount.toString(),
             paidBy: expense.paidBy,
             date: expense.date,
-            attachmentName: expense.attachment || '',
+            attachmentName: expense.documentName || (expense.attachment ? expense.attachment.split('/').pop().replace(/^\d+_/, '') : '') || expense.attachment || '',
             attachmentFile: null,
             attachmentSizeKb: null,
             splitType: expense.splitType || 'equal',
@@ -716,17 +716,26 @@ const BusinessSplitCollect = () => {
         }
 
         let uploadedAttachment = expenseForm.attachmentName || null;
+        let uploadedDocUrl = '';
+        let uploadedDocName = expenseForm.attachmentName || '';
+
         if (expenseForm.attachmentFile) {
             try {
                 const formData = new FormData();
                 formData.append('file', expenseForm.attachmentFile);
                 const uploadRes = await splitExpenseService.uploadAttachment(formData);
-                uploadedAttachment = uploadRes?.url || uploadRes?.filename || (uploadRes?.data && (uploadRes.data.url || uploadRes.data.filename)) || expenseForm.attachmentName;
+                uploadedDocUrl = uploadRes?.url || (uploadRes?.data && uploadRes.data.url) || '';
+                uploadedDocName = uploadRes?.filename || (uploadRes?.data && uploadRes.data.filename) || expenseForm.attachmentName;
+                uploadedAttachment = uploadedDocUrl || uploadedDocName || expenseForm.attachmentName;
             } catch (err) {
                 console.error("Failed to upload document:", err);
                 alert("Attachment upload failed: " + (err.response?.data?.message || err.message || "Unknown error"));
                 return;
             }
+        } else if (expenseForm.attachmentName) {
+            uploadedDocName = expenseForm.attachmentName;
+            uploadedDocUrl = expenseForm.attachmentName.startsWith('/') ? expenseForm.attachmentName : `/uploads/${expenseForm.attachmentName}`;
+            uploadedAttachment = uploadedDocUrl;
         }
 
         if (editingExpenseId) {
@@ -737,6 +746,8 @@ const BusinessSplitCollect = () => {
                 paidBy: expenseForm.paidBy,
                 date: expenseForm.date,
                 attachment: uploadedAttachment,
+                documentName: uploadedDocName,
+                documentUrl: uploadedDocUrl,
                 splitType: expenseForm.splitType,
                 shares: finalShares
             };
@@ -778,6 +789,8 @@ const BusinessSplitCollect = () => {
             paidBy: expenseForm.paidBy,
             date: expenseForm.date,
             attachment: uploadedAttachment,
+            documentName: uploadedDocName,
+            documentUrl: uploadedDocUrl,
             splitType: expenseForm.splitType,
             shares: finalShares
         };
@@ -2597,18 +2610,18 @@ const BusinessSplitCollect = () => {
                                                                             <Calendar size={11} style={{ color: '#94A3B8' }} /> {e.date}
                                                                         </span>
 
-                                                                        {e.attachment && (
+                                                                        {(e.attachment || e.documentUrl) && (
                                                                             <>
                                                                                 <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#CBD5E1' }} />
                                                                                 <button
                                                                                     type="button"
                                                                                     onClick={(ev) => {
                                                                                         ev.stopPropagation();
-                                                                                        const cleanName = e.attachment.split('/').pop().replace(/^\d+_/, '') || e.attachment;
-                                                                                        setPreviewAttachment({
-                                                                                            url: resolveFileUrl(e.attachment),
-                                                                                            name: cleanName
-                                                                                        });
+                                                                                        const targetDoc = e.documentUrl || e.attachment;
+                                                                                        const resolvedUrl = resolveFileUrl(targetDoc);
+                                                                                        if (resolvedUrl) {
+                                                                                            window.open(resolvedUrl, '_blank', 'noopener,noreferrer');
+                                                                                        }
                                                                                     }}
                                                                                     style={{
                                                                                         display: 'inline-flex',
@@ -2625,13 +2638,13 @@ const BusinessSplitCollect = () => {
                                                                                         maxWidth: '160px',
                                                                                         transition: 'all 0.15s'
                                                                                     }}
-                                                                                    title="Click to view attachment inline"
+                                                                                    title="Click to open attachment in new tab"
                                                                                     onMouseOver={(ev) => ev.currentTarget.style.background = '#DBEAFE'}
                                                                                     onMouseOut={(ev) => ev.currentTarget.style.background = '#EFF6FF'}
                                                                                 >
                                                                                     <FileText size={11} style={{ flexShrink: 0 }} />
                                                                                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                                        {e.attachment.split('/').pop().replace(/^\d+_/, '') || 'Attachment'}
+                                                                                        {e.documentName || (e.attachment ? e.attachment.split('/').pop().replace(/^\d+_/, '') : 'Attachment')}
                                                                                     </span>
                                                                                 </button>
                                                                             </>
