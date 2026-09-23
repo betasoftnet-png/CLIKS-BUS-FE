@@ -35,14 +35,29 @@ import { config } from '../lib/config';
 // Initial Seed Data for Split Groups
 const INITIAL_SPLITS = [];
 
+export const getBackendBaseUrl = () => {
+    const envApi = config.api.baseUrl || (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_API_BASE_URL : '');
+    if (envApi && (envApi.startsWith('http://') || envApi.startsWith('https://'))) {
+        return envApi.replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
+    }
+    if (typeof window !== 'undefined') {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:3000';
+        }
+        return window.location.origin;
+    }
+    return 'http://localhost:3000';
+};
+
 export const resolveFileUrl = (filePath) => {
     if (!filePath) return '';
-    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    if (filePath.startsWith('http://') || filePath.startsWith('https://') || filePath.startsWith('blob:') || filePath.startsWith('data:')) {
         return filePath;
     }
+    const backendBase = getBackendBaseUrl();
     const cleanPath = filePath.startsWith('/') ? filePath : `/uploads/${filePath}`;
     const normalizedPath = cleanPath.startsWith('/uploads') ? cleanPath : `/uploads/${cleanPath.replace(/^\/+/, '')}`;
-    return `https://cliks.beta-softnet.com${normalizedPath}`;
+    return `${backendBase}${normalizedPath}`;
 };
 export const getDirectAttachmentUrl = resolveFileUrl;
 export const resolveAttachmentUrl = resolveFileUrl;
@@ -65,7 +80,7 @@ export const openAttachmentInNewTab = (attachment) => {
     const isPdf = isPdfFile(fileUrl || name);
 
     if (isPdf) {
-        window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=false`, '_blank');
+        window.open(fileUrl, '_blank', 'noopener,noreferrer');
     } else {
         const newTab = window.open('', '_blank');
         if (newTab) {
@@ -112,23 +127,7 @@ export const openAttachmentInNewTab = (attachment) => {
 
 export const getViewableUrl = (rawFilePath) => {
     if (!rawFilePath) return '';
-
-    let absoluteFileUrl = rawFilePath;
-    if (!rawFilePath.startsWith('http://') && !rawFilePath.startsWith('https://')) {
-        const clean = rawFilePath.startsWith('/') ? rawFilePath : `/${rawFilePath}`;
-        const base = 'https://cliks.beta-softnet.com';
-        absoluteFileUrl = clean.startsWith('/uploads') ? `${base}${clean}` : `${base}/uploads${clean}`;
-    }
-
-    const isPdf = isPdfFile(absoluteFileUrl);
-
-    // If it's a PDF, wrap with Google Docs Viewer so any browser tab displays the rendered document directly
-    if (isPdf) {
-        return `https://docs.google.com/viewer?url=${encodeURIComponent(absoluteFileUrl)}&embedded=false`;
-    }
-
-    // If image, return direct asset path
-    return absoluteFileUrl;
+    return resolveFileUrl(rawFilePath);
 };
 
 // Pure calculation function to compute total outlay across both list cards and details view
@@ -1766,9 +1765,9 @@ const BusinessSplitCollect = () => {
                                 const currSym = activeSplit.currencySymbol || '₹';
 
                                 return (
-                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mb-8">
                                         {/* ── Left Column (lg:col-span-6) ── */}
-                                        <div className="lg:col-span-6 flex flex-col gap-6">
+                                        <div className="lg:col-span-6 space-y-4">
                                             
                                             {/* 1. Summary Card */}
                                             <div
@@ -2057,7 +2056,7 @@ const BusinessSplitCollect = () => {
                                         </div>
 
                                         {/* ── Right Column (lg:col-span-6) ── */}
-                                        <div className="lg:col-span-6 flex flex-col gap-6">
+                                        <div className="lg:col-span-6 space-y-4">
 
                                             {/* 1. SETTLEMENTS Section */}
                                             <div className="flex flex-col gap-3">
@@ -2083,11 +2082,22 @@ const BusinessSplitCollect = () => {
                                                 {/* Settlements Container */}
                                                 {splitSettlements.length === 0 ? (
                                                     <div 
-                                                        className="bg-emerald-50/50 border border-emerald-200 rounded-2xl p-6 text-center"
-                                                        style={{ background: 'rgba(236, 253, 245, 0.5)', border: '1px solid #A7F3D0', borderRadius: '16px', padding: '1.5rem', textAlign: 'center' }}
+                                                        className="h-[68px] min-h-[68px] flex items-center justify-center bg-emerald-50/50 border border-emerald-200 rounded-2xl px-4 text-center"
+                                                        style={{ 
+                                                            height: '68px',
+                                                            minHeight: '68px',
+                                                            boxSizing: 'border-box',
+                                                            background: 'rgba(236, 253, 245, 0.5)', 
+                                                            border: '1px solid #A7F3D0', 
+                                                            borderRadius: '16px', 
+                                                            padding: '0 1rem', 
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            textAlign: 'center' 
+                                                        }}
                                                     >
                                                         <div style={{ fontSize: '0.85rem', fontWeight: '750', color: '#065F46' }}>No settlements recorded yet</div>
-                                                        <div style={{ fontSize: '0.72rem', color: '#059669', marginTop: '2px' }}>Settling dues will record payment receipts here.</div>
                                                     </div>
                                                 ) : (
                                                     <div 
@@ -3721,13 +3731,28 @@ const BusinessSplitCollect = () => {
                             </div>
 
                             {/* Modal Content */}
-                            <div style={{ flex: 1, padding: '1rem', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                            <div style={{ flex: 1, padding: '1rem', background: '#F8FAFC', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                                 {isPdfFile(previewAttachment.url || previewAttachment.name) ? (
-                                    <iframe 
-                                        src={previewAttachment.url}
-                                        title="PDF Preview"
-                                        style={{ width: '100%', height: '100%', border: 'none', borderRadius: '12px', background: 'white' }}
-                                    />
+                                    <div className="w-full h-full flex flex-col items-center justify-center">
+                                        <iframe 
+                                            src={previewAttachment.url}
+                                            title="PDF Preview"
+                                            className="w-full h-[500px]"
+                                            style={{ width: '100%', height: '100%', minHeight: '500px', border: 'none', borderRadius: '12px', background: 'white' }}
+                                        />
+                                        <div className="mt-2 text-center text-xs text-slate-500">
+                                            If PDF preview does not display,{' '}
+                                            <a 
+                                                href={previewAttachment.url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                download={previewAttachment.name || 'document.pdf'}
+                                                className="font-bold text-emerald-600 hover:underline"
+                                            >
+                                                click here to download or open directly
+                                            </a>.
+                                        </div>
+                                    </div>
                                 ) : (
                                     <img 
                                         src={previewAttachment.url} 
