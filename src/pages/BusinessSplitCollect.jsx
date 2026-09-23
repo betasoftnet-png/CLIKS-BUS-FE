@@ -2090,7 +2090,19 @@ const BusinessSplitCollect = () => {
                                                         <div style={{ fontSize: '0.72rem', color: '#059669', marginTop: '2px' }}>Settling dues will record payment receipts here.</div>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex flex-col gap-3" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                    <div 
+                                                        className="flex flex-col gap-3 pr-1.5 max-h-[250px] overflow-y-auto" 
+                                                        style={{ 
+                                                            display: 'flex', 
+                                                            flexDirection: 'column', 
+                                                            gap: '0.75rem',
+                                                            maxHeight: '250px',
+                                                            overflowY: 'auto',
+                                                            paddingRight: '6px',
+                                                            scrollbarWidth: 'thin',
+                                                            scrollbarColor: '#cbd5e1 transparent'
+                                                        }}
+                                                    >
                                                         {splitSettlements.map(s => (
                                                             <div
                                                                 key={s.id}
