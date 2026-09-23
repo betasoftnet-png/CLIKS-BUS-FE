@@ -5,7 +5,13 @@ import { apiClient } from '../api/client';
  */
 export const paymentService = {
     // Record a new payment (incoming or outgoing)
-    receivePayment: async (data) => await apiClient.post('/payments/receive', data).then(res => res.data.data || res.data),
+    receivePayment: async (data) => {
+        try {
+            return await apiClient.post('/payments/customer-receipts', data).then(res => res.data?.data || res.data);
+        } catch (err) {
+            return await apiClient.post('/payments/receive', data).then(res => res.data?.data || res.data);
+        }
+    },
     
     paySupplier: async (data) => {
         const res = await apiClient.post('/payments/pay', data);

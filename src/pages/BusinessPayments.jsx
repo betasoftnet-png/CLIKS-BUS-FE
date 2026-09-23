@@ -183,7 +183,7 @@ const BusinessPayments = () => {
     // Mutations
     const receiveMutation = useMutation({
         mutationFn: (data) => paymentService.receivePayment(data),
-        onSuccess: () => {
+        onSuccess: (_res, variables) => {
             queryClient.invalidateQueries({ queryKey: ['paymentReports'] });
             queryClient.invalidateQueries({ queryKey: ['profitLoss'] });
             queryClient.invalidateQueries({ queryKey: ['ledger'] });
@@ -191,6 +191,33 @@ const BusinessPayments = () => {
             queryClient.invalidateQueries({ queryKey: ['balanceSheet'] });
             queryClient.invalidateQueries({ queryKey: ['bankAccounts'] });
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
+
+            if (variables) {
+                const totalAmt = Number(variables.totalOriginalAmount !== undefined ? variables.totalOriginalAmount : (variables.total_original || variables.total_amount || variables.amount || 0));
+                const paidAmt = Number(variables.paidAmount !== undefined ? variables.paidAmount : (variables.paid_amount || variables.amount || 0));
+                const newReceipt = {
+                    payment_id: Date.now(),
+                    payment_number: `REC-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`,
+                    payment_type: 'receive',
+                    payment_date: new Date().toISOString().split('T')[0],
+                    payment_status: 'completed',
+                    customer_name: variables.customerProfile || variables.customer_name,
+                    customerProfile: variables.customerProfile || variables.customer_name,
+                    invoice_id: variables.invoiceLinkedId || variables.invoice_id,
+                    invoiceLinkedId: variables.invoiceLinkedId || variables.invoice_id,
+                    total_amount: totalAmt,
+                    totalOriginalAmount: totalAmt,
+                    paid_amount: paidAmt,
+                    paidAmount: paidAmt,
+                    pending_amount: Math.max(0, totalAmt - paidAmt),
+                    payment_mode: variables.payment_mode || 'UPI',
+                    transaction_reference: variables.reference_number || `REF-${Date.now().toString().slice(-4)}`,
+                    receipt_number: `RCT-${Date.now().toString().slice(-4)}`,
+                    reconciliation_status: 'matched'
+                };
+                setCustomerReceivables(prev => [newReceipt, ...prev.filter(x => x.payment_id !== newReceipt.payment_id)]);
+            }
+
             setIsPaymentModalOpen(false);
             alert('Customer payment recorded and committed successfully.');
         },
@@ -258,22 +285,92 @@ const BusinessPayments = () => {
     const dbAccounts = reportsData.accounts || [];
     const dbOverdues = reportsData.overdueInvoices || [];
 
-    const receivables = dbReceivables.map(rec => ({
-        payment_id: rec.id,
-        payment_number: `REC-${new Date(rec.created_at).getFullYear()}-${rec.id}`,
-        payment_type: 'receive',
-        payment_date: rec.created_at ? rec.created_at.split('T')[0] : 'N/A',
-        payment_status: 'completed',
-        customer_name: rec.party_name || 'General Client',
-        invoice_id: rec.invoice_id || `INV-REF-${rec.id}`,
-        total_amount: parseFloat(rec.amount) || 0,
-        paid_amount: parseFloat(rec.amount) || 0,
-        pending_amount: 0,
-        payment_mode: rec.payment_mode || 'Other',
-        transaction_reference: rec.reference_number || `REF-${rec.id}`,
-        receipt_number: `RCT-${rec.id}`,
-        reconciliation_status: rec.reconciliation_status || 'matched'
-    }));
+    const receivables = dbReceivables.map(rec => {
+        let originalTotal = 0;
+        let paidAmt = parseFloat(rec.paid_amount || rec.paidAmount || rec.amount || 0);
+        let custName = rec.party_name || rec.customerProfile || rec.customer_name || 'General Client';
+        let invId = rec.invoice_id || rec.invoiceLinkedId || `INV-REF-${rec.id}`;
+
+        if (rec.notes) {
+            try {
+                const parsed = typeof rec.notes === 'string' ? JSON.parse(rec.notes) : rec.notes;
+                if (parsed.totalOriginalAmount !== undefined && !isNaN(parseFloat(parsed.totalOriginalAmount))) {
+                    originalTotal = parseFloat(parsed.totalOriginalAmount);
+                } else if (parsed.total_original !== undefined && !isNaN(parseFloat(parsed.total_original))) {
+                    originalTotal = parseFloat(parsed.total_original);
+                } else if (parsed.total_original_amount !== undefined && !isNaN(parseFloat(parsed.total_original_amount))) {
+                    originalTotal = parseFloat(parsed.total_original_amount);
+                } else if (parsed.original_amount !== undefined && !isNaN(parseFloat(parsed.original_amount))) {
+                    originalTotal = parseFloat(parsed.original_amount);
+                } else if (parsed.total_amount !== undefined && !isNaN(parseFloat(parsed.total_amount))) {
+                    originalTotal = parseFloat(parsed.total_amount);
+                }
+
+                if (parsed.paidAmount !== undefined && !isNaN(parseFloat(parsed.paidAmount))) {
+                    paidAmt = parseFloat(parsed.paidAmount);
+                } else if (parsed.paid_amount !== undefined && !isNaN(parseFloat(parsed.paid_amount))) {
+                    paidAmt = parseFloat(parsed.paid_amount);
+                }
+
+                if (parsed.customerProfile) custName = parsed.customerProfile;
+                if (parsed.invoiceLinkedId) invId = parsed.invoiceLinkedId;
+            } catch (e) {}
+        }
+
+        if (!originalTotal && rec.totalOriginalAmount) {
+            originalTotal = parseFloat(rec.totalOriginalAmount);
+        }
+        if (!originalTotal && rec.total_original_amount) {
+            originalTotal = parseFloat(rec.total_original_amount);
+        }
+        if (!originalTotal && rec.total_original) {
+            originalTotal = parseFloat(rec.total_original);
+        }
+        if (!originalTotal && rec.total_amount && parseFloat(rec.total_amount) !== parseFloat(rec.amount)) {
+            originalTotal = parseFloat(rec.total_amount);
+        }
+        if (!originalTotal && dbOverdues && dbOverdues.length > 0) {
+            const matchedInv = dbOverdues.find(inv => 
+                (inv.invoice_number && String(inv.invoice_number) === String(invId)) ||
+                (inv.id && String(inv.id) === String(invId))
+            );
+            if (matchedInv) {
+                originalTotal = parseFloat(matchedInv.total_amount || matchedInv.amount || 0);
+            }
+        }
+        if (!originalTotal) {
+            originalTotal = paidAmt;
+        }
+
+        return {
+            payment_id: rec.id,
+            payment_number: `REC-${new Date(rec.created_at).getFullYear()}-${rec.id}`,
+            payment_type: 'receive',
+            payment_date: rec.created_at ? rec.created_at.split('T')[0] : 'N/A',
+            payment_status: 'completed',
+            customer_name: custName,
+            customerProfile: custName,
+            invoice_id: invId,
+            invoiceLinkedId: invId,
+            total_amount: originalTotal,
+            totalOriginalAmount: originalTotal,
+            paid_amount: paidAmt,
+            paidAmount: paidAmt,
+            pending_amount: Math.max(0, originalTotal - paidAmt),
+            payment_mode: rec.payment_mode || 'Other',
+            transaction_reference: rec.reference_number || `REF-${rec.id}`,
+            receipt_number: `RCT-${rec.id}`,
+            reconciliation_status: rec.reconciliation_status || 'matched'
+        };
+    });
+
+    const [customerReceivables, setCustomerReceivables] = useState(() => receivables);
+
+    React.useEffect(() => {
+        if (Array.isArray(receivables)) {
+            setCustomerReceivables(receivables);
+        }
+    }, [reportsData]);
 
     const payables = dbPayables.map(rec => {
         let originalTotal = 0;
@@ -543,9 +640,13 @@ const BusinessPayments = () => {
     // Forms input states
     const [customerForm, setCustomerForm] = useState({
         customer_name: 'Acme Corporates (Rahul Dev)',
+        customerProfile: 'Acme Corporates (Rahul Dev)',
         invoice_id: 'INV-2026-104',
+        invoiceLinkedId: 'INV-2026-104',
         total_amount: 10000,
+        totalOriginalAmount: 10000,
         paid_amount: 4000,
+        paidAmount: 4000,
         payment_mode: 'UPI',
         transaction_reference: 'UPI-9092210A'
     });
@@ -586,25 +687,46 @@ const BusinessPayments = () => {
     }, [accounts]);
 
     const handleSaveCustomerPayment = (e) => {
-        e.preventDefault();
-        const totalAmt = parseFloat(customerForm.total_amount);
-        let paidAmt = parseFloat(customerForm.paid_amount);
+        if (e && e.preventDefault) e.preventDefault();
+        const totalAmt = parseFloat(customerForm.total_amount !== undefined ? customerForm.total_amount : customerForm.totalOriginalAmount);
+        let paidAmt = parseFloat(customerForm.paid_amount !== undefined ? customerForm.paid_amount : customerForm.paidAmount);
 
         if (isNaN(paidAmt) || paidAmt <= 0 || isNaN(totalAmt) || totalAmt <= 0) {
             alert('Customer payment amount and total original amount must be strictly greater than 0.');
             return;
         }
 
+        // Ceiling guard: user cannot pay more than original amount
         if (paidAmt > totalAmt) {
             paidAmt = totalAmt;
         }
 
+        const custProfile = (customerForm.customerProfile || customerForm.customer_name || 'General Customer').trim();
+        const invLinkedId = (customerForm.invoiceLinkedId || customerForm.invoice_id || '').trim();
+
         receiveMutation.mutate({
-            customer_name: customerForm.customer_name,
-            invoice_id: customerForm.invoice_id,
+            customerProfile: custProfile,
+            customer_name: custProfile,
+            invoiceLinkedId: invLinkedId,
+            invoice_id: invLinkedId,
+            totalOriginalAmount: totalAmt,
+            total_original_amount: totalAmt,
+            total_original: totalAmt,
+            total_amount: totalAmt,
+            original_amount: totalAmt,
+            paidAmount: paidAmt,
+            paid_amount: paidAmt,
             amount: paidAmt,
-            payment_mode: customerForm.payment_mode,
-            reference_number: customerForm.transaction_reference
+            payment_mode: customerForm.payment_mode || 'UPI',
+            reference_number: customerForm.transaction_reference || '',
+            notes: JSON.stringify({
+                customerProfile: custProfile,
+                invoiceLinkedId: invLinkedId,
+                totalOriginalAmount: totalAmt,
+                paidAmount: paidAmt,
+                total_original: totalAmt,
+                paid_amount: paidAmt
+            })
         });
     };
 
@@ -814,11 +936,12 @@ const BusinessPayments = () => {
     };
 
     const totalOutstandingReceivables = overdues.reduce((sum, o) => sum + o.pending_amount, 0);
-    const totalDailyCollections = receivables.reduce((sum, r) => sum + r.paid_amount, 0);
+    const totalDailyCollections = customerReceivables.reduce((sum, r) => sum + (r.paidAmount !== undefined ? r.paidAmount : (r.paid_amount || 0)), 0);
 
-    const filteredReceivables = receivables.filter(r => 
-        r.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.payment_number.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredReceivables = customerReceivables.filter(r => 
+        (r.customerProfile || r.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (r.payment_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (r.invoiceLinkedId || r.invoice_id || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const filteredPayables = supplierPayables.filter(p => 
@@ -966,10 +1089,10 @@ const BusinessPayments = () => {
                                             <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.95rem' }}>{r.payment_number}</p>
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem', color: '#64748B' }}>{r.payment_date}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#1E293B' }}>{r.customer_name}</td>
-                                        <td style={{ padding: '1.5rem 2rem', color: '#475569', fontWeight: '600' }}>{r.invoice_id}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>{formatCurrency(r.total_amount)}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#1B6B3A' }}>{formatCurrency(r.paid_amount)}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#1E293B' }}>{r.customerProfile || r.customer_name}</td>
+                                        <td style={{ padding: '1.5rem 2rem', color: '#475569', fontWeight: '600' }}>{r.invoiceLinkedId || r.invoice_id}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>{formatCurrency(r.totalOriginalAmount !== undefined ? r.totalOriginalAmount : r.total_amount)}</td>
+                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#1B6B3A' }}>{formatCurrency(r.paidAmount !== undefined ? r.paidAmount : r.paid_amount)}</td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#F0FDF4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{r.payment_mode}</span>
                                         </td>
@@ -1372,15 +1495,29 @@ const BusinessPayments = () => {
                                     required 
                                     type="text"
                                     placeholder="Customer Name..."
-                                    value={customerForm.customer_name} 
-                                    onChange={(e) => setCustomerForm({ ...customerForm, customer_name: e.target.value })} 
+                                    value={customerForm.customerProfile || customerForm.customer_name || ''} 
+                                    onChange={(e) => setCustomerForm({ 
+                                        ...customerForm, 
+                                        customer_name: e.target.value,
+                                        customerProfile: e.target.value 
+                                    })} 
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                 />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Invoice Linked ID</label>
-                                    <input required type="text" value={customerForm.invoice_id} onChange={(e) => setCustomerForm({ ...customerForm, invoice_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        value={customerForm.invoiceLinkedId || customerForm.invoice_id || ''} 
+                                        onChange={(e) => setCustomerForm({ 
+                                            ...customerForm, 
+                                            invoice_id: e.target.value,
+                                            invoiceLinkedId: e.target.value 
+                                        })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Original Amount ({currency.symbol})</label>
@@ -1390,22 +1527,22 @@ const BusinessPayments = () => {
                                         inputMode="numeric"
                                         pattern="[0-9]*"
                                         placeholder="e.g. 10000"
-                                        value={customerForm.total_amount} 
+                                        value={customerForm.total_amount !== undefined ? customerForm.total_amount : (customerForm.totalOriginalAmount ?? '')} 
                                         onKeyDown={(e) => { if (['+', '-', '.', ',', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
                                         onChange={(e) => {
                                             const sanitized = e.target.value.replace(/[^0-9]/g, '');
+                                            const original = sanitized !== '' ? Number(sanitized) : 0;
                                             setCustomerForm(prev => {
-                                                let updatedPaid = prev.paid_amount;
-                                                if (sanitized !== '' && updatedPaid !== '') {
-                                                    const maxVal = Number(sanitized);
-                                                    if (Number(updatedPaid) > maxVal) {
-                                                        updatedPaid = String(maxVal);
-                                                    }
+                                                let updatedPaid = prev.paid_amount !== undefined ? prev.paid_amount : prev.paidAmount;
+                                                if (updatedPaid !== '' && original > 0 && Number(updatedPaid) > original) {
+                                                    updatedPaid = String(original);
                                                 }
                                                 return {
                                                     ...prev,
                                                     total_amount: sanitized,
-                                                    paid_amount: updatedPaid
+                                                    totalOriginalAmount: sanitized,
+                                                    paid_amount: updatedPaid,
+                                                    paidAmount: updatedPaid
                                                 };
                                             });
                                         }} 
@@ -1422,18 +1559,23 @@ const BusinessPayments = () => {
                                     pattern="[0-9]*"
                                     min="1"
                                     step="1"
-                                    max={customerForm.total_amount || undefined}
-                                    value={customerForm.paid_amount} 
+                                    max={customerForm.total_amount || customerForm.totalOriginalAmount || undefined}
+                                    value={customerForm.paid_amount !== undefined ? customerForm.paid_amount : (customerForm.paidAmount ?? '')} 
                                     onKeyDown={(e) => { if (['+', '-', '.', ',', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
                                     onChange={(e) => {
                                         let val = e.target.value.replace(/[^0-9]/g, '');
-                                        if (val !== '' && customerForm.total_amount !== '') {
-                                            const maxVal = Number(customerForm.total_amount);
-                                            if (!isNaN(maxVal) && Number(val) > maxVal) {
-                                                val = String(maxVal);
+                                        const original = Number(customerForm.total_amount || customerForm.totalOriginalAmount || 0);
+                                        if (val !== '' && original > 0) {
+                                            const entered = Number(val);
+                                            if (entered > original) {
+                                                val = String(original);
                                             }
                                         }
-                                        setCustomerForm(prev => ({ ...prev, paid_amount: val }));
+                                        setCustomerForm(prev => ({ 
+                                            ...prev, 
+                                            paid_amount: val,
+                                            paidAmount: val
+                                        }));
                                     }} 
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
                                 />
