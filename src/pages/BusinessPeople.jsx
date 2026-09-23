@@ -26,6 +26,7 @@ import {
     Tag
 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
+import { apiClient as api } from '../api/client';
 import { settingsService } from '../services/settingsService';
 import { profileService } from '../services/profileService';
 import FilterableTableHead from '../components/FilterableTableHead';
@@ -47,6 +48,7 @@ const BusinessPeople = () => {
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
     const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
     const [isDispatching, setIsDispatching] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const isDispatchingRef = React.useRef(false);
     const isSavingInlineRemRef = React.useRef(false);
     const [selectedPersonId, setSelectedPersonId] = useState(null);
@@ -171,7 +173,7 @@ const BusinessPeople = () => {
         queryFn: () => peopleService.getAllTransactions(),
     });
 
-    const { data: remindersRes = [], isLoading: isRemindersLoading } = useQuery({
+    const { data: remindersRes = [], isLoading: isRemindersLoading, refetch: fetchRepaymentAlerts } = useQuery({
         queryKey: ['people-reminders-all'],
         queryFn: () => peopleService.getAllReminders(),
     });
@@ -230,7 +232,35 @@ const BusinessPeople = () => {
         });
     }, [transactionsRes]);
 
-    const reminders = remindersRes.data || remindersRes || [];
+    const alerts = remindersRes.data || remindersRes || [];
+    const reminders = alerts;
+
+    const displayAlerts = useMemo(() => {
+        const list = Array.isArray(alerts) ? [...alerts] : [];
+        const seen = new Set();
+        const uniqueAlerts = [];
+        for (const a of list) {
+            const key = a.id 
+                ? `id_${a.id}` 
+                : `${a.contact_id || a.person_id}_${a.memo_label || a.title}_${a.maturity_date || a.due_date || a.maturityDate || a.date}_${a.claim_cap ?? a.amount}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniqueAlerts.push(a);
+            }
+        }
+
+        return uniqueAlerts.sort((a, b) => {
+            const createdB = b.createdAt || b.created_at;
+            const createdA = a.createdAt || a.created_at;
+            if (createdB && createdA) {
+                const diff = new Date(createdB) - new Date(createdA);
+                if (diff !== 0) return diff;
+            }
+            const dateB = b.maturityDate || b.maturity_date || b.due_date || b.date;
+            const dateA = a.maturityDate || a.maturity_date || a.due_date || a.date;
+            return new Date(dateB || 0) - new Date(dateA || 0);
+        });
+    }, [alerts]);
 
     const summary = useMemo(() => {
         const totalContacts = people.length;
@@ -674,33 +704,25 @@ const BusinessPeople = () => {
         }
     };
 
-    const handleDispatchAlert = (e) => {
+    const handleDispatchAlert = async (e) => {
         if (e) {
             e.preventDefault();
             e.stopPropagation();
         }
 
-        if (isDispatchingRef.current || isDispatching || createReminderMutation.isPending) return;
-        isDispatchingRef.current = true;
-        setIsDispatching(true);
+        if (isSubmitting || isDispatchingRef.current || isDispatching || createReminderMutation.isPending) return;
 
         setReminderAmountError('');
         if (!reminderForm.person_id) {
-            isDispatchingRef.current = false;
-            setIsDispatching(false);
             return alert('Please select a target contact.');
         }
         if (!reminderForm.due_date) {
-            isDispatchingRef.current = false;
-            setIsDispatching(false);
             return alert('Please select a maturity / due date.');
         }
 
         const amt = parseFloat(reminderForm.amount);
         if (!isNaN(amt) && amt < 0) {
             setReminderAmountError('Cap value cannot be negative.');
-            isDispatchingRef.current = false;
-            setIsDispatching(false);
             return;
         }
 
@@ -721,7 +743,28 @@ const BusinessPeople = () => {
             status: 'Pending'
         };
 
-        createReminderMutation.mutate(payload);
+        setIsSubmitting(true);
+        isDispatchingRef.current = true;
+        setIsDispatching(true);
+
+        try {
+            await api.post('/people/repayment-alerts', payload);
+            await fetchRepaymentAlerts();
+            queryClient.invalidateQueries({ queryKey: ['people-reminders-all'] });
+            if (payload.person_id) {
+                queryClient.invalidateQueries({ queryKey: ['person-reminders', payload.person_id] });
+            }
+            setIsReminderModalOpen(false);
+            setReminderForm({ person_id: '', title: '', amount: '', due_date: new Date().toISOString().split('T')[0], notes: '' });
+            alert('Repayment alert dispatched successfully.');
+        } catch (err) {
+            console.error('Failed to dispatch repayment alert:', err);
+            alert(err?.response?.data?.message || err?.message || 'Failed to dispatch repayment alert');
+        } finally {
+            setIsSubmitting(false);
+            isDispatchingRef.current = false;
+            setIsDispatching(false);
+        }
     };
 
     const renderAvatar = (name, size = 42) => {
@@ -1256,14 +1299,14 @@ const BusinessPeople = () => {
                             <tbody>
                                 {isRemindersLoading ? (
                                     <tr><td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: '#64748B' }}>Resolving dispatch statuses...</td></tr>
-                                ) : reminders.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).length === 0 ? (
+                                ) : displayAlerts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).length === 0 ? (
                                     <tr><td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>Zero pending alerts scheduled.</td></tr>
-                                ) : reminders.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((r) => (
+                                ) : displayAlerts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((r) => (
                                     <tr key={r.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1.5rem 2rem', color: '#E11D48', fontWeight: '800' }}>
                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                                 <Calendar size={14} />
-                                                {new Date(r.maturity_date || r.due_date).toLocaleDateString('en-IN')}
+                                                {new Date(r.maturity_date || r.due_date || r.maturityDate || r.date).toLocaleDateString('en-IN')}
                                             </span>
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1E293B' }}>{r.target_contact || r.person_name}</td>
@@ -1593,8 +1636,22 @@ const BusinessPeople = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Maturity / Due Date <span style={{ color: '#EF4444' }}>*</span></label>
                                     <input required type="date" value={reminderForm.due_date} onChange={(e) => setReminderForm({ ...reminderForm, due_date: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
-                                <button type="submit" disabled={isDispatching || createReminderMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer' }}>
-                                    {isDispatching || createReminderMutation.isPending ? 'Scheduling Alert...' : 'Dispatch Repayment Alert'}
+                                <button 
+                                    type="submit" 
+                                    disabled={isSubmitting || isDispatching || createReminderMutation.isPending} 
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '1rem', 
+                                        borderRadius: '16px', 
+                                        background: (isSubmitting || isDispatching || createReminderMutation.isPending) ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                        color: 'white', 
+                                        border: 'none', 
+                                        fontWeight: '800', 
+                                        fontSize: '1.1rem', 
+                                        cursor: (isSubmitting || isDispatching || createReminderMutation.isPending) ? 'not-allowed' : 'pointer' 
+                                    }}
+                                >
+                                    {isSubmitting || isDispatching || createReminderMutation.isPending ? 'Scheduling Alert...' : 'Dispatch Repayment Alert'}
                                 </button>
                             </form>
                         </Motion.div>

@@ -13,6 +13,7 @@ export const peopleService = {
     // Global aggregated views
     getAllTransactions: async () => await apiClient.get('/people/transactions').then(res => res.data.data || res.data),
     getAllReminders: async () => await apiClient.get('/people/reminders').then(res => res.data.data || res.data),
+    getRepaymentAlerts: async () => await apiClient.get('/people/reminders').then(res => res.data.data || res.data),
     getAllRecords: async () => await apiClient.get('/people/records').then(res => res.data.data || res.data),
 
     // Nested Transactions
@@ -23,6 +24,7 @@ export const peopleService = {
 
     // Nested Reminders & Repayment Alerts
     getReminders: async (personId) => await apiClient.get(`/people/${personId}/reminders`).then(res => res.data.data || res.data),
+    createRepaymentAlert: async (data) => await apiClient.post('/people/repayment-alerts', data).then(res => res.data.data || res.data),
     createReminder: async (personIdOrData, maybeData) => {
         let payload;
         if (typeof personIdOrData === 'object' && personIdOrData !== null) {
