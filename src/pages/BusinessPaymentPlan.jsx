@@ -361,6 +361,7 @@ const BusinessPaymentPlan = () => {
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
                             {filteredPlans.map(plan => {
+                                const item = plan;
                                 const direction = String(plan.direction || plan.type || plan.entry_type || '').toUpperCase();
                                 const isSend = direction === 'SEND' || direction === 'OUTWARD' || direction === 'OUTGOING' || plan.is_send === true || String(plan.flow || '').toLowerCase() === 'out';
                                 return (
@@ -375,22 +376,25 @@ const BusinessPaymentPlan = () => {
                                             {isSend ? <ArrowUpRight size={24} /> : <ArrowDownRight size={24} />}
                                         </div>
                                         <div>
-                                            <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#1E293B' }}>{plan.name}</h4>
+                                            <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#1E293B' }}>{item.referenceName || item.name}</h4>
+                                            {(item.description || item.notes) && (
+                                                <p 
+                                                    className="text-xs text-gray-500 mt-1 font-medium line-clamp-2"
+                                                    style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}
+                                                >
+                                                    "{item.description || item.notes}"
+                                                </p>
+                                            )}
                                             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem', flexWrap: 'wrap' }}>
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: '600' }}>
-                                                    <Clock size={14} /> {new Date(plan.due_date).toLocaleDateString()}
+                                                    <Clock size={14} /> {new Date(item.scheduledDate || item.due_date).toLocaleDateString()}
                                                 </span>
                                                 <span style={{ fontSize: '0.8rem', color: '#1B6B3A', background: '#DCF2E4', padding: '0.1rem 0.5rem', borderRadius: '6px', fontWeight: '750' }}>
-                                                    {plan.status.toUpperCase()}
+                                                    {(item.status || 'PENDING').toUpperCase()}
                                                 </span>
-                                                {plan.person_name && (
+                                                {(item.contactName || item.person_name) && (
                                                     <span style={{ fontSize: '0.8rem', color: '#0369A1', background: '#E0F2FE', padding: '0.1rem 0.5rem', borderRadius: '6px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                        <User size={12} /> {plan.person_name}
-                                                    </span>
-                                                )}
-                                                {(plan.description || plan.notes || plan.remark) && (
-                                                    <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
-                                                        description : {plan.description || plan.notes || plan.remark}
+                                                        <User size={12} /> {item.contactName || item.person_name}
                                                     </span>
                                                 )}
                                             </div>
