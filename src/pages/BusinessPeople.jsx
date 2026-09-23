@@ -237,28 +237,49 @@ const BusinessPeople = () => {
 
     const displayAlerts = useMemo(() => {
         const list = Array.isArray(alerts) ? [...alerts] : [];
-        const seen = new Set();
+        const seenIds = new Set();
+        const seenComposite = new Set();
         const uniqueAlerts = [];
+
         for (const a of list) {
-            const key = a.id 
-                ? `id_${a.id}` 
-                : `${a.contact_id || a.person_id}_${a.memo_label || a.title}_${a.maturity_date || a.due_date || a.maturityDate || a.date}_${a.claim_cap ?? a.amount}`;
-            if (!seen.has(key)) {
-                seen.add(key);
-                uniqueAlerts.push(a);
+            if (!a) continue;
+
+            const idKey = a.id !== undefined && a.id !== null ? String(a.id) : null;
+            if (idKey && seenIds.has(idKey)) {
+                continue;
             }
+
+            const targetContact = String(a.target_contact || a.person_name || '').trim().toLowerCase();
+            const memoLabel = String(a.memo_label || a.title || '').trim().toLowerCase();
+            const rawCap = a.claim_cap !== undefined ? a.claim_cap : (a.amount !== undefined ? a.amount : 0);
+            const claimCap = Number(rawCap) || 0;
+            const rawDate = a.maturity_date || a.due_date || a.maturityDate || a.date || '';
+            const maturityDate = String(rawDate).slice(0, 10);
+
+            const compositeKey = `${targetContact}__${memoLabel}__${claimCap}__${maturityDate}`;
+            if (seenComposite.has(compositeKey)) {
+                continue;
+            }
+
+            if (idKey) seenIds.add(idKey);
+            seenComposite.add(compositeKey);
+            uniqueAlerts.push(a);
         }
 
         return uniqueAlerts.sort((a, b) => {
             const createdB = b.createdAt || b.created_at;
             const createdA = a.createdAt || a.created_at;
             if (createdB && createdA) {
-                const diff = new Date(createdB) - new Date(createdA);
+                const diff = new Date(createdB).getTime() - new Date(createdA).getTime();
                 if (diff !== 0) return diff;
             }
             const dateB = b.maturityDate || b.maturity_date || b.due_date || b.date;
             const dateA = a.maturityDate || a.maturity_date || a.due_date || a.date;
-            return new Date(dateB || 0) - new Date(dateA || 0);
+            if (dateB && dateA) {
+                const diff = new Date(dateB).getTime() - new Date(dateA).getTime();
+                if (diff !== 0) return diff;
+            }
+            return (Number(b.id) || 0) - (Number(a.id) || 0);
         });
     }, [alerts]);
 
@@ -706,8 +727,8 @@ const BusinessPeople = () => {
 
     const handleDispatchAlert = async (e) => {
         if (e) {
-            e.preventDefault();
-            e.stopPropagation();
+            if (typeof e.preventDefault === 'function') e.preventDefault();
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
         }
 
         if (isSubmitting || isDispatchingRef.current || isDispatching || createReminderMutation.isPending) return;
