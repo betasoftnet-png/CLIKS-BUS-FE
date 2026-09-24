@@ -37,6 +37,12 @@ const PERMISSIONS_HIERARCHY = [
           { id: 135, label: 'Finance Tax E-Invoice' },
           { id: 136, label: 'Finance Tax E-Way' }
         ]
+      },
+      {
+        label: 'FitTech',
+        children: [
+          { id: 140, label: 'Finance FitTech Access' }
+        ]
       }
     ]
   },
@@ -447,7 +453,8 @@ const PermissionManager = () => {
                   }`}
               >
                 <div className="font-bold text-gray-800">{subId.firstName} {subId.lastName}</div>
-                <div className="text-xs text-gray-500 mt-1 font-mono">ID: {subId.prefix || subId.id}</div>
+                {subId.email && <div className="text-xs text-gray-500 mt-1 truncate" title={subId.email}>{subId.email}</div>}
+                <div className="text-xs text-gray-400 mt-0.5 font-mono">ID: {subId.username || subId.prefix || subId.id}</div>
               </button>
             ))
           )}

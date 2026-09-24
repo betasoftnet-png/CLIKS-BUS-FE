@@ -522,7 +522,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     { label: 'Accounting', icon: Calculator, path: '/finance/accounting', permission: PERMISSIONS.FIN_ACC_ALL },
                     { label: 'Expenses', icon: TrendingUp, path: '/finance/expenses', permission: PERMISSIONS.FIN_EXP_ALL },
                     { label: 'Tax', icon: PercentCircle, path: '/finance/gst', permission: PERMISSIONS.FIN_TAX_ALL },
-                    { label: 'FITTECH', icon: Cpu, path: '/finance/fittech', permission: PERMISSIONS.FINANCE_ALL }
+                    { label: 'FITTECH', icon: Cpu, path: '/finance/fittech', permission: PERMISSIONS.FIN_FITTECH }
                 ]
             },
             {
