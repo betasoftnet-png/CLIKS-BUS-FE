@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck, Camera, UserCog, UserPlus, Users, X, CheckCircle2 } from "lucide-react";
 import { useAuth, useCurrency } from "../context";
+import { useNavigate } from "react-router-dom";
 
 export function ProfileDropdown({
     onAccount,
@@ -10,6 +11,7 @@ export function ProfileDropdown({
 }) {
     const [open, setOpen] = useState(false);
     const { user } = useAuth();
+    const navigate = useNavigate();
     const dropdownRef = useRef(null);
     
     // Profile Photo & Camera Menu States
@@ -901,7 +903,8 @@ export function ProfileDropdown({
                                     {(!user?.is_sub_id && user?.role !== 'sub_id' && user?.role !== 'SUB_ID') && (
                                         <button
                                             onClick={() => {
-                                                window.location.href = '/manage-subids';
+                                                navigate('/manage-subids');
+                                                setOpen(false);
                                             }}
                                             style={styles.menuItem}
                                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
