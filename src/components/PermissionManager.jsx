@@ -286,10 +286,22 @@ const PermissionManager = () => {
       });
       if (!response.ok) throw new Error('Failed to fetch Sub-IDs');
       const data = await response.json();
-      setSubIds(data || []);
+      
+      let parsedSubIds = [];
+      if (Array.isArray(data)) {
+        parsedSubIds = data;
+      } else if (data && Array.isArray(data.data)) {
+        parsedSubIds = data.data;
+      } else if (data && Array.isArray(data.subIds)) {
+        parsedSubIds = data.subIds;
+      } else if (data && Array.isArray(data.subids)) {
+        parsedSubIds = data.subids;
+      }
+
+      setSubIds(parsedSubIds);
 
       // If list is empty, prompt creation automatically
-      if (data.length === 0) {
+      if (parsedSubIds.length === 0) {
         setShowCreateForm(true);
       }
     } catch (error) {
