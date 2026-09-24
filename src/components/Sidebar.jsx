@@ -442,7 +442,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
     const isSupportAgentMode = location.pathname.includes('/support-portal/');
 
     const [activeItem, setActiveItem] = useState(getActiveItemFromPath(location.pathname));
-    const [openMenus, setOpenMenus] = useState({ HR: true });
+    const [openMenus, setOpenMenus] = useState({});
     const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
 
     const defaultStorageData = {
@@ -587,7 +587,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         const newItem = getActiveItemFromPath(location.pathname);
         setActiveItem(newItem);
 
-        const initialOpenMenus = { HR: true };
+        const initialOpenMenus = {};
         const checkAndOpen = (items) => {
             items.forEach(item => {
                 if (item.children) {
