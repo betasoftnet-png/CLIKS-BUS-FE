@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck, Camera, UserCog, UserPlus, X, CheckCircle2 } from "lucide-react";
+import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck, Camera, UserCog, UserPlus, Users, X, CheckCircle2 } from "lucide-react";
 import { useAuth, useCurrency } from "../context";
 
 export function ProfileDropdown({
@@ -898,6 +898,20 @@ export function ProfileDropdown({
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 0' }}>
+                                    {(!user?.is_sub_id && user?.role !== 'sub_id' && user?.role !== 'SUB_ID') && (
+                                        <button
+                                            onClick={() => {
+                                                window.location.href = '/manage-subids';
+                                            }}
+                                            style={styles.menuItem}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            <Users size={18} color="#5f6368" />
+                                            <span>Manage SubIDs</span>
+                                        </button>
+                                    )}
+
                                     <button
                                         onClick={() => {
                                             window.location.href = '/login';

@@ -85,6 +85,7 @@ import VerifyPass from './pages/VerifyPass';
 import PublicInvoiceDetails from './pages/PublicInvoiceDetails';
 import BusinessCalculator from './pages/BusinessCalculator';
 import BusinessLauncher from './pages/BusinessLauncher';
+import PermissionManager from './components/PermissionManager';
 import Join from './pages/Join';
 import Register from './pages/Register';
 
@@ -282,6 +283,7 @@ function AuthenticatedApp() {
 
                 {/* Restructured Business Modules */}
                 <Route path="/dashboard" element={<BusinessDashboard />} />
+                <Route path="/manage-subids" element={<PermissionManager />} />
                 <Route path="/inventory/products" element={<BusinessInventory />} />
                 <Route path="/barcode" element={<BusinessBarcode />} />
                 <Route path="/inventory/barcode" element={<Navigate to="/barcode" replace />} />
