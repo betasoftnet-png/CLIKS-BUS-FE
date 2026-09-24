@@ -406,7 +406,6 @@ const BusinessSplitCollect = () => {
     const [previewAttachment, setPreviewAttachment] = useState(null);
     const [expandedExpenseIds, setExpandedExpenseIds] = useState([]);
     const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
-    const [isSettleExpanded, setIsSettleExpanded] = useState(true);
 
     const toggleExpenseExpand = (expenseId) => {
         setExpandedExpenseIds(prev =>
@@ -1788,7 +1787,7 @@ const BusinessSplitCollect = () => {
                                 </div>
                             </div>
 
-                            {/* ── 2-COLUMN GRID (SUMMARY & TRANSFERS vs SETTLEMENTS & SIMPLIFIED DEBTS) ── */}
+                            {/* ── 2-COLUMN SPLIT LAYOUT ── */}
                             {(() => {
                                 const allExpenses = activeSplit.expenses || [];
                                 const splitSettlements = allExpenses.filter(item => !isPrimaryExpense(item));
@@ -1796,562 +1795,9 @@ const BusinessSplitCollect = () => {
                                 const currSym = activeSplit.currencySymbol || '₹';
 
                                 return (
-                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mb-8">
-                                        {/* ── Left Column (lg:col-span-6) ── */}
-                                        <div className="lg:col-span-6 space-y-4">
-                                            
-                                            {/* 1. Summary Card */}
-                                            <div
-                                                className="bg-white rounded-3xl border border-gray-200 p-5 shadow-sm"
-                                                style={{
-                                                    background: '#FFFFFF',
-                                                    borderRadius: '24px',
-                                                    border: '1.5px solid #E2E8F0',
-                                                    padding: '1.25rem 1.5rem',
-                                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
-                                                }}
-                                            >
-                                                {/* Summary Header Row */}
-                                                <div
-                                                    onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-                                                    style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                >
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '900', color: '#0F172A' }}>
-                                                            Summary
-                                                        </h3>
-                                                        <span
-                                                            className="text-xs font-black uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-200 px-2.5 py-0.5 rounded-full"
-                                                            style={{
-                                                                fontSize: '0.68rem',
-                                                                fontWeight: '850',
-                                                                background: '#EFF6FF',
-                                                                color: '#2563EB',
-                                                                border: '1px solid #BFDBFE',
-                                                                padding: '2px 8px',
-                                                                borderRadius: '9999px',
-                                                                textTransform: 'uppercase'
-                                                            }}
-                                                        >
-                                                            {activeSplit.currency || 'INR'}
-                                                        </span>
-                                                    </div>
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={(ev) => {
-                                                            ev.stopPropagation();
-                                                            setIsSummaryExpanded(!isSummaryExpanded);
-                                                        }}
-                                                        style={{
-                                                            background: 'transparent',
-                                                            border: 'none',
-                                                            color: '#64748B',
-                                                            cursor: 'pointer',
-                                                            padding: '4px',
-                                                            borderRadius: '8px',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center'
-                                                        }}
-                                                        title={isSummaryExpanded ? 'Collapse summary' : 'Expand summary'}
-                                                    >
-                                                        <ChevronDown
-                                                            size={18}
-                                                            strokeWidth={2.5}
-                                                            style={{
-                                                                transform: isSummaryExpanded ? 'rotate(0deg)' : 'rotate(-180deg)',
-                                                                transition: 'transform 0.2s ease'
-                                                            }}
-                                                        />
-                                                    </button>
-                                                </div>
-
-                                                {/* Members List Accordion Content */}
-                                                {isSummaryExpanded && (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
-                                                        {activeSplit.participants.map(m => {
-                                                            const primaryExpenses = allExpenses.filter(item => isPrimaryExpense(item));
-
-                                                            // Initial Audit Totals (Primary non-settlement expenses)
-                                                            const paid = primaryExpenses
-                                                                .filter(e => e.paidBy === m)
-                                                                .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-
-                                                            const charged = primaryExpenses.reduce((sum, e) => {
-                                                                let share = 0;
-                                                                if (e.shares && e.shares[m] !== undefined) {
-                                                                    share = parseFloat(e.shares[m]) || 0;
-                                                                } else if (e.splitType && !e.splitType.toLowerCase().includes('equal')) {
-                                                                    share = parseFloat(e.shares?.[m]) || 0;
-                                                                } else {
-                                                                    const numParticipants = activeSplit.participants?.length || 1;
-                                                                    share = (parseFloat(e.amount) || 0) / numParticipants;
-                                                                }
-                                                                return sum + share;
-                                                            }, 0);
-
-                                                            // Live Net Balance from calculatedBalances.members
-                                                            const rawNet = calculatedBalances.members[m] !== undefined ? calculatedBalances.members[m] : (paid - charged);
-                                                            const isSettled = Math.abs(rawNet) < 0.01;
-                                                            const net = isSettled ? 0 : rawNet;
-                                                            const isPositive = net > 0.001;
-
-                                                            return (
-                                                                <div
-                                                                    key={m}
-                                                                    className="bg-gray-50/60 border border-gray-100 rounded-2xl p-3.5 flex items-center justify-between"
-                                                                    style={{
-                                                                        background: 'rgba(249, 250, 251, 0.6)',
-                                                                        borderRadius: '16px',
-                                                                        border: '1px solid #F1F5F9',
-                                                                        padding: '0.85rem 1rem',
-                                                                        display: 'flex',
-                                                                        alignItems: 'center',
-                                                                        justifyContent: 'space-between'
-                                                                    }}
-                                                                >
-                                                                    <div>
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                                                                            <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#1E293B' }}>
-                                                                                {m}
-                                                                            </span>
-                                                                            {isSettled && (
-                                                                                <span
-                                                                                    className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-full text-[11px] font-bold"
-                                                                                    style={{
-                                                                                        display: 'inline-flex',
-                                                                                        alignItems: 'center',
-                                                                                        gap: '3px',
-                                                                                        fontSize: '0.68rem',
-                                                                                        fontWeight: '800',
-                                                                                        background: '#ECFDF5',
-                                                                                        color: '#059669',
-                                                                                        border: '1px solid #A7F3D0',
-                                                                                        padding: '1px 7px',
-                                                                                        borderRadius: '9999px'
-                                                                                    }}
-                                                                                >
-                                                                                    <Check size={11} strokeWidth={2.5} /> Settled
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
-                                                                        <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600', marginTop: '2px' }}>
-                                                                            Charged {currSym}{charged.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}, Paid {currSym}{paid.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                                                                        </div>
-                                                                    </div>
-
-                                                                    <div style={{ textAlign: 'right' }}>
-                                                                        <span style={{
-                                                                            fontSize: '1rem',
-                                                                            fontWeight: '950',
-                                                                            color: isSettled ? '#64748B' : (isPositive ? '#059669' : '#DC2626')
-                                                                        }}>
-                                                                            {isSettled ? `${currSym}0.00` : `${isPositive ? '+' : '-'}${currSym}${Math.abs(net).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* 2. How to settle? Card */}
-                                            <div
-                                                className="bg-white rounded-3xl border border-gray-200 p-5 shadow-sm"
-                                                style={{
-                                                    background: '#FFFFFF',
-                                                    borderRadius: '24px',
-                                                    border: '1.5px solid #E2E8F0',
-                                                    padding: '1.25rem 1.5rem',
-                                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
-                                                }}
-                                            >
-                                                {/* Header Row */}
-                                                <div
-                                                    onClick={() => setIsSettleExpanded(!isSettleExpanded)}
-                                                    style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                >
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '900', color: '#0F172A' }}>
-                                                            How to settle?
-                                                        </h3>
-                                                        <span
-                                                            className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-2.5 py-0.5 rounded-full text-xs font-black uppercase"
-                                                            style={{
-                                                                fontSize: '0.68rem',
-                                                                fontWeight: '850',
-                                                                background: '#ECFDF5',
-                                                                color: '#059669',
-                                                                border: '1px solid #A7F3D0',
-                                                                padding: '2px 8px',
-                                                                borderRadius: '9999px',
-                                                                textTransform: 'uppercase'
-                                                            }}
-                                                        >
-                                                            {calculatedBalances.debts.length} {calculatedBalances.debts.length === 1 ? 'TRANSFER' : 'TRANSFERS'}
-                                                        </span>
-                                                    </div>
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={(ev) => {
-                                                            ev.stopPropagation();
-                                                            setIsSettleExpanded(!isSettleExpanded);
-                                                        }}
-                                                        style={{
-                                                            background: 'transparent',
-                                                            border: 'none',
-                                                            color: '#64748B',
-                                                            cursor: 'pointer',
-                                                            padding: '4px',
-                                                            borderRadius: '8px',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center'
-                                                        }}
-                                                        title={isSettleExpanded ? 'Collapse settlement instructions' : 'Expand settlement instructions'}
-                                                    >
-                                                        <ChevronDown
-                                                            size={18}
-                                                            strokeWidth={2.5}
-                                                            style={{
-                                                                transform: isSettleExpanded ? 'rotate(0deg)' : 'rotate(-180deg)',
-                                                                transition: 'transform 0.2s ease'
-                                                            }}
-                                                        />
-                                                    </button>
-                                                </div>
-
-                                                {/* Content Accordion */}
-                                                {isSettleExpanded && (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
-                                                        {calculatedBalances.debts.length === 0 ? (
-                                                            <div 
-                                                                className="flex items-center justify-center gap-2 py-4 text-emerald-600 font-extrabold text-sm"
-                                                                style={{ textAlign: 'center', padding: '0.85rem 0', color: '#059669', fontWeight: '750', fontSize: '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                                                            >
-                                                                <Check size={18} strokeWidth={2.5} /> All accounts completely settled!
-                                                            </div>
-                                                        ) : (
-                                                            calculatedBalances.debts.map((d, dIdx) => (
-                                                                <div
-                                                                    key={dIdx}
-                                                                    className="bg-gray-50/60 border border-gray-100 rounded-2xl p-3.5 flex items-center justify-between"
-                                                                    style={{
-                                                                        display: 'flex',
-                                                                        justifyContent: 'space-between',
-                                                                        alignItems: 'center',
-                                                                        padding: '0.65rem 0.85rem',
-                                                                        borderRadius: '12px',
-                                                                        background: '#F8FAFC',
-                                                                        border: '1px solid #F1F5F9'
-                                                                    }}
-                                                                >
-                                                                    <div>
-                                                                        <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#1E293B', display: 'block' }}>
-                                                                            {d.from}
-                                                                        </span>
-                                                                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>
-                                                                            should pay to <strong style={{ color: '#0F172A', fontWeight: '750' }}>{d.to}</strong>
-                                                                        </span>
-                                                                    </div>
-
-                                                                    <div style={{ textAlign: 'right' }}>
-                                                                        <span style={{
-                                                                            fontSize: '0.98rem',
-                                                                            fontWeight: '950',
-                                                                            color: '#2563EB'
-                                                                        }}>
-                                                                            {formatCurrencyUniversal(d.amount, activeSplit.currency)}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            ))
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                        </div>
-
-                                        {/* ── Right Column (lg:col-span-6) ── */}
-                                        <div className="lg:col-span-6 space-y-4">
-
-                                            {/* 1. SETTLEMENTS Section */}
-                                            <div className="flex flex-col gap-3">
-                                                {/* Top row */}
-                                                <div 
-                                                    className="flex items-center justify-between px-1"
-                                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.25rem' }}
-                                                >
-                                                    <span 
-                                                        className="flex items-center gap-1.5 text-xs font-black text-emerald-600 uppercase tracking-wider"
-                                                        style={{ fontSize: '0.75rem', fontWeight: '850', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}
-                                                    >
-                                                        <Check size={14} strokeWidth={2.5} /> SETTLEMENTS ({splitSettlements.length})
-                                                    </span>
-                                                    <span 
-                                                        className="text-xs font-bold text-emerald-600"
-                                                        style={{ fontSize: '0.75rem', fontWeight: '800', color: '#059669' }}
-                                                    >
-                                                        Settled: {currSym}{totalSettledAmount.toLocaleString()}
-                                                    </span>
-                                                </div>
-
-                                                {/* Settlements Container */}
-                                                {splitSettlements.length === 0 ? (
-                                                    <div 
-                                                        className="h-[68px] min-h-[68px] flex items-center justify-center bg-emerald-50/50 border border-emerald-200 rounded-2xl px-4 text-center"
-                                                        style={{ 
-                                                            height: '68px',
-                                                            minHeight: '68px',
-                                                            boxSizing: 'border-box',
-                                                            background: 'rgba(236, 253, 245, 0.5)', 
-                                                            border: '1px solid #A7F3D0', 
-                                                            borderRadius: '16px', 
-                                                            padding: '0 1rem', 
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            textAlign: 'center' 
-                                                        }}
-                                                    >
-                                                        <div style={{ fontSize: '0.85rem', fontWeight: '750', color: '#065F46' }}>No settlements recorded yet</div>
-                                                    </div>
-                                                ) : (
-                                                    <div 
-                                                        className="flex flex-col gap-2.5 pr-1.5 max-h-[226px] overflow-y-auto" 
-                                                        style={{ 
-                                                            display: 'flex', 
-                                                            flexDirection: 'column', 
-                                                            gap: '0.625rem',
-                                                            maxHeight: '226px',
-                                                            overflowY: 'auto',
-                                                            paddingRight: '6px',
-                                                            scrollbarWidth: 'thin',
-                                                            scrollbarColor: '#CBD5E1 transparent'
-                                                        }}
-                                                    >
-                                                        {splitSettlements.map(s => (
-                                                            <div
-                                                                key={s.id}
-                                                                className="h-[68px] min-h-[68px] shrink-0 bg-emerald-50/50 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm transition-all"
-                                                                style={{
-                                                                    height: '68px',
-                                                                    minHeight: '68px',
-                                                                    flexShrink: 0,
-                                                                    boxSizing: 'border-box',
-                                                                    background: 'rgba(236, 253, 245, 0.5)',
-                                                                    border: '1px solid #A7F3D0',
-                                                                    borderRadius: '16px',
-                                                                    padding: '0.85rem 1rem',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'space-between',
-                                                                    gap: '0.75rem'
-                                                                }}
-                                                            >
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
-                                                                    {/* Emerald checkmark square icon */}
-                                                                    <div 
-                                                                        className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 border border-emerald-300 flex items-center justify-center flex-shrink-0"
-                                                                        style={{
-                                                                            width: '36px',
-                                                                            height: '36px',
-                                                                            borderRadius: '12px',
-                                                                            background: '#DCFCE7',
-                                                                            color: '#059669',
-                                                                            border: '1px solid #86EFAC',
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            justifyContent: 'center',
-                                                                            flexShrink: 0
-                                                                        }}
-                                                                    >
-                                                                        <Check size={18} strokeWidth={2.5} />
-                                                                    </div>
-                                                                    <div style={{ minWidth: 0 }}>
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-                                                                            <span style={{ fontSize: '0.88rem', fontWeight: '850', color: '#065F46', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                                                {s.title}
-                                                                            </span>
-                                                                            <span 
-                                                                                className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-300"
-                                                                                style={{
-                                                                                    display: 'inline-flex',
-                                                                                    alignItems: 'center',
-                                                                                    padding: '1px 7px',
-                                                                                    borderRadius: '9999px',
-                                                                                    fontSize: '0.62rem',
-                                                                                    fontWeight: '750',
-                                                                                    background: '#DCFCE7',
-                                                                                    color: '#059669',
-                                                                                    border: '1px solid #86EFAC'
-                                                                                }}
-                                                                            >
-                                                                                Settlement
-                                                                            </span>
-                                                                        </div>
-                                                                        <div style={{ fontSize: '0.72rem', color: '#16A34A', fontWeight: '600', marginTop: '2px' }}>
-                                                                            Paid by <strong style={{ color: '#065F46' }}>{s.paidBy}</strong> • {s.date}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
-                                                                    <span style={{ fontSize: '1rem', fontWeight: '950', color: '#059669' }}>
-                                                                        +{currSym}{(parseFloat(s.amount) || 0).toLocaleString()}
-                                                                    </span>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleDeleteExpense(s.id)}
-                                                                        title="Delete Settlement"
-                                                                        style={{
-                                                                            background: 'transparent',
-                                                                            border: 'none',
-                                                                            color: '#94A3B8',
-                                                                            cursor: 'pointer',
-                                                                            padding: '4px',
-                                                                            borderRadius: '6px',
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            justifyContent: 'center',
-                                                                            transition: 'all 0.15s'
-                                                                        }}
-                                                                        onMouseOver={(ev) => ev.currentTarget.style.color = '#EF4444'}
-                                                                        onMouseOut={(ev) => ev.currentTarget.style.color = '#94A3B8'}
-                                                                    >
-                                                                        <X size={16} />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* 2. SIMPLIFIED DEBTS Container */}
-                                            <div 
-                                                className="bg-[#0b1329] text-white rounded-3xl p-6 shadow-md"
-                                                style={{
-                                                    background: '#0b1329',
-                                                    color: '#FFFFFF',
-                                                    borderRadius: '24px',
-                                                    padding: '1.5rem',
-                                                    boxShadow: '0 8px 24px rgba(11, 19, 41, 0.18)'
-                                                }}
-                                            >
-                                                <h5 
-                                                    className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4"
-                                                    style={{ margin: '0 0 1rem 0', fontSize: '0.75rem', fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}
-                                                >
-                                                    SIMPLIFIED DEBTS
-                                                </h5>
-
-                                                {calculatedBalances.debts.length === 0 ? (
-                                                    <div 
-                                                        className="flex flex-col items-center justify-center py-6 text-center"
-                                                        style={{ textAlign: 'center', padding: '1.5rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
-                                                    >
-                                                        <div 
-                                                            className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2"
-                                                            style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(52, 211, 153, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem' }}
-                                                        >
-                                                            <Check size={22} color="#34D399" strokeWidth={3} />
-                                                        </div>
-                                                        <p 
-                                                            className="text-sm font-bold text-slate-300 m-0"
-                                                            style={{ margin: 0, fontSize: '0.85rem', color: '#CBD5E1', fontWeight: '750' }}
-                                                        >
-                                                            ✓ All accounts completely settled!
-                                                        </p>
-                                                    </div>
-                                                ) : (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                                        {calculatedBalances.debts.map((d, dIdx) => (
-                                                            <div
-                                                                key={dIdx}
-                                                                style={{
-                                                                    background: 'rgba(255,255,255,0.04)',
-                                                                    padding: '0.85rem 1rem',
-                                                                    borderRadius: '16px',
-                                                                    border: '1px solid rgba(255,255,255,0.08)',
-                                                                    display: 'flex',
-                                                                    justifyContent: 'space-between',
-                                                                    alignItems: 'center',
-                                                                    gap: '0.75rem',
-                                                                    flexWrap: 'wrap'
-                                                                }}
-                                                            >
-                                                                <div>
-                                                                    <div style={{ fontSize: '0.82rem', fontWeight: '750', color: '#F8FAFC' }}>
-                                                                        {d.from} owes <strong style={{ color: '#FFFFFF' }}>{d.to}</strong>
-                                                                    </div>
-                                                                    <div style={{ fontSize: '1.05rem', fontWeight: '950', color: '#38BDF8', marginTop: '2px' }}>
-                                                                        {currSym}{d.amount.toLocaleString()}
-                                                                    </div>
-                                                                </div>
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => openCustomPayModal(d)}
-                                                                        style={{
-                                                                            border: '1px solid rgba(255,255,255,0.2)',
-                                                                            background: 'rgba(255,255,255,0.08)',
-                                                                            color: '#F8FAFC',
-                                                                            padding: '0.4rem 0.75rem',
-                                                                            borderRadius: '8px',
-                                                                            fontWeight: '800',
-                                                                            fontSize: '0.72rem',
-                                                                            cursor: 'pointer',
-                                                                            transition: 'all 0.15s'
-                                                                        }}
-                                                                        onMouseOver={(ev) => ev.currentTarget.style.background = 'rgba(255,255,255,0.16)'}
-                                                                        onMouseOut={(ev) => ev.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-                                                                    >
-                                                                        Custom Pay
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleSettleDebt(d)}
-                                                                        style={{
-                                                                            border: 'none',
-                                                                            background: '#34D399',
-                                                                            color: '#064E3B',
-                                                                            padding: '0.4rem 0.85rem',
-                                                                            borderRadius: '8px',
-                                                                            fontWeight: '900',
-                                                                            fontSize: '0.72rem',
-                                                                            cursor: 'pointer',
-                                                                            boxShadow: '0 4px 10px rgba(52, 211, 153, 0.2)'
-                                                                        }}
-                                                                    >
-                                                                        Settle
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                        </div>
-                                    </div>
-                                );
-                            })()}
-
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-6">
+                                        {/* ── Left Column (lg:col-span-6): LOGGED EXPENSES ── */}
+                                        <div className="lg:col-span-6">
                             {/* Sessions Content: Each primary expense creates its own self-contained session section */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                 
@@ -3076,6 +2522,433 @@ const BusinessSplitCollect = () => {
                                     );
                                 })()}
                             </div>
+                                        </div>
+
+                                        {/* ── Right Column (lg:col-span-6 space-y-4) ── */}
+                                        <div className="lg:col-span-6 space-y-4">
+                                            {/* Card 1 (Top): Summary Card */}
+                                            <div
+                                                className="bg-white rounded-3xl border border-gray-200 p-5 shadow-sm"
+                                                style={{
+                                                    background: '#FFFFFF',
+                                                    borderRadius: '24px',
+                                                    border: '1.5px solid #E2E8F0',
+                                                    padding: '1.25rem 1.5rem',
+                                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
+                                                }}
+                                            >
+                                                {/* Summary Header Row */}
+                                                <div
+                                                    onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
+                                                    style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '900', color: '#0F172A' }}>
+                                                            Summary
+                                                        </h3>
+                                                        <span
+                                                            className="text-xs font-black uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-200 px-2.5 py-0.5 rounded-full"
+                                                            style={{
+                                                                fontSize: '0.68rem',
+                                                                fontWeight: '850',
+                                                                background: '#EFF6FF',
+                                                                color: '#2563EB',
+                                                                border: '1px solid #BFDBFE',
+                                                                padding: '2px 8px',
+                                                                borderRadius: '9999px',
+                                                                textTransform: 'uppercase'
+                                                            }}
+                                                        >
+                                                            {activeSplit.currency || 'INR'}
+                                                        </span>
+                                                    </div>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={(ev) => {
+                                                            ev.stopPropagation();
+                                                            setIsSummaryExpanded(!isSummaryExpanded);
+                                                        }}
+                                                        style={{
+                                                            background: 'transparent',
+                                                            border: 'none',
+                                                            color: '#64748B',
+                                                            cursor: 'pointer',
+                                                            padding: '4px',
+                                                            borderRadius: '8px',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center'
+                                                        }}
+                                                        title={isSummaryExpanded ? 'Collapse summary' : 'Expand summary'}
+                                                    >
+                                                        <ChevronDown
+                                                            size={18}
+                                                            strokeWidth={2.5}
+                                                            style={{
+                                                                transform: isSummaryExpanded ? 'rotate(0deg)' : 'rotate(-180deg)',
+                                                                transition: 'transform 0.2s ease'
+                                                            }}
+                                                        />
+                                                    </button>
+                                                </div>
+
+                                                {/* Members List Accordion Content */}
+                                                {isSummaryExpanded && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
+                                                        {activeSplit.participants.map(m => {
+                                                            const primaryExpenses = allExpenses.filter(item => isPrimaryExpense(item));
+
+                                                            // Initial Audit Totals (Primary non-settlement expenses)
+                                                            const paid = primaryExpenses
+                                                                .filter(e => e.paidBy === m)
+                                                                .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+
+                                                            const charged = primaryExpenses.reduce((sum, e) => {
+                                                                let share = 0;
+                                                                if (e.shares && e.shares[m] !== undefined) {
+                                                                    share = parseFloat(e.shares[m]) || 0;
+                                                                } else if (e.splitType && !e.splitType.toLowerCase().includes('equal')) {
+                                                                    share = parseFloat(e.shares?.[m]) || 0;
+                                                                } else {
+                                                                    const numParticipants = activeSplit.participants?.length || 1;
+                                                                    share = (parseFloat(e.amount) || 0) / numParticipants;
+                                                                }
+                                                                return sum + share;
+                                                            }, 0);
+
+                                                            // Live Net Balance from calculatedBalances.members
+                                                            const rawNet = calculatedBalances.members[m] !== undefined ? calculatedBalances.members[m] : (paid - charged);
+                                                            const isSettled = Math.abs(rawNet) < 0.01;
+                                                            const net = isSettled ? 0 : rawNet;
+                                                            const isPositive = net > 0.001;
+
+                                                            return (
+                                                                <div
+                                                                    key={m}
+                                                                    className="bg-gray-50/60 border border-gray-100 rounded-2xl p-3.5 flex items-center justify-between"
+                                                                    style={{
+                                                                        background: 'rgba(249, 250, 251, 0.6)',
+                                                                        borderRadius: '16px',
+                                                                        border: '1px solid #F1F5F9',
+                                                                        padding: '0.85rem 1rem',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'space-between'
+                                                                    }}
+                                                                >
+                                                                    <div>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                                                            <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#1E293B' }}>
+                                                                                {m}
+                                                                            </span>
+                                                                            {isSettled && (
+                                                                                <span
+                                                                                    className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-full text-[11px] font-bold"
+                                                                                    style={{
+                                                                                        display: 'inline-flex',
+                                                                                        alignItems: 'center',
+                                                                                        gap: '3px',
+                                                                                        fontSize: '0.68rem',
+                                                                                        fontWeight: '800',
+                                                                                        background: '#ECFDF5',
+                                                                                        color: '#059669',
+                                                                                        border: '1px solid #A7F3D0',
+                                                                                        padding: '1px 7px',
+                                                                                        borderRadius: '9999px'
+                                                                                    }}
+                                                                                >
+                                                                                    <Check size={11} strokeWidth={2.5} /> Settled
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600', marginTop: '2px' }}>
+                                                                            Charged {currSym}{charged.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}, Paid {currSym}{paid.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div style={{ textAlign: 'right' }}>
+                                                                        <span style={{
+                                                                            fontSize: '1rem',
+                                                                            fontWeight: '950',
+                                                                            color: isSettled ? '#64748B' : (isPositive ? '#059669' : '#DC2626')
+                                                                        }}>
+                                                                            {isSettled ? `${currSym}0.00` : `${isPositive ? '+' : '-'}${currSym}${Math.abs(net).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Card 2 (Middle): SIMPLIFIED DEBTS Container */}
+                                            <div 
+                                                className="bg-[#0b1329] text-white rounded-3xl p-6 shadow-md"
+                                                style={{
+                                                    background: '#0b1329',
+                                                    color: '#FFFFFF',
+                                                    borderRadius: '24px',
+                                                    padding: '1.5rem',
+                                                    boxShadow: '0 8px 24px rgba(11, 19, 41, 0.18)'
+                                                }}
+                                            >
+                                                <h5 
+                                                    className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4"
+                                                    style={{ margin: '0 0 1rem 0', fontSize: '0.75rem', fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                                                >
+                                                    SIMPLIFIED DEBTS
+                                                </h5>
+
+                                                {calculatedBalances.debts.length === 0 ? (
+                                                    <div 
+                                                        className="flex flex-col items-center justify-center py-6 text-center"
+                                                        style={{ textAlign: 'center', padding: '1.5rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+                                                    >
+                                                        <div 
+                                                            className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2"
+                                                            style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(52, 211, 153, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem' }}
+                                                        >
+                                                            <Check size={22} color="#34D399" strokeWidth={3} />
+                                                        </div>
+                                                        <p 
+                                                            className="text-sm font-bold text-slate-300 m-0"
+                                                            style={{ margin: 0, fontSize: '0.85rem', color: '#CBD5E1', fontWeight: '750' }}
+                                                        >
+                                                            ✓ All accounts completely settled!
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                        {calculatedBalances.debts.map((d, dIdx) => (
+                                                            <div
+                                                                key={dIdx}
+                                                                style={{
+                                                                    background: 'rgba(255,255,255,0.04)',
+                                                                    padding: '0.85rem 1rem',
+                                                                    borderRadius: '16px',
+                                                                    border: '1px solid rgba(255,255,255,0.08)',
+                                                                    display: 'flex',
+                                                                    justifyContent: 'space-between',
+                                                                    alignItems: 'center',
+                                                                    gap: '0.75rem',
+                                                                    flexWrap: 'wrap'
+                                                                }}
+                                                            >
+                                                                <div>
+                                                                    <div style={{ fontSize: '0.82rem', fontWeight: '750', color: '#F8FAFC' }}>
+                                                                        {d.from} owes <strong style={{ color: '#FFFFFF' }}>{d.to}</strong>
+                                                                    </div>
+                                                                    <div style={{ fontSize: '1.05rem', fontWeight: '950', color: '#38BDF8', marginTop: '2px' }}>
+                                                                        {currSym}{d.amount.toLocaleString()}
+                                                                    </div>
+                                                                </div>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => openCustomPayModal(d)}
+                                                                        style={{
+                                                                            border: '1px solid rgba(255,255,255,0.2)',
+                                                                            background: 'rgba(255,255,255,0.08)',
+                                                                            color: '#F8FAFC',
+                                                                            padding: '0.4rem 0.75rem',
+                                                                            borderRadius: '8px',
+                                                                            fontWeight: '800',
+                                                                            fontSize: '0.72rem',
+                                                                            cursor: 'pointer',
+                                                                            transition: 'all 0.15s'
+                                                                        }}
+                                                                        onMouseOver={(ev) => ev.currentTarget.style.background = 'rgba(255,255,255,0.16)'}
+                                                                        onMouseOut={(ev) => ev.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                                                                    >
+                                                                        Custom Pay
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleSettleDebt(d)}
+                                                                        style={{
+                                                                            border: 'none',
+                                                                            background: '#34D399',
+                                                                            color: '#064E3B',
+                                                                            padding: '0.4rem 0.85rem',
+                                                                            borderRadius: '8px',
+                                                                            fontWeight: '900',
+                                                                            fontSize: '0.72rem',
+                                                                            cursor: 'pointer',
+                                                                            boxShadow: '0 4px 10px rgba(52, 211, 153, 0.2)'
+                                                                        }}
+                                                                    >
+                                                                        Settle
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Card 3 (Bottom): SETTLEMENTS Section */}
+                                            <div className="flex flex-col gap-3">
+                                                {/* Top row */}
+                                                <div 
+                                                    className="flex items-center justify-between px-1"
+                                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.25rem' }}
+                                                >
+                                                    <span 
+                                                        className="flex items-center gap-1.5 text-xs font-black text-emerald-600 uppercase tracking-wider"
+                                                        style={{ fontSize: '0.75rem', fontWeight: '850', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}
+                                                    >
+                                                        <Check size={14} strokeWidth={2.5} /> SETTLEMENTS ({splitSettlements.length})
+                                                    </span>
+                                                    <span 
+                                                        className="text-xs font-bold text-emerald-600"
+                                                        style={{ fontSize: '0.75rem', fontWeight: '800', color: '#059669' }}
+                                                    >
+                                                        Settled: {currSym}{totalSettledAmount.toLocaleString()}
+                                                    </span>
+                                                </div>
+
+                                                {/* Settlements Container */}
+                                                {splitSettlements.length === 0 ? (
+                                                    <div 
+                                                        className="h-[68px] min-h-[68px] flex items-center justify-center bg-emerald-50/50 border border-emerald-200 rounded-2xl px-4 text-center"
+                                                        style={{ 
+                                                            height: '68px',
+                                                            minHeight: '68px',
+                                                            boxSizing: 'border-box',
+                                                            background: 'rgba(236, 253, 245, 0.5)', 
+                                                            border: '1px solid #A7F3D0', 
+                                                            borderRadius: '16px', 
+                                                            padding: '0 1rem', 
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            textAlign: 'center' 
+                                                        }}
+                                                    >
+                                                        <div style={{ fontSize: '0.85rem', fontWeight: '750', color: '#065F46' }}>No settlements recorded yet</div>
+                                                    </div>
+                                                ) : (
+                                                    <div 
+                                                        className="flex flex-col gap-2.5 pr-1.5 max-h-[226px] overflow-y-auto" 
+                                                        style={{ 
+                                                            display: 'flex', 
+                                                            flexDirection: 'column', 
+                                                            gap: '0.625rem',
+                                                            maxHeight: '226px',
+                                                            overflowY: 'auto',
+                                                            paddingRight: '6px',
+                                                            scrollbarWidth: 'thin',
+                                                            scrollbarColor: '#CBD5E1 transparent'
+                                                        }}
+                                                    >
+                                                        {splitSettlements.map(s => (
+                                                            <div
+                                                                key={s.id}
+                                                                className="h-[68px] min-h-[68px] shrink-0 bg-emerald-50/50 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm transition-all"
+                                                                style={{
+                                                                    height: '68px',
+                                                                    minHeight: '68px',
+                                                                    flexShrink: 0,
+                                                                    boxSizing: 'border-box',
+                                                                    background: 'rgba(236, 253, 245, 0.5)',
+                                                                    border: '1px solid #A7F3D0',
+                                                                    borderRadius: '16px',
+                                                                    padding: '0.85rem 1rem',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'space-between',
+                                                                    gap: '0.75rem'
+                                                                }}
+                                                            >
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                                                                    {/* Emerald checkmark square icon */}
+                                                                    <div 
+                                                                        className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 border border-emerald-300 flex items-center justify-center flex-shrink-0"
+                                                                        style={{
+                                                                            width: '36px',
+                                                                            height: '36px',
+                                                                            borderRadius: '12px',
+                                                                            background: '#DCFCE7',
+                                                                            color: '#059669',
+                                                                            border: '1px solid #86EFAC',
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            flexShrink: 0
+                                                                        }}
+                                                                    >
+                                                                        <Check size={18} strokeWidth={2.5} />
+                                                                    </div>
+                                                                    <div style={{ minWidth: 0 }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                                                                            <span style={{ fontSize: '0.88rem', fontWeight: '850', color: '#065F46', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                                {s.title}
+                                                                            </span>
+                                                                            <span 
+                                                                                className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-300"
+                                                                                style={{
+                                                                                    display: 'inline-flex',
+                                                                                    alignItems: 'center',
+                                                                                    padding: '1px 7px',
+                                                                                    borderRadius: '9999px',
+                                                                                    fontSize: '0.62rem',
+                                                                                    fontWeight: '750',
+                                                                                    background: '#DCFCE7',
+                                                                                    color: '#059669',
+                                                                                    border: '1px solid #86EFAC'
+                                                                                }}
+                                                                            >
+                                                                                Settlement
+                                                                            </span>
+                                                                        </div>
+                                                                        <div style={{ fontSize: '0.72rem', color: '#16A34A', fontWeight: '600', marginTop: '2px' }}>
+                                                                            Paid by <strong style={{ color: '#065F46' }}>{s.paidBy}</strong> • {s.date}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                                                                    <span style={{ fontSize: '1rem', fontWeight: '950', color: '#059669' }}>
+                                                                        +{currSym}{(parseFloat(s.amount) || 0).toLocaleString()}
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteExpense(s.id)}
+                                                                        title="Delete Settlement"
+                                                                        style={{
+                                                                            background: 'transparent',
+                                                                            border: 'none',
+                                                                            color: '#94A3B8',
+                                                                            cursor: 'pointer',
+                                                                            padding: '4px',
+                                                                            borderRadius: '6px',
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            transition: 'all 0.15s'
+                                                                        }}
+                                                                        onMouseOver={(ev) => ev.currentTarget.style.color = '#EF4444'}
+                                                                        onMouseOut={(ev) => ev.currentTarget.style.color = '#94A3B8'}
+                                                                    >
+                                                                        <X size={16} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </Motion.div>
                     )}
                 </AnimatePresence>
