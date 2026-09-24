@@ -285,10 +285,89 @@ const BusinessPeople = () => {
 
     const summary = useMemo(() => {
         const totalContacts = people.length;
-        const totalReceivables = people.reduce((sum, p) => sum + Math.max(0, parseFloat(p.net_balance || 0)), 0);
-        const totalPayables = people.reduce((sum, p) => sum + Math.abs(Math.min(0, parseFloat(p.net_balance || 0))), 0);
-        return { totalContacts, totalReceivables, totalPayables };
-    }, [people]);
+
+        // Build per-person transaction aggregations from ledger transactions
+        const txByPerson = {};
+        if (Array.isArray(transactions)) {
+            transactions.forEach(tx => {
+                const pid = String(tx.person_id || tx.contact_id || '');
+                if (!pid) return;
+                if (!txByPerson[pid]) txByPerson[pid] = { lent: 0, borrowed: 0 };
+                const amt = parseFloat(tx.amount || 0);
+                if (tx.type === 'lent') txByPerson[pid].lent += amt;
+                else if (tx.type === 'borrowed') txByPerson[pid].borrowed += amt;
+            });
+        }
+
+        let totalReceivables = 0;
+        let totalReceivablesCollected = 0;
+        let totalPayables = 0;
+        let totalPayablesPaid = 0;
+
+        const processedIds = new Set();
+        (people || []).forEach(p => {
+            const pid = String(p.id);
+            processedIds.add(pid);
+
+            let lent = parseFloat(p.total_lent || 0);
+            let borrowed = parseFloat(p.total_borrowed || 0);
+
+            if (txByPerson[pid]) {
+                lent = Math.max(lent, txByPerson[pid].lent);
+                borrowed = Math.max(borrowed, txByPerson[pid].borrowed);
+            }
+
+            // Fallback to net_balance if total_lent/total_borrowed not populated
+            if (lent === 0 && borrowed === 0 && p.net_balance !== undefined) {
+                const net = parseFloat(p.net_balance || 0);
+                if (net > 0) lent = net;
+                else if (net < 0) borrowed = Math.abs(net);
+            }
+
+            if (lent >= borrowed) {
+                if (lent > 0) {
+                    totalReceivables += lent;
+                    totalReceivablesCollected += borrowed;
+                }
+            } else {
+                if (borrowed > 0) {
+                    totalPayables += borrowed;
+                    totalPayablesPaid += lent;
+                }
+            }
+        });
+
+        // Account for any transactions for contacts not in people list
+        Object.keys(txByPerson).forEach(pid => {
+            if (!processedIds.has(pid)) {
+                const { lent, borrowed } = txByPerson[pid];
+                if (lent >= borrowed) {
+                    if (lent > 0) {
+                        totalReceivables += lent;
+                        totalReceivablesCollected += borrowed;
+                    }
+                } else {
+                    if (borrowed > 0) {
+                        totalPayables += borrowed;
+                        totalPayablesPaid += lent;
+                    }
+                }
+            }
+        });
+
+        const outstandingReceivables = Math.max(0, totalReceivables - totalReceivablesCollected);
+        const outstandingPayables = Math.max(0, totalPayables - totalPayablesPaid);
+
+        return {
+            totalContacts,
+            totalReceivables,
+            totalReceivablesCollected,
+            outstandingReceivables,
+            totalPayables,
+            totalPayablesPaid,
+            outstandingPayables
+        };
+    }, [people, transactions]);
 
     // ── Mutations ───────────────────────────────────────────────────────────
     const createContactMutation = useMutation({
@@ -883,23 +962,139 @@ const BusinessPeople = () => {
                 </div>
             </div>
 
-            {/* Quick Metrics Cards */}
-            <div style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginBottom: '2.5rem' }}>
-                {[
-                    { label: 'Total Contacts', value: summary.totalContacts, icon: Users, color: '#3B82F6', bg: '#DBEAFE' },
-                    { label: 'Net Receivables', value: formatCurr(summary.totalReceivables), icon: TrendingUp, color: '#1B6B3A', bg: '#DCF2E4' },
-                    { label: 'Net Payables', value: formatCurr(summary.totalPayables), icon: TrendingDown, color: '#EF4444', bg: '#FEE2E2' }
-                ].map((stat, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '1.75rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+            {/* Receivables & Payables Summary (2-Card Section) */}
+            <div style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.25rem', marginBottom: '2.25rem' }}>
+                {/* Receivables Card */}
+                <div style={{
+                    background: '#FFFFFF',
+                    borderRadius: '24px',
+                    border: '1px solid #E2E8F0',
+                    padding: '1.65rem 1.75rem',
+                    boxShadow: '0 4px 12px -2px rgba(16, 185, 129, 0.06), 0 2px 4px rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '1.25rem',
+                    position: 'relative',
+                    overflow: 'hidden'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.75rem', borderRadius: '999px', background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#065F46', fontSize: '0.72rem', fontWeight: '800', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.65rem' }}>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }}></span>
+                                Receivables Card
+                            </div>
+                            <p style={{ margin: 0, fontSize: '0.78rem', fontWeight: '750', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Outstanding Receivables</p>
+                            <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.95rem', fontWeight: '900', color: '#064E3B', letterSpacing: '-0.02em' }}>
+                                {formatCurr(summary.outstandingReceivables)}
+                            </h3>
                         </div>
-                        <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
-                            <stat.icon size={24} />
+                        <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: '#DCF2E4', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 10px rgba(27, 107, 58, 0.12)' }}>
+                            <TrendingUp size={26} />
                         </div>
                     </div>
-                ))}
+
+                    {/* Progress Bar / Ratio */}
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', fontWeight: '700', color: '#64748B', marginBottom: '0.45rem' }}>
+                            <span>Collection Progress</span>
+                            <span style={{ color: '#065F46', fontWeight: '800' }}>
+                                {summary.totalReceivables > 0 ? Math.min(100, Math.round((summary.totalReceivablesCollected / summary.totalReceivables) * 100)) : 0}% collected
+                            </span>
+                        </div>
+                        <div style={{ width: '100%', height: '7px', background: '#F1F5F9', borderRadius: '999px', overflow: 'hidden' }}>
+                            <div style={{
+                                width: `${summary.totalReceivables > 0 ? Math.min(100, Math.max(0, (summary.totalReceivablesCollected / summary.totalReceivables) * 100)) : 0}%`,
+                                height: '100%',
+                                background: 'linear-gradient(90deg, #10B981 0%, #059669 100%)',
+                                borderRadius: '999px',
+                                transition: 'width 0.4s ease'
+                            }} />
+                        </div>
+                    </div>
+
+                    {/* 3 Metric Breakdown */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
+                        <div style={{ background: '#F8FAFC', padding: '0.75rem 0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                            <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Total Receivables</p>
+                            <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.05rem', fontWeight: '900', color: '#1E293B' }}>{formatCurr(summary.totalReceivables)}</p>
+                        </div>
+                        <div style={{ background: '#ECFDF5', padding: '0.75rem 0.85rem', borderRadius: '14px', border: '1px solid #D1FAE5' }}>
+                            <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Total Collected</p>
+                            <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.05rem', fontWeight: '900', color: '#065F46' }}>{formatCurr(summary.totalReceivablesCollected)}</p>
+                        </div>
+                        <div style={{ background: '#F0FDF4', padding: '0.75rem 0.85rem', borderRadius: '14px', border: '1px solid #BBF7D0' }}>
+                            <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Outstanding</p>
+                            <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.05rem', fontWeight: '900', color: '#166534' }}>{formatCurr(summary.outstandingReceivables)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Payables Card */}
+                <div style={{
+                    background: '#FFFFFF',
+                    borderRadius: '24px',
+                    border: '1px solid #E2E8F0',
+                    padding: '1.65rem 1.75rem',
+                    boxShadow: '0 4px 12px -2px rgba(239, 68, 68, 0.06), 0 2px 4px rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '1.25rem',
+                    position: 'relative',
+                    overflow: 'hidden'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.75rem', borderRadius: '999px', background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', fontSize: '0.72rem', fontWeight: '800', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.65rem' }}>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#EF4444' }}></span>
+                                Payables Card
+                            </div>
+                            <p style={{ margin: 0, fontSize: '0.78rem', fontWeight: '750', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Outstanding Payables</p>
+                            <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.95rem', fontWeight: '900', color: '#991B1B', letterSpacing: '-0.02em' }}>
+                                {formatCurr(summary.outstandingPayables)}
+                            </h3>
+                        </div>
+                        <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 10px rgba(239, 68, 68, 0.12)' }}>
+                            <TrendingDown size={26} />
+                        </div>
+                    </div>
+
+                    {/* Progress Bar / Ratio */}
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', fontWeight: '700', color: '#64748B', marginBottom: '0.45rem' }}>
+                            <span>Settlement Progress</span>
+                            <span style={{ color: '#991B1B', fontWeight: '800' }}>
+                                {summary.totalPayables > 0 ? Math.min(100, Math.round((summary.totalPayablesPaid / summary.totalPayables) * 100)) : 0}% paid
+                            </span>
+                        </div>
+                        <div style={{ width: '100%', height: '7px', background: '#F1F5F9', borderRadius: '999px', overflow: 'hidden' }}>
+                            <div style={{
+                                width: `${summary.totalPayables > 0 ? Math.min(100, Math.max(0, (summary.totalPayablesPaid / summary.totalPayables) * 100)) : 0}%`,
+                                height: '100%',
+                                background: 'linear-gradient(90deg, #F87171 0%, #EF4444 100%)',
+                                borderRadius: '999px',
+                                transition: 'width 0.4s ease'
+                            }} />
+                        </div>
+                    </div>
+
+                    {/* 3 Metric Breakdown */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
+                        <div style={{ background: '#F8FAFC', padding: '0.75rem 0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                            <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Total Payables</p>
+                            <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.05rem', fontWeight: '900', color: '#1E293B' }}>{formatCurr(summary.totalPayables)}</p>
+                        </div>
+                        <div style={{ background: '#FFF1F2', padding: '0.75rem 0.85rem', borderRadius: '14px', border: '1px solid #FFE4E6' }}>
+                            <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: '800', color: '#BE123C', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Total Paid</p>
+                            <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.05rem', fontWeight: '900', color: '#9F1239' }}>{formatCurr(summary.totalPayablesPaid)}</p>
+                        </div>
+                        <div style={{ background: '#FEF2F2', padding: '0.75rem 0.85rem', borderRadius: '14px', border: '1px solid #FECACA' }}>
+                            <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: '800', color: '#B91C1C', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Outstanding</p>
+                            <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.05rem', fontWeight: '900', color: '#991B1B' }}>{formatCurr(summary.outstandingPayables)}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Tabs Row & Global Tools */}
