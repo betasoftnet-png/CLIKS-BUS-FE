@@ -726,9 +726,17 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     ) : isFinanceMode ? (
                         <>
                             {/* No "Finance" title - removed per user request */}
-                            {/* Add Money CTA - shows on all Finance mode pages */}
+                            {/* Add Transaction CTA - shows on all Finance mode pages */}
                             <button
-                                onClick={() => handleItemClick('Transaction', '/payments/transaction')}
+                                onClick={() => {
+                                    handleItemClick('Transaction', '/payments/transaction?reconcile=true');
+                                    if (typeof window !== 'undefined') {
+                                        window.dispatchEvent(new CustomEvent('open-bank-reconciliation'));
+                                        setTimeout(() => {
+                                            window.dispatchEvent(new CustomEvent('open-bank-reconciliation'));
+                                        }, 100);
+                                    }
+                                }}
                                 style={{
                                     width: 'calc(100% - 2rem)',
                                     margin: '0.5rem 1rem 1.5rem 1rem',
@@ -751,7 +759,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                 onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
                                 onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                             >
-                                <Plus size={15} strokeWidth={3} /> {t('addMoney', 'Add Money')}
+                                <Plus size={15} strokeWidth={3} /> {t('addTransaction', 'Add Transaction')}
                             </button>
                             {navigationConfig.financeMode.map(item => (
                                 <React.Fragment key={item.label}>

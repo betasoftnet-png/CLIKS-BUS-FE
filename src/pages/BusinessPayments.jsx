@@ -38,7 +38,17 @@ import '../App.css';
 import { useCurrency } from '../context';
 import BankStatementReconciliationModal from '../components/BankStatementReconciliationModal';
 
-const BusinessPayments = () => {
+const DoubleArrowIcon = ({ size = 18 }) => (
+    <span style={{ fontSize: `${size}px`, lineHeight: 1, display: 'inline-flex', alignItems: 'center', fontWeight: '800' }}>⇄</span>
+);
+
+const BusinessPayments = ({
+    initialOpenReconcile = false,
+    isOpenReconcile = false,
+    openReconcile = false,
+    isReconcileModalOpen: propIsReconcileOpen,
+    ...props
+}) => {
     const { currency, formatCurrency } = useCurrency();
     const [activeTab, setActiveTab] = useState('receivables');
     const [colFilters, setColFilters] = React.useState({}); // 'receivables', 'payables', 'bank', 'reminders'
@@ -47,9 +57,47 @@ const BusinessPayments = () => {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-    const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(false);
+    const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(() => {
+        if (initialOpenReconcile || isOpenReconcile || openReconcile || propIsReconcileOpen) return true;
+        if (typeof window !== 'undefined' && window.location) {
+            const p = new URLSearchParams(window.location.search);
+            return p.get('reconcile') === 'true' || p.get('addTransaction') === 'true' || p.get('reconcileModal') === 'true';
+        }
+        return false;
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toast, setToast] = useState(null);
+
+    React.useEffect(() => {
+        if (propIsReconcileOpen !== undefined) {
+            setIsReconcileModalOpen(propIsReconcileOpen);
+        } else if (openReconcile || isOpenReconcile) {
+            setIsReconcileModalOpen(true);
+        }
+    }, [propIsReconcileOpen, openReconcile, isOpenReconcile]);
+
+    React.useEffect(() => {
+        const checkParams = () => {
+            if (typeof window !== 'undefined' && window.location) {
+                const p = new URLSearchParams(window.location.search);
+                if (p.get('reconcile') === 'true' || p.get('addTransaction') === 'true' || p.get('reconcileModal') === 'true') {
+                    setIsReconcileModalOpen(true);
+                }
+            }
+        };
+
+        checkParams();
+        const handleOpen = () => setIsReconcileModalOpen(true);
+        window.addEventListener('open-bank-reconciliation', handleOpen);
+        window.addEventListener('open-bank-statement-reconciliation', handleOpen);
+        window.addEventListener('popstate', checkParams);
+
+        return () => {
+            window.removeEventListener('open-bank-reconciliation', handleOpen);
+            window.removeEventListener('open-bank-statement-reconciliation', handleOpen);
+            window.removeEventListener('popstate', checkParams);
+        };
+    }, []);
 
     React.useEffect(() => {
         if (toast) {
@@ -1090,6 +1138,63 @@ const BusinessPayments = () => {
         (p.payment_number || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const unifiedTransactions = React.useMemo(() => {
+        const inward = (customerReceivables || []).map(r => ({
+            id: `inward-${r.payment_id || r.payment_number}`,
+            entryId: r.payment_number || `REC-${r.payment_id}`,
+            date: r.payment_date || 'N/A',
+            flowType: 'INWARD',
+            party: r.customerProfile || r.customer_name || 'General Client',
+            referenceNum: r.invoiceLinkedId || r.invoice_id || r.transaction_reference || 'N/A',
+            originalAmount: parseFloat(r.totalOriginalAmount !== undefined ? r.totalOriginalAmount : (r.total_amount || 0)),
+            transactedAmount: parseFloat(r.paidAmount !== undefined ? r.paidAmount : (r.paid_amount || 0)),
+            mode: r.payment_mode || 'Other',
+            status: (r.reconciliation_status || r.payment_status || 'Completed').toUpperCase()
+        }));
+
+        const outward = (supplierPayables || []).map(p => ({
+            id: `outward-${p.payment_id || p.payment_number}`,
+            entryId: p.payment_number || `VCH-${p.payment_id}`,
+            date: p.payment_date || 'N/A',
+            flowType: 'OUTWARD',
+            party: p.supplier_name || 'General Vendor',
+            referenceNum: p.purchase_id || p.cheque_number || 'N/A',
+            originalAmount: parseFloat(p.total_amount || 0),
+            transactedAmount: parseFloat(p.paid_amount || 0),
+            mode: p.payment_mode || 'Other',
+            status: (p.reconciliation_status || p.payment_status || 'Completed').toUpperCase()
+        }));
+
+        const combined = [...inward, ...outward];
+        return combined.sort((a, b) => {
+            const dateA = new Date(a.date).getTime() || 0;
+            const dateB = new Date(b.date).getTime() || 0;
+            return dateB - dateA;
+        });
+    }, [customerReceivables, supplierPayables]);
+
+    const totalInwardAmount = React.useMemo(() => {
+        return unifiedTransactions
+            .filter(t => t.flowType === 'INWARD')
+            .reduce((sum, t) => sum + t.transactedAmount, 0);
+    }, [unifiedTransactions]);
+
+    const totalOutwardAmount = React.useMemo(() => {
+        return unifiedTransactions
+            .filter(t => t.flowType === 'OUTWARD')
+            .reduce((sum, t) => sum + t.transactedAmount, 0);
+    }, [unifiedTransactions]);
+
+    const netBalanceAmount = totalInwardAmount - totalOutwardAmount;
+
+    const filteredUnifiedTransactions = unifiedTransactions.filter(item =>
+        (item.party || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.entryId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.referenceNum || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.flowType || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.mode || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
         <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
@@ -1140,19 +1245,20 @@ const BusinessPayments = () => {
             </div>
 
             {/* Tabs Row & Global Search */}
-            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                     {[
                         { id: 'receivables', label: 'Customer Receivables (Inward)', icon: ArrowDownRight },
                         { id: 'payables', label: 'Supplier Payables (Outward)', icon: ArrowUpRight },
                         { id: 'bank', label: 'Bank & Cash Registers', icon: Wallet },
-                        { id: 'reminders', label: 'Overdue Collections & Reminders', icon: Clock }
+                        { id: 'reminders', label: 'Overdue Collections & Reminders', icon: Clock },
+                        { id: 'inward_outward', label: 'Total Inward & Outward', icon: DoubleArrowIcon }
                     ].map(tab => (
                         <button 
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             style={{ 
-                                padding: '0.75rem 1.5rem', borderRadius: '12px', 
+                                padding: '0.75rem 1.25rem', borderRadius: '12px', 
                                 background: activeTab === tab.id ? '#064E3B' : 'white', 
                                 color: activeTab === tab.id ? 'white' : '#475569',
                                 border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
@@ -1166,7 +1272,7 @@ const BusinessPayments = () => {
                 </div>
 
                 {/* Global Search Icon Outside Table */}
-                {(activeTab === 'receivables' || activeTab === 'payables') && (
+                {(activeTab === 'receivables' || activeTab === 'payables' || activeTab === 'inward_outward') && (
                     <div style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -1616,6 +1722,112 @@ const BusinessPayments = () => {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Tab 5: Total Inward & Outward */}
+            {activeTab === 'inward_outward' && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', marginBottom: '1.5rem' }}>
+                    {/* 3-Metric Summary Header */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginBottom: '1.25rem', flexShrink: 0 }}>
+                        {/* Total Inward */}
+                        <div style={{ background: 'white', padding: '1.1rem 1.5rem', borderRadius: '18px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                            <div>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Inward (+₹)</p>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#16A34A', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>
+                                    +{formatCurrency(totalInwardAmount)}
+                                </h3>
+                            </div>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A', flexShrink: 0 }}>
+                                <ArrowDownRight size={22} strokeWidth={2.5} />
+                            </div>
+                        </div>
+
+                        {/* Total Outward */}
+                        <div style={{ background: 'white', padding: '1.1rem 1.5rem', borderRadius: '18px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                            <div>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Outward (-₹)</p>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#DC2626', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>
+                                    -{formatCurrency(totalOutwardAmount)}
+                                </h3>
+                            </div>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626', flexShrink: 0 }}>
+                                <ArrowUpRight size={22} strokeWidth={2.5} />
+                            </div>
+                        </div>
+
+                        {/* Net Balance */}
+                        <div style={{ background: 'white', padding: '1.1rem 1.5rem', borderRadius: '18px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                            <div>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Net Balance (Inward - Outward)</p>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: netBalanceAmount >= 0 ? '#1B6B3A' : '#DC2626', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>
+                                    {netBalanceAmount >= 0 ? '+' : '-'}{formatCurrency(Math.abs(netBalanceAmount))}
+                                </h3>
+                            </div>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: netBalanceAmount >= 0 ? '#DCF2E4' : '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: netBalanceAmount >= 0 ? '#1B6B3A' : '#DC2626', flexShrink: 0 }}>
+                                <Wallet size={22} strokeWidth={2.5} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Table Card */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <FilterableTableHead columns={[
+                                    { key: 'entryId', label: 'ENTRY ID', placeholder: 'e.g. REC-001' },
+                                    { key: 'date', label: 'DATE', placeholder: 'e.g. 2026-05' },
+                                    { key: 'flowType', label: 'FLOW TYPE', placeholder: 'INWARD / OUTWARD' },
+                                    { key: 'party', label: 'PARTY (CUSTOMER / SUPPLIER)', placeholder: 'Name' },
+                                    { key: 'referenceNum', label: 'REFERENCE #', placeholder: 'Ref #' },
+                                    { key: 'originalAmount', label: 'ORIGINAL AMOUNT', placeholder: 'Amount' },
+                                    { key: 'transactedAmount', label: 'TRANSACTED AMOUNT', placeholder: 'Amount' },
+                                    { key: 'mode', label: 'MODE', placeholder: 'Mode' },
+                                    { key: 'status', label: 'STATUS', placeholder: 'Status' }
+                                ]} onFilterChange={setColFilters} />
+                                <tbody>
+                                    {filteredUnifiedTransactions.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((item) => (
+                                        <tr key={item.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.92rem', margin: 0 }}>{item.entryId}</p>
+                                            </td>
+                                            <td style={{ padding: '1.25rem 1.5rem', color: '#64748B', fontSize: '0.88rem', whiteSpace: 'nowrap' }}>{item.date}</td>
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                {item.flowType === 'INWARD' ? (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.65rem', borderRadius: '8px', background: '#DCFCE7', color: '#15803D', fontWeight: '850', fontSize: '0.75rem', letterSpacing: '0.02em', border: '1px solid #BBF7D0' }}>
+                                                        ↘ INWARD
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.65rem', borderRadius: '8px', background: '#FEE2E2', color: '#B91C1C', fontWeight: '850', fontSize: '0.75rem', letterSpacing: '0.02em', border: '1px solid #FECACA' }}>
+                                                        ↗ OUTWARD
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: '1.25rem 1.5rem', fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>{item.party}</td>
+                                            <td style={{ padding: '1.25rem 1.5rem', color: '#475569', fontWeight: '600', fontSize: '0.85rem' }}>{item.referenceNum}</td>
+                                            <td style={{ padding: '1.25rem 1.5rem', fontWeight: '600', color: '#475569', fontSize: '0.88rem' }}>{formatCurrency(item.originalAmount)}</td>
+                                            <td style={{ padding: '1.25rem 1.5rem', fontWeight: '850', color: item.flowType === 'INWARD' ? '#16A34A' : '#DC2626', fontSize: '0.92rem', whiteSpace: 'nowrap' }}>
+                                                {item.flowType === 'INWARD' ? '+' : '-'}{formatCurrency(item.transactedAmount)}
+                                            </td>
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                <span style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', background: item.flowType === 'INWARD' ? '#F0FDF4' : '#FEF2F2', color: item.flowType === 'INWARD' ? '#1B6B3A' : '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>{item.mode}</span>
+                                            </td>
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                <span style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{item.status}</span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredUnifiedTransactions.length === 0 && (
+                                        <tr>
+                                            <td colSpan={9} style={{ textAlign: 'center', padding: '3rem', color: '#94A3B8', fontWeight: '600' }}>
+                                                No transactions found matching your criteria.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}

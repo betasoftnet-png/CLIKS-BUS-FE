@@ -45,6 +45,7 @@ const normalizeKey = (k) => {
         'BETA Club': 'betaClub',
         'Trading docs': 'tradingDocs',
         'Add Money': 'addMoney',
+        'Add Transaction': 'addTransaction',
         'Books': 'books',
         'Payments': 'payments',
         'Social': 'social',
@@ -203,6 +204,7 @@ const translations = {
         salesPerformance: 'Sales Performance',
         financeDistribution: 'Finance Distribution',
         addMoney: 'Add Money',
+        addTransaction: 'Add Transaction',
         betaClub: 'CAPITAL MATRIX',
         tradingDocs: 'Trading Docs',
 

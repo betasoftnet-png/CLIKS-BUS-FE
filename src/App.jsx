@@ -59,7 +59,7 @@ import BusinessSuppliers from './pages/BusinessSuppliers';
 import BusinessReturns from './pages/BusinessReturns';
 import BusinessStock from './pages/BusinessStock';
 import BusinessWarehouse from './pages/BusinessWarehouse';
-import BusinessPayments from './pages/BusinessPayments';
+import BusinessPayments from './pages/payments/Transaction';
 import BusinessWallet from './pages/BusinessWallet';
 import BusinessBankAccounts from './pages/BusinessBankAccounts';
 import BusinessExpenses from './pages/BusinessExpenses';
