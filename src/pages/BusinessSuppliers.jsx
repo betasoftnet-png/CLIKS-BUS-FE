@@ -542,9 +542,17 @@ const BusinessSuppliers = () => {
                     })
                 }).catch(err => console.error('Failed to update supplier in Bit-Tool:', err));
             }
+            queryClient.setQueryData(['suppliers'], (old = []) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(sup => (String(sup.id || sup.supplier_id) === String(variables.id))
+                    ? { ...sup, ...variables.data, ...(res?.data || res || {}) }
+                    : sup
+                );
+            });
             queryClient.invalidateQueries({ queryKey: ['suppliers'] });
             alert('Supplier profile details successfully updated!');
             setIsModalOpen(false);
+            setEditingSupplier(null);
         }
     });
 
@@ -676,8 +684,30 @@ const BusinessSuppliers = () => {
         setIsModalOpen(true);
     };
 
-    const handleOpenEditModal = (supplier) => {
-        setEditingSupplier(supplier);
+    const handleOpenEditSupplier = (supplier, e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        if (!supplier) return;
+
+        const supName = supplier.name || supplier.supplier_name || '';
+        const supPhone = supplier.phone || supplier.phone_number || supplier.contact_number || '';
+        const supEmail = supplier.email || supplier.supplier_email || '';
+        const supGstin = supplier.gstin || supplier.gst_number || '';
+        const supPan = supplier.pan_number || supplier.pan || '';
+        const supAddress = supplier.address || supplier.billing_address || supplier.shipping_address || '';
+
+        setEditingSupplier({
+            ...supplier,
+            name: supName,
+            supplier_name: supName,
+            phone: supPhone,
+            phone_number: supPhone,
+            email: supEmail,
+            gstin: supGstin,
+            pan: supPan,
+            pan_number: supPan,
+            address: supAddress,
+            billing_address: supAddress
+        });
         setIsVerifyingGstin(false);
         setGstinVerifiedData(null);
         setGstinVerifyError('');
@@ -685,19 +715,19 @@ const BusinessSuppliers = () => {
             supplier_code: supplier.supplier_code || 'SUP-TEMP',
             supplier_type: supplier.supplier_type || 'local',
             supplier_status: supplier.supplier_status || supplier.status || 'active',
-            supplier_name: supplier.supplier_name || supplier.name || '',
+            supplier_name: supName,
             company_name: supplier.company_name || supplier.company || '',
-            contact_person: supplier.contact_person || supplier.name || '',
-            phone_number: supplier.phone_number || supplier.phone || '',
+            contact_person: supplier.contact_person || supName,
+            phone_number: supPhone,
             alternate_phone: supplier.alternate_phone || '',
-            email: supplier.email || '',
+            email: supEmail,
             website: supplier.website || '',
-            gstin: supplier.gstin || '',
-            pan_number: supplier.pan_number || '',
+            gstin: supGstin,
+            pan_number: supPan,
             tax_type: supplier.tax_type || 'registered',
             place_of_supply: supplier.place_of_supply || supplier.city || 'Maharashtra',
-            billing_address: supplier.billing_address || '',
-            shipping_address: supplier.shipping_address || '',
+            billing_address: supAddress,
+            shipping_address: supplier.shipping_address || supAddress,
             city: supplier.city || '',
             state: supplier.state || 'Maharashtra',
             pincode: supplier.pincode || '',
@@ -711,6 +741,7 @@ const BusinessSuppliers = () => {
         });
         setIsModalOpen(true);
     };
+    const handleOpenEditModal = handleOpenEditSupplier;
 
     const handleOpenChat = async (supplier) => {
         setSelectedSupplier(supplier);
@@ -767,8 +798,11 @@ const BusinessSuppliers = () => {
         const cleanEmail = (formData.email || '').trim().toLowerCase();
         if (!cleanEmail) {
             errors.email = 'Email address is required';
-        } else if (!cleanEmail.endsWith('@bnxmail.com') || !/^[^\s@]+@bnxmail\.com$/.test(cleanEmail)) {
+        } else if (!editingSupplier && (!cleanEmail.endsWith('@bnxmail.com') || !/^[^\s@]+@bnxmail\.com$/.test(cleanEmail))) {
             errors.email = 'Use a bnxmail.com email address to continue.';
+        } else {
+            const emailErr = validateEmail(cleanEmail, true);
+            if (emailErr) errors.email = emailErr;
         }
 
         const gstinErr = validateGstin(formData.gstin, false);
@@ -793,8 +827,17 @@ const BusinessSuppliers = () => {
             phone: formData.phone_number,
             company: formData.company_name,
             gstin: formData.gstin,
+            pan_number: formData.pan_number,
+            address: formData.billing_address || formData.shipping_address,
+            billing_address: formData.billing_address,
+            shipping_address: formData.shipping_address,
             status: formData.supplier_status,
             city: formData.city,
+            state: formData.state,
+            pincode: formData.pincode,
+            country: formData.country,
+            credit_limit: formData.credit_limit,
+            payment_terms: formData.payment_terms,
             outstanding_balance: formData.opening_balance,
             total_purchased: 0,
             bank_account_number: formData.bank_account_number,
@@ -1166,8 +1209,8 @@ const BusinessSuppliers = () => {
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
         { key: 'supplier_name', label: 'Supplier Details', placeholder: 'Name' },
-        { key: 'city', label: 'Demographics', placeholder: 'City' },
-        { key: 'gstin', label: 'GST & HSN', placeholder: 'GSTIN' },
+        { key: 'city', label: 'Contact', placeholder: 'Contact' },
+        { key: 'gstin', label: 'GST & PAN', placeholder: 'GST / PAN' },
         { key: 'credit_limit', label: 'Credit Limits', placeholder: 'e.g. 50000' },
         { key: 'payable_balance', label: 'Running Payable', placeholder: 'e.g. 5000' },
         { key: 'status', label: 'Status', placeholder: 'e.g. Active' },
@@ -1248,7 +1291,7 @@ const BusinessSuppliers = () => {
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                                    <button onClick={() => handleEdit(sup)} title="Edit specifications" style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={15} /></button>
+                                                    <button onClick={(e) => handleOpenEditSupplier(sup, e)} title="Edit specifications" style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={15} /></button>
                                                     <button onClick={() => handleDelete(supId)} title="Delete profile" style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={15} /></button>
                                                 </div>
                                             </td>

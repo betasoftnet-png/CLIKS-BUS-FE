@@ -3279,56 +3279,54 @@ const BusinessBilling = () => {
                     {isLoading || isReturnsLoading ? (
                         <div style={{ padding: '4rem', display: 'flex', justifyContent: 'center' }}><Loader2 className="animate-spin" size={32} color="#BE185D" /></div>
                     ) : activeMainTab === 'orders' ? (
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <table className="table-fixed" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-        { key: 'invoice_number', label: 'Invoice', placeholder: 'e.g. INV-001' },
-        { key: 'client_name', label: 'Client', placeholder: 'Name' },
-        { key: 'due_date', label: 'Due Date', placeholder: 'e.g. 2026-05' },
-        { key: 'total_amount', label: 'Amount', placeholder: 'e.g. 5000' },
-        { key: 'status', label: 'Status', placeholder: 'e.g. Paid' },
-        { key: '_actions', label: 'Actions', noFilter: true }
+        { key: 'invoice_number', label: 'Invoice', placeholder: 'e.g. INV-001', style: { width: '15%' } },
+        { key: 'client_name', label: 'Client', placeholder: 'Name', style: { width: '20%' } },
+        { key: 'due_date', label: 'Due Date', placeholder: 'e.g. 2026-05', style: { width: '15%' } },
+        { key: 'total_amount', label: 'Amount', placeholder: 'e.g. 5000', style: { width: '15%' } },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Paid', align: 'left', style: { width: '18%' } },
+        { key: '_actions', label: 'Actions', noFilter: true, align: 'right', style: { width: '17%' } }
     ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {(() => {
                                     const safeFiltered = Array.isArray(filteredInvoices) ? filteredInvoices : [];
                                     return safeFiltered.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((inv) => (
                                     <tr key={inv.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
-                                        <td style={{ padding: '0.75rem 1.25rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#BE185D' }}>
+                                        <td style={{ width: '15%', padding: '0.75rem 1.25rem', overflow: 'hidden' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#BE185D', flexShrink: 0 }}>
                                                     <FileText size={16} />
                                                 </div>
-                                                <span style={{ fontWeight: '750', color: '#0F172A', fontSize: '0.85rem' }}>{inv.invoice_number}</span>
+                                                <span style={{ fontWeight: '750', color: '#0F172A', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.invoice_number}</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '0.75rem 1.25rem' }}>
-                                            <div>
-                                                <p style={{ fontWeight: '700', color: '#0F172A', fontSize: '0.85rem', marginBottom: '0.1rem', margin: 0 }}>{inv.client_name}</p>
-                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{inv.client_email}</span>
+                                        <td style={{ width: '20%', padding: '0.75rem 1.25rem', overflow: 'hidden' }}>
+                                            <div style={{ minWidth: 0 }}>
+                                                <p style={{ fontWeight: '700', color: '#0F172A', fontSize: '0.85rem', marginBottom: '0.1rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.client_name}</p>
+                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.client_email}</span>
                                             </div>
                                         </td>
-                                        {activeConfig.dueDates !== false && (
-                                            <td style={{ padding: '0.75rem 1.25rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
-                                                    <Calendar size={12} />
-                                                    {inv.due_date}
-                                                </div>
-                                            </td>
-                                        )}
-                                        <td style={{ padding: '0.75rem 1.25rem' }}>
-                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(inv.amount)}</span>
+                                        <td style={{ width: '15%', padding: '0.75rem 1.25rem', overflow: 'hidden' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#64748B', fontWeight: '600', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                                                <Calendar size={12} />
+                                                <span>{inv.due_date || '—'}</span>
+                                            </div>
                                         </td>
-                                        <td style={{ padding: '0.75rem 1.25rem' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
+                                        <td style={{ width: '15%', padding: '0.75rem 1.25rem', overflow: 'hidden' }}>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A', whiteSpace: 'nowrap' }}>{formatCurrency(inv.amount || inv.total_amount)}</span>
+                                        </td>
+                                        <td style={{ width: '18%', padding: '0.75rem 1.25rem', textAlign: 'left', overflow: 'hidden' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start', minWidth: 0 }}>
                                                 <div style={{ 
                                                     display: 'inline-flex', alignItems: 'center', gap: '0.3rem', 
                                                     padding: '0.25rem 0.5rem', borderRadius: '6px',
                                                     background: inv.status === 'Paid' ? '#D1FAE5' : (inv.status === 'Unpaid' ? '#FEE2E2' : '#FEF3C7'),
                                                     color: inv.status === 'Paid' ? '#065F46' : (inv.status === 'Unpaid' ? '#991B1B' : '#92400E'),
-                                                    fontSize: '0.75rem', fontWeight: '800'
+                                                    fontSize: '0.75rem', fontWeight: '800', whiteSpace: 'nowrap'
                                                 }}>
                                                     {inv.status === 'Paid' ? <CheckCircle2 size={10} /> : (inv.status === 'Overdue' ? <AlertTriangle size={10} /> : <Clock size={10} />)}
-                                                    {inv.status.toUpperCase()}
+                                                    {inv.status ? inv.status.toUpperCase() : 'ACTIVE'}
                                                 </div>
 
                                                 {/* E-Invoice IRN Status Pill or Generate Button */}
@@ -3346,7 +3344,8 @@ const BusinessBilling = () => {
                                                             fontSize: '0.7rem',
                                                             fontWeight: '850',
                                                             boxShadow: '0 1px 3px rgba(16, 185, 129, 0.15)',
-                                                            cursor: 'pointer'
+                                                            cursor: 'pointer',
+                                                            whiteSpace: 'nowrap'
                                                         }}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -3395,7 +3394,7 @@ const BusinessBilling = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>
+                                        <td style={{ width: '17%', padding: '0.75rem 1.25rem', textAlign: 'right' }}>
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.25rem', alignItems: 'center' }}>
                                                 {(() => {
                                                     const currentBiz = (businessProfile?.data?.business_name || businessProfile?.business_name || '').toLowerCase();

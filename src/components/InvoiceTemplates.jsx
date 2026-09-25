@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React from 'react';
+import { InvoicePrintTemplate } from './invoice/InvoicePrintTemplate';
 
 // UTILS FOR PROFESSIONAL INVOICES
 const getParsedItems = (items) => {
@@ -1912,25 +1913,23 @@ export const InvoiceTemplates = {
 
                 {/* Items Ledger */}
                 <div className="inv-table-scroll-container">
-                    <table className="inv-premium-corporate-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0', marginBottom: '60px' }}>
+                    <table className="inv-premium-corporate-table" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: '0', marginBottom: '60px' }}>
                         <thead>
                             <tr>
-                                <th className="inv-premium-corporate-th" style={{ padding: '20px 25px', textAlign: 'left', background: '#0F172A', color: 'white', borderRadius: '12px 0 0 12px', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>DESCRIPTION</th>
-                                <th className="inv-premium-corporate-th" style={{ padding: '20px 25px', textAlign: 'center', background: '#0F172A', color: 'white', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>QTY</th>
-                                <th className="inv-premium-corporate-th" style={{ padding: '20px 25px', textAlign: 'right', background: '#0F172A', color: 'white', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>UNIT PRICE</th>
-                                <th className="inv-premium-corporate-th" style={{ padding: '20px 25px', textAlign: 'right', background: '#0F172A', color: 'white', borderRadius: '0 12px 12px 0', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>TOTAL</th>
+                                <th className="inv-premium-corporate-th" style={{ width: '55%', padding: '20px 25px', textAlign: 'left', background: '#0F172A', color: 'white', borderRadius: '12px 0 0 12px', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>DESCRIPTION</th>
+                                <th className="inv-premium-corporate-th" style={{ width: '15%', padding: '20px 25px', textAlign: 'center', background: '#0F172A', color: 'white', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>QTY</th>
+                                <th className="inv-premium-corporate-th" style={{ width: '30%', padding: '20px 25px', textAlign: 'right', background: '#0F172A', color: 'white', borderRadius: '0 12px 12px 0', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>UNIT PRICE</th>
                             </tr>
                         </thead>
                         <tbody>
                             {items.map((item, idx) => (
                                 <tr key={idx}>
-                                    <td className="inv-premium-corporate-td" style={{ padding: '25px', borderBottom: '1px solid #F1F5F9' }}>
-                                        <div style={{ fontWeight: '850', color: '#0F172A', fontSize: '15px', marginBottom: '4px' }}>{item.description}</div>
+                                    <td className="inv-premium-corporate-td" style={{ width: '55%', padding: '25px', borderBottom: '1px solid #F1F5F9', textAlign: 'left' }}>
+                                        <div style={{ fontWeight: '850', color: '#0F172A', fontSize: '15px', marginBottom: '4px' }}>{item.description || item.name}</div>
                                         <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '600' }}>HSN CODE: {item.hsn_code || '8471.30.10'}</div>
                                     </td>
-                                    <td className="inv-premium-corporate-td" style={{ padding: '25px', textAlign: 'center', borderBottom: '1px solid #F1F5F9', fontWeight: '800', color: '#475569', fontSize: '15px' }}>{item.quantity}</td>
-                                    <td className="inv-premium-corporate-td" style={{ padding: '25px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontWeight: '600', color: '#475569', fontSize: '15px' }}>{formatCurrency(item.price)}</td>
-                                    <td className="inv-premium-corporate-td" style={{ padding: '25px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontWeight: '900', color: '#0F172A', fontSize: '16px' }}>{formatCurrency(item.total)}</td>
+                                    <td className="inv-premium-corporate-td" style={{ width: '15%', padding: '25px', textAlign: 'center', borderBottom: '1px solid #F1F5F9', fontWeight: '800', color: '#475569', fontSize: '15px' }}>{item.quantity}</td>
+                                    <td className="inv-premium-corporate-td" style={{ width: '30%', padding: '25px', textAlign: 'right', borderBottom: '1px solid #F1F5F9', fontWeight: '800', color: '#0F172A', fontSize: '15px' }}>{formatCurrency(item.price)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -1982,7 +1981,7 @@ export const InvoiceTemplates = {
                             <div style={{ margin: '15px 0', height: '2px', background: '#F1F5F9' }} />
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                                 <span style={{ fontSize: '16px', fontWeight: '950', color: '#0F172A', whiteSpace: 'nowrap' }}>Total Balance</span>
-                                <span className="inv-premium-corporate-total-amount" style={{ fontSize: String(data.total_amount || '').length > 12 ? '16px' : (String(data.total_amount || '').length > 8 ? '20px' : '32px'), fontWeight: '1000', color: corporateBlue, letterSpacing: '-0.02em', maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(data.total_amount)}</span>
+                                <span className="inv-premium-corporate-total-amount whitespace-nowrap inline-block shrink-0" style={{ fontSize: String(data.total_amount || '').length > 12 ? '18px' : (String(data.total_amount || '').length > 8 ? '22px' : '28px'), fontWeight: '1000', color: corporateBlue, letterSpacing: '-0.02em', whiteSpace: 'nowrap', display: 'inline-block', flexShrink: 0, textAlign: 'right' }}>{formatCurrency(data.total_amount)}</span>
                             </div>
                         </div>
                         <div className="inv-premium-corporate-words-card" style={{ background: corporateBlue, color: 'white', padding: '15px', borderRadius: '12px', marginTop: '30px', textAlign: 'center', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
@@ -2004,6 +2003,9 @@ export const InvoiceTemplates = {
         );
     },
 
+    print_template: InvoicePrintTemplate,
+    InvoicePrintTemplate: InvoicePrintTemplate,
+
     Renderer: ({ type, data, business, config }) => {
         const TemplateComponent = InvoiceTemplates[type] || InvoiceTemplates.standard;
         return (
@@ -2014,3 +2016,6 @@ export const InvoiceTemplates = {
         );
     }
 };
+
+export { InvoicePrintTemplate };
+

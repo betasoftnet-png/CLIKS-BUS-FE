@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import FilterableTableHead from '../components/FilterableTableHead';
+import ReceiveGoodsModal from '../components/modals/ReceiveGoodsModal';
+import NewProductModal from '../components/modals/NewProductModal';
 import { 
     ShoppingCart, 
     Plus, 
@@ -64,6 +66,7 @@ const BusinessPurchases = () => {
     const [dateFilter, setDateFilter] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [createDocType, setCreateDocType] = useState('PO'); // 'PO', 'BILL', 'RETURN'
+    const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
     const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState(null);
     const [pendingReceiveBill, setPendingReceiveBill] = useState(null);
@@ -243,20 +246,26 @@ const BusinessPurchases = () => {
         setIsReceiveModalOpen(true);
     };
 
-    const handleConfirmReceiveGoods = async () => {
+    const handleConfirmReceiveGoods = async (payload) => {
         if (!selectedDoc) return;
         try {
             const targetId = selectedDoc.id || selectedDoc.purchase_id || selectedDoc.purchase_number;
+            const targetWh = (payload && typeof payload === 'object') ? (payload.warehouse_id || payload.warehouse_code || payload.warehouse_name) : (payload || selectedReceiveWarehouse);
             const chosenWh = (warehousesList || []).find(w => 
-                String(w.id) === String(selectedReceiveWarehouse) || 
-                (w.code || '').toLowerCase() === String(selectedReceiveWarehouse).toLowerCase() || 
-                (w.name || w.warehouse_name || '').toLowerCase() === String(selectedReceiveWarehouse).toLowerCase()
-            ) || { id: selectedReceiveWarehouse, name: selectedReceiveWarehouse, code: selectedReceiveWarehouse };
+                String(w.id) === String(targetWh) || 
+                (w.code || '').toLowerCase() === String(targetWh).toLowerCase() || 
+                (w.name || w.warehouse_name || '').toLowerCase() === String(targetWh).toLowerCase()
+            ) || { 
+                id: targetWh, 
+                name: (payload && payload.warehouse_name) || targetWh, 
+                code: (payload && payload.warehouse_code) || targetWh 
+            };
 
             await purchasesService.receiveGoods(targetId, {
-                warehouse_id: chosenWh.id || chosenWh.code || selectedReceiveWarehouse,
-                warehouse_name: chosenWh.name || chosenWh.warehouse_name || selectedReceiveWarehouse,
-                warehouse_code: chosenWh.code || chosenWh.warehouse_code || selectedReceiveWarehouse
+                warehouse_id: chosenWh.id || chosenWh.code || targetWh,
+                warehouse_name: chosenWh.name || chosenWh.warehouse_name || targetWh,
+                warehouse_code: chosenWh.code || chosenWh.warehouse_code || targetWh,
+                ...(payload?.items ? { items: payload.items } : {})
             });
 
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
@@ -267,7 +276,7 @@ const BusinessPurchases = () => {
 
             setIsReceiveModalOpen(false);
             setSelectedDoc(null);
-            alert(`✅ Goods received successfully!\n\nThe purchase order status has been updated to COMPLETED and physical stock has been added to warehouse: ${chosenWh.name || chosenWh.warehouse_name || selectedReceiveWarehouse}.`);
+            alert(`✅ Goods received successfully!\n\nThe purchase order status has been updated to COMPLETED and physical stock has been added to warehouse: ${chosenWh.name || chosenWh.warehouse_name || targetWh}.`);
         } catch(err) {
             alert('Error receiving goods: ' + (err.response?.data?.message || err.message || 'Failed to process warehouse stock receiving'));
         }
@@ -588,6 +597,30 @@ const BusinessPurchases = () => {
 
     const handleItemChange = (index, field, val) => {
         setFormItems(prev => prev.map((item, idx) => idx === index ? { ...item, [field]: val } : item));
+    };
+
+    const handleProductCreated = (newProduct) => {
+        if (!newProduct) return;
+        const newItem = {
+            product_id: newProduct.id || newProduct.product_id,
+            product_name: newProduct.name || newProduct.product_name,
+            sku: newProduct.sku || '',
+            batch_number: '',
+            expiry_date: '',
+            quantity: 1,
+            free_quantity: 0,
+            primary_unit: newProduct.primary_unit || 'pcs',
+            purchase_price: parseFloat(newProduct.purchase_price || newProduct.price || 0),
+            discount: 0,
+            gst_percentage: parseInt(newProduct.gst_percentage || newProduct.tax_rate || 18, 10) || 18
+        };
+
+        setFormItems(prev => {
+            if (prev.length === 1 && !prev[0].product_id && !prev[0].product_name) {
+                return [newItem];
+            }
+            return [...prev, newItem];
+        });
     };
 
     // Calculate detailed document summary totals dynamically
@@ -924,46 +957,51 @@ const BusinessPurchases = () => {
                     </div>
 
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <table className="table-fixed" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-        { key: 'po_number', label: 'PO Details', placeholder: 'PO No' },
-        { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier' },
-        { key: 'items', label: 'Items', placeholder: 'Item' },
-        { key: 'total', label: 'Outward Payables', placeholder: 'e.g. 5000' },
-        { key: 'status', label: 'Status', placeholder: 'e.g. Pending' },
-        { key: '_actions', label: 'Actions', noFilter: true }
+        { key: 'po_number', label: 'PO Details', placeholder: 'PO No', style: { width: '18%' } },
+        { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier', style: { width: '20%' } },
+        { key: 'items', label: 'Items', placeholder: 'Item', style: { width: '25%' } },
+        { key: 'total', label: 'Outward Payables', placeholder: 'e.g. 5000', style: { width: '14%' } },
+        { key: 'status', label: 'Status', placeholder: 'e.g. Pending', style: { width: '13%' } },
+        { key: '_actions', label: 'Actions', noFilter: true, align: 'right', style: { width: '10%' } }
     ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredPOs.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((po) => (
                                     <tr key={po.purchase_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem' }}>{po.purchase_number}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Date: {po.purchase_date} | Due: {po.due_date}</span>
+                                        <td className="align-top" style={{ width: '18%', padding: '1.25rem 1.5rem', verticalAlign: 'top', overflow: 'hidden' }}>
+                                            <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{po.purchase_number}</p>
+                                            <span style={{ fontSize: '0.8rem', color: '#64748B', display: 'block', marginTop: '4px' }}>Date: {po.purchase_date} | Due: {po.due_date}</span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>{po.supplier_name}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>GSTIN: {po.supplier_gstin || 'Unregistered'}</span>
+                                        <td className="align-top" style={{ width: '20%', padding: '1.25rem 1.5rem', verticalAlign: 'top', overflow: 'hidden' }}>
+                                            <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.9rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{po.supplier_name}</p>
+                                            <span style={{ fontSize: '0.8rem', color: '#94A3B8', display: 'block', marginTop: '4px' }}>GSTIN: {po.supplier_gstin || 'Unregistered'}</span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                             {po.items.map((item, idx) => (
-                                                 <div key={idx} style={{ fontSize: '0.85rem' }}>
-                                                     <p style={{ fontWeight: '700', color: '#475569', margin: 0 }}>{item.product_name}</p>
-                                                     <span style={{ color: '#94A3B8' }}>Ordered: {item.quantity} | Received: {item.received_quantity !== undefined && item.received_quantity !== null && item.received_quantity !== '' ? item.received_quantity : item.quantity} {item.primary_unit || 'pcs'}</span>
-                                                 </div>
-                                             ))}
+                                        <td className="align-top" style={{ width: '25%', padding: '1.25rem 1.5rem', verticalAlign: 'top' }}>
+                                            <div className="max-h-24 overflow-y-auto" style={{ maxHeight: '6rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem', paddingRight: '0.25rem' }}>
+                                                {po.items.map((item, idx) => (
+                                                    <div key={idx} style={{ background: '#F8FAFC', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #F1F5F9', fontSize: '0.8rem' }}>
+                                                        <p style={{ fontWeight: '700', color: '#334155', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product_name}</p>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontSize: '0.72rem', marginTop: '2px' }}>
+                                                            <span>Ord: {item.quantity}</span>
+                                                            <span style={{ color: '#059669', fontWeight: '700' }}>Rec: {item.received_quantity !== undefined && item.received_quantity !== null && item.received_quantity !== '' ? item.received_quantity : item.quantity} {item.primary_unit || 'pcs'}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td className="align-top" style={{ width: '14%', padding: '1.25rem 1.5rem', verticalAlign: 'top', overflow: 'hidden' }}>
                                             {(() => {
                                                 const totals = computeDocTotals(po.items, po.shipping_charge);
                                                 return (
                                                     <div>
-                                                        <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '1.05rem' }}>{formatCurrency(totals.grand_total)}</p>
-                                                        <span style={{ fontSize: '0.75rem', color: '#B45309', fontWeight: '700' }}>Paid Adv: {formatCurrency(po.advance_amount)}</span>
+                                                        <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '1.05rem', margin: 0, whiteSpace: 'nowrap' }}>{formatCurrency(totals.grand_total)}</p>
+                                                        <span style={{ fontSize: '0.75rem', color: '#B45309', fontWeight: '700', display: 'block', marginTop: '4px' }}>Paid Adv: {formatCurrency(po.advance_amount)}</span>
                                                     </div>
                                                 );
                                             })()}
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td className="align-top" style={{ width: '13%', padding: '1.25rem 1.5rem', verticalAlign: 'top' }}>
                                             {(() => {
                                                 const statusType = po.supplier_response_type || po.supplier_confirmation_status || po.status;
                                                 const isConfirmed = statusType === 'CONFIRMED' || po.status === 'Paid';
@@ -1133,16 +1171,73 @@ const BusinessPurchases = () => {
                                                 );
                                             })()}
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
+                                        <td className="align-top" style={{ width: '10%', padding: '1.25rem 1.5rem', textAlign: 'right', verticalAlign: 'top' }}>
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
-                                                {po.status !== 'Completed' && (po.supplier_response_type || po.supplier_confirmation_status || po.status) !== 'PARTIAL_REJECTED' && (
-                                                    <button 
-                                                        onClick={() => handleOpenReceiveModal(po)}
-                                                        style={{ padding: '0.45rem 0.85rem', borderRadius: '10px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-                                                    >
-                                                        <PackageOpen size={14} /> Receive Goods
-                                                    </button>
-                                                )}
+                                                {(() => {
+                                                    if (po.status === 'Completed' || (po.supplier_response_type || po.supplier_confirmation_status || po.status) === 'PARTIAL_REJECTED') {
+                                                        return null;
+                                                    }
+
+                                                    const isConfirmed = Boolean(
+                                                        po.supplierConfirmed === true ||
+                                                        po.supplier_confirmed === true ||
+                                                        po.status === 'CONFIRMED' ||
+                                                        po.supplier_response_type === 'CONFIRMED' ||
+                                                        po.supplier_confirmation_status === 'CONFIRMED'
+                                                    );
+                                                    const rawStatusStr = String(po.status || '').toUpperCase();
+                                                    const isPending = !isConfirmed || rawStatusStr.includes('PENDING') || rawStatusStr.includes('SENT TO SUPPLIER');
+
+                                                    if (isPending && !isConfirmed) {
+                                                        return (
+                                                            <button 
+                                                                type="button"
+                                                                disabled
+                                                                title="Supplier confirmation required before goods can be received."
+                                                                style={{ 
+                                                                    padding: '0.45rem 0.85rem', 
+                                                                    borderRadius: '10px', 
+                                                                    border: 'none', 
+                                                                    background: '#064E3B', 
+                                                                    color: 'white', 
+                                                                    fontWeight: '700', 
+                                                                    fontSize: '0.8rem', 
+                                                                    display: 'inline-flex', 
+                                                                    alignItems: 'center', 
+                                                                    gap: '0.4rem',
+                                                                    opacity: 0.6,
+                                                                    cursor: 'not-allowed'
+                                                                }}
+                                                            >
+                                                                <PackageOpen size={14} /> Receive Goods
+                                                            </button>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => handleOpenReceiveModal(po)}
+                                                            title="Receive Goods into warehouse inventory"
+                                                            style={{ 
+                                                                padding: '0.45rem 0.85rem', 
+                                                                borderRadius: '10px', 
+                                                                border: 'none', 
+                                                                background: '#064E3B', 
+                                                                color: 'white', 
+                                                                fontWeight: '700', 
+                                                                fontSize: '0.8rem', 
+                                                                cursor: 'pointer', 
+                                                                display: 'inline-flex', 
+                                                                alignItems: 'center', 
+                                                                gap: '0.4rem',
+                                                                opacity: 1
+                                                            }}
+                                                        >
+                                                            <PackageOpen size={14} /> Receive Goods
+                                                        </button>
+                                                    );
+                                                })()}
                                             </div>
                                         </td>
                                     </tr>
@@ -1283,39 +1378,47 @@ const BusinessPurchases = () => {
                     </div>
 
                     <div style={{ border: '1px solid #E2E8F0', borderRadius: '24px', overflow: 'hidden' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <table className="table-fixed" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead style={{ background: '#F8FAFC' }}>
                                 <tr>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Ref Bill / Purchase ID</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Items Returned</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Refund Amount</th>
-                                    <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
+                                    <th style={{ width: '20%', padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Ref Bill / Purchase ID</th>
+                                    <th style={{ width: '22%', padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier</th>
+                                    <th style={{ width: '28%', padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Items Returned</th>
+                                    <th style={{ width: '15%', padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Refund Amount</th>
+                                    <th style={{ width: '15%', padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {supplierReturnsList.length > 0 ? (
                                     supplierReturnsList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((pr) => (
                                         <tr key={pr.id || pr.return_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                            <td style={{ padding: '1.25rem', fontWeight: '850', color: '#064E3B' }}>{pr.return_number || pr.purchase_id || pr.purchase_number || `PRN-${pr.id}`}</td>
-                                            <td style={{ padding: '1.25rem', fontWeight: '750', color: '#1E293B' }}>{pr.supplier_name || 'N/A'}</td>
-                                            <td style={{ padding: '1.25rem' }}>
-                                                {(pr.items || []).map((item, idx) => (
-                                                    <div key={idx} style={{ fontSize: '0.85rem' }}>
-                                                        <p style={{ fontWeight: '700', color: '#475569', margin: 0 }}>{item.product_name}</p>
-                                                        <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>Qty returned: {item.return_quantity || item.quantity || 1}</span>
-                                                    </div>
-                                                ))}
+                                            <td className="align-top" style={{ width: '20%', verticalAlign: 'top', padding: '1.25rem', fontWeight: '850', color: '#064E3B', overflow: 'hidden' }}>
+                                                <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pr.return_number || pr.purchase_id || pr.purchase_number || `PRN-${pr.id}`}</p>
                                             </td>
-                                            <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: '#B91C1C' }}>
-                                                {formatCurrency(pr.refund_amount || (pr.items || []).reduce((sum, i) => sum + (i.refund_amount || (i.price * i.return_quantity) || 0), 0))}
+                                            <td className="align-top" style={{ width: '22%', verticalAlign: 'top', padding: '1.25rem', fontWeight: '750', color: '#1E293B', overflow: 'hidden' }}>
+                                                <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pr.supplier_name || 'N/A'}</p>
                                             </td>
-                                            <td style={{ padding: '1.25rem' }}>
+                                            <td className="align-top" style={{ width: '28%', verticalAlign: 'top', padding: '1.25rem' }}>
+                                                <div className="max-h-24 overflow-y-auto" style={{ maxHeight: '6rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem', paddingRight: '0.25rem' }}>
+                                                    {(pr.items || []).map((item, idx) => (
+                                                        <div key={idx} style={{ background: '#F8FAFC', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #F1F5F9', fontSize: '0.8rem' }}>
+                                                            <p style={{ fontWeight: '700', color: '#475569', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product_name}</p>
+                                                            <span style={{ color: '#94A3B8', fontSize: '0.75rem' }}>Qty returned: {item.return_quantity || item.quantity || 1}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                            <td className="align-top" style={{ width: '15%', verticalAlign: 'top', padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: '#B91C1C', overflow: 'hidden' }}>
+                                                <span style={{ whiteSpace: 'nowrap' }}>
+                                                    {formatCurrency(pr.refund_amount || (pr.items || []).reduce((sum, i) => sum + (i.refund_amount || (i.price * i.return_quantity) || 0), 0))}
+                                                </span>
+                                            </td>
+                                            <td className="align-top" style={{ width: '15%', verticalAlign: 'top', padding: '1.25rem' }}>
                                                 <span style={{ 
                                                     display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px',
                                                     background: pr.status === 'Completed' ? '#F0FDF4' : '#FEF2F2',
                                                     color: pr.status === 'Completed' ? '#15803D' : '#EF4444',
-                                                    fontSize: '0.75rem', fontWeight: '800'
+                                                    fontSize: '0.75rem', fontWeight: '800', whiteSpace: 'nowrap'
                                                 }}>
                                                     {(pr.inspection_status || pr.status || 'Completed').toUpperCase()}
                                                 </span>
@@ -1325,23 +1428,31 @@ const BusinessPurchases = () => {
                                 ) : (
                                     purchaseReturns.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ret) => (
                                         <tr key={ret.return_id || ret.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                            <td style={{ padding: '1.25rem', fontWeight: '850', color: '#064E3B' }}>{ret.return_id || ret.doc_number || ret.purchase_number}</td>
-                                            <td style={{ padding: '1.25rem', fontWeight: '750', color: '#1E293B' }}>{ret.supplier_name}</td>
-                                            <td style={{ padding: '1.25rem' }}>
-                                                {(ret.items || ret.returned_items || []).map((item, idx) => (
-                                                    <div key={idx} style={{ fontSize: '0.85rem' }}>
-                                                        <p style={{ fontWeight: '700', margin: 0 }}>{item.product_name}</p>
-                                                        <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>Returned: {item.quantity || item.return_quantity} Units</span>
-                                                    </div>
-                                                ))}
+                                            <td className="align-top" style={{ width: '20%', verticalAlign: 'top', padding: '1.25rem', fontWeight: '850', color: '#064E3B', overflow: 'hidden' }}>
+                                                <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ret.return_id || ret.doc_number || ret.purchase_number}</p>
                                             </td>
-                                            <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: '#B91C1C' }}>
-                                                {formatCurrency(ret.refund_amount || (ret.returned_items || ret.items || []).reduce((sum, i) => sum + (i.refund_amount || (i.price * i.quantity) || 0), 0))}
+                                            <td className="align-top" style={{ width: '22%', verticalAlign: 'top', padding: '1.25rem', fontWeight: '750', color: '#1E293B', overflow: 'hidden' }}>
+                                                <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ret.supplier_name}</p>
                                             </td>
-                                            <td style={{ padding: '1.25rem' }}>
+                                            <td className="align-top" style={{ width: '28%', verticalAlign: 'top', padding: '1.25rem' }}>
+                                                <div className="max-h-24 overflow-y-auto" style={{ maxHeight: '6rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem', paddingRight: '0.25rem' }}>
+                                                    {(ret.items || ret.returned_items || []).map((item, idx) => (
+                                                        <div key={idx} style={{ background: '#F8FAFC', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #F1F5F9', fontSize: '0.8rem' }}>
+                                                            <p style={{ fontWeight: '700', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product_name}</p>
+                                                            <span style={{ color: '#94A3B8', fontSize: '0.75rem' }}>Returned: {item.quantity || item.return_quantity} Units</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                            <td className="align-top" style={{ width: '15%', verticalAlign: 'top', padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: '#B91C1C', overflow: 'hidden' }}>
+                                                <span style={{ whiteSpace: 'nowrap' }}>
+                                                    {formatCurrency(ret.refund_amount || (ret.returned_items || ret.items || []).reduce((sum, i) => sum + (i.refund_amount || (i.price * i.quantity) || 0), 0))}
+                                                </span>
+                                            </td>
+                                            <td className="align-top" style={{ width: '15%', verticalAlign: 'top', padding: '1.25rem' }}>
                                                 <span style={{ 
                                                     display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px',
-                                                    background: '#F0FDF4', color: '#15803D', fontSize: '0.75rem', fontWeight: '800'
+                                                    background: '#F0FDF4', color: '#15803D', fontSize: '0.75rem', fontWeight: '800', whiteSpace: 'nowrap'
                                                 }}>
                                                     COMPLETED
                                                 </span>
@@ -1577,13 +1688,37 @@ const BusinessPurchases = () => {
                             <div style={{ background: '#F0F9F4', padding: '1.5rem', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '1rem', border: '1px solid #DCF2E4' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase' }}><Layers size={16} /> Itemized Products</h4>
-                                    <button type="button" onClick={handleAddItemField} style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Add Row</button>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        {createDocType !== 'RETURN' && (
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setIsNewProductModalOpen(true)}
+                                                className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg"
+                                                style={{ cursor: 'pointer' }}
+                                            >
+                                                + Create Product
+                                            </button>
+                                        )}
+                                        <button type="button" onClick={handleAddItemField} style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Add Row</button>
+                                    </div>
                                 </div>
 
                                 {formItems.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((item, idx) => (
                                     <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'end' }}>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.25rem' }}>Product Name</label>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A' }}>Product Name</label>
+                                                {createDocType !== 'RETURN' && (
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setIsNewProductModalOpen(true)}
+                                                        className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg"
+                                                        style={{ cursor: 'pointer' }}
+                                                    >
+                                                        + Create Product
+                                                    </button>
+                                                )}
+                                            </div>
                                             <select 
                                                 required 
                                                 value={item.product_id || ''} 
@@ -2166,88 +2301,25 @@ const BusinessPurchases = () => {
                     </div>
                 </div>
             )}
+
             {/* Receive Goods & Warehouse Selection Modal */}
-            {isReceiveModalOpen && selectedDoc && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-                    <div style={{ background: 'white', borderRadius: '24px', maxWidth: '640px', width: '100%', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                <PackageOpen size={22} color="#064E3B" />
-                                <div>
-                                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '850', color: '#1E293B' }}>Receive Goods & Warehouse Assignment</h3>
-                                    <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748B' }}>Confirm stock arrival and select destination godown/warehouse.</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsReceiveModalOpen(false)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer' }}>
-                                <X size={18} color="#64748B" />
-                            </button>
-                        </div>
+            <ReceiveGoodsModal
+                isOpen={isReceiveModalOpen && !!selectedDoc}
+                doc={selectedDoc}
+                warehousesList={warehousesList}
+                onClose={() => {
+                    setIsReceiveModalOpen(false);
+                    setSelectedDoc(null);
+                }}
+                onConfirm={handleConfirmReceiveGoods}
+            />
 
-                        {/* PO Header Info */}
-                        <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '1rem', marginBottom: '1.25rem', border: '1px solid #E2E8F0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                            <div>
-                                <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>Purchase Order #</span>
-                                <p style={{ margin: 0, fontWeight: '850', color: '#064E3B', fontSize: '0.95rem' }}>{selectedDoc.purchase_number}</p>
-                            </div>
-                            <div>
-                                <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>Supplier Name</span>
-                                <p style={{ margin: 0, fontWeight: '850', color: '#1E293B', fontSize: '0.95rem' }}>{selectedDoc.supplier_name}</p>
-                            </div>
-                        </div>
-
-                        {/* Items Table */}
-                        <div style={{ marginBottom: '1.25rem' }}>
-                            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '750', color: '#334155', marginBottom: '0.5rem' }}>Item Details to Receive</label>
-                            <div style={{ border: '1px solid #E2E8F0', borderRadius: '14px', overflow: 'hidden' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                                    <thead style={{ background: '#F1F5F9', color: '#475569', fontWeight: '700' }}>
-                                        <tr>
-                                            <th style={{ padding: '0.6rem 0.8rem', textAlign: 'left' }}>Product</th>
-                                            <th style={{ padding: '0.6rem 0.8rem', textAlign: 'center' }}>Ordered Qty</th>
-                                            <th style={{ padding: '0.6rem 0.8rem', textAlign: 'center' }}>Confirmed / Received</th>
-                                            <th style={{ padding: '0.6rem 0.8rem', textAlign: 'right' }}>Price</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {(selectedDoc.items && selectedDoc.items.length > 0 ? selectedDoc.items : [{ product_name: 'Product Item', quantity: 1, purchase_price: selectedDoc.grand_total }]).map((it, idx) => (
-                                            <tr key={idx} style={{ borderTop: '1px solid #F1F5F9' }}>
-                                                <td style={{ padding: '0.65rem 0.8rem', fontWeight: '700', color: '#1E293B' }}>{it.product_name}</td>
-                                                <td style={{ padding: '0.65rem 0.8rem', textAlign: 'center', fontWeight: '800', color: '#1E293B' }}>{it.quantity} {it.primary_unit || 'pcs'}</td>
-                                                <td style={{ padding: '0.65rem 0.8rem', textAlign: 'center', fontWeight: '800', color: '#15803D' }}>{it.received_quantity !== undefined && it.received_quantity !== null && it.received_quantity !== '' ? it.received_quantity : it.quantity} {it.primary_unit || 'pcs'}</td>
-                                                <td style={{ padding: '0.65rem 0.8rem', textAlign: 'right', fontWeight: '700', color: '#475569' }}>{formatCurrency(it.purchase_price || 0)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Warehouse Dropdown */}
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '750', color: '#1E293B', marginBottom: '0.4rem' }}>Select Target Warehouse / Godown *</label>
-                            <select 
-                                value={selectedReceiveWarehouse}
-                                onChange={(e) => setSelectedReceiveWarehouse(e.target.value)}
-                                style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '14px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontWeight: '700', fontSize: '0.9rem', color: '#0F172A' }}
-                            >
-                                {warehousesList.map((wh, idx) => {
-                                    const wName = wh.name || wh.warehouse_name || `Warehouse ${idx + 1}`;
-                                    const wVal = wh.id || wh.code || wName;
-                                    return <option key={idx} value={wVal}>{wName} ({wh.code || `WH-${wh.id || idx + 1}`})</option>;
-                                })}
-                            </select>
-                        </div>
-
-                        {/* Actions */}
-                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                            <button onClick={() => setIsReceiveModalOpen(false)} style={{ padding: '0.7rem 1.25rem', borderRadius: '12px', border: '1px solid #CBD5E1', background: 'white', fontWeight: '700', cursor: 'pointer', color: '#475569' }}>Cancel</button>
-                            <button onClick={handleConfirmReceiveGoods} style={{ padding: '0.7rem 1.4rem', borderRadius: '12px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <CheckCircle2 size={16} /> Submit & Receive Goods
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Quick Create Product Modal */}
+            <NewProductModal
+                isOpen={isNewProductModalOpen}
+                onClose={() => setIsNewProductModalOpen(false)}
+                onSuccess={handleProductCreated}
+            />
         </div>
     );
 };

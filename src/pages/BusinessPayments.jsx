@@ -1196,9 +1196,22 @@ const BusinessPayments = ({
     );
 
     return (
-        <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ padding: '0 2.5rem 1.25rem 2.5rem', background: '#f4f7f6', minHeight: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', flexShrink: 0, justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+            <div 
+                className="sticky top-0 z-20 bg-[#f4f7f6]/95 backdrop-blur-xs pt-4 pb-3" 
+                style={{ 
+                    display: 'flex', 
+                    flexShrink: 0, 
+                    justifyContent: 'space-between', 
+                    alignItems: 'flex-end', 
+                    marginBottom: '1.5rem',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 20,
+                    backgroundColor: '#f4f7f6'
+                }}
+            >
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
                         <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)' }}>

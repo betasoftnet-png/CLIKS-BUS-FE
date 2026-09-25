@@ -290,6 +290,7 @@ function AuthenticatedApp() {
                 <Route path="/sales/invoice" element={<BusinessBilling />} />
                 <Route path="/sales/orders" element={<BusinessSalesOrders />} />
                 <Route path="/purchases/purchases" element={<BusinessPurchases />} />
+                <Route path="/purchases/invoice" element={<BusinessPurchases />} />
                 <Route path="/finance/purchases/new" element={<BusinessFinancePurchases />} />
                 <Route path="/finance/purchases/register" element={<BusinessFinancePurchases />} />
                 <Route path="/finance/purchases/vendors" element={<BusinessFinancePurchases />} />
