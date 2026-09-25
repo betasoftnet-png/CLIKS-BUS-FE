@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { stockService, warehouseService, productsService } from '../services';
+import { stockService, warehouseService, productsService, posService, billingService } from '../services';
 import { apiClient } from '../api/client';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { 
@@ -24,21 +24,58 @@ import {
     ChevronRight, 
     RefreshCw, 
     Sliders,
-    Zap
+    Zap,
+    Users,
+    ShoppingBag,
+    Eye,
+    Settings
 } from 'lucide-react';
 import '../App.css';
 import { useCurrency } from '../context';
+
+const BarChartIcon = ({ size = 16 }) => (
+    <span style={{ fontSize: `${size}px`, lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}>📊</span>
+);
 
 const BusinessStock = () => {
     const { formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('registry');
-    const [colFilters, setColFilters] = React.useState({}); // 'registry', 'movement', 'warehouse', 'batch'
+    const [colFilters, setColFilters] = React.useState({}); // 'registry', 'movement', 'warehouse', 'batch', 'selling_history'
     const [searchTerm, setSearchTerm] = useState('');
     const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [selectedHistoryProductId, setSelectedHistoryProductId] = useState('');
     const [selectedStock, setSelectedStock] = useState(null);
+
+    // Selling History & Date Interval Customization
+    const [dateInterval, setDateInterval] = useState('7days'); // 'today' | '7days' | 'custom'
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
+    const [isCustomizeViewOpen, setIsCustomizeViewOpen] = useState(false);
+    const [customerListModal, setCustomerListModal] = useState(null);
+    const [savedBills, setSavedBills] = useState([]);
+
+    useEffect(() => {
+        try {
+            const local = localStorage.getItem('cliks_billing_records_v1');
+            setSavedBills(local ? JSON.parse(local) : []);
+        } catch {
+            setSavedBills([]);
+        }
+    }, []);
+
+    // Fetch Live POS Orders
+    const { data: posOrders = [] } = useQuery({
+        queryKey: ['pos-orders-stock'],
+        queryFn: () => posService.getOrders({ limit: 500 }).catch(() => [])
+    });
+
+    // Fetch Invoices
+    const { data: billingInvoices = [] } = useQuery({
+        queryKey: ['billing-invoices-stock'],
+        queryFn: () => billingService.getInvoices().catch(() => [])
+    });
 
     // Fetch Live Registered Products Catalog (Inventory -> Products)
     const { data: dbProducts = [] } = useQuery({
@@ -144,6 +181,179 @@ const BusinessStock = () => {
 
         return list;
     }, [dbProducts, dbStocks]);
+
+    // Match sales items from POS / Billing to product inventory
+    const matchesProduct = (item, product) => {
+        if (!item || !product) return false;
+        const prodName = (product.product_name || product.name || '').toLowerCase().trim();
+        const itemName = (item.productName || item.name || item.product_name || item.description || '').toLowerCase().trim();
+        if (prodName && itemName && (prodName === itemName || itemName.includes(prodName) || prodName.includes(itemName))) {
+            return true;
+        }
+        const prodId = String(product.id || product.product_id || '').toLowerCase().trim();
+        const itemId = String(item.productId || item.product_id || item.id || '').toLowerCase().trim();
+        if (prodId && itemId && (prodId === itemId || itemId.includes(prodId) || prodId.includes(itemId))) {
+            return true;
+        }
+        const prodSku = String(product.product_id || product.sku || '').toLowerCase().trim();
+        const itemSku = String(item.sku || '').toLowerCase().trim();
+        if (prodSku && itemSku && prodSku === itemSku) {
+            return true;
+        }
+        return false;
+    };
+
+    // Unified Sales Transactions from POS Orders, Saved Billing Records, and Invoices
+    const allSalesTransactions = React.useMemo(() => {
+        const list = [];
+
+        // 1. From POS Orders (/pos)
+        (Array.isArray(posOrders) ? posOrders : []).forEach(order => {
+            const orderId = order.order_number || order.id || order.bill_id || `ORD-${order.id}`;
+            const customerName = order.client_name || order.customer_name || order.party_name || 'Walk-in Customer';
+            const orderDate = order.created_at || order.order_date || order.date;
+            const items = Array.isArray(order.items) ? order.items : [];
+
+            items.forEach(item => {
+                list.push({
+                    source: 'POS',
+                    billId: orderId,
+                    customerName: customerName,
+                    date: orderDate ? new Date(orderDate) : new Date(),
+                    productName: item.name || item.product_name || item.description || '',
+                    productId: item.product_id || item.id || '',
+                    sku: item.sku || '',
+                    quantity: parseFloat(item.quantity ?? item.qty ?? 1) || 1,
+                    price: parseFloat(item.price ?? item.unit_price ?? item.rate ?? 0) || 0,
+                    total: parseFloat(item.total ?? (item.price * item.quantity) ?? 0) || 0
+                });
+            });
+        });
+
+        // 2. From Saved Billing Records (SimpleBilling / POS Billing records)
+        (Array.isArray(savedBills) ? savedBills : []).forEach(bill => {
+            const billId = bill.id || bill.billingOrder || 'BILL-REF';
+            const customerName = bill.customerName || 'Walk-in Customer';
+            const billDate = bill.date || bill.created_at;
+            const products = Array.isArray(bill.products) ? bill.products : [];
+
+            products.forEach(p => {
+                list.push({
+                    source: 'Billing',
+                    billId: billId,
+                    customerName: customerName,
+                    date: billDate ? new Date(billDate) : new Date(),
+                    productName: p.name || '',
+                    productId: p.id || '',
+                    sku: p.sku || '',
+                    quantity: parseFloat(p.quantity || 1) || 1,
+                    price: parseFloat(p.rate || p.price || 0) || 0,
+                    total: parseFloat(p.total || ((p.rate || 0) * (p.quantity || 1)) || 0)
+                });
+            });
+        });
+
+        // 3. From Invoices
+        (Array.isArray(billingInvoices) ? billingInvoices : []).forEach(inv => {
+            const invId = inv.invoice_number || inv.id || 'INV-REF';
+            const customerName = inv.customer_name || inv.party_name || inv.client_name || 'General Customer';
+            const invDate = inv.invoice_date || inv.created_at || inv.due_date;
+            const items = Array.isArray(inv.items) ? inv.items : [];
+
+            items.forEach(item => {
+                list.push({
+                    source: 'Invoice',
+                    billId: invId,
+                    customerName: customerName,
+                    date: invDate ? new Date(invDate) : new Date(),
+                    productName: item.name || item.item_name || item.description || '',
+                    productId: item.product_id || item.id || '',
+                    sku: item.sku || '',
+                    quantity: parseFloat(item.quantity || 1) || 1,
+                    price: parseFloat(item.unit_price || item.rate || item.price || 0) || 0,
+                    total: parseFloat(item.total_amount || item.total || 0) || 0
+                });
+            });
+        });
+
+        return list;
+    }, [posOrders, savedBills, billingInvoices]);
+
+    // Product Detail and Daily/Weekly Selling History Data
+    const productSellingHistoryData = React.useMemo(() => {
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        return stocks.map(product => {
+            const productSales = allSalesTransactions.filter(tx => matchesProduct(tx, product));
+
+            // Daily sales (today)
+            const dailySales = productSales.filter(tx => {
+                if (!tx.date) return false;
+                const dt = new Date(tx.date);
+                return dt.toISOString().split('T')[0] === todayStr || (now.getTime() - dt.getTime() < 24 * 60 * 60 * 1000 && dt.getDate() === now.getDate());
+            });
+            const dailyQty = dailySales.reduce((sum, tx) => sum + tx.quantity, 0);
+            const dailyAmount = dailySales.reduce((sum, tx) => sum + (tx.total || (tx.quantity * tx.price)), 0);
+
+            // Weekly sales (last 7 days)
+            const weeklySales = productSales.filter(tx => {
+                if (!tx.date) return false;
+                const dt = new Date(tx.date);
+                return dt >= sevenDaysAgo && dt <= now;
+            });
+            const weeklyQty = weeklySales.reduce((sum, tx) => sum + tx.quantity, 0);
+            const weeklyAmount = weeklySales.reduce((sum, tx) => sum + (tx.total || (tx.quantity * tx.price)), 0);
+
+            // Custom / Selected interval sales
+            let intervalSales = productSales;
+            if (dateInterval === 'today') {
+                intervalSales = dailySales;
+            } else if (dateInterval === '7days') {
+                intervalSales = weeklySales;
+            } else if (dateInterval === 'custom' && (customStartDate || customEndDate)) {
+                intervalSales = productSales.filter(tx => {
+                    if (!tx.date) return false;
+                    const dt = new Date(tx.date).getTime();
+                    const start = customStartDate ? new Date(customStartDate).getTime() : 0;
+                    const end = customEndDate ? new Date(customEndDate + 'T23:59:59').getTime() : Infinity;
+                    return dt >= start && dt <= end;
+                });
+            }
+            const intervalQty = intervalSales.reduce((sum, tx) => sum + tx.quantity, 0);
+            const intervalAmount = intervalSales.reduce((sum, tx) => sum + (tx.total || (tx.quantity * tx.price)), 0);
+
+            // Unique customers who bought this item
+            const uniqueCustomers = Array.from(new Set(productSales.map(tx => (tx.customerName || 'Walk-in Customer').trim())));
+
+            return {
+                ...product,
+                starting_quantity: product.opening_stock ?? 0,
+                dailyQty,
+                dailyAmount,
+                weeklyQty,
+                weeklyAmount,
+                intervalQty,
+                intervalAmount,
+                purchases: productSales,
+                customerCount: uniqueCustomers.length,
+                uniqueCustomers
+            };
+        });
+    }, [stocks, allSalesTransactions, dateInterval, customStartDate, customEndDate]);
+
+    const totalDailySoldQty = productSellingHistoryData.reduce((sum, p) => sum + p.dailyQty, 0);
+    const totalDailySoldAmount = productSellingHistoryData.reduce((sum, p) => sum + p.dailyAmount, 0);
+    const totalWeeklySoldQty = productSellingHistoryData.reduce((sum, p) => sum + p.weeklyQty, 0);
+    const totalWeeklySoldAmount = productSellingHistoryData.reduce((sum, p) => sum + p.weeklyAmount, 0);
+
+    const filteredSellingHistory = productSellingHistoryData.filter(item =>
+        (item.product_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.product_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.warehouse_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.uniqueCustomers.some(c => c.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
     // Set default product for history when stock loads
     useEffect(() => {
@@ -517,6 +727,15 @@ const BusinessStock = () => {
                         shadowColor: 'rgba(16, 185, 129, 0.15)',
                         description: 'Used for products that have batches and expiry dates, especially food, medicine, cosmetics, etc.',
                         example: 'Milk Batch B102 → Expiry: 20-08-2026.'
+                    },
+                    { 
+                        id: 'selling_history', 
+                        label: 'Product Detail & Daily Selling History', 
+                        icon: BarChartIcon, 
+                        gradient: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', 
+                        shadowColor: 'rgba(37, 99, 235, 0.15)',
+                        description: 'Product starting quantity, current stock, daily & weekly sales breakdown, and customer purchase records.',
+                        example: 'iPhone 15: Sold 3 units today (₹2,40,000) • 5 Customers.'
                     }
                 ].map(tab => (
                     <button 
@@ -555,6 +774,10 @@ const BusinessStock = () => {
                     batch: {
                         desc: "Used for products that have batches and expiry dates, especially food, medicine, cosmetics, etc.",
                         example: "Milk Batch B102 → Expiry: 20-08-2026."
+                    },
+                    selling_history: {
+                        desc: "Track product starting stock, current stock, daily & weekly sales performance and customer purchase records.",
+                        example: "iPhone 15: Sold 3 units today (₹2,40,000) • 5 Customers."
                     }
                 };
                 const current = tabDescriptions[activeTab];
@@ -769,7 +992,433 @@ const BusinessStock = () => {
                     </table>
                 </div>
             )}
+
+            {/* Tab: Product Detail & Daily Selling History */}
+            {activeTab === 'selling_history' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* 3-Metric Summary Header */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem' }}>
+                        <div style={{ background: 'white', padding: '1.25rem 1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                            <div>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tracked Catalog Items</p>
+                                <h3 style={{ fontSize: '1.6rem', fontWeight: '900', color: '#0F172A', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>{stocks.length} Products</h3>
+                            </div>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB', flexShrink: 0 }}>
+                                <Layers size={22} />
+                            </div>
+                        </div>
+
+                        <div style={{ background: 'white', padding: '1.25rem 1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                            <div>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Daily Sold Volume (Today)</p>
+                                <h3 style={{ fontSize: '1.6rem', fontWeight: '900', color: '#16A34A', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>
+                                    {totalDailySoldQty} Units <span style={{ fontSize: '1rem', fontWeight: '700', color: '#059669' }}>({formatCurrency(totalDailySoldAmount)})</span>
+                                </h3>
+                            </div>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A', flexShrink: 0 }}>
+                                <TrendingUp size={22} />
+                            </div>
+                        </div>
+
+                        <div style={{ background: 'white', padding: '1.25rem 1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                            <div>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Weekly Sold Volume (7 Days)</p>
+                                <h3 style={{ fontSize: '1.6rem', fontWeight: '900', color: '#2563EB', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>
+                                    {totalWeeklySoldQty} Units <span style={{ fontSize: '1rem', fontWeight: '700', color: '#1D4ED8' }}>({formatCurrency(totalWeeklySoldAmount)})</span>
+                                </h3>
+                            </div>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB', flexShrink: 0 }}>
+                                <ShoppingBag size={22} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Table Card */}
+                    <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                        {/* Toolbar: Search and Customize View button */}
+                        <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div style={{ position: 'relative', width: '380px', maxWidth: '100%' }}>
+                                <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search product details or customer..." 
+                                    value={searchTerm} 
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    style={{ width: '100%', padding: '0.65rem 1rem 0.65rem 2.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', background: 'white' }}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
+                                <span style={{ fontSize: '0.78rem', color: '#475569', fontWeight: '700', background: '#F1F5F9', padding: '0.45rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                                    📅 Interval: <strong style={{ color: '#0F172A' }}>{dateInterval === 'today' ? 'Today' : dateInterval === '7days' ? 'Last 7 Days' : `${customStartDate || 'Start'} to ${customEndDate || 'End'}`}</strong>
+                                </span>
+
+                                {/* Customize View (⚙️) Button */}
+                                <button
+                                    onClick={() => setIsCustomizeViewOpen(!isCustomizeViewOpen)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.45rem',
+                                        padding: '0.55rem 1.1rem',
+                                        borderRadius: '12px',
+                                        background: isCustomizeViewOpen ? '#064E3B' : 'white',
+                                        color: isCustomizeViewOpen ? 'white' : '#064E3B',
+                                        border: '1px solid #DCF2E4',
+                                        fontSize: '0.82rem',
+                                        fontWeight: '800',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.04)',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    <span>⚙️</span> Customize View
+                                </button>
+
+                                {/* Customize View Popover */}
+                                {isCustomizeViewOpen && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 'calc(100% + 8px)',
+                                        right: 0,
+                                        width: '320px',
+                                        background: 'white',
+                                        borderRadius: '20px',
+                                        border: '1px solid #E2E8F0',
+                                        boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                                        padding: '1.25rem',
+                                        zIndex: 100,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '1rem'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.6rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                <span style={{ fontSize: '1rem' }}>⚙️</span>
+                                                <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: '850', color: '#0F172A' }}>Customize Date Interval</h4>
+                                            </div>
+                                            <button onClick={() => setIsCustomizeViewOpen(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8' }}><X size={16} /></button>
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                            <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Select Interval</label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem' }}>
+                                                {[
+                                                    { id: 'today', label: 'Today' },
+                                                    { id: '7days', label: 'Last 7 Days' },
+                                                    { id: 'custom', label: 'Custom' }
+                                                ].map(preset => (
+                                                    <button
+                                                        key={preset.id}
+                                                        onClick={() => setDateInterval(preset.id)}
+                                                        style={{
+                                                            padding: '0.5rem 0.4rem',
+                                                            borderRadius: '8px',
+                                                            border: dateInterval === preset.id ? '2px solid #2563EB' : '1px solid #E2E8F0',
+                                                            background: dateInterval === preset.id ? '#EFF6FF' : 'white',
+                                                            color: dateInterval === preset.id ? '#1D4ED8' : '#475569',
+                                                            fontWeight: '800',
+                                                            fontSize: '0.78rem',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        {preset.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {dateInterval === 'custom' && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', background: '#F8FAFC', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#475569', marginBottom: '0.25rem' }}>Start Date</label>
+                                                    <input 
+                                                        type="date" 
+                                                        value={customStartDate} 
+                                                        onChange={(e) => setCustomStartDate(e.target.value)} 
+                                                        style={{ width: '100%', padding: '0.45rem 0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem', background: 'white' }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#475569', marginBottom: '0.25rem' }}>End Date</label>
+                                                    <input 
+                                                        type="date" 
+                                                        value={customEndDate} 
+                                                        onChange={(e) => setCustomEndDate(e.target.value)} 
+                                                        style={{ width: '100%', padding: '0.45rem 0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem', background: 'white' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <button
+                                            onClick={() => setIsCustomizeViewOpen(false)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.6rem',
+                                                borderRadius: '10px',
+                                                background: '#064E3B',
+                                                color: 'white',
+                                                border: 'none',
+                                                fontSize: '0.82rem',
+                                                fontWeight: '800',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Apply Interval
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Table */}
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <FilterableTableHead columns={[
+                                    { key: 'product_name', label: 'PRODUCT DETAILS', placeholder: 'Name/SKU' },
+                                    { key: 'starting_quantity', label: 'STARTING QUANTITY', placeholder: 'Qty' },
+                                    { key: 'current_stock', label: 'CURRENT STOCK', placeholder: 'Stock' },
+                                    { key: 'daily_sales', label: 'DAILY SALES (QTY / ₹)', placeholder: 'Qty / ₹' },
+                                    { key: 'weekly_sales', label: 'WEEKLY SALES (QTY / ₹)', placeholder: 'Qty / ₹' },
+                                    { key: 'customers', label: 'CUSTOMERS', placeholder: 'Customer' }
+                                ]} onFilterChange={setColFilters} />
+                                <tbody>
+                                    {filteredSellingHistory.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((item) => (
+                                        <tr key={item.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                            {/* 1. PRODUCT DETAILS */}
+                                            <td style={{ padding: '1.25rem 1.75rem' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                                    <p style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.92rem', margin: 0 }}>
+                                                        {item.product_name}
+                                                    </p>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#64748B' }}>
+                                                        <span>SKU: <strong style={{ color: '#475569' }}>{item.product_id}</strong></span>
+                                                        <span>•</span>
+                                                        <span>Rate: <strong style={{ color: '#1B6B3A' }}>{formatCurrency(item.selling_value || item.purchase_cost)}</strong></span>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* 2. STARTING QUANTITY */}
+                                            <td style={{ padding: '1.25rem 1.75rem' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                                    <span style={{ fontWeight: '850', color: '#1E293B', fontSize: '0.9rem' }}>
+                                                        {item.starting_quantity} Units
+                                                    </span>
+                                                    <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600' }}>Initial Setup Stock</span>
+                                                </div>
+                                            </td>
+
+                                            {/* 3. CURRENT STOCK */}
+                                            <td style={{ padding: '1.25rem 1.75rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <span style={{ fontWeight: '850', color: item.current_stock <= 0 ? '#EF4444' : item.current_stock <= item.minimum_stock ? '#F59E0B' : '#0F172A', fontSize: '0.95rem' }}>
+                                                        {item.current_stock}
+                                                    </span>
+                                                    <span style={{
+                                                        padding: '0.2rem 0.55rem',
+                                                        borderRadius: '6px',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: '800',
+                                                        background: item.current_stock <= 0 ? '#FEF2F2' : item.current_stock <= item.minimum_stock ? '#FFFBEB' : '#F0FDF4',
+                                                        color: item.current_stock <= 0 ? '#EF4444' : item.current_stock <= item.minimum_stock ? '#D97706' : '#16A34A',
+                                                        border: item.current_stock <= 0 ? '1px solid #FECACA' : item.current_stock <= item.minimum_stock ? '1px solid #FDE68A' : '1px solid #BBF7D0'
+                                                    }}>
+                                                        {item.current_stock <= 0 ? 'Out of Stock' : item.current_stock <= item.minimum_stock ? 'Low Stock' : 'In Stock'}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            {/* 4. DAILY SALES (QTY / ₹) */}
+                                            <td style={{ padding: '1.25rem 1.75rem' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                                    <span style={{ fontWeight: '850', color: item.dailyQty > 0 ? '#16A34A' : '#64748B', fontSize: '0.9rem' }}>
+                                                        {item.dailyQty} Units
+                                                    </span>
+                                                    <span style={{ fontSize: '0.78rem', color: item.dailyAmount > 0 ? '#15803D' : '#94A3B8', fontWeight: '700' }}>
+                                                        {formatCurrency(item.dailyAmount)}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            {/* 5. WEEKLY SALES (QTY / ₹) */}
+                                            <td style={{ padding: '1.25rem 1.75rem' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                                    <span style={{ fontWeight: '850', color: item.weeklyQty > 0 ? '#2563EB' : '#64748B', fontSize: '0.9rem' }}>
+                                                        {item.weeklyQty} Units
+                                                    </span>
+                                                    <span style={{ fontSize: '0.78rem', color: item.weeklyAmount > 0 ? '#1D4ED8' : '#94A3B8', fontWeight: '700' }}>
+                                                        {formatCurrency(item.weeklyAmount)}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            {/* 6. CUSTOMERS */}
+                                            <td style={{ padding: '1.25rem 1.75rem' }}>
+                                                <button
+                                                    onClick={() => setCustomerListModal({ product: item, purchases: item.purchases })}
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.4rem',
+                                                        padding: '0.45rem 0.85rem',
+                                                        borderRadius: '8px',
+                                                        background: item.customerCount > 0 ? '#EFF6FF' : '#F8FAFC',
+                                                        border: item.customerCount > 0 ? '1px solid #BFDBFE' : '1px solid #E2E8F0',
+                                                        color: item.customerCount > 0 ? '#1D4ED8' : '#64748B',
+                                                        fontSize: '0.78rem',
+                                                        fontWeight: '750',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.15s ease'
+                                                    }}
+                                                    onMouseOver={(e) => {
+                                                        if (item.customerCount > 0) e.currentTarget.style.background = '#DBEAFE';
+                                                    }}
+                                                    onMouseOut={(e) => {
+                                                        if (item.customerCount > 0) e.currentTarget.style.background = '#EFF6FF';
+                                                    }}
+                                                >
+                                                    <Users size={14} /> View Customers ({item.customerCount})
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredSellingHistory.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94A3B8', fontWeight: '600' }}>
+                                                No products found matching your search.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
             </div>
+
+            {/* Customer List Modal */}
+            {customerListModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '750px', maxHeight: '85vh', borderRadius: '28px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflow: 'hidden' }}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                    <span style={{ fontSize: '1.25rem' }}>👥</span>
+                                    <h3 style={{ fontSize: '1.3rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Customer Purchase History</h3>
+                                </div>
+                                <p style={{ color: '#64748B', fontSize: '0.85rem', margin: 0 }}>
+                                    Buyers of <strong>{customerListModal.product.product_name}</strong> (SKU: {customerListModal.product.product_id})
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setCustomerListModal(null)} 
+                                style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer', color: '#64748B' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Quick summary strip */}
+                        {(() => {
+                            const uniqueCusts = new Set(customerListModal.purchases.map(p => (p.customerName || 'Walk-in Customer').trim().toLowerCase()));
+                            const totalUnits = customerListModal.purchases.reduce((s, p) => s + (p.quantity || 1), 0);
+                            const totalRev = customerListModal.purchases.reduce((s, p) => s + (p.total || ((p.price || 0) * (p.quantity || 1))), 0);
+                            return (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', background: '#F8FAFC', padding: '0.85rem 1.25rem', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                                    <div>
+                                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Total Buyers</span>
+                                        <h4 style={{ margin: '0.15rem 0 0 0', fontSize: '1.1rem', fontWeight: '850', color: '#0F172A' }}>{uniqueCusts.size} Customers</h4>
+                                    </div>
+                                    <div>
+                                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Total Sold</span>
+                                        <h4 style={{ margin: '0.15rem 0 0 0', fontSize: '1.1rem', fontWeight: '850', color: '#16A34A' }}>{totalUnits} Units</h4>
+                                    </div>
+                                    <div>
+                                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Gross Revenue</span>
+                                        <h4 style={{ margin: '0.15rem 0 0 0', fontSize: '1.1rem', fontWeight: '850', color: '#2563EB' }}>{formatCurrency(totalRev)}</h4>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Table of customers */}
+                        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #F1F5F9', borderRadius: '16px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                                <thead style={{ background: '#F8FAFC', position: 'sticky', top: 0, zIndex: 1 }}>
+                                    <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
+                                        <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Customer Name</th>
+                                        <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Bill / Order ID</th>
+                                        <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Units Purchased</th>
+                                        <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Total Amount</th>
+                                        <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Purchase Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {customerListModal.purchases.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94A3B8', fontWeight: '600' }}>
+                                                No customer purchase records found for this product yet.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        customerListModal.purchases.map((tx, idx) => {
+                                            const formattedDate = tx.date ? new Date(tx.date).toLocaleDateString('en-IN', {
+                                                day: '2-digit',
+                                                month: 'short',
+                                                year: 'numeric'
+                                            }) : 'N/A';
+                                            return (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                                    <td style={{ padding: '0.85rem 1rem', fontWeight: '750', color: '#0F172A' }}>
+                                                        {tx.customerName || 'Walk-in Customer'}
+                                                    </td>
+                                                    <td style={{ padding: '0.85rem 1rem' }}>
+                                                        <span style={{ padding: '0.2rem 0.5rem', background: '#F1F5F9', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', color: '#475569' }}>
+                                                            {tx.billId || 'N/A'}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding: '0.85rem 1rem', fontWeight: '800', color: '#16A34A' }}>
+                                                        {tx.quantity || 1} Units
+                                                    </td>
+                                                    <td style={{ padding: '0.85rem 1rem', fontWeight: '750', color: '#1E293B' }}>
+                                                        {formatCurrency(tx.total || ((tx.price || 0) * (tx.quantity || 1)))}
+                                                    </td>
+                                                    <td style={{ padding: '0.85rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>
+                                                        {formattedDate}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9' }}>
+                            <button
+                                onClick={() => setCustomerListModal(null)}
+                                style={{
+                                    padding: '0.65rem 1.5rem',
+                                    borderRadius: '12px',
+                                    background: '#1E293B',
+                                    color: 'white',
+                                    border: 'none',
+                                    fontWeight: '800',
+                                    fontSize: '0.85rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* Adjust Stock Counts Modal */}
             {isAdjustmentModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>

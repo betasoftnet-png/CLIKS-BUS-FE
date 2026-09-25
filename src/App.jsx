@@ -57,7 +57,7 @@ import BusinessMarketing from './pages/BusinessMarketing';
 import BusinessReports from './pages/BusinessReports';
 import BusinessSuppliers from './pages/BusinessSuppliers';
 import BusinessReturns from './pages/BusinessReturns';
-import BusinessStock from './pages/BusinessStock';
+import BusinessStock from './pages/inventory/Stock';
 import BusinessWarehouse from './pages/BusinessWarehouse';
 import BusinessPayments from './pages/payments/Transaction';
 import BusinessWallet from './pages/BusinessWallet';
