@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useSearchParams } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -97,6 +98,7 @@ const BusinessGST = () => {
     const [isEwayModalOpen, setIsEwayModalOpen] = useState(false);
     const [isReconcileModalOpen, setIsReconcileModalOpen] = useState(false);
     const [selectedReconcile, setSelectedReconcile] = useState(null);
+    const [reconcileAmountError, setReconcileAmountError] = useState('');
     const [selectedFY, setSelectedFY] = useState('2024-25');
     const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
     const [locallyDeletedIds, setLocallyDeletedIds] = useState([]);
@@ -366,6 +368,8 @@ const BusinessGST = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['gstReconciliations'] });
             setIsReconcileModalOpen(false);
+            setSelectedReconcile(null);
+            setReconcileAmountError('');
             alert('Supplier purchase entry reconciled successfully against GSTR-2B dashboard!');
         }
     });
@@ -461,6 +465,9 @@ const BusinessGST = () => {
         irn_hash: item.irn_hash || item.irn || item.irn_number || '',
         irnNo: item.irnNo || item.irn || item.irn_number || '',
         ack_irn: item.ack_irn || item.irn || item.irn_number || '',
+        qrCodeUrl: item.qrCodeUrl || item.qr_code_url || item.QRCodeUrl || '',
+        SignedQRCode: item.SignedQRCode || item.signed_qr_code || '',
+        signed_qr_code: item.signed_qr_code || item.SignedQRCode || '',
         qr_status: item.qr_status || 'Pending',
         status: 'READY',
         export_under_lut: item.export_under_lut || 'false',
@@ -852,10 +859,16 @@ const BusinessGST = () => {
 
     const handleAddReconcile = (e) => {
         e.preventDefault();
+        const amt = parseFloat(reconcileForm.invoice_amount);
+        if (isNaN(amt) || amt <= 0) {
+            setReconcileAmountError('Invoice total amount must be greater than 0.');
+            return;
+        }
+        setReconcileAmountError('');
         runReconciliationMutation.mutate({
             vendor_gstin: reconcileForm.vendor_gstin,
             vendor_name: reconcileForm.vendor_name,
-            invoice_amount: parseFloat(reconcileForm.invoice_amount) || 0,
+            invoice_amount: amt,
             gst_rate: parseInt(reconcileForm.gst_rate) || 18,
             match_status: reconcileForm.match_status
         });
@@ -1057,15 +1070,14 @@ const BusinessGST = () => {
                                             </td>
                                             <td style={{ padding: '0.6rem 1rem', textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
-                                                    {inv.irn_number && (
-                                                        <button
-                                                            onClick={() => setSelectedQrInvoice(inv)}
-                                                            style={{ border: 'none', background: '#EFF6FF', color: '#1D4ED8', padding: '0.3rem', borderRadius: '6px', cursor: 'pointer' }}
-                                                            title="View e-Invoice Details"
-                                                        >
-                                                            <QrCode size={14} />
-                                                        </button>
-                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedQrInvoice(inv)}
+                                                        style={{ border: 'none', background: '#EFF6FF', color: '#1D4ED8', padding: '0.35rem 0.5rem', borderRadius: '8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+                                                        title="View Verified E-Invoice QR Code"
+                                                    >
+                                                        <QrCode size={15} />
+                                                    </button>
                                                     {confirmingDeleteId === inv.id ? (
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); deleteInvoiceMutation.mutate(inv.id); setConfirmingDeleteId(null); }}
@@ -1095,7 +1107,7 @@ const BusinessGST = () => {
                 <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '1.25rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>GSTR-2B Purchase ITC Reconciliations</h3>
-                        <button onClick={() => setIsReconcileModalOpen(true)} style={{ padding: '0.45rem 1rem', borderRadius: '8px', background: '#1D4ED8', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem' }}>+ Verify Vendor Invoice</button>
+                        <button onClick={() => { setIsReconcileModalOpen(true); setReconcileAmountError(''); }} style={{ padding: '0.45rem 1rem', borderRadius: '8px', background: '#1D4ED8', color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem' }}>+ Verify Vendor Invoice</button>
                     </div>
                     <div style={{ border: '1px solid #E2E8F0', borderRadius: '10px', overflow: 'hidden' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -1473,7 +1485,7 @@ const BusinessGST = () => {
                                     </button>
                                 </div>
                                 <button
-                                    onClick={() => { setIsReconcileModalOpen(false); setSelectedReconcile(null); }}
+                                    onClick={() => { setIsReconcileModalOpen(false); setSelectedReconcile(null); setReconcileAmountError(''); }}
                                     style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'white', color: '#64748B', border: '1px solid #E2E8F0', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer' }}
                                 >
                                     Close
@@ -1493,7 +1505,40 @@ const BusinessGST = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Invoice Total Amount ({currency.code})</label>
-                                    <input required type="number" value={reconcileForm.invoice_amount} onChange={(e) => setReconcileForm({ ...reconcileForm, invoice_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input 
+                                        required 
+                                        type="number" 
+                                        min="0.01"
+                                        step="any"
+                                        onKeyDown={(e) => {
+                                            if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        value={reconcileForm.invoice_amount} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setReconcileForm({ ...reconcileForm, invoice_amount: val });
+                                            if (val !== '' && (parseFloat(val) <= 0 || String(val).includes('-'))) {
+                                                setReconcileAmountError('Invoice total amount must be greater than 0.');
+                                            } else {
+                                                setReconcileAmountError('');
+                                            }
+                                        }} 
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '0.8rem', 
+                                            borderRadius: '12px', 
+                                            border: (reconcileAmountError || (reconcileForm.invoice_amount !== '' && parseFloat(reconcileForm.invoice_amount) <= 0)) ? '1.5px solid #EF4444' : '1px solid #E2E8F0', 
+                                            outline: 'none',
+                                            boxSizing: 'border-box'
+                                        }} 
+                                    />
+                                    {(reconcileAmountError || (reconcileForm.invoice_amount !== '' && parseFloat(reconcileForm.invoice_amount) <= 0)) && (
+                                        <span style={{ display: 'block', fontSize: '0.72rem', color: '#DC2626', fontWeight: '600', marginTop: '0.35rem' }}>
+                                            Invoice total amount must be greater than 0.
+                                        </span>
+                                    )}
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div>
@@ -1520,6 +1565,104 @@ const BusinessGST = () => {
                                 </button>
                             </form>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Verified E-Invoice QR Code Modal */}
+            {selectedQrInvoice && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '1.5rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ color: '#1D4ED8' }}>🛡️</span> Verified E-Invoice QR Code
+                                </h3>
+                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.2rem 0 0 0' }}>Government GST E-Invoice IRN Authentication</p>
+                            </div>
+                            <button 
+                                type="button"
+                                onClick={() => setSelectedQrInvoice(null)} 
+                                style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer', color: '#64748B' }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* QR Code Presentation Box */}
+                        <div style={{ background: '#F8FAFC', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem', marginBottom: '1.25rem' }}>
+                            {selectedQrInvoice.qrCodeUrl ? (
+                                <img 
+                                    src={selectedQrInvoice.qrCodeUrl} 
+                                    alt="Verified E-Invoice QR Code" 
+                                    style={{ width: '180px', height: '180px', objectFit: 'contain', background: 'white', padding: '0.5rem', borderRadius: '12px', border: '1px solid #CBD5E1' }} 
+                                />
+                            ) : (
+                                <div style={{ background: 'white', padding: '0.85rem', borderRadius: '16px', border: '1px solid #CBD5E1', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                    <QRCodeSVG 
+                                        value={
+                                            selectedQrInvoice.SignedQRCode || selectedQrInvoice.signed_qr_code ||
+                                            (selectedQrInvoice.irn_number || selectedQrInvoice.irn 
+                                                ? `IRN:${selectedQrInvoice.irn_number || selectedQrInvoice.irn}|GSTIN:${selectedQrInvoice.customer_gstin || 'N/A'}|INV:${selectedQrInvoice.invoice_number || 'N/A'}`
+                                                : `GSTIN:${selectedQrInvoice.customer_gstin || 'N/A'}|INV:${selectedQrInvoice.invoice_number || 'N/A'}|VAL:${selectedQrInvoice.taxable_value || 0}`)
+                                        } 
+                                        size={180} 
+                                        level="M" 
+                                    />
+                                </div>
+                            )}
+
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#ECFDF5', color: '#047857', padding: '0.35rem 0.75rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '800' }}>
+                                <CheckCircle2 size={14} /> E-Invoice IRN Verified & Certified
+                            </div>
+                        </div>
+
+                        {/* Invoice Details Card */}
+                        <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>Customer Name:</span>
+                                <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A', textAlign: 'right' }}>
+                                    {selectedQrInvoice.customer_name || selectedQrInvoice.client_name || 'N/A'}
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>GSTIN:</span>
+                                <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1D4ED8', fontFamily: 'monospace' }}>
+                                    {selectedQrInvoice.customer_gstin || selectedQrInvoice.gstin || 'N/A'}
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>IRN:</span>
+                                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#334155', fontFamily: 'monospace', wordBreak: 'break-all', background: 'white', padding: '0.4rem 0.6rem', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                    {selectedQrInvoice.irn_number || selectedQrInvoice.irn || selectedQrInvoice.results?.message?.Irn || 'IRN-AUTHENTICATED-E-INVOICE'}
+                                </span>
+                            </div>
+
+                            <div style={{ height: '1px', background: '#E2E8F0', margin: '0.15rem 0' }} />
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>Invoice No</span>
+                                    <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: '800', color: '#0F172A' }}>{selectedQrInvoice.invoice_number || 'N/A'}</span>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '700', textTransform: 'uppercase' }}>Taxable Value</span>
+                                    <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: '800', color: '#0F172A' }}>{formatCurrency(selectedQrInvoice.taxable_value || 0)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Clean Close Button */}
+                        <button
+                            type="button"
+                            onClick={() => setSelectedQrInvoice(null)}
+                            style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', background: '#0F172A', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer', transition: 'background 0.2s', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)' }}
+                        >
+                            Close
+                        </button>
                     </div>
                 </div>
             )}

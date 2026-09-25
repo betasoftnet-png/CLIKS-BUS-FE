@@ -2151,9 +2151,9 @@ const BusinessStaffing = () => {
 
             {/* Lodge Staff Claim Modal */}
             {isClaimModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
+                    <div className="max-h-[90vh] flex flex-col" style={{ background: 'white', width: '100%', maxWidth: '440px', maxHeight: '90vh', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                        <div className="shrink-0" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.75rem', borderBottom: '1px solid #F1F5F9' }}>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Lodge Staff Claim</h3>
                             <button type="button" onClick={closeClaimModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
@@ -2165,22 +2165,44 @@ const BusinessStaffing = () => {
                                 setClaimAmountError('Claim amount must be greater than 0');
                                 return;
                             }
-                            const allReceipts = receiptSets.map(s => s.receipt).filter(Boolean);
+                            const cleanAmount = parseFloat(amountNum.toFixed(2));
+                            const allReceipts = receiptSets.map(s => (s.receipt || '').trim()).filter(Boolean);
+                            const attachmentRefs = receiptSets
+                                .map(s => (s.file_name ? s.file_name.trim() : ''))
+                                .filter(Boolean);
+                            const uniqueProofs = Array.from(new Set([...allReceipts, ...attachmentRefs]));
                             const validFiles = receiptSets.filter(s => s.file_data && s.file_name).map(s => ({
                                 file_name: s.file_name,
                                 file_type: s.file_type,
                                 file_data: s.file_data
                             }));
+                            const finalDesc = (newClaim.travel_expense || newClaim.description || '').trim() || 'Staff Reimbursement';
+                            const finalDate = newClaim.date || new Date().toISOString().split('T')[0];
+                            const finalTime = newClaim.time || new Date().toTimeString().slice(0, 5);
+
                             const claimPayload = {
                                 ...newClaim,
-                                receipt: allReceipts.join(', ') || newClaim.receipt || '',
+                                amount: cleanAmount,
+                                claim_amount: cleanAmount,
+                                employeeId: newClaim.employee_id || 1,
+                                employee_id: newClaim.employee_id || 1,
+                                employee_name: (newClaim.employee_name || '').trim(),
+                                employee_code: newClaim.employee_code || 'CLK-001',
+                                date: finalDate,
+                                time: finalTime,
+                                description: finalDesc,
+                                travel_expense: finalDesc,
+                                proofs: uniqueProofs,
+                                attachments: uniqueProofs,
+                                receipt: allReceipts.join(', ') || (uniqueProofs[0] || ''),
                                 receipts: allReceipts,
                                 files: validFiles,
                                 file_data: validFiles[0]?.file_data || '',
                                 file_name: validFiles[0]?.file_name || ''
                             };
                             lodgeClaimMutation.mutate(claimPayload);
-                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        }} className="flex flex-col flex-1 min-h-0" style={{ margin: 0 }}>
+                            <div className="flex-1 overflow-y-auto pr-1" style={{ padding: '1.25rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Profile Name</label>
                                 <select 
@@ -2374,10 +2396,13 @@ const BusinessStaffing = () => {
                                     + Add Another Receipt / Proof
                                 </button>
                             </div>
+                        </div>
 
-                            <button type="submit" disabled={lodgeClaimMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: lodgeClaimMutation.isPending ? 'not-allowed' : 'pointer', opacity: lodgeClaimMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(16, 185, 129, 0.15)' }}>
-                                {lodgeClaimMutation.isPending ? 'Lodging...' : 'Lodge Reimbursement Claim'}
-                            </button>
+                            <div className="shrink-0 border-t bg-gray-50/80 p-4">
+                                <button type="submit" disabled={lodgeClaimMutation.isPending} style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: lodgeClaimMutation.isPending ? 'not-allowed' : 'pointer', opacity: lodgeClaimMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(16, 185, 129, 0.15)' }}>
+                                    {lodgeClaimMutation.isPending ? 'Lodging...' : 'Lodge Reimbursement Claim'}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>

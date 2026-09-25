@@ -31,9 +31,16 @@ import { expensesService, staffingService } from '../services';
 import { useCurrency } from '../context';
 import { config } from '../lib/config';
 
-const BusinessExpenses = () => {
+const BusinessExpenses = ({ defaultTab }) => {
     const { currency, formatCurrency } = useCurrency();
-    const [activeTab, setActiveTab] = useState('registry'); // 'registry', 'recurring', 'budget', 'claims'
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [activeTab, setActiveTab] = useState(defaultTab || searchParams.get('tab') || 'registry'); // 'registry', 'recurring', 'budget', 'claims'
+
+    React.useEffect(() => {
+        if (defaultTab) {
+            setActiveTab(defaultTab);
+        }
+    }, [defaultTab]);
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('All');
     const [modeFilter, setModeFilter] = useState('All');
@@ -70,7 +77,6 @@ const BusinessExpenses = () => {
     });
     
     // Auto-trigger expense modal via search instructions
-    const [searchParams, setSearchParams] = useSearchParams();
     React.useEffect(() => {
         if (searchParams.get('create') === 'true') {
             setIsExpenseModalOpen(true);
@@ -360,6 +366,11 @@ const BusinessExpenses = () => {
 
     const handleSaveSpending = (e) => {
         e.preventDefault();
+        const spentAmt = parseFloat(recordSpendingForm.amount);
+        if (isNaN(spentAmt) || spentAmt <= 0) {
+            alert('Amount spent must be greater than 0');
+            return;
+        }
 
         // Update member budget allocation inside selected budget
         if (selectedBudgetForSpend && recordSpendingForm.employee_id) {
@@ -376,13 +387,13 @@ const BusinessExpenses = () => {
                 if (String(m.employee_id) === String(recordSpendingForm.employee_id)) {
                     return {
                         ...m,
-                        spent: (parseFloat(m.spent) || 0) + parseFloat(recordSpendingForm.amount)
+                        spent: (parseFloat(m.spent) || 0) + spentAmt
                     };
                 }
                 return m;
             });
             
-            const newSpentAmount = (parseFloat(selectedBudgetForSpend.spent_amount) || 0) + parseFloat(recordSpendingForm.amount);
+            const newSpentAmount = (parseFloat(selectedBudgetForSpend.spent_amount) || 0) + spentAmt;
             
             updateBudgetMutation.mutate({
                 id: selectedBudgetForSpend.id,
@@ -399,7 +410,7 @@ const BusinessExpenses = () => {
             category_name: recordSpendingForm.category_name,
             subcategory: recordSpendingForm.description.trim() || 'Departmental Spend',
             payee_name: recordSpendingForm.employee_name || 'Departmental Spend',
-            expense_amount: String(recordSpendingForm.amount),
+            expense_amount: String(spentAmt),
             gst_percentage: 0,
             payment_mode: recordSpendingForm.payment_mode || 'UPI',
             transaction_reference: `SPEND-${Date.now().toString().slice(-4)}`,
@@ -413,6 +424,11 @@ const BusinessExpenses = () => {
 
     const handleSaveBudget = (e) => {
         e.preventDefault();
+        const budgetLimit = parseFloat(newBudget.budget_limit);
+        if (isNaN(budgetLimit) || budgetLimit <= 0) {
+            alert("Monthly budget must be greater than 0");
+            return;
+        }
 
         // Case-insensitive duplicate check when creating a new Department Budget / Category Group
         if (!editingBudget) {
@@ -428,6 +444,7 @@ const BusinessExpenses = () => {
 
         const budgetData = {
             ...newBudget,
+            budget_limit: String(budgetLimit),
             team_members: newBudgetMembers
         };
         if (editingBudget) {
@@ -650,15 +667,47 @@ const BusinessExpenses = () => {
             setClaimAmountError('Claim amount must be greater than 0');
             return;
         }
-        const allReceipts = receiptSets.map(s => s.receipt).filter(Boolean);
+
+        const cleanAmount = parseFloat(amountNum.toFixed(2));
+        const allReceipts = receiptSets.map(s => (s.receipt || '').trim()).filter(Boolean);
+        const attachmentRefs = receiptSets
+            .map(s => (s.file_name ? s.file_name.trim() : ''))
+            .filter(Boolean);
+        const uniqueProofs = Array.from(new Set([...allReceipts, ...attachmentRefs]));
+
         const validFiles = receiptSets.filter(s => s.file_data && s.file_name).map(s => ({
             file_name: s.file_name,
             file_type: s.file_type,
             file_data: s.file_data
         }));
+
+        const empName = (newClaim.employee_name || '').trim();
+        const matchedEmp = (dbEmployees || []).find(e => 
+            (e.name || '').toLowerCase() === empName.toLowerCase() ||
+            `${e.first_name || ''} ${e.last_name || ''}`.trim().toLowerCase() === empName.toLowerCase()
+        );
+        const employeeId = matchedEmp ? (matchedEmp.id || matchedEmp.employee_id || 1) : 1;
+        const employeeCode = matchedEmp ? (matchedEmp.employee_code || `CLK-00${employeeId}`) : 'CLK-001';
+
+        const finalDesc = (newClaim.travel_expense || newClaim.description || '').trim() || 'Staff Reimbursement';
+        const finalDate = newClaim.date || new Date().toISOString().split('T')[0];
+        const finalTime = newClaim.time || new Date().toTimeString().slice(0, 5);
+
         const claimPayload = {
             ...newClaim,
-            receipt: allReceipts.join(', ') || newClaim.receipt || '',
+            amount: cleanAmount,
+            claim_amount: cleanAmount,
+            employeeId: employeeId,
+            employee_id: employeeId,
+            employee_name: empName,
+            employee_code: employeeCode,
+            date: finalDate,
+            time: finalTime,
+            description: finalDesc,
+            travel_expense: finalDesc,
+            proofs: uniqueProofs,
+            attachments: uniqueProofs,
+            receipt: allReceipts.join(', ') || (uniqueProofs[0] || ''),
             receipts: allReceipts,
             files: validFiles,
             file_data: validFiles[0]?.file_data || '',
@@ -669,6 +718,11 @@ const BusinessExpenses = () => {
 
     const handleSaveRecurring = (e) => {
         e.preventDefault();
+        const amt = parseFloat(newRecurring.expense_amount);
+        if (isNaN(amt) || amt <= 0) {
+            alert('Amount must be greater than 0');
+            return;
+        }
         if (editingRecurring) {
             updateRecurringMutation.mutate({ id: editingRecurring.id, data: newRecurring });
         } else {
@@ -1384,7 +1438,21 @@ const BusinessExpenses = () => {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Monthly Budget ({currency.code})</label>
-                                <input required type="number" value={newBudget.budget_limit} onChange={(e) => setNewBudget({ ...newBudget, budget_limit: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. 100000" />
+                                <input 
+                                    required 
+                                    type="number" 
+                                    min="0.01"
+                                    step="any"
+                                    onKeyDown={(e) => {
+                                        if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                    value={newBudget.budget_limit} 
+                                    onChange={(e) => setNewBudget({ ...newBudget, budget_limit: e.target.value })} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    placeholder="e.g. 100000" 
+                                />
                             </div>
 
                             {/* Team Members Section */}
@@ -1647,186 +1715,190 @@ const BusinessExpenses = () => {
 
             {/* Lodge Staff Claim Modal */}
             {isClaimModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
+                    <div className="max-h-[90vh] flex flex-col" style={{ background: 'white', width: '100%', maxWidth: '440px', maxHeight: '90vh', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                        <div className="shrink-0" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.75rem', borderBottom: '1px solid #F1F5F9' }}>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Lodge Staff Claim</h3>
                             <button type="button" onClick={closeClaimModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
-                        <form onSubmit={handleCreateClaim} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Profile Name</label>
-                                <input required type="text" value={newClaim.employee_name} onChange={(e) => setNewClaim({ ...newClaim, employee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Karan Mehra (Inventory)" />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Out-of-pocket Description</label>
-                                <input required type="text" value={newClaim.travel_expense} onChange={(e) => setNewClaim({ ...newClaim, travel_expense: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Client Sample Box Dispatches" />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                        <form onSubmit={handleCreateClaim} className="flex flex-col flex-1 min-h-0" style={{ margin: 0 }}>
+                            <div className="flex-1 overflow-y-auto pr-1" style={{ padding: '1.25rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Date</label>
-                                    <input required type="date" value={newClaim.date} onChange={(e) => setNewClaim({ ...newClaim, date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Profile Name</label>
+                                    <input required type="text" value={newClaim.employee_name} onChange={(e) => setNewClaim({ ...newClaim, employee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Karan Mehra (Inventory)" />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Time</label>
-                                    <input required type="time" value={newClaim.time} onChange={(e) => setNewClaim({ ...newClaim, time: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Out-of-pocket Description</label>
+                                    <input required type="text" value={newClaim.travel_expense} onChange={(e) => setNewClaim({ ...newClaim, travel_expense: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Client Sample Box Dispatches" />
                                 </div>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Claim Amount ({currency.code})</label>
-                                <input 
-                                    required 
-                                    type="number" 
-                                    min="0.01"
-                                    step="any"
-                                    value={newClaim.claim_amount} 
-                                    onKeyDown={(e) => {
-                                        if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
-                                            e.preventDefault();
-                                        }
-                                    }}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        setNewClaim({ ...newClaim, claim_amount: val });
-                                        if (val !== '' && (parseFloat(val) <= 0 || String(val).includes('-'))) {
-                                            setClaimAmountError('Claim amount must be greater than 0');
-                                        } else {
-                                            setClaimAmountError('');
-                                        }
-                                    }} 
-                                    style={{ 
-                                        width: '100%', 
-                                        padding: '0.8rem', 
-                                        borderRadius: '12px', 
-                                        border: (claimAmountError || (newClaim.claim_amount !== '' && parseFloat(newClaim.claim_amount) <= 0)) ? '1.5px solid #EF4444' : '1px solid #E2E8F0', 
-                                        outline: 'none',
-                                        boxSizing: 'border-box'
-                                    }} 
-                                />
-                                {(claimAmountError || (newClaim.claim_amount !== '' && parseFloat(newClaim.claim_amount) <= 0)) && (
-                                    <span style={{ display: 'block', fontSize: '0.72rem', color: '#DC2626', fontWeight: '600', marginTop: '0.35rem' }}>
-                                        Claim amount must be greater than 0
-                                    </span>
-                                )}
-                            </div>
-                            {/* Multi-Receipt Sets List */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                                {receiptSets.map((set, idx) => (
-                                    <div key={set.id || idx} style={{ border: '1px solid #F1F5F9', borderRadius: '12px', padding: '0.85rem', background: '#FAFAFA', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Receipt / Reference #{idx + 1} (Optional)</label>
-                                            {receiptSets.length > 1 && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Date</label>
+                                        <input required type="date" value={newClaim.date} onChange={(e) => setNewClaim({ ...newClaim, date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Time</label>
+                                        <input required type="time" value={newClaim.time} onChange={(e) => setNewClaim({ ...newClaim, time: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Claim Amount ({currency.code})</label>
+                                    <input 
+                                        required 
+                                        type="number" 
+                                        min="0.01"
+                                        step="any"
+                                        value={newClaim.claim_amount} 
+                                        onKeyDown={(e) => {
+                                            if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setNewClaim({ ...newClaim, claim_amount: val });
+                                            if (val !== '' && (parseFloat(val) <= 0 || String(val).includes('-'))) {
+                                                setClaimAmountError('Claim amount must be greater than 0');
+                                            } else {
+                                                setClaimAmountError('');
+                                            }
+                                        }} 
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '0.8rem', 
+                                            borderRadius: '12px', 
+                                            border: (claimAmountError || (newClaim.claim_amount !== '' && parseFloat(newClaim.claim_amount) <= 0)) ? '1.5px solid #EF4444' : '1px solid #E2E8F0', 
+                                            outline: 'none',
+                                            boxSizing: 'border-box'
+                                        }} 
+                                    />
+                                    {(claimAmountError || (newClaim.claim_amount !== '' && parseFloat(newClaim.claim_amount) <= 0)) && (
+                                        <span style={{ display: 'block', fontSize: '0.72rem', color: '#DC2626', fontWeight: '600', marginTop: '0.35rem' }}>
+                                            Claim amount must be greater than 0
+                                        </span>
+                                    )}
+                                </div>
+                                {/* Multi-Receipt Sets List */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                    {receiptSets.map((set, idx) => (
+                                        <div key={set.id || idx} style={{ border: '1px solid #F1F5F9', borderRadius: '12px', padding: '0.85rem', background: '#FAFAFA', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Receipt / Reference #{idx + 1} (Optional)</label>
+                                                {receiptSets.length > 1 && (
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => handleRemoveReceiptSet(idx)} 
+                                                        style={{ border: 'none', background: 'transparent', color: '#EF4444', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}
+                                                    >
+                                                        Remove Set
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                <input 
+                                                    type="text" 
+                                                    value={set.receipt} 
+                                                    onChange={(e) => handleReceiptTextChange(idx, e.target.value)} 
+                                                    style={{ flex: 1, padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                                    placeholder="e.g. UPI Ref No, Bank Txn ID, Receipt No., or Manual Reference" 
+                                                />
+                                                <input 
+                                                    type="file" 
+                                                    id={`expense-receipt-upload-${idx}`} 
+                                                    accept=".png,.jpg,.jpeg,.webp,.pdf" 
+                                                    style={{ display: 'none' }} 
+                                                    onChange={(e) => handleSetFileChange(idx, e.target.files[0])} 
+                                                />
                                                 <button 
                                                     type="button" 
-                                                    onClick={() => handleRemoveReceiptSet(idx)} 
-                                                    style={{ border: 'none', background: 'transparent', color: '#EF4444', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}
+                                                    onClick={() => document.getElementById(`expense-receipt-upload-${idx}`).click()} 
+                                                    style={{ 
+                                                        display: 'flex', 
+                                                        alignItems: 'center', 
+                                                        justifyContent: 'center', 
+                                                        width: '2.8rem', 
+                                                        height: '2.8rem', 
+                                                        borderRadius: '12px', 
+                                                        border: '1px solid #E2E8F0', 
+                                                        background: '#F8FAFC', 
+                                                        color: '#64748B', 
+                                                        fontSize: '1.25rem', 
+                                                        fontWeight: '600', 
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s',
+                                                        boxSizing: 'border-box'
+                                                    }}
                                                 >
-                                                    Remove Set
+                                                    +
                                                 </button>
+                                            </div>
+
+                                            {set.file_name && (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '12px', background: 'white' }}>
+                                                    {set.file_type && set.file_type.startsWith('image/') ? (
+                                                        <img 
+                                                            src={set.file_preview_url} 
+                                                            alt="Preview" 
+                                                            style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #CBD5E1' }} 
+                                                        />
+                                                    ) : (
+                                                        <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.7rem' }}>
+                                                            PDF
+                                                        </div>
+                                                    )}
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '700', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                            {set.file_name}
+                                                        </p>
+                                                        <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
+                                                            {set.file_type && set.file_type.startsWith('image/') ? 'Image File' : 'PDF Document'}
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => window.open(set.file_preview_url, '_blank')} 
+                                                            style={{ border: 'none', background: '#EFF6FF', color: '#2563EB', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
+                                                        >
+                                                            View
+                                                        </button>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => document.getElementById(`expense-receipt-upload-${idx}`).click()} 
+                                                            style={{ border: 'none', background: '#F1F5F9', color: '#475569', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
+                                                        >
+                                                            Replace
+                                                        </button>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => handleSetFileRemove(idx)} 
+                                                            style={{ border: 'none', background: '#FCE8E6', color: '#C5221F', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
+                                    ))}
 
-                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                            <input 
-                                                type="text" 
-                                                value={set.receipt} 
-                                                onChange={(e) => handleReceiptTextChange(idx, e.target.value)} 
-                                                style={{ flex: 1, padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
-                                                placeholder="e.g. UPI Ref No, Bank Txn ID, Receipt No., or Manual Reference" 
-                                            />
-                                            <input 
-                                                type="file" 
-                                                id={`expense-receipt-upload-${idx}`} 
-                                                accept=".png,.jpg,.jpeg,.webp,.pdf" 
-                                                style={{ display: 'none' }} 
-                                                onChange={(e) => handleSetFileChange(idx, e.target.files[0])} 
-                                            />
-                                            <button 
-                                                type="button" 
-                                                onClick={() => document.getElementById(`expense-receipt-upload-${idx}`).click()} 
-                                                style={{ 
-                                                    display: 'flex', 
-                                                    alignItems: 'center', 
-                                                    justifyContent: 'center', 
-                                                    width: '2.8rem', 
-                                                    height: '2.8rem', 
-                                                    borderRadius: '12px', 
-                                                    border: '1px solid #E2E8F0', 
-                                                    background: '#F8FAFC', 
-                                                    color: '#64748B', 
-                                                    fontSize: '1.25rem', 
-                                                    fontWeight: '600', 
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s',
-                                                    boxSizing: 'border-box'
-                                                }}
-                                            >
-                                                +
-                                            </button>
-                                        </div>
-
-                                        {set.file_name && (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '12px', background: 'white' }}>
-                                                {set.file_type && set.file_type.startsWith('image/') ? (
-                                                    <img 
-                                                        src={set.file_preview_url} 
-                                                        alt="Preview" 
-                                                        style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #CBD5E1' }} 
-                                                    />
-                                                ) : (
-                                                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.7rem' }}>
-                                                        PDF
-                                                    </div>
-                                                )}
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '700', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                        {set.file_name}
-                                                    </p>
-                                                    <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
-                                                        {set.file_type && set.file_type.startsWith('image/') ? 'Image File' : 'PDF Document'}
-                                                    </span>
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => window.open(set.file_preview_url, '_blank')} 
-                                                        style={{ border: 'none', background: '#EFF6FF', color: '#2563EB', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
-                                                    >
-                                                        View
-                                                    </button>
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => document.getElementById(`expense-receipt-upload-${idx}`).click()} 
-                                                        style={{ border: 'none', background: '#F1F5F9', color: '#475569', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
-                                                    >
-                                                        Replace
-                                                    </button>
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => handleSetFileRemove(idx)} 
-                                                        style={{ border: 'none', background: '#FCE8E6', color: '#C5221F', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
-                                                    >
-                                                        Remove
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-
-                                <button 
-                                    type="button" 
-                                    onClick={handleAddReceiptSet} 
-                                    style={{ border: '1px dashed #7C3AED', background: '#F5F3FF', color: '#6D28D9', padding: '0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-                                >
-                                    + Add Another Receipt / Proof
-                                </button>
+                                    <button 
+                                        type="button" 
+                                        onClick={handleAddReceiptSet} 
+                                        style={{ border: '1px dashed #7C3AED', background: '#F5F3FF', color: '#6D28D9', padding: '0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                                    >
+                                        + Add Another Receipt / Proof
+                                    </button>
+                                </div>
                             </div>
 
-                            <button type="submit" disabled={lodgeClaimMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: lodgeClaimMutation.isPending ? 'not-allowed' : 'pointer', opacity: lodgeClaimMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
-                                {lodgeClaimMutation.isPending ? 'Lodging...' : 'Lodge Reimbursement Claim'}
-                            </button>
+                            <div className="shrink-0 border-t bg-gray-50/80 p-4">
+                                <button type="submit" disabled={lodgeClaimMutation.isPending} style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: lodgeClaimMutation.isPending ? 'not-allowed' : 'pointer', opacity: lodgeClaimMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)' }}>
+                                    {lodgeClaimMutation.isPending ? 'Lodging...' : 'Lodge Reimbursement Claim'}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -1861,7 +1933,20 @@ const BusinessExpenses = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Amount ({currency.code})</label>
-                                    <input required type="number" value={newRecurring.expense_amount} onChange={(e) => setNewRecurring({ ...newRecurring, expense_amount: e.target.value })} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                    <input 
+                                        required 
+                                        type="number" 
+                                        min="0.01"
+                                        step="any"
+                                        onKeyDown={(e) => {
+                                            if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        value={newRecurring.expense_amount} 
+                                        onChange={(e) => setNewRecurring({ ...newRecurring, expense_amount: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
                                 </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -2031,6 +2116,13 @@ const BusinessExpenses = () => {
                                 <input 
                                     required 
                                     type="number" 
+                                    min="0.01"
+                                    step="any"
+                                    onKeyDown={(e) => {
+                                        if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                                            e.preventDefault();
+                                        }
+                                    }}
                                     placeholder="e.g. 2500" 
                                     value={recordSpendingForm.amount} 
                                     onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, amount: e.target.value })} 
