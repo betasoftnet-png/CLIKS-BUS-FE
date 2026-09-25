@@ -1598,12 +1598,16 @@ const BusinessCRM = () => {
                                         {/* Row 2b: Email Address & Website */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
                                             <div className="min-w-0" style={{ minWidth: 0 }}>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Email Address</label>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>
+                                                    Email Address <span style={{ color: '#EF4444' }}>*(important)</span>
+                                                </label>
                                                 <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden w-full" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
                                                     <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Mail size={14} /></span>
-                                                    <input type="email" value={formData.email || ''} onChange={(e) => { const val = e.target.value; setFormData({...formData, email: val}); if (val && val.includes('@')) { const parts = val.split('@'); const domain = (parts[1] || '').toLowerCase(); const expectedDomain = 'bnxmail.com'; if (domain.length > 0 && !expectedDomain.startsWith(domain)) { alert('Please use a @bnxmail.com email address.'); } } }} style={{ flex: 1, minWidth: 0, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. customer@example.com" />
+                                                    <input type="email" value={formData.email || ''} onChange={(e) => setFormData({...formData, email: e.target.value})} style={{ flex: 1, minWidth: 0, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.82rem', background: 'transparent' }} placeholder="e.g. customer@bnxmail.com" />
                                                 </div>
-                                                {(() => { const val = (formData.email || '').trim().toLowerCase(); if (val && val.includes('@')) { const parts = val.split('@'); const domain = parts[1] || ''; if (domain.length > 0 && domain !== 'bnxmail.com' && !'bnxmail.com'.startsWith(domain)) { return <span style={{ fontSize: '0.68rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '600' }}>Please use a @bnxmail.com email address.</span>; } } return null; })()}
+                                                <span style={{ fontSize: '0.68rem', color: ((formData.email || '').trim().length > 0 && !(formData.email || '').trim().toLowerCase().endsWith('@bnxmail.com')) ? '#EF4444' : '#64748B', marginTop: '0.25rem', display: 'block', fontWeight: ((formData.email || '').trim().length > 0 && !(formData.email || '').trim().toLowerCase().endsWith('@bnxmail.com')) ? '600' : '500' }}>
+                                                    Please use a @bnxmail.com email address.
+                                                </span>
                                             </div>
                                             <div className="min-w-0" style={{ minWidth: 0 }}>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Website</label>
