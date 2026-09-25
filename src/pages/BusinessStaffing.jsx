@@ -136,6 +136,7 @@ const BusinessStaffing = () => {
 
     // Reimbursement module state variables
     const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+    const [claimAmountError, setClaimAmountError] = useState('');
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [payingClaimId, setPayingClaimId] = useState(null);
     const [paymentDetails, setPaymentDetails] = useState({
@@ -327,6 +328,7 @@ const BusinessStaffing = () => {
         if (fileInput) {
             fileInput.value = '';
         }
+        setClaimAmountError('');
         setIsClaimModalOpen(false);
     };
     const [reimbSearchTerm, setReimbSearchTerm] = useState('');
@@ -377,6 +379,7 @@ const BusinessStaffing = () => {
                 file_preview_url: '',
                 proof_file_path: ''
             });
+            setClaimAmountError('');
             setIsClaimModalOpen(false);
             alert('Reimbursement claim submitted successfully.');
         },
@@ -2157,6 +2160,11 @@ const BusinessStaffing = () => {
 
                         <form onSubmit={(e) => {
                             e.preventDefault();
+                            const amountNum = parseFloat(newClaim.claim_amount);
+                            if (!newClaim.claim_amount || isNaN(amountNum) || amountNum <= 0) {
+                                setClaimAmountError('Claim amount must be greater than 0');
+                                return;
+                            }
                             const allReceipts = receiptSets.map(s => s.receipt).filter(Boolean);
                             const validFiles = receiptSets.filter(s => s.file_data && s.file_name).map(s => ({
                                 file_name: s.file_name,
@@ -2217,7 +2225,40 @@ const BusinessStaffing = () => {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Claim Amount ({currency.code})</label>
-                                <input required type="number" value={newClaim.claim_amount} onChange={(e) => setNewClaim({ ...newClaim, claim_amount: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                <input 
+                                    required 
+                                    type="number" 
+                                    min="0.01"
+                                    step="any"
+                                    value={newClaim.claim_amount} 
+                                    onKeyDown={(e) => {
+                                        if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setNewClaim({ ...newClaim, claim_amount: val });
+                                        if (val !== '' && (parseFloat(val) <= 0 || String(val).includes('-'))) {
+                                            setClaimAmountError('Claim amount must be greater than 0');
+                                        } else {
+                                            setClaimAmountError('');
+                                        }
+                                    }} 
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '0.8rem', 
+                                        borderRadius: '12px', 
+                                        border: (claimAmountError || (newClaim.claim_amount !== '' && parseFloat(newClaim.claim_amount) <= 0)) ? '1.5px solid #EF4444' : '1px solid #E2E8F0', 
+                                        outline: 'none',
+                                        boxSizing: 'border-box'
+                                    }} 
+                                />
+                                {(claimAmountError || (newClaim.claim_amount !== '' && parseFloat(newClaim.claim_amount) <= 0)) && (
+                                    <span style={{ display: 'block', fontSize: '0.72rem', color: '#DC2626', fontWeight: '600', marginTop: '0.35rem' }}>
+                                        Claim amount must be greater than 0
+                                    </span>
+                                )}
                             </div>
 
                             {/* Multi-Receipt Sets List */}
