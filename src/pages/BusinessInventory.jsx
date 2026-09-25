@@ -1512,24 +1512,15 @@ const BusinessInventory = () => {
                                             </label>
                                             {formData.isUnlimited ? (
                                                 <div 
+                                                    className="w-full bg-purple-50 text-purple-700 font-black rounded-xl flex items-center justify-center"
                                                     style={{ 
-                                                        width: '100%', 
                                                         boxSizing: 'border-box',
                                                         padding: '0.85rem', 
-                                                        borderRadius: '14px', 
-                                                        border: '1.5px dashed #3B82F6', 
-                                                        background: '#EFF6FF', 
-                                                        color: '#1D4ED8',
-                                                        fontWeight: '800',
-                                                        fontSize: '0.82rem',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'space-between',
+                                                        fontSize: '0.85rem',
                                                         cursor: 'default'
                                                     }}
                                                 >
-                                                    <span>∞ Unlimited / Enter here &gt;</span>
-                                                    <span style={{ fontSize: '0.68rem', background: '#DBEAFE', color: '#1E40AF', padding: '0.15rem 0.4rem', borderRadius: '6px' }}>Stock: 999999</span>
+                                                    ♾ UNLIMITED
                                                 </div>
                                             ) : (
                                                 <input 
