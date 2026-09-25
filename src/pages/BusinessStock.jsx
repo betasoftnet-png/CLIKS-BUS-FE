@@ -203,13 +203,109 @@ const BusinessStock = () => {
         return false;
     };
 
+    // Deduplicate merged POS receipts and internal Sales Orders
+    const deduplicateSalesTransactions = (salesList) => {
+        if (!Array.isArray(salesList) || salesList.length === 0) return [];
+
+        const result = [];
+
+        salesList.forEach(tx => {
+            const cust = (tx.customerName || 'Walk-in Customer').trim().toLowerCase();
+            const units = parseFloat(tx.quantity || 1) || 1;
+            const total = parseFloat(tx.total ?? ((tx.price || 0) * units) ?? 0).toFixed(2);
+            const dateObj = tx.date ? new Date(tx.date) : null;
+            const purchaseDate = (dateObj && !isNaN(dateObj.getTime()))
+                ? dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                : 'N/A';
+
+            const compositeKey = `${cust}_${units}_${total}_${purchaseDate}`;
+
+            const txBillId = String(tx.billId || '').trim();
+            const txRawId = tx.rawId !== undefined && tx.rawId !== null ? String(tx.rawId).trim() : '';
+            const txOrderNum = String(tx.orderNumber || '').trim();
+            const txInvNum = String(tx.invoiceNumber || '').trim();
+
+            const existingIdx = result.findIndex(existing => {
+                const exBillId = String(existing.billId || '').trim();
+                const exRawId = existing.rawId !== undefined && existing.rawId !== null ? String(existing.rawId).trim() : '';
+                const exOrderNum = String(existing.orderNumber || '').trim();
+                const exInvNum = String(existing.invoiceNumber || '').trim();
+
+                // 1. Direct ID / Linked ID match
+                const idMatched = (
+                    (txBillId && exBillId && txBillId === exBillId) ||
+                    (txRawId && exRawId && txRawId === exRawId) ||
+                    (txRawId && exBillId && txRawId === exBillId) ||
+                    (txBillId && exRawId && txBillId === exRawId) ||
+                    (txBillId && exOrderNum && txBillId === exOrderNum) ||
+                    (txBillId && exInvNum && txBillId === exInvNum) ||
+                    (exBillId && txOrderNum && exBillId === txOrderNum) ||
+                    (exBillId && txInvNum && exBillId === txInvNum)
+                );
+                if (idMatched) return true;
+
+                // If both transactions have different explicit database raw IDs, they are distinct
+                if (txRawId && exRawId && txRawId !== exRawId) {
+                    return false;
+                }
+
+                // 2. Composite key match: customerName + unitsPurchased + totalAmount + purchaseDate
+                const exCust = (existing.customerName || 'Walk-in Customer').trim().toLowerCase();
+                const exUnits = parseFloat(existing.quantity || 1) || 1;
+                const exTotal = parseFloat(existing.total ?? ((existing.price || 0) * exUnits) ?? 0).toFixed(2);
+                const exDateObj = existing.date ? new Date(existing.date) : null;
+                const exPurchaseDate = (exDateObj && !isNaN(exDateObj.getTime()))
+                    ? exDateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : 'N/A';
+                const exComposite = `${exCust}_${exUnits}_${exTotal}_${exPurchaseDate}`;
+
+                if (compositeKey === exComposite) {
+                    // Two distinct retail POS receipts (e.g. POS-906739 and POS-414825) are distinct transactions
+                    const isTxPos = txBillId.startsWith('POS-');
+                    const isExPos = exBillId.startsWith('POS-');
+                    if (isTxPos && isExPos && txBillId !== exBillId) {
+                        return false;
+                    }
+                    // Two distinct numeric order IDs (e.g. 450 vs 449) are distinct transactions
+                    if (!isTxPos && !isExPos && txBillId && exBillId && txBillId !== exBillId) {
+                        return false;
+                    }
+                    // Linked duplicate POS receipt & internal Sales Order
+                    return true;
+                }
+
+                return false;
+            });
+
+            if (existingIdx === -1) {
+                result.push(tx);
+            } else {
+                // If the new one has a Retail POS receipt ID (e.g. POS-XXXXXX), keep/upgrade to it
+                const existing = result[existingIdx];
+                const isTxPos = txBillId.startsWith('POS-');
+                const isExPos = String(existing.billId || '').startsWith('POS-');
+
+                if (isTxPos && !isExPos) {
+                    result[existingIdx] = {
+                        ...existing,
+                        ...tx,
+                        billId: tx.billId,
+                        rawId: tx.rawId || existing.rawId
+                    };
+                }
+            }
+        });
+
+        return result;
+    };
+
     // Unified Sales Transactions from POS Orders, Saved Billing Records, and Invoices
     const allSalesTransactions = React.useMemo(() => {
         const list = [];
 
         // 1. From POS Orders (/pos)
         (Array.isArray(posOrders) ? posOrders : []).forEach(order => {
-            const orderId = order.order_number || order.id || order.bill_id || `ORD-${order.id}`;
+            const orderId = order.invoice_number || order.order_number || order.id || order.bill_id || `ORD-${order.id}`;
             const customerName = order.client_name || order.customer_name || order.party_name || 'Walk-in Customer';
             const orderDate = order.created_at || order.order_date || order.date;
             const items = Array.isArray(order.items) ? order.items : [];
@@ -218,6 +314,9 @@ const BusinessStock = () => {
                 list.push({
                     source: 'POS',
                     billId: orderId,
+                    rawId: order.id,
+                    orderNumber: order.order_number,
+                    invoiceNumber: order.invoice_number,
                     customerName: customerName,
                     date: orderDate ? new Date(orderDate) : new Date(),
                     productName: item.name || item.product_name || item.description || '',
@@ -241,6 +340,8 @@ const BusinessStock = () => {
                 list.push({
                     source: 'Billing',
                     billId: billId,
+                    rawId: bill.id,
+                    orderNumber: bill.billingOrder,
                     customerName: customerName,
                     date: billDate ? new Date(billDate) : new Date(),
                     productName: p.name || '',
@@ -264,6 +365,9 @@ const BusinessStock = () => {
                 list.push({
                     source: 'Invoice',
                     billId: invId,
+                    rawId: inv.id,
+                    invoiceNumber: inv.invoice_number,
+                    orderNumber: inv.order_number,
                     customerName: customerName,
                     date: invDate ? new Date(invDate) : new Date(),
                     productName: item.name || item.item_name || item.description || '',
@@ -286,7 +390,8 @@ const BusinessStock = () => {
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
         return stocks.map(product => {
-            const productSales = allSalesTransactions.filter(tx => matchesProduct(tx, product));
+            const rawProductSales = allSalesTransactions.filter(tx => matchesProduct(tx, product));
+            const productSales = deduplicateSalesTransactions(rawProductSales);
 
             // Daily sales (today)
             const dailySales = productSales.filter(tx => {
@@ -1300,125 +1405,125 @@ const BusinessStock = () => {
             </div>
 
             {/* Customer List Modal */}
-            {customerListModal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '750px', maxHeight: '85vh', borderRadius: '28px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflow: 'hidden' }}>
-                        {/* Header */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                                    <span style={{ fontSize: '1.25rem' }}>👥</span>
-                                    <h3 style={{ fontSize: '1.3rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Customer Purchase History</h3>
+            {customerListModal && (() => {
+                const deduplicatedPurchases = deduplicateSalesTransactions(customerListModal.purchases || []);
+                const uniqueCusts = new Set(deduplicatedPurchases.map(p => (p.customerName || 'Walk-in Customer').trim().toLowerCase()));
+                const totalUnits = deduplicatedPurchases.reduce((s, p) => s + (parseFloat(p.quantity) || 1), 0);
+                const totalRev = deduplicatedPurchases.reduce((s, p) => s + (parseFloat(p.total) || ((parseFloat(p.price) || 0) * (parseFloat(p.quantity) || 1))), 0);
+
+                return (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '750px', maxHeight: '85vh', borderRadius: '28px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflow: 'hidden' }}>
+                            {/* Header */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                        <span style={{ fontSize: '1.25rem' }}>👥</span>
+                                        <h3 style={{ fontSize: '1.3rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Customer Purchase History</h3>
+                                    </div>
+                                    <p style={{ color: '#64748B', fontSize: '0.85rem', margin: 0 }}>
+                                        Buyers of <strong>{customerListModal.product.product_name}</strong> (SKU: {customerListModal.product.product_id})
+                                    </p>
                                 </div>
-                                <p style={{ color: '#64748B', fontSize: '0.85rem', margin: 0 }}>
-                                    Buyers of <strong>{customerListModal.product.product_name}</strong> (SKU: {customerListModal.product.product_id})
-                                </p>
+                                <button 
+                                    onClick={() => setCustomerListModal(null)} 
+                                    style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer', color: '#64748B' }}
+                                >
+                                    <X size={18} />
+                                </button>
                             </div>
-                            <button 
-                                onClick={() => setCustomerListModal(null)} 
-                                style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer', color: '#64748B' }}
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
 
-                        {/* Quick summary strip */}
-                        {(() => {
-                            const uniqueCusts = new Set(customerListModal.purchases.map(p => (p.customerName || 'Walk-in Customer').trim().toLowerCase()));
-                            const totalUnits = customerListModal.purchases.reduce((s, p) => s + (p.quantity || 1), 0);
-                            const totalRev = customerListModal.purchases.reduce((s, p) => s + (p.total || ((p.price || 0) * (p.quantity || 1))), 0);
-                            return (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', background: '#F8FAFC', padding: '0.85rem 1.25rem', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
-                                    <div>
-                                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Total Buyers</span>
-                                        <h4 style={{ margin: '0.15rem 0 0 0', fontSize: '1.1rem', fontWeight: '850', color: '#0F172A' }}>{uniqueCusts.size} Customers</h4>
-                                    </div>
-                                    <div>
-                                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Total Sold</span>
-                                        <h4 style={{ margin: '0.15rem 0 0 0', fontSize: '1.1rem', fontWeight: '850', color: '#16A34A' }}>{totalUnits} Units</h4>
-                                    </div>
-                                    <div>
-                                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Gross Revenue</span>
-                                        <h4 style={{ margin: '0.15rem 0 0 0', fontSize: '1.1rem', fontWeight: '850', color: '#2563EB' }}>{formatCurrency(totalRev)}</h4>
-                                    </div>
+                            {/* Quick summary strip */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', background: '#F8FAFC', padding: '0.85rem 1.25rem', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Total Buyers</span>
+                                    <h4 style={{ margin: '0.15rem 0 0 0', fontSize: '1.1rem', fontWeight: '850', color: '#0F172A' }}>{uniqueCusts.size} Customers</h4>
                                 </div>
-                            );
-                        })()}
+                                <div>
+                                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Total Sold</span>
+                                    <h4 style={{ margin: '0.15rem 0 0 0', fontSize: '1.1rem', fontWeight: '850', color: '#16A34A' }}>{totalUnits} Units</h4>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '800', textTransform: 'uppercase' }}>Gross Revenue</span>
+                                    <h4 style={{ margin: '0.15rem 0 0 0', fontSize: '1.1rem', fontWeight: '850', color: '#2563EB' }}>{formatCurrency(totalRev)}</h4>
+                                </div>
+                            </div>
 
-                        {/* Table of customers */}
-                        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #F1F5F9', borderRadius: '16px' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
-                                <thead style={{ background: '#F8FAFC', position: 'sticky', top: 0, zIndex: 1 }}>
-                                    <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
-                                        <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Customer Name</th>
-                                        <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Bill / Order ID</th>
-                                        <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Units Purchased</th>
-                                        <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Total Amount</th>
-                                        <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Purchase Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {customerListModal.purchases.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94A3B8', fontWeight: '600' }}>
-                                                No customer purchase records found for this product yet.
-                                            </td>
+                            {/* Table of customers */}
+                            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #F1F5F9', borderRadius: '16px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                                    <thead style={{ background: '#F8FAFC', position: 'sticky', top: 0, zIndex: 1 }}>
+                                        <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
+                                            <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Customer Name</th>
+                                            <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Bill / Order ID</th>
+                                            <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Units Purchased</th>
+                                            <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Total Amount</th>
+                                            <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Purchase Date</th>
                                         </tr>
-                                    ) : (
-                                        customerListModal.purchases.map((tx, idx) => {
-                                            const formattedDate = tx.date ? new Date(tx.date).toLocaleDateString('en-IN', {
-                                                day: '2-digit',
-                                                month: 'short',
-                                                year: 'numeric'
-                                            }) : 'N/A';
-                                            return (
-                                                <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                                    <td style={{ padding: '0.85rem 1rem', fontWeight: '750', color: '#0F172A' }}>
-                                                        {tx.customerName || 'Walk-in Customer'}
-                                                    </td>
-                                                    <td style={{ padding: '0.85rem 1rem' }}>
-                                                        <span style={{ padding: '0.2rem 0.5rem', background: '#F1F5F9', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', color: '#475569' }}>
-                                                            {tx.billId || 'N/A'}
-                                                        </span>
-                                                    </td>
-                                                    <td style={{ padding: '0.85rem 1rem', fontWeight: '800', color: '#16A34A' }}>
-                                                        {tx.quantity || 1} Units
-                                                    </td>
-                                                    <td style={{ padding: '0.85rem 1rem', fontWeight: '750', color: '#1E293B' }}>
-                                                        {formatCurrency(tx.total || ((tx.price || 0) * (tx.quantity || 1)))}
-                                                    </td>
-                                                    <td style={{ padding: '0.85rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>
-                                                        {formattedDate}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        {deduplicatedPurchases.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={5} style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94A3B8', fontWeight: '600' }}>
+                                                    No customer purchase records found for this product yet.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            deduplicatedPurchases.map((tx, idx) => {
+                                                const formattedDate = tx.date ? new Date(tx.date).toLocaleDateString('en-IN', {
+                                                    day: '2-digit',
+                                                    month: 'short',
+                                                    year: 'numeric'
+                                                }) : 'N/A';
+                                                return (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                                        <td style={{ padding: '0.85rem 1rem', fontWeight: '750', color: '#0F172A' }}>
+                                                            {tx.customerName || 'Walk-in Customer'}
+                                                        </td>
+                                                        <td style={{ padding: '0.85rem 1rem' }}>
+                                                            <span style={{ padding: '0.2rem 0.5rem', background: '#F1F5F9', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800', color: '#475569' }}>
+                                                                {tx.billId || 'N/A'}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '0.85rem 1rem', fontWeight: '800', color: '#16A34A' }}>
+                                                            {tx.quantity || 1} Units
+                                                        </td>
+                                                        <td style={{ padding: '0.85rem 1rem', fontWeight: '750', color: '#1E293B' }}>
+                                                            {formatCurrency(tx.total || ((tx.price || 0) * (tx.quantity || 1)))}
+                                                        </td>
+                                                        <td style={{ padding: '0.85rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>
+                                                            {formattedDate}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                        {/* Modal Footer */}
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9' }}>
-                            <button
-                                onClick={() => setCustomerListModal(null)}
-                                style={{
-                                    padding: '0.65rem 1.5rem',
-                                    borderRadius: '12px',
-                                    background: '#1E293B',
-                                    color: 'white',
-                                    border: 'none',
-                                    fontWeight: '800',
-                                    fontSize: '0.85rem',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                Close
-                            </button>
+                            {/* Modal Footer */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9' }}>
+                                <button
+                                    onClick={() => setCustomerListModal(null)}
+                                    style={{
+                                        padding: '0.65rem 1.5rem',
+                                        borderRadius: '12px',
+                                        background: '#1E293B',
+                                        color: 'white',
+                                        border: 'none',
+                                        fontWeight: '800',
+                                        fontSize: '0.85rem',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
             {/* Adjust Stock Counts Modal */}
             {isAdjustmentModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
