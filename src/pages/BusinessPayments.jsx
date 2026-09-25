@@ -1246,7 +1246,7 @@ const BusinessPayments = ({
 
             {/* Tabs Row & Global Search */}
             <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div className="flex flex-nowrap overflow-x-auto whitespace-nowrap gap-1.5 min-w-0">
                     {[
                         { id: 'receivables', label: 'Customer Receivables (Inward)', icon: ArrowDownRight },
                         { id: 'payables', label: 'Supplier Payables (Outward)', icon: ArrowUpRight },
@@ -1257,16 +1257,16 @@ const BusinessPayments = ({
                         <button 
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
+                            className="shrink-0 px-3 py-2 text-[11px] flex items-center gap-1.5"
                             style={{ 
-                                padding: '0.75rem 1.25rem', borderRadius: '12px', 
+                                borderRadius: '12px', 
                                 background: activeTab === tab.id ? '#064E3B' : 'white', 
                                 color: activeTab === tab.id ? 'white' : '#475569',
                                 border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', gap: '0.5rem',
                                 boxShadow: activeTab === tab.id ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none'
                             }}
                         >
-                            <tab.icon size={18} /> {tab.label}
+                            <tab.icon size={15} /> {tab.label}
                         </button>
                     ))}
                 </div>
