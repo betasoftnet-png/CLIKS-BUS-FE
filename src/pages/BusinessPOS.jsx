@@ -202,7 +202,8 @@ const BusinessPOS = () => {
         selling_price: '',
         quantity: '',
         tax_percentage: 18,
-        hsn_code: ''
+        hsn_code: '',
+        isUnlimited: false
     }));
 
     // HSN Intelligent Search State for Quick Register Item
@@ -423,46 +424,58 @@ const BusinessPOS = () => {
                 ]);
 
                 // Format Legacy Inventory items
-                const legacyItems = (invRes || []).map(i => ({
-                    id: i.id,
-                    name: i.name,
-                    sku: i.sku,
-                    unit: i.unit || i.primary_unit || 'PCS',
-                    price: parseFloat(i.price) || 0,
-                    quantity: parseFloat(i.quantity) || 0,
-                    category: i.category || 'General',
-                    warehouse_id: i.warehouse_id || i.location || 'Main Godown',
-                    location: i.location || i.warehouse_id || 'Main Godown',
-                    source: 'inventory'
-                }));
+                const legacyItems = (invRes || []).map(i => {
+                    const isItemUnlimited = Boolean(i.isUnlimited === true || i.is_unlimited === true || (parseFloat(i.quantity) >= 999999) || (parseFloat(i.stock) >= 999999) || (parseFloat(i.opening_stock) >= 999999));
+                    return {
+                        id: i.id,
+                        name: i.name,
+                        sku: i.sku,
+                        unit: i.unit || i.primary_unit || 'PCS',
+                        price: parseFloat(i.price) || 0,
+                        quantity: isItemUnlimited ? 999999 : (parseFloat(i.quantity) || 0),
+                        category: i.category || 'General',
+                        warehouse_id: i.warehouse_id || i.location || 'Main Godown',
+                        location: i.location || i.warehouse_id || 'Main Godown',
+                        source: 'inventory',
+                        isUnlimited: isItemUnlimited
+                    };
+                });
 
                 // Format Central Catalog Products
-                const catalogItems = (prodRes || []).map(p => ({
-                    id: p.id,
-                    name: p.name || p.product_name,
-                    sku: p.sku || p.hsn_code,
-                    unit: p.unit || p.primary_unit || 'PCS',
-                    price: parseFloat(p.selling_price) || parseFloat(p.price) || 0,
-                    quantity: parseFloat(p.quantity) !== undefined && !isNaN(parseFloat(p.quantity)) ? parseFloat(p.quantity) : (parseFloat(p.stock) || 0),
-                    category: p.category || p.category_name || 'General',
-                    warehouse_id: p.warehouse_id || p.location || 'Main Godown',
-                    location: p.location || p.warehouse_id || 'Main Godown',
-                    source: 'products'
-                }));
+                const catalogItems = (prodRes || []).map(p => {
+                    const isItemUnlimited = Boolean(p.isUnlimited === true || p.is_unlimited === true || (parseFloat(p.quantity) >= 999999) || (parseFloat(p.stock) >= 999999) || (parseFloat(p.opening_stock) >= 999999));
+                    return {
+                        id: p.id,
+                        name: p.name || p.product_name,
+                        sku: p.sku || p.hsn_code,
+                        unit: p.unit || p.primary_unit || 'PCS',
+                        price: parseFloat(p.selling_price) || parseFloat(p.price) || 0,
+                        quantity: isItemUnlimited ? 999999 : (parseFloat(p.quantity) !== undefined && !isNaN(parseFloat(p.quantity)) ? parseFloat(p.quantity) : (parseFloat(p.stock) || 0)),
+                        category: p.category || p.category_name || 'General',
+                        warehouse_id: p.warehouse_id || p.location || 'Main Godown',
+                        location: p.location || p.warehouse_id || 'Main Godown',
+                        source: 'products',
+                        isUnlimited: isItemUnlimited
+                    };
+                });
 
                 // Format Stock Registry items
-                const stockItems = (stockRes || []).map(s => ({
-                    id: s.id,
-                    name: s.name,
-                    sku: s.sku,
-                    unit: s.unit || 'PCS',
-                    price: parseFloat(s.unit_price) || parseFloat(s.price) || 0,
-                    quantity: parseFloat(s.quantity) || 0,
-                    category: s.category || 'General',
-                    warehouse_id: s.warehouse || s.location || 'Main Godown',
-                    location: s.location || s.warehouse || 'Main Godown',
-                    source: 'stock'
-                }));
+                const stockItems = (stockRes || []).map(s => {
+                    const isItemUnlimited = Boolean(s.isUnlimited === true || s.is_unlimited === true || (parseFloat(s.quantity) >= 999999) || (parseFloat(s.stock) >= 999999));
+                    return {
+                        id: s.id,
+                        name: s.name,
+                        sku: s.sku,
+                        unit: s.unit || 'PCS',
+                        price: parseFloat(s.unit_price) || parseFloat(s.price) || 0,
+                        quantity: isItemUnlimited ? 999999 : (parseFloat(s.quantity) || 0),
+                        category: s.category || 'General',
+                        warehouse_id: s.warehouse || s.location || 'Main Godown',
+                        location: s.location || s.warehouse || 'Main Godown',
+                        source: 'stock',
+                        isUnlimited: isItemUnlimited
+                    };
+                });
 
                 // Aggregate items by unique SKU/ID and Warehouse so separate SKU inventory records with identical names stay distinct
                 const allItems = [...catalogItems, ...legacyItems, ...stockItems];
@@ -480,6 +493,11 @@ const BusinessPOS = () => {
 
                     if (!uniqueMap.has(key)) {
                         uniqueMap.set(key, item);
+                    } else {
+                        const existing = uniqueMap.get(key);
+                        if (item.isUnlimited) {
+                            uniqueMap.set(key, { ...existing, isUnlimited: true, quantity: 999999 });
+                        }
                     }
                 });
                 return Array.from(uniqueMap.values());
@@ -950,12 +968,13 @@ const BusinessPOS = () => {
     const addToCart = (prod) => {
         const prodUnit = prod.unit || 'PCS';
         const isDec = isDecimalUnit(prodUnit);
+        const isUnlimited = Boolean(prod.isUnlimited || prod.is_unlimited || (parseFloat(prod.quantity) >= 999999));
 
         const cartItem = cart.find(item => item.id === prod.id || (item.sku && prod.sku && item.sku === prod.sku));
         const currentCartQty = cartItem ? (parseFloat(cartItem.quantity) || 0) : 0;
-        const availableStock = (parseFloat(prod.quantity) || 0) - currentCartQty;
+        const availableStock = isUnlimited ? Infinity : ((parseFloat(prod.quantity) || 0) - currentCartQty);
 
-        if (availableStock <= 0) {
+        if (!isUnlimited && availableStock <= 0) {
             alert('This item is out of stock!');
             return;
         }
@@ -968,14 +987,14 @@ const BusinessPOS = () => {
                     ? Math.round((existing.quantity + addStep) * 1000) / 1000
                     : existing.quantity + 1;
 
-                if (newQty > prod.quantity) {
+                if (!isUnlimited && newQty > prod.quantity) {
                     alert('Cannot add more than available stock!');
                     return prevCart;
                 }
 
                 return prevCart.map(item =>
                     (item.id === prod.id || (item.sku && prod.sku && item.sku === prod.sku))
-                        ? { ...item, quantity: newQty, total: Math.round(newQty * (item.price || 0) * 100) / 100 }
+                        ? { ...item, quantity: newQty, total: Math.round(newQty * (item.price || 0) * 100) / 100, isUnlimited }
                         : item
                 );
             }
@@ -988,7 +1007,8 @@ const BusinessPOS = () => {
                 tax_rate: taxRate,
                 unit: prodUnit,
                 total: prod.price || 0,
-                source: prod.source
+                source: prod.source,
+                isUnlimited: isUnlimited
             }];
         });
     };
@@ -999,7 +1019,8 @@ const BusinessPOS = () => {
             if (!existing) return prevCart;
 
             const invProd = inventory.find(p => p.id === id || (p.sku && existing.sku && p.sku === existing.sku));
-            const maxStock = invProd ? invProd.quantity : Infinity;
+            const isUnlimited = Boolean(existing.isUnlimited || invProd?.isUnlimited || invProd?.is_unlimited || (parseFloat(invProd?.quantity) >= 999999));
+            const maxStock = isUnlimited ? Infinity : (invProd ? invProd.quantity : Infinity);
             const isDec = isDecimalUnit(existing.unit);
 
             let newQty = (parseFloat(existing.quantity) || 0) + delta;
@@ -1013,7 +1034,7 @@ const BusinessPOS = () => {
                 return prevCart.filter(item => item.id !== id);
             }
 
-            if (newQty > maxStock) {
+            if (!isUnlimited && newQty > maxStock) {
                 alert('Cannot add more than available stock!');
                 return prevCart;
             }
@@ -1021,7 +1042,7 @@ const BusinessPOS = () => {
             const newTotal = Math.round(newQty * (existing.price || 0) * 100) / 100;
             return prevCart.map(item =>
                 item.id === id
-                    ? { ...item, quantity: newQty, total: newTotal }
+                    ? { ...item, quantity: newQty, total: newTotal, isUnlimited }
                     : item
             );
         });
@@ -1037,7 +1058,8 @@ const BusinessPOS = () => {
             }
 
             const invProd = inventory.find(p => p.id === id || (p.sku && existing.sku && p.sku === existing.sku));
-            const maxStock = invProd ? invProd.quantity : Infinity;
+            const isUnlimited = Boolean(existing.isUnlimited || invProd?.isUnlimited || invProd?.is_unlimited || (parseFloat(invProd?.quantity) >= 999999));
+            const maxStock = isUnlimited ? Infinity : (invProd ? invProd.quantity : Infinity);
             const isDec = isDecimalUnit(existing.unit);
 
             let parsed = parseFloat(rawVal);
@@ -1049,7 +1071,7 @@ const BusinessPOS = () => {
                 parsed = Math.floor(parsed);
             }
 
-            if (parsed > maxStock) {
+            if (!isUnlimited && parsed > maxStock) {
                 alert('Cannot add more than available stock!');
                 return prevCart;
             }
@@ -1057,7 +1079,7 @@ const BusinessPOS = () => {
             const newTotal = Math.round(parsed * (existing.price || 0) * 100) / 100;
             return prevCart.map(item =>
                 item.id === id
-                    ? { ...item, quantity: parsed, total: newTotal }
+                    ? { ...item, quantity: parsed, total: newTotal, isUnlimited }
                     : item
             );
         });
@@ -1125,9 +1147,11 @@ const BusinessPOS = () => {
             return;
         }
 
-        // Prevent selling more quantity than available stock
+        // Prevent selling more quantity than available stock (bypassed for unlimited products)
         for (const item of validCartItems) {
             const catItem = inventory.find(p => p.id === item.id || (p.sku && item.sku && p.sku === item.sku));
+            const isUnlimited = Boolean(item.isUnlimited || catItem?.isUnlimited || catItem?.is_unlimited || (parseFloat(catItem?.quantity) >= 999999));
+            if (isUnlimited) continue;
             const maxStock = catItem ? (parseFloat(catItem.quantity) || 0) : Infinity;
             const requestedQty = parseFloat(item.quantity) || 0;
             if (requestedQty > maxStock) {
@@ -1657,14 +1681,17 @@ const BusinessPOS = () => {
                                 {filteredProducts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(prod => {
                                     const cartItem = cart.find(c => c.id === prod.id || (c.sku && prod.sku && c.sku === prod.sku));
                                     const cartQty = cartItem ? (parseFloat(cartItem.quantity) || 0) : 0;
+                                    const isUnlimited = Boolean(prod.isUnlimited || prod.is_unlimited || (parseFloat(prod.quantity) >= 999999));
                                     const rawStock = parseFloat(prod.quantity) || 0;
                                     const isDec = isDecimalUnit(prod.unit);
-                                    const displayStock = isDec 
-                                        ? Math.max(0, Math.round((rawStock - cartQty) * 1000) / 1000)
-                                        : Math.max(0, Math.round(rawStock - cartQty));
+                                    const displayStock = isUnlimited 
+                                        ? '∞' 
+                                        : (isDec 
+                                            ? Math.max(0, Math.round((rawStock - cartQty) * 1000) / 1000)
+                                            : Math.max(0, Math.round(rawStock - cartQty)));
 
-                                    const isOutOfStock = displayStock <= 0;
-                                    const isLowStock = displayStock > 0 && displayStock < 10;
+                                    const isOutOfStock = !isUnlimited && displayStock <= 0;
+                                    const isLowStock = !isUnlimited && displayStock > 0 && displayStock < 10;
                                     
                                     return (
                                         <motion.div
@@ -1675,7 +1702,7 @@ const BusinessPOS = () => {
                                             onClick={() => !isOutOfStock && addToCart(prod)}
                                             style={{
                                                 background: '#FFFFFF',
-                                                border: '1px solid #E2E8F0',
+                                                border: isUnlimited ? '1.5px solid #BFDBFE' : '1px solid #E2E8F0',
                                                 borderRadius: '20px',
                                                 padding: '1rem 1.1rem',
                                                 cursor: isOutOfStock ? 'not-allowed' : 'pointer',
@@ -1685,7 +1712,7 @@ const BusinessPOS = () => {
                                                 position: 'relative',
                                                 opacity: isOutOfStock ? 0.6 : 1,
                                                 transition: 'all 0.2s ease',
-                                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                                                boxShadow: isUnlimited ? '0 4px 12px rgba(37, 99, 235, 0.06)' : '0 2px 4px rgba(0,0,0,0.02)'
                                             }}
                                         >
                                             {/* Top Row: Visual Tag for Category + Three-Dot Menu */}
@@ -1903,20 +1930,41 @@ const BusinessPOS = () => {
                                                         </div>
                                                     );
                                                 })()}
-                                                <div style={{ 
-                                                    padding: '0.4rem 0.65rem', 
-                                                    borderRadius: '12px', 
-                                                    fontSize: '0.68rem', 
-                                                    fontWeight: '800',
-                                                    lineHeight: 1.25,
-                                                    textAlign: 'left',
-                                                    flexShrink: 0,
-                                                    background: isOutOfStock ? '#FEE2E2' : (isLowStock ? '#FFFBEB' : '#ECFDF5'),
-                                                    color: isOutOfStock ? '#B91C1C' : (isLowStock ? '#B45309' : '#047857')
-                                                }}>
-                                                    <div>{isOutOfStock ? 'OUT' : `${displayStock} ${prod.unit || 'PCS'}`}</div>
-                                                    {!isOutOfStock && <div style={{ fontSize: '0.62rem', fontWeight: '700' }}>left</div>}
-                                                </div>
+                                                {isUnlimited ? (
+                                                    <div style={{
+                                                        padding: '0.4rem 0.65rem',
+                                                        borderRadius: '12px',
+                                                        fontSize: '0.68rem',
+                                                        fontWeight: '800',
+                                                        lineHeight: 1.25,
+                                                        textAlign: 'center',
+                                                        flexShrink: 0,
+                                                        background: '#EFF6FF',
+                                                        color: '#1D4ED8',
+                                                        border: '1px solid #BFDBFE',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px'
+                                                    }}>
+                                                        <span style={{ fontSize: '0.85rem' }}>♾️</span>
+                                                        <span>∞ Unlimited Product</span>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{
+                                                        padding: '0.4rem 0.65rem',
+                                                        borderRadius: '12px',
+                                                        fontSize: '0.68rem',
+                                                        fontWeight: '800',
+                                                        lineHeight: 1.25,
+                                                        textAlign: 'left',
+                                                        flexShrink: 0,
+                                                        background: isOutOfStock ? '#FEE2E2' : (isLowStock ? '#FFFBEB' : '#ECFDF5'),
+                                                        color: isOutOfStock ? '#B91C1C' : (isLowStock ? '#B45309' : '#047857')
+                                                    }}>
+                                                        <div>{isOutOfStock ? 'OUT' : `${displayStock} ${prod.unit || 'PCS'}`}</div>
+                                                        {!isOutOfStock && <div style={{ fontSize: '0.62rem', fontWeight: '700' }}>left</div>}
+                                                    </div>
+                                                )}
                                             </div>
                                         </motion.div>
                                     );
@@ -2803,6 +2851,8 @@ const BusinessPOS = () => {
 
                         <form onSubmit={(e) => {
                             e.preventDefault();
+                            const isUnlimited = Boolean(newProductData.isUnlimited);
+                            const stockVal = isUnlimited ? 999999 : (parseFloat(newProductData.quantity) || 0);
                             const payload = {
                                 name: newProductData.name,
                                 product_name: newProductData.name,
@@ -2810,8 +2860,10 @@ const BusinessPOS = () => {
                                 category: newProductData.category || 'General',
                                 category_name: newProductData.category || 'General',
                                 unit: newProductData.unit || 'PCS',
-                                quantity: parseFloat(newProductData.quantity) || 0,
-                                stock: parseFloat(newProductData.quantity) || 0,
+                                quantity: stockVal,
+                                stock: stockVal,
+                                isUnlimited: isUnlimited,
+                                is_unlimited: isUnlimited,
                                 purchase_price: parseFloat(newProductData.selling_price) * 0.7,
                                 selling_price: parseFloat(newProductData.selling_price) || 0,
                                 price: parseFloat(newProductData.selling_price) || 0,
@@ -2901,17 +2953,55 @@ const BusinessPOS = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Opening Stock *</label>
-                                    <input 
-                                        required 
-                                        type="number" 
-                                        min="0"
-                                        step="any"
-                                        value={newProductData.quantity} 
-                                        onChange={(e) => setNewProductData({...newProductData, quantity: e.target.value})} 
-                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }} 
-                                        placeholder="Qty left" 
-                                    />
+                                    {newProductData.isUnlimited ? (
+                                        <div style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1.5px dashed #3B82F6', background: '#EFF6FF', color: '#1D4ED8', fontSize: '0.75rem', fontWeight: '800', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <span>∞ Unlimited</span>
+                                            <span style={{ fontSize: '0.65rem', background: '#DBEAFE', color: '#1E40AF', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>999999</span>
+                                        </div>
+                                    ) : (
+                                        <input 
+                                            required 
+                                            type="number" 
+                                            min="0"
+                                            step="any"
+                                            value={newProductData.quantity} 
+                                            onChange={(e) => setNewProductData({...newProductData, quantity: e.target.value})} 
+                                            style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }} 
+                                            placeholder="Qty left" 
+                                        />
+                                    )}
                                 </div>
+                            </div>
+
+                            {/* Unlimited Product toggle */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F8FAFC', padding: '0.6rem 0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '1.1rem' }}>♾️</span>
+                                    <div>
+                                        <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1E293B' }}>Unlimited Product</div>
+                                        <div style={{ fontSize: '0.68rem', color: '#64748B' }}>Never trigger out of stock warnings</div>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setNewProductData(prev => ({
+                                        ...prev,
+                                        isUnlimited: !prev.isUnlimited,
+                                        quantity: !prev.isUnlimited ? '999999' : ''
+                                    }))}
+                                    style={{
+                                        border: newProductData.isUnlimited ? '1px solid #2563EB' : '1px solid #CBD5E1',
+                                        background: newProductData.isUnlimited ? '#EFF6FF' : 'white',
+                                        color: newProductData.isUnlimited ? '#1D4ED8' : '#64748B',
+                                        fontWeight: '800',
+                                        fontSize: '0.72rem',
+                                        padding: '0.3rem 0.65rem',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {newProductData.isUnlimited ? 'ACTIVE' : 'OFF'}
+                                </button>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>

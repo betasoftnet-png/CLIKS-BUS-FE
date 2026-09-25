@@ -341,7 +341,8 @@ const BusinessInventory = () => {
         warehouse: '',
         rack_number: '',
         has_warranty: 'No',
-        warranty_period: ''
+        warranty_period: '',
+        isUnlimited: false
     }));
 
     // HSN Intelligent Search State (Placed after formData & isModalOpen declarations)
@@ -487,7 +488,8 @@ const BusinessInventory = () => {
             warehouse: '',
             rack_number: '',
             has_warranty: 'No',
-            warranty_period: ''
+            warranty_period: '',
+            isUnlimited: false
         });
     };
 
@@ -529,7 +531,8 @@ const BusinessInventory = () => {
             warehouse: item.warehouse || 'Main Godown',
             rack_number: item.rack_number || '',
             has_warranty: item.has_warranty || 'No',
-            warranty_period: item.warranty_period || ''
+            warranty_period: item.warranty_period || '',
+            isUnlimited: Boolean(item.isUnlimited === true || item.is_unlimited === true || (parseFloat(item.quantity) >= 999999) || (parseFloat(item.opening_stock) >= 999999))
         });
         setIsModalOpen(true);
     };
@@ -584,11 +587,19 @@ const BusinessInventory = () => {
             ? (formData.warranty_period === 'Custom' ? (formData.custom_warranty_text || formData.warrantyPeriod) : (formData.warranty_period || formData.warrantyPeriod || '1 Year'))
             : null;
 
+        const isUnlimited = Boolean(formData.isUnlimited);
+        const openingStockVal = isUnlimited ? 999999 : (parseFloat(formData.opening_stock) || 0);
+
         const payload = {
             name: formData.name,
             sku: formData.sku,
             category: formData.category,
-            quantity: parseFloat(formData.opening_stock) || 0,
+            quantity: openingStockVal,
+            opening_stock: openingStockVal,
+            isUnlimited: isUnlimited,
+            is_unlimited: isUnlimited,
+            min_stock: isUnlimited ? 0 : (parseFloat(formData.min_stock) || 0),
+            reorder_level: isUnlimited ? 0 : (parseFloat(formData.reorder_level) || 0),
             purchase_price: parseFloat(formData.purchase_price) || 0,
             selling_price: parseFloat(formData.selling_price) || 0,
             barcode: formData.barcode,
@@ -888,6 +899,17 @@ const BusinessInventory = () => {
                                             {row.product_type === 'service' ? (
                                                 <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: '700' }}>NO STOCK TRACKING</span>
                                             ) : (() => {
+                                                const isUnlimited = Boolean(row.isUnlimited === true || row.is_unlimited === true || (parseFloat(row.quantity) >= 999999) || (parseFloat(row.opening_stock) >= 999999));
+                                                if (isUnlimited) {
+                                                    return (
+                                                        <div>
+                                                            <p style={{ fontWeight: '850', color: '#1D4ED8', fontSize: '1.05rem', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                <span>∞ Unlimited</span>
+                                                            </p>
+                                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>No Reorder Limit</span>
+                                                        </div>
+                                                    );
+                                                }
                                                 const isDamagedGodown = String(row.warehouse || '').toLowerCase().includes('damaged');
                                                 const rawQty = parseFloat(row.quantity ?? row.opening_stock ?? 0) || 0;
                                                 const sellableQty = isDamagedGodown ? 0 : rawQty;
@@ -921,6 +943,21 @@ const BusinessInventory = () => {
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             {(() => {
+                                                const isUnlimited = Boolean(row.isUnlimited === true || row.is_unlimited === true || (parseFloat(row.quantity) >= 999999) || (parseFloat(row.opening_stock) >= 999999));
+                                                if (isUnlimited) {
+                                                    return (
+                                                        <div style={{ 
+                                                            display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
+                                                            padding: '0.4rem 0.8rem', borderRadius: '10px',
+                                                            background: '#EFF6FF',
+                                                            color: '#1D4ED8',
+                                                            fontSize: '0.8rem', fontWeight: '800'
+                                                        }}>
+                                                            <span>♾️</span>
+                                                            <span>UNLIMITED</span>
+                                                        </div>
+                                                    );
+                                                }
                                                 const isDamagedGodown = String(row.warehouse || '').toLowerCase().includes('damaged');
                                                 const rawQty = parseFloat(row.quantity ?? row.opening_stock ?? 0) || 0;
                                                 const sellableQty = isDamagedGodown ? 0 : rawQty;
@@ -1421,42 +1458,135 @@ const BusinessInventory = () => {
                             {/* Inventory Specific Fields (Only shown for physical Products) */}
                             {formData.product_type === 'product' && (
                                 <div style={{ background: '#F0F9F4', padding: '1.5rem', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '1.25rem', border: '1px solid #DCF2E4' }}>
-                                    <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inventory & Stock Controls</h4>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                                        <h4 style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                                            Inventory & Stock Controls
+                                        </h4>
+                                        {/* Unlimited Product (♾️) toggle button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const nextVal = !formData.isUnlimited;
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    isUnlimited: nextVal,
+                                                    opening_stock: nextVal ? 999999 : (prev.opening_stock === 999999 ? 0 : prev.opening_stock)
+                                                }));
+                                            }}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                padding: '0.45rem 0.9rem',
+                                                borderRadius: '12px',
+                                                border: formData.isUnlimited ? '1.5px solid #2563EB' : '1px solid #CBD5E1',
+                                                background: formData.isUnlimited ? '#EFF6FF' : '#FFFFFF',
+                                                color: formData.isUnlimited ? '#1D4ED8' : '#475569',
+                                                fontSize: '0.78rem',
+                                                fontWeight: '800',
+                                                cursor: 'pointer',
+                                                boxShadow: formData.isUnlimited ? '0 2px 8px rgba(37, 99, 235, 0.15)' : 'none',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            <span style={{ fontSize: '1.05rem', lineHeight: 1 }}>♾️</span>
+                                            <span>Unlimited Product</span>
+                                            <span style={{
+                                                fontSize: '0.68rem',
+                                                padding: '0.15rem 0.45rem',
+                                                borderRadius: '999px',
+                                                background: formData.isUnlimited ? '#DBEAFE' : '#F1F5F9',
+                                                color: formData.isUnlimited ? '#1E40AF' : '#64748B',
+                                                fontWeight: '800',
+                                                marginLeft: '2px'
+                                            }}>
+                                                {formData.isUnlimited ? 'ACTIVE' : 'OFF'}
+                                            </span>
+                                        </button>
+                                    </div>
+
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Opening Qty</label>
-                                            <input 
-                                                type="text" 
-                                                inputMode="decimal"
-                                                maxLength={14}
-                                                value={formData.opening_stock === 0 || formData.opening_stock === '0' || formData.opening_stock === '' ? '' : formData.opening_stock} 
-                                                placeholder="0"
-                                                onChange={(e) => handleNumFieldChange('opening_stock', e.target.value)} 
-                                                style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} 
-                                            />
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>
+                                                Opening Qty {formData.isUnlimited && <span style={{ color: '#2563EB', fontWeight: '800' }}>(Unlimited)</span>}
+                                            </label>
+                                            {formData.isUnlimited ? (
+                                                <div 
+                                                    style={{ 
+                                                        width: '100%', 
+                                                        boxSizing: 'border-box',
+                                                        padding: '0.85rem', 
+                                                        borderRadius: '14px', 
+                                                        border: '1.5px dashed #3B82F6', 
+                                                        background: '#EFF6FF', 
+                                                        color: '#1D4ED8',
+                                                        fontWeight: '800',
+                                                        fontSize: '0.82rem',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        cursor: 'default'
+                                                    }}
+                                                >
+                                                    <span>∞ Unlimited / Enter here &gt;</span>
+                                                    <span style={{ fontSize: '0.68rem', background: '#DBEAFE', color: '#1E40AF', padding: '0.15rem 0.4rem', borderRadius: '6px' }}>Stock: 999999</span>
+                                                </div>
+                                            ) : (
+                                                <input 
+                                                    type="text" 
+                                                    inputMode="decimal"
+                                                    maxLength={14}
+                                                    value={formData.opening_stock === 0 || formData.opening_stock === '0' || formData.opening_stock === '' ? '' : formData.opening_stock} 
+                                                    placeholder="0"
+                                                    onChange={(e) => handleNumFieldChange('opening_stock', e.target.value)} 
+                                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} 
+                                                />
+                                            )}
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Minimum Qty Alert</label>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: formData.isUnlimited ? '#94A3B8' : '#1B6B3A', marginBottom: '0.5rem' }}>Minimum Qty Alert</label>
                                             <input 
                                                 type="text" 
                                                 inputMode="decimal"
                                                 maxLength={14}
-                                                value={formData.min_stock === 0 || formData.min_stock === '0' || formData.min_stock === '' ? '' : formData.min_stock} 
+                                                disabled={formData.isUnlimited}
+                                                value={formData.isUnlimited ? 'N/A (Unlimited)' : (formData.min_stock === 0 || formData.min_stock === '0' || formData.min_stock === '' ? '' : formData.min_stock)} 
                                                 placeholder="5"
                                                 onChange={(e) => handleNumFieldChange('min_stock', e.target.value)} 
-                                                style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} 
+                                                style={{ 
+                                                    width: '100%', 
+                                                    padding: '0.85rem', 
+                                                    borderRadius: '14px', 
+                                                    border: '1px solid #DCF2E4', 
+                                                    outline: 'none', 
+                                                    background: formData.isUnlimited ? '#F1F5F9' : 'white',
+                                                    color: formData.isUnlimited ? '#94A3B8' : 'inherit',
+                                                    cursor: formData.isUnlimited ? 'not-allowed' : 'text',
+                                                    opacity: formData.isUnlimited ? 0.75 : 1
+                                                }} 
                                             />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Reorder Level</label>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: formData.isUnlimited ? '#94A3B8' : '#1B6B3A', marginBottom: '0.5rem' }}>Reorder Level</label>
                                             <input 
                                                 type="text" 
                                                 inputMode="decimal"
                                                 maxLength={14}
-                                                value={formData.reorder_level === 0 || formData.reorder_level === '0' || formData.reorder_level === '' ? '' : formData.reorder_level} 
+                                                disabled={formData.isUnlimited}
+                                                value={formData.isUnlimited ? 'N/A (Unlimited)' : (formData.reorder_level === 0 || formData.reorder_level === '0' || formData.reorder_level === '' ? '' : formData.reorder_level)} 
                                                 placeholder="8"
                                                 onChange={(e) => handleNumFieldChange('reorder_level', e.target.value)} 
-                                                style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} 
+                                                style={{ 
+                                                    width: '100%', 
+                                                    padding: '0.85rem', 
+                                                    borderRadius: '14px', 
+                                                    border: '1px solid #DCF2E4', 
+                                                    outline: 'none', 
+                                                    background: formData.isUnlimited ? '#F1F5F9' : 'white',
+                                                    color: formData.isUnlimited ? '#94A3B8' : 'inherit',
+                                                    cursor: formData.isUnlimited ? 'not-allowed' : 'text',
+                                                    opacity: formData.isUnlimited ? 0.75 : 1
+                                                }} 
                                             />
                                         </div>
                                         <div>

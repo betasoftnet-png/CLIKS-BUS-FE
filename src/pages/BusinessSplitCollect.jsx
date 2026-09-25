@@ -433,6 +433,8 @@ const BusinessSplitCollect = () => {
         participants: ['You']
     });
     const [newParticipantName, setNewParticipantName] = useState('');
+    const [newParticipantEmail, setNewParticipantEmail] = useState('');
+    const [emailError, setEmailError] = useState('');
 
     // Expense Form State
     const [expenseForm, setExpenseForm] = useState({
@@ -515,6 +517,9 @@ const BusinessSplitCollect = () => {
             setIsCreateGroupModalOpen(false);
             setEditingGroupId(null);
             setGroupForm({ title: '', currency: 'INR', description: '', participants: ['You'] });
+            setNewParticipantName('');
+            setNewParticipantEmail('');
+            setEmailError('');
             return;
         }
 
@@ -544,19 +549,40 @@ const BusinessSplitCollect = () => {
         setIsCreateGroupModalOpen(false);
         setEditingGroupId(null);
         setGroupForm({ title: '', currency: 'INR', description: '', participants: ['You'] });
+        setNewParticipantName('');
+        setNewParticipantEmail('');
+        setEmailError('');
     };
 
     const addParticipantToForm = () => {
-        if (!newParticipantName.trim()) return;
-        if (groupForm.participants.includes(newParticipantName.trim())) {
+        const trimmedName = newParticipantName.trim();
+        const trimmedEmail = newParticipantEmail.trim();
+
+        if (!trimmedName) return;
+
+        // Email Domain Guard: email is strictly optional.
+        // If an email is entered, validate that it ends strictly with @bnxmail.com
+        if (trimmedEmail) {
+            const BNX_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@bnxmail\.com$/i;
+            if (!BNX_EMAIL_REGEX.test(trimmedEmail)) {
+                setEmailError('Only @bnxmail.com email addresses are allowed.');
+                return;
+            }
+        }
+        setEmailError('');
+
+        const participantEntry = trimmedEmail ? `${trimmedName} (${trimmedEmail})` : trimmedName;
+
+        if (groupForm.participants.some(p => p.toLowerCase() === participantEntry.toLowerCase() || p.toLowerCase() === trimmedName.toLowerCase())) {
             alert('This participant is already added!');
             return;
         }
         setGroupForm({
             ...groupForm,
-            participants: [...groupForm.participants, newParticipantName.trim()]
+            participants: [...groupForm.participants, participantEntry]
         });
         setNewParticipantName('');
+        setNewParticipantEmail('');
     };
 
     const removeParticipantFromForm = (name) => {
@@ -1473,6 +1499,9 @@ const BusinessSplitCollect = () => {
                         onClick={() => {
                             setEditingGroupId(null);
                             setGroupForm({ title: '', currency: 'INR', description: '', participants: ['You'] });
+                            setNewParticipantName('');
+                            setNewParticipantEmail('');
+                            setEmailError('');
                             setIsCreateGroupModalOpen(true);
                         }}
                         style={{ 
@@ -2969,6 +2998,9 @@ const BusinessSplitCollect = () => {
                                 <button style={{ background: '#F1F5F9', border: 'none', borderRadius: '10px', padding: '0.4rem', cursor: 'pointer', color: '#475569' }} onClick={() => {
                                     setIsCreateGroupModalOpen(false);
                                     setEditingGroupId(null);
+                                    setNewParticipantName('');
+                                    setNewParticipantEmail('');
+                                    setEmailError('');
                                 }}><X size={18} /></button>
                             </div>
                             
@@ -3016,25 +3048,73 @@ const BusinessSplitCollect = () => {
 
                                 {/* Participants Manager */}
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Participants ({groupForm.participants.length})</label>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                                        PARTICIPANTS ({groupForm.participants.length})
+                                    </label>
                                     
-                                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                    {/* Input 1: Add participant name... (full width) */}
+                                    <div style={{ marginBottom: '0.5rem' }}>
                                         <input 
                                             type="text" 
                                             placeholder="Add participant name..."
                                             value={newParticipantName}
                                             onChange={(e) => setNewParticipantName(e.target.value)}
-                                            style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }}
+                                            style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box', fontSize: '0.85rem' }}
+                                            onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); addParticipantToForm(); } }}
+                                        />
+                                    </div>
+
+                                    {/* Input 2: enter mail with the + Add button attached to its right side */}
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: emailError ? '0.35rem' : '0.75rem' }}>
+                                        <input 
+                                            type="text" 
+                                            placeholder="enter mail"
+                                            value={newParticipantEmail}
+                                            onChange={(e) => {
+                                                setNewParticipantEmail(e.target.value);
+                                                if (emailError) setEmailError('');
+                                            }}
+                                            style={{ 
+                                                flex: 1, 
+                                                padding: '0.7rem 0.85rem', 
+                                                borderRadius: '10px', 
+                                                border: emailError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', 
+                                                outline: 'none', 
+                                                boxSizing: 'border-box',
+                                                fontSize: '0.85rem'
+                                            }}
                                             onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); addParticipantToForm(); } }}
                                         />
                                         <button 
                                             type="button"
                                             onClick={addParticipantToForm}
-                                            style={{ border: 'none', background: '#ECFDF5', color: '#065F46', padding: '0.65rem 1rem', borderRadius: '10px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                            style={{ 
+                                                border: 'none', 
+                                                background: '#ECFDF5', 
+                                                color: '#065F46', 
+                                                padding: '0.7rem 1.1rem', 
+                                                borderRadius: '10px', 
+                                                fontWeight: '900', 
+                                                cursor: 'pointer', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '4px',
+                                                fontSize: '0.85rem',
+                                                whiteSpace: 'nowrap',
+                                                flexShrink: 0
+                                            }}
                                         >
-                                            <UserPlus size={15} /> Add
+                                            + Add
                                         </button>
                                     </div>
+
+                                    {/* Inline Error for Email Domain Guard */}
+                                    {emailError && (
+                                        <div style={{ color: '#EF4444', fontSize: '0.75rem', fontWeight: '700', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <span>⚠️</span>
+                                            <span>{emailError}</span>
+                                        </div>
+                                    )}
 
                                     {/* Participants Badges list */}
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '100px', overflowY: 'auto', background: '#F8FAFC', padding: '0.5rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
