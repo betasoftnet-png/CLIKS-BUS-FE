@@ -3407,9 +3407,15 @@ const BusinessAccounting = () => {
                             </div>
                         )}
                         {(() => {
+                            const cleanIfsc = (bankForm.ifsc_code || '').trim().toUpperCase();
                             const isAccountNumberValid = Boolean(bankForm.account_number && bankForm.account_number.length >= 9 && bankForm.account_number.length <= 18);
-                            const isIfscValid = Boolean(bankForm.ifsc_code && bankForm.ifsc_code.length === 11 && /^[A-Z]{4}0[A-Z0-9]{6}$/.test(bankForm.ifsc_code));
-                            const isFormComplete = Boolean(bankForm.bank_name?.trim() && bankForm.account_name?.trim() && bankForm.opening_balance !== '');
+                            const isIfscValid = Boolean(cleanIfsc && cleanIfsc.length === 11 && /^[A-Z]{4}0[A-Z0-9]{6}$/.test(cleanIfsc));
+                            const isOpeningBalanceNegative = Boolean(
+                                bankForm.opening_balance !== '' && 
+                                (parseFloat(bankForm.opening_balance) < 0 || String(bankForm.opening_balance).includes('-'))
+                            );
+                            const isOpeningBalanceValid = bankForm.opening_balance !== '' && !isOpeningBalanceNegative && !isNaN(parseFloat(bankForm.opening_balance));
+                            const isFormComplete = Boolean(bankForm.bank_name?.trim() && bankForm.account_name?.trim() && isOpeningBalanceValid);
                             const isSaveBankDisabled = createBankAccountMutation.isPending || !isAccountNumberValid || !isIfscValid || !isFormComplete;
 
                             const accountNumberError = bankFormTouched.account_number && !isAccountNumberValid
@@ -3417,7 +3423,7 @@ const BusinessAccounting = () => {
                                 : '';
 
                             const ifscError = bankFormTouched.ifsc_code && !isIfscValid
-                                ? ((!bankForm.ifsc_code || bankForm.ifsc_code.length < 11)
+                                ? ((!cleanIfsc || cleanIfsc.length < 11)
                                     ? 'IFSC Code must be exactly 11 characters'
                                     : 'Invalid IFSC format (e.g. HDFC0000001)')
                                 : '';
@@ -3429,8 +3435,13 @@ const BusinessAccounting = () => {
                                     setBankFormTouched({ account_number: true, ifsc_code: true });
                                     
                                     // Validations
-                                    if (!bankForm.bank_name?.trim() || !bankForm.account_name?.trim() || !bankForm.account_number || !bankForm.ifsc_code || bankForm.opening_balance === '') {
+                                    if (!bankForm.bank_name?.trim() || !bankForm.account_name?.trim() || !bankForm.account_number || !cleanIfsc || bankForm.opening_balance === '') {
                                         setBankFormError('Bank Name, Account Name, Account Number, IFSC Code, and Opening Balance are mandatory.');
+                                        return;
+                                    }
+
+                                    if (isOpeningBalanceNegative || parseFloat(bankForm.opening_balance) < 0) {
+                                        setBankFormError('Amount cannot be negative');
                                         return;
                                     }
 
@@ -3440,7 +3451,7 @@ const BusinessAccounting = () => {
                                     }
 
                                     if (!isIfscValid) {
-                                        if (bankForm.ifsc_code.length < 11) {
+                                        if (cleanIfsc.length < 11) {
                                             setBankFormError('IFSC Code must be exactly 11 characters');
                                         } else {
                                             setBankFormError('Invalid IFSC format (e.g. HDFC0000001)');
@@ -3459,7 +3470,7 @@ const BusinessAccounting = () => {
                                         bank_name: bankForm.bank_name.trim(),
                                         account_name: bankForm.account_name.trim(),
                                         account_number: bankForm.account_number,
-                                        ifsc_code: bankForm.ifsc_code,
+                                        ifsc_code: cleanIfsc,
                                         branch_name: bankForm.branch_name?.trim() || '',
                                         opening_balance: parseFloat(bankForm.opening_balance) || 0,
                                         account_type: bankForm.account_type,
@@ -3489,7 +3500,9 @@ const BusinessAccounting = () => {
                                                 onChange={(e) => {
                                                     const cleanNum = e.target.value.replace(/\D/g, '').slice(0, 18);
                                                     setBankForm({ ...bankForm, account_number: cleanNum });
-                                                    setBankFormTouched(prev => ({ ...prev, account_number: true }));
+                                                    if (cleanNum.length >= 9) {
+                                                        setBankFormTouched(prev => ({ ...prev, account_number: true }));
+                                                    }
                                                     if (bankFormError) setBankFormError('');
                                                 }} 
                                                 onBlur={() => setBankFormTouched(prev => ({ ...prev, account_number: true }))}
@@ -3519,7 +3532,9 @@ const BusinessAccounting = () => {
                                                 onChange={(e) => {
                                                     const cleanIFSC = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11);
                                                     setBankForm({ ...bankForm, ifsc_code: cleanIFSC });
-                                                    setBankFormTouched(prev => ({ ...prev, ifsc_code: true }));
+                                                    if (cleanIFSC.length === 11) {
+                                                        setBankFormTouched(prev => ({ ...prev, ifsc_code: true }));
+                                                    }
                                                     if (bankFormError) setBankFormError('');
                                                 }} 
                                                 onBlur={() => setBankFormTouched(prev => ({ ...prev, ifsc_code: true }))}
@@ -3549,7 +3564,38 @@ const BusinessAccounting = () => {
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Opening Balance ({currency.symbol}) *</label>
-                                            <input required type="number" placeholder="0.00" value={bankForm.opening_balance} onChange={(e) => setBankForm({ ...bankForm, opening_balance: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700' }} />
+                                            <input 
+                                                required 
+                                                type="number" 
+                                                min="0"
+                                                step="any"
+                                                placeholder="0.00" 
+                                                value={bankForm.opening_balance} 
+                                                onKeyDown={(e) => {
+                                                    if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                                                        e.preventDefault();
+                                                    }
+                                                }}
+                                                onChange={(e) => {
+                                                    setBankForm({ ...bankForm, opening_balance: e.target.value });
+                                                    if (bankFormError) setBankFormError('');
+                                                }} 
+                                                style={{ 
+                                                    width: '100%', 
+                                                    padding: '0.75rem', 
+                                                    borderRadius: '12px', 
+                                                    border: isOpeningBalanceNegative ? '1.5px solid #EF4444' : '1px solid #E2E8F0', 
+                                                    fontSize: '0.85rem', 
+                                                    fontWeight: '700',
+                                                    outline: 'none',
+                                                    boxSizing: 'border-box'
+                                                }} 
+                                            />
+                                            {isOpeningBalanceNegative && (
+                                                <span style={{ display: 'block', fontSize: '0.72rem', color: '#DC2626', fontWeight: '600', marginTop: '0.35rem' }}>
+                                                    Amount cannot be negative
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
