@@ -425,7 +425,7 @@ const BusinessPOS = () => {
 
                 // Format Legacy Inventory items
                 const legacyItems = (invRes || []).map(i => {
-                    const isItemUnlimited = Boolean(i.isUnlimited === true || i.is_unlimited === true || (parseFloat(i.quantity) >= 999999) || (parseFloat(i.stock) >= 999999) || (parseFloat(i.opening_stock) >= 999999));
+                    const isItemUnlimited = Boolean(i.isUnlimited === true || i.is_unlimited === true || (parseFloat(i.quantity) >= 999000) || (parseFloat(i.stock) >= 999000) || (parseFloat(i.opening_stock) >= 999000));
                     return {
                         id: i.id,
                         name: i.name,
@@ -443,7 +443,7 @@ const BusinessPOS = () => {
 
                 // Format Central Catalog Products
                 const catalogItems = (prodRes || []).map(p => {
-                    const isItemUnlimited = Boolean(p.isUnlimited === true || p.is_unlimited === true || (parseFloat(p.quantity) >= 999999) || (parseFloat(p.stock) >= 999999) || (parseFloat(p.opening_stock) >= 999999));
+                    const isItemUnlimited = Boolean(p.isUnlimited === true || p.is_unlimited === true || (parseFloat(p.quantity) >= 999000) || (parseFloat(p.stock) >= 999000) || (parseFloat(p.opening_stock) >= 999000));
                     return {
                         id: p.id,
                         name: p.name || p.product_name,
@@ -461,7 +461,7 @@ const BusinessPOS = () => {
 
                 // Format Stock Registry items
                 const stockItems = (stockRes || []).map(s => {
-                    const isItemUnlimited = Boolean(s.isUnlimited === true || s.is_unlimited === true || (parseFloat(s.quantity) >= 999999) || (parseFloat(s.stock) >= 999999));
+                    const isItemUnlimited = Boolean(s.isUnlimited === true || s.is_unlimited === true || (parseFloat(s.quantity) >= 999000) || (parseFloat(s.stock) >= 999000));
                     return {
                         id: s.id,
                         name: s.name,
@@ -968,7 +968,7 @@ const BusinessPOS = () => {
     const addToCart = (prod) => {
         const prodUnit = prod.unit || 'PCS';
         const isDec = isDecimalUnit(prodUnit);
-        const isUnlimited = Boolean(prod.isUnlimited || prod.is_unlimited || (parseFloat(prod.quantity) >= 999999));
+        const isUnlimited = Boolean(prod.isUnlimited === true || prod.is_unlimited === true || (parseFloat(prod.quantity) >= 999000) || (parseFloat(prod.stock) >= 999000));
 
         const cartItem = cart.find(item => item.id === prod.id || (item.sku && prod.sku && item.sku === prod.sku));
         const currentCartQty = cartItem ? (parseFloat(cartItem.quantity) || 0) : 0;
@@ -1019,7 +1019,7 @@ const BusinessPOS = () => {
             if (!existing) return prevCart;
 
             const invProd = inventory.find(p => p.id === id || (p.sku && existing.sku && p.sku === existing.sku));
-            const isUnlimited = Boolean(existing.isUnlimited || invProd?.isUnlimited || invProd?.is_unlimited || (parseFloat(invProd?.quantity) >= 999999));
+            const isUnlimited = Boolean(existing.isUnlimited || invProd?.isUnlimited === true || invProd?.is_unlimited === true || (parseFloat(invProd?.quantity) >= 999000) || (parseFloat(invProd?.stock) >= 999000));
             const maxStock = isUnlimited ? Infinity : (invProd ? invProd.quantity : Infinity);
             const isDec = isDecimalUnit(existing.unit);
 
@@ -1058,7 +1058,7 @@ const BusinessPOS = () => {
             }
 
             const invProd = inventory.find(p => p.id === id || (p.sku && existing.sku && p.sku === existing.sku));
-            const isUnlimited = Boolean(existing.isUnlimited || invProd?.isUnlimited || invProd?.is_unlimited || (parseFloat(invProd?.quantity) >= 999999));
+            const isUnlimited = Boolean(existing.isUnlimited || invProd?.isUnlimited === true || invProd?.is_unlimited === true || (parseFloat(invProd?.quantity) >= 999000) || (parseFloat(invProd?.stock) >= 999000));
             const maxStock = isUnlimited ? Infinity : (invProd ? invProd.quantity : Infinity);
             const isDec = isDecimalUnit(existing.unit);
 
@@ -1150,7 +1150,7 @@ const BusinessPOS = () => {
         // Prevent selling more quantity than available stock (bypassed for unlimited products)
         for (const item of validCartItems) {
             const catItem = inventory.find(p => p.id === item.id || (p.sku && item.sku && p.sku === item.sku));
-            const isUnlimited = Boolean(item.isUnlimited || catItem?.isUnlimited || catItem?.is_unlimited || (parseFloat(catItem?.quantity) >= 999999));
+            const isUnlimited = Boolean(item.isUnlimited || catItem?.isUnlimited === true || catItem?.is_unlimited === true || (parseFloat(catItem?.quantity) >= 999000) || (parseFloat(catItem?.stock) >= 999000));
             if (isUnlimited) continue;
             const maxStock = catItem ? (parseFloat(catItem.quantity) || 0) : Infinity;
             const requestedQty = parseFloat(item.quantity) || 0;
@@ -1681,7 +1681,7 @@ const BusinessPOS = () => {
                                 {filteredProducts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(prod => {
                                     const cartItem = cart.find(c => c.id === prod.id || (c.sku && prod.sku && c.sku === prod.sku));
                                     const cartQty = cartItem ? (parseFloat(cartItem.quantity) || 0) : 0;
-                                    const isUnlimited = Boolean(prod.isUnlimited || prod.is_unlimited || (parseFloat(prod.quantity) >= 999999));
+                                    const isUnlimited = Boolean(prod.isUnlimited === true || prod.is_unlimited === true || (parseFloat(prod.quantity) >= 999000) || (parseFloat(prod.stock) >= 999000));
                                     const rawStock = parseFloat(prod.quantity) || 0;
                                     const isDec = isDecimalUnit(prod.unit);
                                     const displayStock = isUnlimited 
@@ -1931,24 +1931,9 @@ const BusinessPOS = () => {
                                                     );
                                                 })()}
                                                 {isUnlimited ? (
-                                                    <div style={{
-                                                        padding: '0.4rem 0.65rem',
-                                                        borderRadius: '12px',
-                                                        fontSize: '0.68rem',
-                                                        fontWeight: '800',
-                                                        lineHeight: 1.25,
-                                                        textAlign: 'center',
-                                                        flexShrink: 0,
-                                                        background: '#EFF6FF',
-                                                        color: '#1D4ED8',
-                                                        border: '1px solid #BFDBFE',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px'
-                                                    }}>
-                                                        <span style={{ fontSize: '0.85rem' }}>♾️</span>
-                                                        <span>∞ Unlimited Product</span>
-                                                    </div>
+                                                    <span className="bg-cyan-50 text-cyan-600 border border-cyan-200 rounded-lg px-2 py-0.5 font-black text-[11px]">
+                                                        ♾ UP
+                                                    </span>
                                                 ) : (
                                                     <div style={{
                                                         padding: '0.4rem 0.65rem',
