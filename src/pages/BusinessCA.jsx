@@ -66,13 +66,15 @@ export default function BusinessCA({ mode }) {
     const setActiveSubTab = (tab) => {
         setActiveSubTabState(tab);
         if (tab === 'time_tracking') setPersonalTab('timetracking');
-        else if (tab === 'report') setPersonalTab('reports');
+        else if (tab === 'report' || tab === 'reports') setPersonalTab('reports');
+        else if (tab === 'consult' || tab === 'senior_ca') setPersonalTab('senior_ca');
         else setPersonalTab(tab);
     };
 
     useEffect(() => {
         if (personalTab === 'timetracking') setActiveSubTabState('time_tracking');
-        else if (personalTab === 'reports') setActiveSubTabState('report');
+        else if (personalTab === 'reports') setActiveSubTabState('reports');
+        else if (personalTab === 'senior_ca') setActiveSubTabState('consult');
         else setActiveSubTabState(personalTab);
     }, [personalTab]);
 
@@ -2492,123 +2494,134 @@ export default function BusinessCA({ mode }) {
 
 
                     {/* ========================================================================= */}
-                    {/* 1. STANDALONE TOP ROW: VERIFY ICAI BUTTON (TOP-RIGHT)                     */}
+                    {/* 1. TOP BANNER: SIGNING PARTNER & VERIFY ICAI CREDENTIALS CARD             */}
                     {/* ========================================================================= */}
-                    <div className="flex justify-end">
+                    <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base font-bold shrink-0">
+                          👤
+                        </div>
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-xs sm:text-sm font-black text-gray-900">
+                              Signing Partner / Auditor
+                            </h2>
+                            <span className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-black uppercase tracking-wider">
+                              VERIFICATION REQUIRED
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 font-medium">
+                            Verify ICAI membership &amp; COP to enable automated UDIN generation &amp; statutory e-filing.
+                          </p>
+                        </div>
+                      </div>
+
                       <button
                         type="button"
                         onClick={handleVerifyIcaiModal}
-                        className="px-4 py-1.5 bg-white border border-emerald-600/80 text-emerald-700 hover:bg-emerald-50 rounded-2xl text-xs font-bold shadow-2xs inline-flex items-center gap-1.5 transition-colors"
+                        className="px-4 py-2 bg-[#0e4b34] hover:bg-[#093625] text-white rounded-xl text-xs font-bold shadow-xs inline-flex items-center gap-2 shrink-0 transition-colors"
                       >
-                        <span className="text-rose-500">🔖</span>
-                        <span>VERIFY ICAI</span>
+                        <span>🛡️</span>
+                        <span>Verify ICAI Credentials</span>
                       </button>
                     </div>
 
                     {/* ========================================================================= */}
-                    {/* 2. AUDITOR ROLE SELECTION STRIP (CLEAN FULL ROW WITHOUT VERIFY ICAI)      */}
+                    {/* 2. TOP AUDITOR ROLE SELECTION STRIP                                       */}
                     {/* ========================================================================= */}
-                    <div className="bg-white rounded-3xl border border-gray-100 shadow-2xs p-2.5 overflow-x-auto">
+                    <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-2 overflow-x-auto">
                       <div className="flex items-center gap-2 shrink-0">
-                        {/* Tab 1: Statutory Financial Auditor */}
                         <button
                           type="button"
-                          onClick={() => setSelectedAuditorRole('statutory')}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                          onClick={() => handleSelectRole('statutory')}
+                          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                             selectedAuditorRole === 'statutory'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs'
-                              : 'bg-gray-50/70 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs'
+                              : 'text-gray-600 hover:bg-gray-50'
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'statutory' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'statutory' ? 'bg-emerald-600' : 'bg-gray-400'}`} />
                           <span>Statutory Financial Auditor (ICAI CA)</span>
                         </button>
 
-                        {/* Tab 2: Tax Auditor */}
                         <button
                           type="button"
-                          onClick={() => setSelectedAuditorRole('tax')}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                          onClick={() => handleSelectRole('tax')}
+                          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                             selectedAuditorRole === 'tax'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs'
-                              : 'bg-gray-50/70 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs'
+                              : 'text-gray-600 hover:bg-gray-50'
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'tax' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'tax' ? 'bg-emerald-600' : 'bg-gray-400'}`} />
                           <span>Tax Auditor (ICAI CA)</span>
                         </button>
 
-                        {/* Tab 3: Internal Auditor */}
                         <button
                           type="button"
-                          onClick={() => setSelectedAuditorRole('internal')}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                          onClick={() => handleSelectRole('internal')}
+                          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                             selectedAuditorRole === 'internal'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs'
-                              : 'bg-gray-50/70 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs'
+                              : 'text-gray-600 hover:bg-gray-50'
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'internal' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'internal' ? 'bg-emerald-600' : 'bg-gray-400'}`} />
                           <span>Internal Auditor (CIA / CA / CMA)</span>
                         </button>
 
-                        {/* Tab 4: Cost Auditor */}
                         <button
                           type="button"
-                          onClick={() => setSelectedAuditorRole('cost')}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                          onClick={() => handleSelectRole('cost')}
+                          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                             selectedAuditorRole === 'cost'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs'
-                              : 'bg-gray-50/70 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs'
+                              : 'text-gray-600 hover:bg-gray-50'
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'cost' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
                           <span>Cost Auditor (ICMAI CMA)</span>
                         </button>
 
-                        {/* Tab 5: Secretarial Auditor */}
                         <button
                           type="button"
-                          onClick={() => setSelectedAuditorRole('secretarial')}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                          onClick={() => handleSelectRole('secretarial')}
+                          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                             selectedAuditorRole === 'secretarial'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs'
-                              : 'bg-gray-50/70 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs'
+                              : 'text-gray-600 hover:bg-gray-50'
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'secretarial' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
                           <span>Secretarial Auditor (ICSI CS)</span>
                         </button>
 
-                        {/* Tab 6: Forensic Auditor */}
                         <button
                           type="button"
-                          onClick={() => setSelectedAuditorRole('forensic')}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                          onClick={() => handleSelectRole('forensic')}
+                          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                             selectedAuditorRole === 'forensic'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs'
-                              : 'bg-gray-50/70 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs'
+                              : 'text-gray-600 hover:bg-gray-50'
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'forensic' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
                           <span>Forensic Auditor</span>
                         </button>
                       </div>
                     </div>
 
                     {/* ========================================================================= */}
-                    {/* 2. SUB-NAVIGATION ROW (CONTAINED WHITE CARD MATCHING PICTURE 1)           */}
+                    {/* 3. SUB-NAVIGATION ROW (CONTAINED WHITE CARD MATCHING PICTURE 1)           */}
                     {/* ========================================================================= */}
                     {!isComingSoonRole && (
-                      <div className="bg-white rounded-2xl border border-gray-100 shadow-2xs px-4 py-2.5 flex items-center justify-between gap-3 overflow-x-auto">
-                        
-                        {/* Left Sub-Nav Links */}
-                        <div className="flex items-center gap-4 shrink-0 text-xs font-bold">
+                      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs px-4 py-2 flex items-center justify-between gap-3 overflow-x-auto">
+                        <div className="flex items-center gap-5 shrink-0 text-xs font-semibold text-gray-600">
                           <button
                             type="button"
                             onClick={() => setActiveSubTab('home')}
                             className={`flex items-center gap-1.5 transition-colors ${
-                              activeSubTab === 'home' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                              activeSubTab === 'home' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
                             <span>🏠</span>
@@ -2619,10 +2632,10 @@ export default function BusinessCA({ mode }) {
                             type="button"
                             onClick={() => setActiveSubTab('clients')}
                             className={`flex items-center gap-1.5 transition-colors ${
-                              activeSubTab === 'clients' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                              activeSubTab === 'clients' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
-                            <span>👤</span>
+                            <span>👥</span>
                             <span>Clients</span>
                           </button>
 
@@ -2630,7 +2643,7 @@ export default function BusinessCA({ mode }) {
                             type="button"
                             onClick={() => setActiveSubTab('tasks')}
                             className={`flex items-center gap-1.5 transition-colors ${
-                              activeSubTab === 'tasks' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                              activeSubTab === 'tasks' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
                             <span>☑️</span>
@@ -2641,10 +2654,10 @@ export default function BusinessCA({ mode }) {
                             type="button"
                             onClick={() => setActiveSubTab('teams')}
                             className={`flex items-center gap-1.5 transition-colors ${
-                              activeSubTab === 'teams' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                              activeSubTab === 'teams' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
-                            <span>👥</span>
+                            <span>👤</span>
                             <span>Teams</span>
                           </button>
 
@@ -2652,7 +2665,7 @@ export default function BusinessCA({ mode }) {
                             type="button"
                             onClick={() => setActiveSubTab('time_tracking')}
                             className={`flex items-center gap-1.5 transition-colors ${
-                              activeSubTab === 'time_tracking' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                              activeSubTab === 'time_tracking' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
                             <span>🕒</span>
@@ -2663,74 +2676,66 @@ export default function BusinessCA({ mode }) {
                             type="button"
                             onClick={() => setActiveSubTab('workpaper')}
                             className={`flex items-center gap-1.5 transition-colors ${
-                              activeSubTab === 'workpaper' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                              activeSubTab === 'workpaper' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
                             <span>📄</span>
                             <span>Workpaper</span>
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => setActiveSubTab('senior_ca')}
-                            className={`flex items-center gap-1.5 transition-colors ${
-                              activeSubTab === 'senior_ca' ? 'text-gray-900 font-black' : 'text-gray-600 hover:text-gray-900 font-bold'
-                            }`}
-                          >
-                            <span>👨‍💼</span>
-                            <span>senior CA</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setActiveSubTab('report')}
-                            className={`flex items-center gap-1.5 transition-colors ${
-                              activeSubTab === 'report' ? 'text-gray-900 font-black' : 'text-gray-600 hover:text-gray-900 font-bold'
-                            }`}
-                          >
-                            <span>📊</span>
-                            <span>report</span>
-                          </button>
-                        </div>
-
-                        {/* Right-Aligned Active Role Pill */}
-                        <div className="shrink-0 pl-3">
+                          {/* AUDITOR ACTIVE BUTTON (SOLID DARK GREEN AS IN PICTURE 1) */}
                           <button
                             type="button"
                             onClick={() => setActiveSubTab('audit_suite')}
-                            className="px-3.5 py-1 bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-300/80 rounded-2xl text-[11px] font-bold text-emerald-800 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                            className="px-3.5 py-1.5 bg-[#0e4b34] hover:bg-[#093625] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
                           >
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <span>🏛️</span>
                             <span>
                               {selectedAuditorRole === 'tax'
-                                ? 'Tax Auditor (ICAI CA)'
-                                : 'Statutory Financial Auditor (ICAI CA)'}
+                                ? 'Tax Auditor'
+                                : 'Statutory Financial Auditor'}
                             </span>
                           </button>
-                        </div>
 
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('consult')}
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'consult' || activeSubTab === 'senior_ca' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
+                            }`}
+                          >
+                            <span>💬</span>
+                            <span>consult</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('reports')}
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'reports' || activeSubTab === 'report' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
+                            }`}
+                          >
+                            <span>📊</span>
+                            <span>Reports</span>
+                          </button>
+                        </div>
                       </div>
                     )}
 
                     {/* ========================================================================= */}
-                    {/* 3. DYNAMIC CONTENT AREA                                                   */}
+                    {/* 4. DYNAMIC SUITE CONTENT OR COMING SOON VIEW                              */}
                     {/* ========================================================================= */}
                     {isComingSoonRole ? (
-                      /* FULL "COMING SOON" VIEW DISPLAYED FOR INTERNAL, COST, SECRETARIAL, FORENSIC */
-                      <div className="bg-white rounded-3xl p-16 border border-gray-100 shadow-2xs flex flex-col items-center justify-center text-center space-y-4 min-h-[460px]">
-                        <div className="w-16 h-16 rounded-3xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-2xl shadow-2xs">
+                      <div className="bg-white rounded-2xl p-16 border border-gray-200/80 shadow-xs flex flex-col items-center justify-center text-center space-y-4 min-h-[460px]">
+                        <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-2xl shadow-2xs">
                           🚀
                         </div>
-
                         <div className="space-y-1.5 max-w-md">
-                          <h3 className="text-xl font-black text-gray-900 tracking-tight">
-                            Coming Soon
-                          </h3>
+                          <h3 className="text-xl font-black text-gray-900 tracking-tight">Coming Soon</h3>
                           <p className="text-xs text-gray-500 font-medium leading-relaxed">
                             The <strong className="text-emerald-800">{COMING_SOON_ROLES[selectedAuditorRole]}</strong> compliance suite and verification engines are currently under scheduled deployment.
                           </p>
                         </div>
-
                         <div className="pt-2">
                           <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-bold tracking-wide uppercase">
                             <span>⏳</span>

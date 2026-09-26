@@ -155,13 +155,11 @@ const ReferralModal = ({ isOpen, onClose }) => {
                         <div style={{ padding: '1.75rem 2rem' }}>
                             
                             {/* Key Incentives Box */}
-                            <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '16px', padding: '0.85rem 1.1rem', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: '800', color: '#065F46' }}>
-                                    <span>🎁 You earn <strong>500 Points</strong> when your referral becomes active.</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: '800', color: '#047857' }}>
-                                    <span>🚀 Earn <strong>1,000 Bonus Points</strong> if they upgrade to Premium.</span>
-                                </div>
+                            <div className="bg-emerald-50/80 border border-emerald-100 rounded-2xl p-3.5 space-y-1 mb-6">
+                                <p className="text-xs font-semibold text-emerald-900 flex items-center gap-2">
+                                    <span>🎁</span>
+                                    <span>You earn 200 Points when your referral becomes active.</span>
+                                </p>
                             </div>
 
                             {/* Link Input Section */}

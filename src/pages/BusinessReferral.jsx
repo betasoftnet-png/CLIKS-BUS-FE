@@ -504,7 +504,7 @@ const BusinessReferral = () => {
                                     { title: 'Single Referral Code Limit', desc: 'Each new user account can only redeem a single referral code during setup.', status: 'Active Enforcement' },
                                     { title: 'Stage-Gated Reward Unlock', desc: 'Rewards are not issued immediately for simple registration. Registration remains Pending until setup and activation stages complete.', status: 'Active Enforcement' },
                                     { title: 'Duplicate Reward Prevention', desc: 'Points are credited exactly ONCE per qualifying stage for each referred user. Re-triggering stages does not generate duplicate rewards.', status: 'Active Enforcement' },
-                                    { title: 'Stage-Based Tracking', desc: 'Referrals transition dynamically across Registered (Pending) → Setup Complete (100 Pts) → Active (500 Pts) → Premium (1,000 Bonus Pts).', status: 'Active Enforcement' }
+                                    { title: 'Stage-Based Tracking', desc: 'Referrals transition dynamically across Registered (Pending) → Setup Complete (100 Pts) → Active (200 Pts).', status: 'Active Enforcement' }
                                 ].map((rule, idx) => (
                                     <div key={idx} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '1.1rem 1.25rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                         <div>
