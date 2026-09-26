@@ -2593,114 +2593,117 @@ export default function BusinessCA({ mode }) {
                     </div>
 
                     {/* ========================================================================= */}
-                    {/* 2. SUB-NAVIGATION ROW (HIDDEN FOR ALL 4 COMING SOON ROLES)                */}
+                    {/* 2. SUB-NAVIGATION ROW (CONTAINED WHITE CARD MATCHING PICTURE 1)           */}
                     {/* ========================================================================= */}
                     {!isComingSoonRole && (
-                    <div className="flex items-center justify-between gap-3 mb-6 overflow-x-auto pb-1">
-                      <div className="flex items-center gap-3 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setActiveSubTab('home')}
-                          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
-                            activeSubTab === 'home' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-500 hover:text-gray-700'
-                          }`}
-                        >
-                          <span>🏠</span>
-                          <span>Home</span>
-                        </button>
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-2xs px-4 py-2.5 flex items-center justify-between gap-3 overflow-x-auto">
+                        
+                        {/* Left Sub-Nav Links */}
+                        <div className="flex items-center gap-4 shrink-0 text-xs font-bold">
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('home')}
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'home' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            <span>🏠</span>
+                            <span>Home</span>
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={() => setActiveSubTab('clients')}
-                          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
-                            activeSubTab === 'clients' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-500 hover:text-gray-700'
-                          }`}
-                        >
-                          <span>👤</span>
-                          <span>Clients</span>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('clients')}
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'clients' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            <span>👤</span>
+                            <span>Clients</span>
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={() => setActiveSubTab('tasks')}
-                          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
-                            activeSubTab === 'tasks' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-500 hover:text-gray-700'
-                          }`}
-                        >
-                          <span>☑️</span>
-                          <span>Tasks</span>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('tasks')}
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'tasks' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            <span>☑️</span>
+                            <span>Tasks</span>
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={() => setActiveSubTab('teams')}
-                          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
-                            activeSubTab === 'teams' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-500 hover:text-gray-700'
-                          }`}
-                        >
-                          <span>👥</span>
-                          <span>Teams</span>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('teams')}
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'teams' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            <span>👥</span>
+                            <span>Teams</span>
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={() => setActiveSubTab('time_tracking')}
-                          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
-                            activeSubTab === 'time_tracking' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-500 hover:text-gray-700'
-                          }`}
-                        >
-                          <span>🕒</span>
-                          <span>Time Tracking</span>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('time_tracking')}
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'time_tracking' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            <span>🕒</span>
+                            <span>Time Tracking</span>
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={() => setActiveSubTab('workpaper')}
-                          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
-                            activeSubTab === 'workpaper' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-500 hover:text-gray-700'
-                          }`}
-                        >
-                          <span>📄</span>
-                          <span>Workpaper</span>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('workpaper')}
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'workpaper' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            <span>📄</span>
+                            <span>Workpaper</span>
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={() => setActiveSubTab('senior_ca')}
-                          className={`text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
-                            activeSubTab === 'senior_ca' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-700 hover:text-gray-900'
-                          }`}
-                        >
-                          senior CA
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('senior_ca')}
+                            className={`transition-colors ${
+                              activeSubTab === 'senior_ca' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            senior CA
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={() => setActiveSubTab('report')}
-                          className={`text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
-                            activeSubTab === 'report' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-700 hover:text-gray-900'
-                          }`}
-                        >
-                          report
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('report')}
+                            className={`transition-colors ${
+                              activeSubTab === 'report' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            report
+                          </button>
+                        </div>
+
+                        {/* Right-Aligned Active Role Pill */}
+                        <div className="shrink-0 pl-3">
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('audit_suite')}
+                            className="px-3.5 py-1 bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-300/80 rounded-2xl text-[11px] font-bold text-emerald-800 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <span>
+                              {selectedAuditorRole === 'tax'
+                                ? 'Tax Auditor (ICAI CA)'
+                                : 'Statutory Financial Auditor (ICAI CA)'}
+                            </span>
+                          </button>
+                        </div>
+
                       </div>
-
-                      {/* RIGHT-ALIGNED CURRENT AUDITOR ROLE PILL (AS SEEN IN PICTURES 1 & 2) */}
-                      <div className="shrink-0 pl-2">
-                        <button
-                          type="button"
-                          onClick={() => setActiveSubTab('audit_suite')}
-                          className="px-3 py-1 bg-emerald-50/70 hover:bg-emerald-100/80 border border-emerald-200/90 rounded-xl text-[10px] font-bold text-emerald-800 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          <span>
-                            {selectedAuditorRole === 'tax'
-                              ? 'Tax Auditor (ICAI CA)'
-                              : 'Statutory Financial Auditor (ICAI CA)'}
-                          </span>
-                        </button>
-                      </div>
-                    </div>
                     )}
 
                     {/* ========================================================================= */}
