@@ -131,8 +131,11 @@ const BusinessPurposeWallet = () => {
     });
 
     const targetAmount = formData.target_amount;
-    const isTargetAmountValid = Boolean(targetAmount && Number(targetAmount) > 0);
-    const isSubmitDisabled = createMutation.isPending || updateMutation.isPending || !targetAmount || Number(targetAmount) <= 0;
+    const editingWallet = useMemo(() => wallets.find(w => String(w.id) === String(editingWalletId)), [wallets, editingWalletId]);
+    const savedAllocated = editingWallet ? parseFloat(editingWallet.current_amount ?? editingWallet.savedAllocated ?? editingWallet.savedAmount ?? 0) : 0;
+    const isTargetLessThanSaved = Boolean(editingWalletId && targetAmount !== '' && Number(targetAmount) < savedAllocated);
+    const isTargetAmountValid = Boolean(targetAmount && Number(targetAmount) > 0 && !isTargetLessThanSaved);
+    const isSubmitDisabled = createMutation.isPending || updateMutation.isPending || !targetAmount || Number(targetAmount) <= 0 || isTargetLessThanSaved;
 
     const closeCreateModal = () => {
         setIsCreateModalOpen(false);
@@ -188,6 +191,10 @@ const BusinessPurposeWallet = () => {
         const amt = parseInt(targetAmount, 10);
         if (isNaN(amt) || amt <= 0) {
             setError("Target amount must be strictly greater than 0");
+            return;
+        }
+        if (editingWalletId && amt < savedAllocated) {
+            setError("The target amount cannot be less than the amount already saved.");
             return;
         }
         if (editingWalletId) {
@@ -859,7 +866,7 @@ const BusinessPurposeWallet = () => {
                                     <input 
                                         required 
                                         type="number" 
-                                        min="1"
+                                        min={editingWalletId ? savedAllocated : 1}
                                         step="1"
                                         placeholder="0" 
                                         value={formData.target_amount} 
@@ -874,7 +881,10 @@ const BusinessPurposeWallet = () => {
                                                 val = val.replace(/^0+/, '') || '0';
                                             }
                                             setFormData({ ...formData, target_amount: val });
-                                            if (val && Number(val) > 0) {
+                                            const numVal = Number(val);
+                                            if (editingWalletId && val !== '' && numVal < savedAllocated) {
+                                                setError('The target amount cannot be less than the amount already saved.');
+                                            } else if (val && numVal > 0) {
                                                 setError('');
                                             } else if (val !== '') {
                                                 setError('Target amount must be greater than 0');
@@ -886,7 +896,7 @@ const BusinessPurposeWallet = () => {
                                             width: '100%', 
                                             padding: '0.9rem 1.1rem 0.9rem 2.25rem', 
                                             borderRadius: '14px', 
-                                            border: (targetAmount !== '' && (!targetAmount || Number(targetAmount) <= 0)) ? '1px solid #EF4444' : '1px solid #E2E8F0', 
+                                            border: (isTargetLessThanSaved || (targetAmount !== '' && (!targetAmount || Number(targetAmount) <= 0)) || error) ? '1px solid #EF4444' : '1px solid #E2E8F0', 
                                             outline: 'none', 
                                             fontWeight: '800', 
                                             fontSize: '1.1rem', 
@@ -894,11 +904,30 @@ const BusinessPurposeWallet = () => {
                                         }}
                                     />
                                 </div>
-                                {((targetAmount !== '' && Number(targetAmount) <= 0) || error) && (
-                                    <p style={{ color: '#EF4444', fontSize: '0.75rem', marginTop: '0.35rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                        <AlertCircle size={12} />
-                                        <span>{error || "Target amount must be greater than 0"}</span>
-                                    </p>
+                                {((targetAmount !== '' && Number(targetAmount) <= 0) || isTargetLessThanSaved || error) && (
+                                    <div 
+                                        className="validation-alert"
+                                        style={{ 
+                                            color: '#EF4444', 
+                                            background: '#FEF2F2',
+                                            border: '1px solid #FEE2E2',
+                                            borderRadius: '10px',
+                                            padding: '0.5rem 0.75rem',
+                                            fontSize: '0.8rem', 
+                                            marginTop: '0.5rem', 
+                                            fontWeight: 600, 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '0.4rem' 
+                                        }}
+                                    >
+                                        <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                                        <span>
+                                            {isTargetLessThanSaved 
+                                                ? "The target amount cannot be less than the amount already saved." 
+                                                : (error || "Target amount must be greater than 0")}
+                                        </span>
+                                    </div>
                                 )}
                             </div>
 

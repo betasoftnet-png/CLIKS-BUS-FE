@@ -37,8 +37,7 @@ const BusinessReferral = () => {
     const [referralLink, setReferralLink] = useState('');
     const [wallet, setWallet] = useState({ available_points: 0, pending_points: 0, total_earned_points: 0 });
     const [referralsList, setReferralsList] = useState([]);
-    const [redemptionsLog, setRedemptionsLog] = useState([]);
-    const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'store' | 'anti-fraud'
+    const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'anti-fraud'
     
     // Redeem Code State
     const [inputReferralCode, setInputReferralCode] = useState('');
@@ -322,19 +321,6 @@ const BusinessReferral = () => {
                         <Users size={16} /> Referral Progress Dashboard
                     </button>
                     <button 
-                        onClick={() => setActiveTab('store')}
-                        style={{ 
-                            padding: '0.65rem 1.25rem', borderRadius: '12px', border: 'none',
-                            background: activeTab === 'store' ? '#064E3B' : '#FFFFFF',
-                            color: activeTab === 'store' ? '#FFFFFF' : '#475569',
-                            fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            boxShadow: activeTab === 'store' ? '0 4px 12px rgba(6,78,59,0.2)' : 'none'
-                        }}
-                    >
-                        <ShoppingBag size={16} /> Points Redemption Center ({REDEMPTION_CATALOG.length} Rewards)
-                    </button>
-                    <button 
                         onClick={() => setActiveTab('anti-fraud')}
                         style={{ 
                             padding: '0.65rem 1.25rem', borderRadius: '12px', border: 'none',
@@ -513,95 +499,7 @@ const BusinessReferral = () => {
                     </div>
                 )}
 
-                {/* TAB 2: REDEMPTION CENTER */}
-                {activeTab === 'store' && (
-                    <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                            <div>
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#1E293B', margin: 0 }}>Points Redemption Store</h3>
-                                <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748B', fontWeight: '500' }}>Use your available points for subscription discounts, extensions, advanced reports, and extra storage.</p>
-                            </div>
-                            <div style={{ background: '#ECFDF5', color: '#064E3B', padding: '0.5rem 1rem', borderRadius: '12px', fontWeight: '900', fontSize: '0.9rem', border: '1px solid #A7F3D0' }}>
-                                🪙 Balance: {wallet.available_points} Points
-                            </div>
-                        </div>
-
-                        {/* Catalog Cards Grid */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
-                            {REDEMPTION_CATALOG.map((item) => {
-                                const canAfford = wallet.available_points >= item.cost;
-                                return (
-                                    <div key={item.id} style={{ background: 'white', borderRadius: '20px', border: '1px solid #E2E8F0', padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                                        <div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                                <span style={{ background: '#F1F5F9', color: '#475569', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>
-                                                    {item.category}
-                                                </span>
-                                                <span style={{ background: '#ECFDF5', color: '#047857', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800' }}>
-                                                    {item.badge}
-                                                </span>
-                                            </div>
-                                            <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '1.05rem', fontWeight: '850', color: '#1E293B' }}>{item.title}</h4>
-                                            <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.8rem', color: '#64748B', lineHeight: '1.4' }}>{item.desc}</p>
-                                        </div>
-
-                                        <div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '1rem', marginBottom: '1rem' }}>
-                                                <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '700' }}>Points Cost</span>
-                                                <span style={{ fontSize: '1.2rem', fontWeight: '950', color: '#064E3B' }}>{item.cost} Pts</span>
-                                            </div>
-
-                                            <button 
-                                                onClick={() => handleRedeemReward(item.id)}
-                                                disabled={!canAfford}
-                                                style={{ 
-                                                    width: '100%', padding: '0.75rem', borderRadius: '12px', border: 'none',
-                                                    background: canAfford ? 'linear-gradient(135deg, #064E3B 0%, #047857 100%)' : '#E2E8F0',
-                                                    color: canAfford ? 'white' : '#94A3B8',
-                                                    fontWeight: '850', fontSize: '0.85rem', cursor: canAfford ? 'pointer' : 'not-allowed',
-                                                    boxShadow: canAfford ? '0 4px 12px rgba(6,78,59,0.15)' : 'none'
-                                                }}
-                                            >
-                                                {canAfford ? 'Redeem Now 🎁' : `Need ${item.cost - wallet.available_points} More Pts`}
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        {/* Redemption Log Table */}
-                        {redemptionsLog.length > 0 && (
-                            <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '1.5rem' }}>
-                                <h4 style={{ margin: '0 0 1rem 0', fontSize: '1rem', fontWeight: '850', color: '#1E293B' }}>Redemption History</h4>
-                                <div style={{ border: '1px solid #E2E8F0', borderRadius: '16px', overflow: 'hidden' }}>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
-                                        <thead style={{ background: '#F8FAFC' }}>
-                                            <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
-                                                <th style={{ padding: '0.75rem 1rem', color: '#64748B' }}>Reward Title</th>
-                                                <th style={{ padding: '0.75rem 1rem', color: '#64748B' }}>Category</th>
-                                                <th style={{ padding: '0.75rem 1rem', color: '#64748B' }}>Cost</th>
-                                                <th style={{ padding: '0.75rem 1rem', color: '#64748B', textAlign: 'right' }}>Date</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {redemptionsLog.map(log => (
-                                                <tr key={log.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                    <td style={{ padding: '0.75rem 1rem', fontWeight: '800' }}>{log.title}</td>
-                                                    <td style={{ padding: '0.75rem 1rem' }}>{log.category}</td>
-                                                    <td style={{ padding: '0.75rem 1rem', fontWeight: '900', color: '#DC2626' }}>-{log.cost} Pts</td>
-                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#64748B' }}>{new Date(log.redeemed_at).toLocaleDateString()}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* TAB 3: ANTI-FRAUD RULES & PROTECTION */}
+                {/* TAB 2: ANTI-FRAUD RULES & PROTECTION */}
                 {activeTab === 'anti-fraud' && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem' }}>
                         <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '1.75rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
