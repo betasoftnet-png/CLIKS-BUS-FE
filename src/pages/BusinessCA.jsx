@@ -24,10 +24,41 @@ export default function BusinessCA({ mode }) {
     const { user } = useAuth();
     const [activeTab] = useState('auditor'); // auditor | ca_cpa | cs_vault | consultant
 
-    const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports
+    const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports | senior_ca
+    const [selectedAuditorRole, setSelectedAuditorRoleState] = useState('statutory');
+    const [activeSubTab, setActiveSubTabState] = useState('home');
     const [activeRoleTab, setActiveRoleTab] = useState('statutory');
     const [activeAuditorCategory, setActiveAuditorCategory] = useState("Statutory Financial Auditor (ICAI CA)");
     const [activeSuiteTool, setActiveSuiteTool] = useState('tool1');
+
+    const setSelectedAuditorRole = (role) => {
+        setSelectedAuditorRoleState(role);
+        setActiveRoleTab(role);
+        const roleCategoryMap = {
+            statutory: "Statutory Financial Auditor (ICAI CA)",
+            tax: "Tax Auditor (ICAI CA)",
+            internal: "Internal Auditor (CIA / CA / CMA)",
+            cost: "Cost Auditor (ICMAI CMA)",
+            secretarial: "Secretarial Auditor (ICSI CS)",
+            forensic: "Forensic Auditor (ICAI FAFD / CFE)"
+        };
+        if (roleCategoryMap[role]) {
+            setActiveAuditorCategory(roleCategoryMap[role]);
+        }
+    };
+
+    const setActiveSubTab = (tab) => {
+        setActiveSubTabState(tab);
+        if (tab === 'time_tracking') setPersonalTab('timetracking');
+        else if (tab === 'report') setPersonalTab('reports');
+        else setPersonalTab(tab);
+    };
+
+    useEffect(() => {
+        if (personalTab === 'timetracking') setActiveSubTabState('time_tracking');
+        else if (personalTab === 'reports') setActiveSubTabState('report');
+        else setActiveSubTabState(personalTab);
+    }, [personalTab]);
 
     const auditorCategories = [
         "Statutory Financial Auditor (ICAI CA)",
@@ -2444,284 +2475,216 @@ export default function BusinessCA({ mode }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
 
 
-                    {/* Auditor Category Workflow Switch Bar */}
-                    <div 
-                        className="flex flex-col gap-3 w-full"
-                        style={{
-                            background: '#FFFFFF',
-                            borderRadius: '16px',
-                            border: '1px solid #E2E8F0',
-                            padding: '12px 16px',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)',
-                            width: '100%'
-                        }}
-                    >
-                        {/* Top Row: VERIFY ICAI Button on Top-Right */}
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', width: '100%' }}>
-                            {icaiVerification.status === 'VERIFIED' ? (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsEditMode(false);
-                                        setIsIcaiModalOpen(true);
-                                    }}
-                                    className="bg-emerald-600 text-white px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-emerald-700 transition-all cursor-pointer"
-                                    style={{
-                                        background: '#059669',
-                                        color: '#FFFFFF',
-                                        padding: '6px 16px',
-                                        borderRadius: '9999px',
-                                        fontSize: '12px',
-                                        fontWeight: '700',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '6px',
-                                        boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)'
-                                    }}
-                                >
-                                    <ShieldCheck size={14} />
-                                    <span>ICAI Verified ✓</span>
-                                </button>
-                            ) : icaiVerification.status === 'PENDING_REVIEW' ? (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsEditMode(false);
-                                        setIsIcaiModalOpen(true);
-                                    }}
-                                    className="bg-amber-50 text-amber-700 border border-amber-300 px-4 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 hover:bg-amber-100 transition-all cursor-pointer shadow-sm"
-                                    style={{
-                                        background: '#FFFBEB',
-                                        color: '#B45309',
-                                        border: '1px solid #FCD34D',
-                                        padding: '6px 16px',
-                                        borderRadius: '9999px',
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        cursor: 'pointer',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '6px'
-                                    }}
-                                >
-                                    <Clock size={13} />
-                                    <span>ICAI Verification: Pending Admin Approval</span>
-                                </button>
-                            ) : icaiVerification.status === 'REJECTED' ? (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsEditMode(true);
-                                        setIcaiFormData({
-                                            fullName: icaiVerification.fullName || '',
-                                            firmName: icaiVerification.firmName || '',
-                                            membershipNo: icaiVerification.membershipNo || '',
-                                            email: icaiVerification.email || user?.email || '',
-                                            copStatus: icaiVerification.copStatus || 'ACTIVE',
-                                            associateFellow: icaiVerification.associateFellow || 'Associate (ACA)',
-                                            address: icaiVerification.address || '',
-                                            region: icaiVerification.region || 'Southern'
-                                        });
-                                        setIsIcaiModalOpen(true);
-                                    }}
-                                    className="border border-rose-500 bg-rose-50 text-rose-600 px-4 py-1.5 rounded-full text-xs font-bold cursor-pointer hover:bg-rose-100 transition-all flex items-center gap-1.5 shadow-sm"
-                                    style={{
-                                        background: '#FFF1F2',
-                                        color: '#E11D48',
-                                        border: '1px solid #F43F5E',
-                                        padding: '6px 16px',
-                                        borderRadius: '9999px',
-                                        fontSize: '12px',
-                                        fontWeight: '700',
-                                        cursor: 'pointer',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '6px'
-                                    }}
-                                >
-                                    <AlertTriangle size={13} />
-                                    <span>ICAI Verification Rejected ✕ (Re-submit)</span>
-                                </button>
-                            ) : (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsEditMode(true);
-                                        setIsIcaiModalOpen(true);
-                                    }}
-                                    className="border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 px-4 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
-                                    style={{
-                                        background: 'transparent',
-                                        color: '#047857',
-                                        border: '2px solid #059669',
-                                        padding: '6px 16px',
-                                        borderRadius: '9999px',
-                                        fontSize: '12px',
-                                        fontWeight: '800',
-                                        letterSpacing: '0.03em',
-                                        cursor: 'pointer',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '6px',
-                                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-                                    }}
-                                >
-                                    <Award size={14} />
-                                    <span>VERIFY ICAI</span>
-                                </button>
-                            )}
-                        </div>
+                    {/* ========================================================================= */}
+                    {/* 1. TOP AUDITOR ROLE SELECTION STRIP                                       */}
+                    {/* ========================================================================= */}
+                    <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-3xl border border-gray-100 shadow-2xs mb-6 overflow-x-auto">
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/* Tab 1: Statutory Financial Auditor */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAuditorRole('statutory')}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                            selectedAuditorRole === 'statutory'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs'
+                              : 'bg-gray-50/70 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'statutory' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                          <span>Statutory Financial Auditor (ICAI CA)</span>
+                        </button>
 
-                        {/* Bottom Row (Below): 7 Workspace Tabs Full Horizontal Row */}
-                        <div style={{
-                            display: 'flex',
-                            gap: '8px',
-                            alignItems: 'center',
-                            overflowX: 'auto',
-                            whiteSpace: 'nowrap',
-                            WebkitOverflowScrolling: 'touch',
-                            scrollbarWidth: 'none',
-                            width: '100%'
-                        }}>
-                            {auditorCategories.map((category) => {
-                                const isActive = activeAuditorCategory === category;
-                                return (
-                                    <button
-                                        key={category}
-                                        type="button"
-                                        onClick={() => {
-                                            setActiveAuditorCategory(category);
-                                            const c = (category || '').toLowerCase();
-                                            if (c.includes('tax')) setActiveRoleTab('tax_auditor');
-                                            else if (c.includes('internal')) setActiveRoleTab('internal_auditor');
-                                            else if (c.includes('cost')) setActiveRoleTab('cost_auditor');
-                                            else if (c.includes('secretarial')) setActiveRoleTab('secretarial_auditor');
-                                            else if (c.includes('forensic')) setActiveRoleTab('forensic_auditor');
-                                            else setActiveRoleTab('statutory');
-                                            setActiveSuiteTool('tool1');
-                                            setPersonalTab('auditor_desk');
-                                        }}
-                                        style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            padding: '9px 15px',
-                                            borderRadius: '10px',
-                                            border: isActive ? '1.5px solid #15803d' : '1px solid #E2E8F0',
-                                            background: isActive ? '#F0FDF4' : '#F8FAFC',
-                                            color: isActive ? '#15803d' : '#475569',
-                                            fontWeight: isActive ? '800' : '600',
-                                            fontSize: '12.5px',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.15s ease-in-out',
-                                            boxShadow: isActive ? '0 2px 4px rgba(21, 128, 61, 0.12)' : 'none',
-                                            flexShrink: 0
-                                        }}
-                                    >
-                                        <span style={{
-                                            width: '7px',
-                                            height: '7px',
-                                            borderRadius: '50%',
-                                            background: isActive ? '#16A34A' : '#94A3B8',
-                                            display: 'inline-block'
-                                        }} />
-                                        <span>{category}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
+                        {/* Tab 2: Tax Auditor */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAuditorRole('tax')}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                            selectedAuditorRole === 'tax'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs'
+                              : 'bg-gray-50/70 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'tax' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                          <span>Tax Auditor (ICAI CA)</span>
+                        </button>
+
+                        {/* Tab 3: Internal Auditor */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAuditorRole('internal')}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                            selectedAuditorRole === 'internal'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs'
+                              : 'bg-gray-50/70 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'internal' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                          <span>Internal Auditor (CIA / CA / CMA)</span>
+                        </button>
+
+                        {/* Tab 4: Cost Auditor */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAuditorRole('cost')}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                            selectedAuditorRole === 'cost'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs'
+                              : 'bg-gray-50/70 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'cost' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                          <span>Cost Auditor (ICMAI CMA)</span>
+                        </button>
+
+                        {/* Tab 5: Secretarial Auditor */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAuditorRole('secretarial')}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                            selectedAuditorRole === 'secretarial'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs'
+                              : 'bg-gray-50/70 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'secretarial' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                          <span>Secretarial Auditor (ICSI CS)</span>
+                        </button>
+
+                        {/* Tab 6: Forensic Auditor */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAuditorRole('forensic')}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                            selectedAuditorRole === 'forensic'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs'
+                              : 'bg-gray-50/70 text-gray-600 hover:bg-gray-100 border border-gray-100'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'forensic' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                          <span>Forensic Auditor</span>
+                        </button>
+                      </div>
+
+                      {/* VERIFY ICAI BUTTON */}
+                      <button
+                        type="button"
+                        onClick={handleVerifyIcaiModal}
+                        className="px-3.5 py-1.5 border border-emerald-600 text-emerald-700 hover:bg-emerald-50 rounded-2xl text-xs font-bold shrink-0 transition-colors inline-flex items-center gap-1.5"
+                      >
+                        <span>🔖</span>
+                        <span>VERIFY ICAI</span>
+                      </button>
                     </div>
 
-                    {/* 7-Tab Sub-Navigation Bar — Row 2 */}
-                    <div style={{
-                        background: '#FFFFFF',
-                        borderRadius: '12px',
-                        border: '1px solid #E2E8F0',
-                        padding: '6px 12px',
-                        display: 'flex',
-                        gap: '4px',
-                        alignItems: 'center',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                        overflowX: 'auto',
-                        whiteSpace: 'nowrap',
-                        WebkitOverflowScrolling: 'touch',
-                        scrollbarWidth: 'none'
-                    }}>
-                        {sidebarTabs.map((tab) => {
-                            const TabIcon = tab.icon;
-                            const isActive = tab.id === 'auditor_desk'
-                                ? (personalTab === 'auditor_desk' && activeAuditorCategory === "FIN-PRO Advisory Workspace")
-                                : (personalTab === tab.id ||
-                                  (tab.id === 'clients' && personalTab === 'requests') ||
-                                  (tab.id === 'teams' && personalTab === 'team_requests'));
-                            const isAuditorTab = tab.id === 'auditor_desk';
-                            return (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => {
-                                        if (tab.id === 'auditor_desk') {
-                                            setActiveAuditorCategory("FIN-PRO Advisory Workspace");
-                                            setActiveRoleTab('finpro');
-                                        }
-                                        setPersonalTab(tab.id);
-                                    }}
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        flexShrink: 0,
-                                        gap: '7px',
-                                        padding: isAuditorTab ? '8px 14px' : '8px 14px',
-                                        borderRadius: isAuditorTab ? '8px' : '8px',
-                                        border: isAuditorTab
-                                            ? (isActive ? '1.5px solid #15803d' : '1px solid #BBF7D0')
-                                            : 'none',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.18s',
-                                        background: isAuditorTab
-                                            ? (isActive ? '#15803d' : '#F0FDF4')
-                                            : (isActive ? '#F0FDF4' : 'transparent'),
-                                        color: isAuditorTab
-                                            ? (isActive ? '#FFFFFF' : '#15803d')
-                                            : (isActive ? '#15803d' : '#475569'),
-                                        fontWeight: isActive ? '700' : '600',
-                                        fontSize: '13px'
-                                    }}
-                                    onMouseEnter={e => {
-                                        if (!isActive && !isAuditorTab) {
-                                            e.currentTarget.style.background = '#F8FAFC';
-                                            e.currentTarget.style.color = '#0F172A';
-                                        }
-                                    }}
-                                    onMouseLeave={e => {
-                                        if (!isActive && !isAuditorTab) {
-                                            e.currentTarget.style.background = 'transparent';
-                                            e.currentTarget.style.color = '#475569';
-                                        }
-                                    }}
-                                >
-                                    <TabIcon size={15} style={{ color: isAuditorTab ? (isActive ? '#FFFFFF' : '#15803d') : (isActive ? '#15803d' : '#64748B') }} />
-                                    <span>{tab.label}</span>
-                                    {/* Dynamic Badges */}
-                                    {tab.id === 'clients' && practiceRequests.filter(r => r.status === 'Awaiting Client').length > 0 && (
-                                        <span style={{ fontSize: '10px', fontWeight: '900', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
-                                            {practiceRequests.filter(r => r.status === 'Awaiting Client').length}
-                                        </span>
-                                    )}
-                                    {tab.id === 'tasks' && practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length > 0 && (
-                                        <span style={{ fontSize: '10px', fontWeight: '900', background: '#FFFBEB', color: '#D97706', border: '1px solid #FEF3C7', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
-                                            {practiceTasks.filter(t => t.status !== 'Completed' && t.status !== 'Approved' && t.status !== 'Verified').length}
-                                        </span>
-                                    )}
-                                    {tab.id === 'teams' && teamRequests.filter(r => r.status === 'Pending').length > 0 && (
-                                        <span style={{ fontSize: '10px', fontWeight: '900', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '8px', marginLeft: '2px' }}>
-                                            {teamRequests.filter(r => r.status === 'Pending').length}
-                                        </span>
-                                    )}
-                                </button>
-                            );
-                        })}
+                    {/* ========================================================================= */}
+                    {/* 2. SUB-NAVIGATION ROW (MATCHING PICTURES 1 & 2 EXACTLY)                    */}
+                    {/* ========================================================================= */}
+                    <div className="flex items-center justify-between gap-3 mb-6 overflow-x-auto pb-1">
+                      <div className="flex items-center gap-3 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setActiveSubTab('home')}
+                          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
+                            activeSubTab === 'home' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          <span>🏠</span>
+                          <span>Home</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setActiveSubTab('clients')}
+                          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
+                            activeSubTab === 'clients' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          <span>👤</span>
+                          <span>Clients</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setActiveSubTab('tasks')}
+                          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
+                            activeSubTab === 'tasks' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          <span>☑️</span>
+                          <span>Tasks</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setActiveSubTab('teams')}
+                          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
+                            activeSubTab === 'teams' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          <span>👥</span>
+                          <span>Teams</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setActiveSubTab('time_tracking')}
+                          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
+                            activeSubTab === 'time_tracking' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          <span>🕒</span>
+                          <span>Time Tracking</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setActiveSubTab('workpaper')}
+                          className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
+                            activeSubTab === 'workpaper' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          <span>📄</span>
+                          <span>Workpaper</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setActiveSubTab('senior_ca')}
+                          className={`text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
+                            activeSubTab === 'senior_ca' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-700 hover:text-gray-900'
+                          }`}
+                        >
+                          senior CA
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setActiveSubTab('report')}
+                          className={`text-xs font-bold px-2 py-1.5 rounded-lg transition-colors ${
+                            activeSubTab === 'report' ? 'text-gray-900 bg-gray-100/80' : 'text-gray-700 hover:text-gray-900'
+                          }`}
+                        >
+                          report
+                        </button>
+                      </div>
+
+                      {/* RIGHT-ALIGNED CURRENT AUDITOR ROLE PILL (AS SEEN IN PICTURES 1 & 2) */}
+                      <div className="shrink-0 pl-2">
+                        <div className="px-3 py-1 bg-emerald-50/70 border border-emerald-200/90 rounded-xl text-[10px] font-bold text-emerald-800 flex items-center gap-1.5 shadow-2xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <span>
+                            {selectedAuditorRole === 'tax'
+                              ? 'Tax Auditor (ICAI CA)'
+                              : selectedAuditorRole === 'internal'
+                              ? 'Internal Auditor (CIA / CA / CMA)'
+                              : selectedAuditorRole === 'cost'
+                              ? 'Cost Auditor (ICMAI CMA)'
+                              : selectedAuditorRole === 'secretarial'
+                              ? 'Secretarial Auditor (ICSI CS)'
+                              : 'Statutory Financial Auditor (ICAI CA)'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Auditor Category Specialized Suite Card */}
@@ -5233,7 +5196,7 @@ export default function BusinessCA({ mode }) {
                             )}
 
                             {/* 9. REPORTS TAB */}
-                            {personalTab === 'reports' && (
+                            {(personalTab === 'reports' || personalTab === 'report' || activeSubTab === 'report') && (
                                 <Motion.div key="reports" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                     <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -5356,7 +5319,7 @@ export default function BusinessCA({ mode }) {
                             )}
 
                             {/* 9. SENIOR CA TAB */}
-                            {personalTab === 'senior_ca' && (
+                            {(personalTab === 'senior_ca' || activeSubTab === 'senior_ca') && (
                                 <Motion.div key="senior_ca" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                     <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
