@@ -15,6 +15,8 @@ import { useCurrency, useAuth } from '../context';
 import FilterableTableHead from '../components/FilterableTableHead';
 import FinProPracticeSuite from '../components/FinProPracticeSuite';
 import TaxAuditSuite from '../components/TaxAuditSuite';
+import StatutoryFinancialAuditSuite from '../components/ca/StatutoryFinancialAuditSuite';
+import TaxAuditForm3CDHub from '../components/ca/TaxAuditForm3CDHub';
 import { applyTableFilters } from '../utils/filterUtils';
 
 export default function BusinessCA({ mode }) {
@@ -2700,16 +2702,21 @@ export default function BusinessCA({ mode }) {
 
                     {/* Auditor Category Specialized Suite Card */}
                     {(activeSubTab === 'audit_suite' || personalTab === 'audit_suite' || personalTab === 'auditor_desk') && (
-                        <div style={{
-                            background: '#FFFFFF',
-                            borderRadius: '16px',
-                            border: '1px solid #E2E8F0',
-                            padding: '24px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '20px',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-                        }}>
+                        activeAuditorCategory === "Statutory Financial Auditor (ICAI CA)" ? (
+                            <StatutoryFinancialAuditSuite />
+                        ) : activeAuditorCategory === "Tax Auditor (ICAI CA)" ? (
+                            <TaxAuditForm3CDHub />
+                        ) : (
+                            <div style={{
+                                background: '#FFFFFF',
+                                borderRadius: '16px',
+                                border: '1px solid #E2E8F0',
+                                padding: '24px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '20px',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+                            }}>
                             {(() => {
                                 let title = "";
                                 let goal = "";
@@ -3256,7 +3263,8 @@ export default function BusinessCA({ mode }) {
                                     </div>
                                 );
                             })()}
-                        </div>
+                            </div>
+                        )
                     )}
 
                     {/* Main Content Workspace Container */}
