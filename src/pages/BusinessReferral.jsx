@@ -39,6 +39,8 @@ const BusinessReferral = () => {
     const [referralsList, setReferralsList] = useState([]);
     const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'anti-fraud'
     
+    const pointsBalance = wallet?.available_points;
+    
     // Redeem Code State
     const [inputReferralCode, setInputReferralCode] = useState('');
     const [redeemMessage, setRedeemMessage] = useState(null);
@@ -146,59 +148,42 @@ const BusinessReferral = () => {
             {/* Main Content Area */}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
 
-                {/* Hero Splendor Banner */}
-                <div style={{ 
-                    background: 'linear-gradient(135deg, #064E3B 0%, #0F766E 100%)', 
-                    borderRadius: '28px', 
-                    padding: '2.5rem', 
-                    color: 'white', 
-                    position: 'relative',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '2rem',
-                    boxShadow: '0 20px 40px rgba(6, 78, 59, 0.15)'
-                }}>
-                    <div style={{ maxWidth: '60%', zIndex: 1 }}>
-                        <div style={{ background: 'rgba(255, 255, 255, 0.15)', padding: '0.4rem 0.9rem', borderRadius: '99px', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                            <Sparkles size={15} color="#FCD34D" />
-                            <span style={{ fontSize: '0.78rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cliks Partner Network</span>
-                        </div>
-                        <h2 style={{ fontSize: '2.25rem', fontWeight: '950', margin: '0 0 0.75rem 0', lineHeight: 1.15, letterSpacing: '-0.02em' }}>
-                            Refer & Earn Premium
-                        </h2>
-                        
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', opacity: 0.95 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem', fontWeight: '700', color: '#A7F3D0' }}>
-                                <span>🎁 You earn <strong>500 Points</strong> when your referral becomes active.</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem', fontWeight: '700', color: '#FCD34D' }}>
-                                <span>🚀 Earn <strong>1,000 Bonus Points</strong> if they upgrade to Premium.</span>
-                            </div>
-                        </div>
+                {/* GREEN REFERRAL HERO BANNER */}
+                <div className="bg-[#0e4b34] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm mb-8">
+                  <div className="space-y-3 max-w-xl">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-emerald-200 text-[10px] font-black tracking-wider uppercase backdrop-blur-xs">
+                      <span>✨</span>
+                      <span>CLIKS PARTNER NETWORK</span>
                     </div>
 
-                    {/* Referral Wallet Quick Pill */}
-                    <div style={{ 
-                        background: 'rgba(255, 255, 255, 0.12)', 
-                        backdropFilter: 'blur(16px)', 
-                        border: '1px solid rgba(255,255,255,0.25)', 
-                        borderRadius: '24px', 
-                        padding: '1.75rem',
-                        textAlign: 'center',
-                        minWidth: '260px',
-                        zIndex: 1
-                    }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#FCD34D', color: '#78350F', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem auto', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }}>
-                            <Coins size={24} />
-                        </div>
-                        <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#D1FAE5', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>Referral Points Balance</span>
-                        <h3 style={{ fontSize: '2.5rem', fontWeight: '950', margin: 0, color: '#FFFFFF', lineHeight: 1 }}>{wallet.available_points}</h3>
-                        <p style={{ margin: '0.6rem 0 0 0', fontSize: '0.8rem', fontWeight: '700', color: '#A7F3D0' }}>
-                            {wallet.pending_points} Points Pending 🕒
-                        </p>
+                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                      Refer &amp; Earn Premium
+                    </h2>
+
+                    {/* UPDATED COPY: Single reward line with 200 Points */}
+                    <div className="space-y-1 pt-1">
+                      <p className="text-xs sm:text-sm font-semibold text-emerald-100 flex items-center gap-2">
+                        <span>🎁</span>
+                        <span>You earn 200 Points when your referral becomes active.</span>
+                      </p>
                     </div>
+                  </div>
+
+                  {/* RIGHT SIDE: REFERRAL POINTS BALANCE CARD */}
+                  <div className="bg-white/10 border border-white/15 rounded-2xl p-5 min-w-[220px] text-center backdrop-blur-sm self-stretch md:self-auto flex flex-col items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-amber-400/20 text-amber-300 flex items-center justify-center text-lg mx-auto mb-2">
+                      🪙
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200 block">
+                      REFERRAL POINTS BALANCE
+                    </span>
+                    <span className="text-2xl font-black text-white block mt-0.5">
+                      {pointsBalance ?? 100}
+                    </span>
+                    <span className="text-[10px] text-emerald-200/80 font-medium block mt-1">
+                      0 Points Pending 🕒
+                    </span>
+                  </div>
                 </div>
 
                 {/* 3 Referral Wallet Summary Cards */}
