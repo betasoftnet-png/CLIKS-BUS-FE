@@ -324,7 +324,8 @@ function AuthenticatedApp() {
                 <Route path="/finance/accounting" element={<FeatureGate feature="accounting" requiredPlanName="Starter Plan"><BusinessAccounting /></FeatureGate>} />
                 <Route path="/finance/gst" element={<FeatureGate feature="gst-filings" requiredPlanName="Starter Plan"><BusinessGST /></FeatureGate>} />
                 <Route path="/finance/tax" element={<FeatureGate feature="gst-filings" requiredPlanName="Starter Plan"><BusinessGST /></FeatureGate>} />
-                <Route path="/finance/fittech" element={<BusinessCA mode="business" />} />
+                <Route path="/finance/fintech" element={<BusinessCA mode="business" />} />
+                <Route path="/finance/fittech" element={<Navigate to="/finance/fintech" replace />} />
                 <Route path="/marketing" element={<BusinessMarketing />} />
                 <Route path="/ca" element={<BusinessCA mode="personal" />} />
                 <Route path="/sales/delivery" element={<BusinessDelivery />} />

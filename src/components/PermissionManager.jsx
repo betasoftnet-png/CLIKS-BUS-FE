@@ -39,9 +39,9 @@ const PERMISSIONS_HIERARCHY = [
         ]
       },
       {
-        label: 'FitTech',
+        label: 'FinTech',
         children: [
-          { id: 140, label: 'Finance FitTech Access' }
+          { id: 140, label: 'Finance FinTech Access' }
         ]
       }
     ]
