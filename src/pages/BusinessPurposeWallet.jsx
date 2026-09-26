@@ -75,6 +75,8 @@ const BusinessPurposeWallet = () => {
         }
     });
 
+    const wallets = Array.isArray(responseData) ? responseData : [];
+
     // Mutations
     const createMutation = useMutation({
         mutationFn: goalWalletService.createWallet,
@@ -223,7 +225,6 @@ const BusinessPurposeWallet = () => {
     };
 
     // Derived Statistics
-    const wallets = Array.isArray(responseData) ? responseData : [];
     const activeWallets = wallets.filter(w => !isWalletClaimed(w)).length;
     const totalAllocated = wallets.reduce((sum, w) => sum + parseFloat(w.current_amount || 0), 0);
     const totalTarget = wallets.reduce((sum, w) => sum + parseFloat(w.target_amount || 0), 0);
