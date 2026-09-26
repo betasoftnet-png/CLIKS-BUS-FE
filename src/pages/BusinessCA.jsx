@@ -25,11 +25,11 @@ export default function BusinessCA({ mode }) {
     const [activeTab] = useState('auditor'); // auditor | ca_cpa | cs_vault | consultant
 
     const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports
-    const [activeAuditorCategory, setActiveAuditorCategory] = useState("FIN-PRO Advisory Workspace");
+    const [activeRoleTab, setActiveRoleTab] = useState('statutory');
+    const [activeAuditorCategory, setActiveAuditorCategory] = useState("Statutory Financial Auditor (ICAI CA)");
     const [activeSuiteTool, setActiveSuiteTool] = useState('tool1');
 
     const auditorCategories = [
-        "FIN-PRO Advisory Workspace",
         "Statutory Financial Auditor (ICAI CA)",
         "Tax Auditor (ICAI CA)",
         "Internal Auditor (CIA / CA / CMA)",
@@ -909,7 +909,8 @@ export default function BusinessCA({ mode }) {
         { id: 'tasks', label: 'Tasks', icon: CheckCircle2, badge: null },
         { id: 'teams', label: 'Teams', icon: Users, badge: null },
         { id: 'timetracking', label: 'Time Tracking', icon: Clock, badge: null },
-        { id: 'workpaper', label: 'Workpaper', icon: FileText }
+        { id: 'workpaper', label: 'Workpaper', icon: FileText },
+        { id: 'auditor_desk', label: 'FIN-PRO Advisory Workspace', icon: Briefcase }
     ];
 
     // Timer Effect
@@ -928,6 +929,11 @@ export default function BusinessCA({ mode }) {
         const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
         const secs = String(totalSeconds % 60).padStart(2, '0');
         return `${hrs}:${mins}:${secs}`;
+    };
+
+    const handleVerifyIcaiModal = () => {
+        setIsEditMode(true);
+        setIsIcaiModalOpen(true);
     };
 
     const handleInviteCA = (e) => {
@@ -2587,6 +2593,13 @@ export default function BusinessCA({ mode }) {
                                         type="button"
                                         onClick={() => {
                                             setActiveAuditorCategory(category);
+                                            const c = (category || '').toLowerCase();
+                                            if (c.includes('tax')) setActiveRoleTab('tax_auditor');
+                                            else if (c.includes('internal')) setActiveRoleTab('internal_auditor');
+                                            else if (c.includes('cost')) setActiveRoleTab('cost_auditor');
+                                            else if (c.includes('secretarial')) setActiveRoleTab('secretarial_auditor');
+                                            else if (c.includes('forensic')) setActiveRoleTab('forensic_auditor');
+                                            else setActiveRoleTab('statutory');
                                             setActiveSuiteTool('tool1');
                                             setPersonalTab('auditor_desk');
                                         }}
@@ -2638,14 +2651,22 @@ export default function BusinessCA({ mode }) {
                     }}>
                         {sidebarTabs.map((tab) => {
                             const TabIcon = tab.icon;
-                            const isActive = personalTab === tab.id ||
-                                (tab.id === 'clients' && personalTab === 'requests') ||
-                                (tab.id === 'teams' && personalTab === 'team_requests');
+                            const isActive = tab.id === 'auditor_desk'
+                                ? (personalTab === 'auditor_desk' && activeAuditorCategory === "FIN-PRO Advisory Workspace")
+                                : (personalTab === tab.id ||
+                                  (tab.id === 'clients' && personalTab === 'requests') ||
+                                  (tab.id === 'teams' && personalTab === 'team_requests'));
                             const isAuditorTab = tab.id === 'auditor_desk';
                             return (
                                 <button
                                     key={tab.id}
-                                    onClick={() => setPersonalTab(tab.id)}
+                                    onClick={() => {
+                                        if (tab.id === 'auditor_desk') {
+                                            setActiveAuditorCategory("FIN-PRO Advisory Workspace");
+                                            setActiveRoleTab('finpro');
+                                        }
+                                        setPersonalTab(tab.id);
+                                    }}
                                     style={{
                                         display: 'inline-flex',
                                         alignItems: 'center',
