@@ -2673,21 +2673,23 @@ export default function BusinessCA({ mode }) {
                           <button
                             type="button"
                             onClick={() => setActiveSubTab('senior_ca')}
-                            className={`transition-colors ${
-                              activeSubTab === 'senior_ca' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'senior_ca' ? 'text-gray-900 font-black' : 'text-gray-600 hover:text-gray-900 font-bold'
                             }`}
                           >
-                            senior CA
+                            <span>👨‍💼</span>
+                            <span>senior CA</span>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => setActiveSubTab('report')}
-                            className={`transition-colors ${
-                              activeSubTab === 'report' ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'report' ? 'text-gray-900 font-black' : 'text-gray-600 hover:text-gray-900 font-bold'
                             }`}
                           >
-                            report
+                            <span>📊</span>
+                            <span>report</span>
                           </button>
                         </div>
 
