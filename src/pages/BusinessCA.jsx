@@ -909,8 +909,7 @@ export default function BusinessCA({ mode }) {
         { id: 'tasks', label: 'Tasks', icon: CheckCircle2, badge: null },
         { id: 'teams', label: 'Teams', icon: Users, badge: null },
         { id: 'timetracking', label: 'Time Tracking', icon: Clock, badge: null },
-        { id: 'workpaper', label: 'Workpaper', icon: FileText },
-        { id: 'auditor_desk', label: getAuditorShortLabel(activeAuditorCategory), icon: Briefcase }
+        { id: 'workpaper', label: 'Workpaper', icon: FileText }
     ];
 
     // Timer Effect
