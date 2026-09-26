@@ -44,6 +44,7 @@ import { warehouseService } from '../services/warehouseService';
 import '../App.css';
 import { customConfirm, customPrompt } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import QuickRegisterItemModal from '../components/pos/QuickRegisterItemModal';
 
 const POS_SESSION_STORAGE_KEY = 'cliks_pos_billing_session';
 
@@ -713,8 +714,54 @@ const BusinessPOS = () => {
     // 5. Quick Product Creation Mutation (Instant Catalog Injection)
     const createProductMutation = useMutation({
         mutationFn: (data) => productsService.createProduct(data),
-        onSuccess: () => {
+        onSuccess: (resData, variables) => {
+            const prod = resData?.data || resData || variables;
+            const isItemUnlimited = Boolean(variables?.isUnlimited || prod?.isUnlimited || prod?.is_unlimited || variables?.openingStock === 999999);
+            const stockVal = isItemUnlimited ? 999999 : (parseFloat(variables?.openingStock ?? variables?.quantity ?? prod?.quantity ?? prod?.stock ?? 0) || 0);
+
+            const formattedProduct = {
+                id: prod?.id || prod?.product_id || Date.now(),
+                name: prod?.name || prod?.product_name || variables?.name,
+                product_name: prod?.name || prod?.product_name || variables?.name,
+                sku: prod?.sku || variables?.sku,
+                barcode: prod?.barcode || variables?.barcode || prod?.sku || variables?.sku,
+                unit: prod?.unit || prod?.primary_unit || variables?.unit || 'PCS',
+                primary_unit: prod?.unit || prod?.primary_unit || variables?.unit || 'PCS',
+                price: parseFloat(prod?.selling_price || prod?.price || variables?.selling_price || variables?.price || 0),
+                selling_price: parseFloat(prod?.selling_price || prod?.price || variables?.selling_price || variables?.price || 0),
+                quantity: stockVal,
+                stock: stockVal,
+                opening_stock: stockVal,
+                openingStock: stockVal,
+                category: prod?.category || prod?.category_name || variables?.category || 'General',
+                category_name: prod?.category || prod?.category_name || variables?.category || 'General',
+                warehouse_id: prod?.warehouse_id || variables?.warehouse_id || 'Main Godown',
+                location: prod?.location || variables?.warehouse_id || 'Main Godown',
+                tax_percentage: parseFloat(prod?.tax_percentage ?? variables?.tax_percentage ?? 18) || 0,
+                tax_rate: parseFloat(prod?.tax_percentage ?? variables?.tax_percentage ?? 18) || 0,
+                taxRate: parseFloat(prod?.tax_percentage ?? variables?.tax_percentage ?? 18) || 0,
+                gst_percentage: parseFloat(prod?.tax_percentage ?? variables?.tax_percentage ?? 18) || 0,
+                source: 'products',
+                isUnlimited: isItemUnlimited,
+                is_unlimited: isItemUnlimited,
+                hsn_code: prod?.hsn_code || variables?.hsn_code || variables?.hsnCode || '1006',
+                hsnCode: prod?.hsn_code || variables?.hsn_code || variables?.hsnCode || '1006'
+            };
+
+            queryClient.setQueryData(['pos-catalog'], (old = []) => {
+                const list = Array.isArray(old) ? old : [];
+                const exists = list.some(item => (formattedProduct.id && item.id === formattedProduct.id) || (formattedProduct.sku && item.sku === formattedProduct.sku));
+                if (exists) {
+                    return list.map(item => ((formattedProduct.id && item.id === formattedProduct.id) || (formattedProduct.sku && item.sku === formattedProduct.sku)) ? { ...item, ...formattedProduct } : item);
+                }
+                return [formattedProduct, ...list];
+            });
+
             queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+
             alert('New product added to POS catalog successfully!');
             setIsAddProductModalOpen(false);
             // Clean and re-initialize auto-form
@@ -2811,417 +2858,20 @@ const BusinessPOS = () => {
                 </div>
             )}
 
-
-
             {/* QUICK ADD PRODUCT MODAL (FOR POS CATALOG) */}
             {isAddProductModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)', padding: '1rem' }}>
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}
-                    >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{ padding: '8px', borderRadius: '10px', background: '#ECFDF5', color: '#10B981' }}>
-                                    <Plus size={20} strokeWidth={3} />
-                                </div>
-                                <div>
-                                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '850', color: '#0F172A' }}>{editingProduct ? 'Edit Product' : 'Quick Register Item'}</h3>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>{editingProduct ? 'Update product details in POS catalog' : 'Instantly list new products in POS catalog'}</p>
-                                </div>
-                            </div>
-                            <button onClick={() => { setIsAddProductModalOpen(false); setEditingProduct(null); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
-                        </div>
-
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            const isUnlimited = Boolean(newProductData.isUnlimited);
-                            const stockVal = isUnlimited ? 999999 : (parseFloat(newProductData.quantity) || 0);
-                            const payload = {
-                                name: newProductData.name,
-                                product_name: newProductData.name,
-                                sku: newProductData.sku || `SKU-${Date.now().toString().slice(-4)}`,
-                                category: newProductData.category || 'General',
-                                category_name: newProductData.category || 'General',
-                                unit: newProductData.unit || 'PCS',
-                                quantity: stockVal,
-                                stock: stockVal,
-                                isUnlimited: isUnlimited,
-                                is_unlimited: isUnlimited,
-                                purchase_price: parseFloat(newProductData.selling_price) * 0.7,
-                                selling_price: parseFloat(newProductData.selling_price) || 0,
-                                price: parseFloat(newProductData.selling_price) || 0,
-                                tax_percentage: parseFloat(newProductData.tax_percentage) || 18,
-                                hsn_code: newProductData.hsn_code || ''
-                            };
-                            if (editingProduct) {
-                                updateProductMutation.mutate({ id: editingProduct.id, data: payload, source: editingProduct.source });
-                            } else {
-                                createProductMutation.mutate(payload);
-                            }
-                        }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Item Name *</label>
-                                <input 
-                                    required 
-                                    type="text" 
-                                    value={newProductData.name} 
-                                    onChange={(e) => setNewProductData({...newProductData, name: e.target.value})} 
-                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
-                                    placeholder="e.g. Tomato / Rice / Milk" 
-                                />
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Selling Price ({currency.symbol}) *</label>
-                                    <input 
-                                        required 
-                                        type="number" 
-                                        min="0.01"
-                                        step="any"
-                                        value={newProductData.selling_price} 
-                                        onKeyDown={(e) => {
-                                            if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
-                                                return;
-                                            }
-                                            if (/^[0-9]$/.test(e.key)) {
-                                                const currentDigits = (e.target.value || '').replace(/[^0-9]/g, '');
-                                                if (currentDigits.length >= 10) {
-                                                    e.preventDefault();
-                                                }
-                                            }
-                                        }}
-                                        onChange={(e) => {
-                                            let val = e.target.value;
-                                            const digitsOnly = val.replace(/[^0-9]/g, '');
-                                            if (digitsOnly.length > 10) {
-                                                let truncated = '';
-                                                let count = 0;
-                                                for (let char of val) {
-                                                    if (/[0-9]/.test(char)) {
-                                                        if (count < 10) {
-                                                            truncated += char;
-                                                            count++;
-                                                        }
-                                                    } else {
-                                                        truncated += char;
-                                                    }
-                                                }
-                                                val = truncated;
-                                            }
-                                            setNewProductData({ ...newProductData, selling_price: val });
-                                        }} 
-                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }} 
-                                        placeholder="0.00" 
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Unit *</label>
-                                    <select 
-                                        value={newProductData.unit || 'PCS'} 
-                                        onChange={(e) => setNewProductData({...newProductData, unit: e.target.value})} 
-                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', outline: 'none', fontSize: '0.85rem', fontWeight: 700 }}
-                                    >
-                                        <option value="PCS">PCS (Pieces)</option>
-                                        <option value="GRAM">GRAM (g)</option>
-                                        <option value="KG">KG (Kilogram)</option>
-                                        <option value="LITRE">LITRE (L)</option>
-                                        <option value="ML">ML (Millilitre)</option>
-                                        <option value="DOZEN">DOZEN</option>
-                                        <option value="BOX">BOX</option>
-                                        <option value="PACK">PACK</option>
-                                        <option value="QUANTITY">QUANTITY</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Opening Stock *</label>
-                                    {newProductData.isUnlimited ? (
-                                        <div style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1.5px dashed #3B82F6', background: '#EFF6FF', color: '#1D4ED8', fontSize: '0.75rem', fontWeight: '800', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                            <span>∞ Unlimited</span>
-                                            <span style={{ fontSize: '0.65rem', background: '#DBEAFE', color: '#1E40AF', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>999999</span>
-                                        </div>
-                                    ) : (
-                                        <input 
-                                            required 
-                                            type="number" 
-                                            min="0"
-                                            step="any"
-                                            value={newProductData.quantity} 
-                                            onChange={(e) => setNewProductData({...newProductData, quantity: e.target.value})} 
-                                            style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }} 
-                                            placeholder="Qty left" 
-                                        />
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Unlimited Product toggle */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F8FAFC', padding: '0.6rem 0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '1.1rem' }}>♾️</span>
-                                    <div>
-                                        <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1E293B' }}>Unlimited Product</div>
-                                        <div style={{ fontSize: '0.68rem', color: '#64748B' }}>Never trigger out of stock warnings</div>
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setNewProductData(prev => ({
-                                        ...prev,
-                                        isUnlimited: !prev.isUnlimited,
-                                        quantity: !prev.isUnlimited ? '999999' : ''
-                                    }))}
-                                    style={{
-                                        border: newProductData.isUnlimited ? '1px solid #2563EB' : '1px solid #CBD5E1',
-                                        background: newProductData.isUnlimited ? '#EFF6FF' : 'white',
-                                        color: newProductData.isUnlimited ? '#1D4ED8' : '#64748B',
-                                        fontWeight: '800',
-                                        fontSize: '0.72rem',
-                                        padding: '0.3rem 0.65rem',
-                                        borderRadius: '8px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    {newProductData.isUnlimited ? 'ACTIVE' : 'OFF'}
-                                </button>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Category</label>
-                                    <input 
-                                        type="text" 
-                                        value={newProductData.category} 
-                                        onChange={(e) => setNewProductData({...newProductData, category: e.target.value})} 
-                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
-                                        placeholder="General" 
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Tax (GST %)</label>
-                                    <select 
-                                        value={newProductData.tax_percentage} 
-                                        onChange={(e) => setNewProductData({...newProductData, tax_percentage: parseInt(e.target.value)})} 
-                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', outline: 'none', fontSize: '0.85rem', fontWeight: 700 }}
-                                    >
-                                        <option value={0}>0% GST</option>
-                                        <option value={5}>5% GST</option>
-                                        <option value={12}>12% GST</option>
-                                        <option value={18}>18% GST</option>
-                                        <option value={28}>28% GST</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Barcode / SKU</label>
-                                    <input 
-                                        type="text" 
-                                        value={newProductData.sku} 
-                                        onChange={(e) => setNewProductData({...newProductData, sku: e.target.value})} 
-                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }} 
-                                    />
-                                </div>
-                                <div style={{ position: 'relative' }} ref={hsnInfoRef}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>HSN / SAC Code</label>
-                                        {isHsnLoading && <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '600' }}>Searching...</span>}
-                                    </div>
-                                    <div style={{ position: 'relative' }}>
-                                        <input 
-                                            type="text" 
-                                            value={newProductData.hsn_code || ''} 
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                setNewProductData(prev => ({ ...prev, hsn_code: val }));
-                                                setHsnQueryOverride(val);
-                                                setShowHsnInfoPopover(false);
-                                            }} 
-                                            onFocus={() => {
-                                                if ((newProductData.hsn_code || newProductData.name) && ((newProductData.hsn_code || '').length >= 2 || (newProductData.name || '').length >= 2)) {
-                                                    setShowHsnDropdown(true);
-                                                }
-                                            }}
-                                            style={{ width: '100%', padding: '0.75rem', paddingRight: '2.25rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
-                                            placeholder="e.g. 1006" 
-                                        />
-                                        
-                                        {/* Info ⓘ Icon inside input aligned to far right */}
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (showHsnInfoPopover) {
-                                                    setShowHsnInfoPopover(false);
-                                                } else {
-                                                    fetchAndShowHsnDescription(newProductData.hsn_code);
-                                                }
-                                            }}
-                                            style={{
-                                                position: 'absolute',
-                                                right: '10px',
-                                                top: '50%',
-                                                transform: 'translateY(-50%)',
-                                                border: 'none',
-                                                background: 'transparent',
-                                                cursor: 'pointer',
-                                                color: '#047857',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                padding: '2px',
-                                                borderRadius: '50%',
-                                                zIndex: 10
-                                            }}
-                                            title="View HSN/SAC Description"
-                                        >
-                                            <Info size={16} color="#047857" />
-                                        </button>
-
-                                        {/* HSN Info Popover / Tooltip */}
-                                        {showHsnInfoPopover && (
-                                            <div style={{
-                                                position: 'absolute',
-                                                bottom: '100%',
-                                                right: 0,
-                                                width: '280px',
-                                                zIndex: 1300,
-                                                marginBottom: '6px',
-                                                background: '#1E293B',
-                                                color: 'white',
-                                                borderRadius: '14px',
-                                                padding: '0.85rem 1rem',
-                                                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.2)',
-                                                fontSize: '0.8rem',
-                                                lineHeight: '1.4'
-                                            }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', borderBottom: '1px solid #334155', paddingBottom: '0.3rem' }}>
-                                                    <span style={{ fontWeight: '800', fontSize: '0.75rem', color: '#38BDF8', textTransform: 'uppercase' }}>
-                                                        HSN {newProductData.hsn_code ? newProductData.hsn_code : ''} Details
-                                                    </span>
-                                                    <button type="button" onClick={() => setShowHsnInfoPopover(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8' }}>
-                                                        <X size={14} />
-                                                    </button>
-                                                </div>
-                                                {isHsnInfoLoading ? (
-                                                    <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Loading description...</div>
-                                                ) : (
-                                                    <div style={{ maxHeight: '140px', overflowY: 'auto', color: '#F1F5F9', wordBreak: 'break-word' }}>
-                                                        {hsnInfoDescription || 'No HSN/SAC description available for this code.'}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* HSN Suggestions Dropdown */}
-                                    {showHsnDropdown && (
-                                        <div style={{ 
-                                            position: 'absolute', 
-                                            top: '100%', 
-                                            left: 0, 
-                                            right: 0, 
-                                            zIndex: 1300, 
-                                            marginTop: '6px', 
-                                            background: 'white', 
-                                            borderRadius: '16px', 
-                                            border: '1px solid #E2E8F0', 
-                                            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', 
-                                            maxHeight: '200px', 
-                                            overflowY: 'auto',
-                                            padding: '0.5rem'
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', borderBottom: '1px solid #F1F5F9' }}>
-                                                <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase' }}>HSN/SAC Suggestions</span>
-                                                <button type="button" onClick={() => setShowHsnDropdown(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8', padding: '2px' }}><X size={14} /></button>
-                                            </div>
-
-                                            {isHsnLoading && (
-                                                <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.8rem', color: '#64748B' }}>Searching master catalog...</div>
-                                            )}
-
-                                            {!isHsnLoading && hsnSuggestions.length === 0 && hasSearchedHsn && (
-                                                <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8' }}>No matching HSN found</div>
-                                            )}
-
-                                            {!isHsnLoading && hsnSuggestions.map((item, idx) => (
-                                                <div 
-                                                    key={idx}
-                                                    onClick={() => {
-                                                        setNewProductData(prev => ({ ...prev, hsn_code: item.hsnCode }));
-                                                        setShowHsnDropdown(false);
-                                                        setHsnInfoDescription(item.description);
-                                                    }}
-                                                    style={{ 
-                                                        padding: '0.6rem 0.75rem', 
-                                                        borderRadius: '10px', 
-                                                        cursor: 'pointer', 
-                                                        display: 'flex', 
-                                                        justifyContent: 'space-between', 
-                                                        alignItems: 'center',
-                                                        transition: 'background 0.15s ease',
-                                                        borderBottom: idx < hsnSuggestions.length - 1 ? '1px solid #F8FAFC' : 'none'
-                                                    }}
-                                                    onMouseEnter={(e) => e.currentTarget.style.background = '#ECFDF5'}
-                                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                                >
-                                                    <div style={{ flex: 1, paddingRight: '0.5rem', overflow: 'hidden' }}>
-                                                        <div style={{ fontWeight: '850', fontSize: '0.85rem', color: '#047857' }}>{item.hsnCode}</div>
-                                                        <div style={{ fontSize: '0.75rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.description}</div>
-                                                    </div>
-                                                    <button 
-                                                        type="button" 
-                                                        style={{ 
-                                                            border: 'none', 
-                                                            background: '#ECFDF5', 
-                                                            color: '#047857', 
-                                                            fontWeight: '700', 
-                                                            fontSize: '0.75rem', 
-                                                            padding: '0.35rem 0.65rem', 
-                                                            borderRadius: '8px', 
-                                                            cursor: 'pointer',
-                                                            flexShrink: 0
-                                                        }}
-                                                    >
-                                                        Select
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={createProductMutation.isPending}
-                                style={{
-                                    marginTop: '0.5rem',
-                                    padding: '0.85rem',
-                                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '14px',
-                                    fontWeight: '800',
-                                    fontSize: '0.9rem',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.2)',
-                                    opacity: createProductMutation.isPending ? 0.7 : 1,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem'
-                                }}
-                            >
-                                {createProductMutation.isPending ? 'Registering...' : 'Add to POS & List'}
-                            </button>
-                        </form>
-                    </motion.div>
-                </div>
+                <QuickRegisterItemModal
+                    isOpen={isAddProductModalOpen}
+                    onClose={() => {
+                        setIsAddProductModalOpen(false);
+                        setEditingProduct(null);
+                    }}
+                    editingProduct={editingProduct}
+                    currency={currency}
+                    dbWarehouses={dbWarehouses}
+                />
             )}
+
             {/* POS ORDER HISTORY MODAL */}
             {showHistoryModal && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(8px)', padding: '1rem' }}>

@@ -55,6 +55,7 @@ const BusinessPeople = () => {
     const [editingContactId, setEditingContactId] = useState(null);
     const [editingTxId, setEditingTxId] = useState(null);
     const [editingRemId, setEditingRemId] = useState(null);
+    const [alertToDelete, setAlertToDelete] = useState(null);
 
     // Customization Filters state
     const [groupFilter, setGroupFilter] = useState('All');
@@ -576,10 +577,13 @@ const BusinessPeople = () => {
     });
 
     const deleteReminderMutation = useMutation({
-        mutationFn: (rem) => peopleService.deleteReminder(rem.person_id, rem.id),
+        mutationFn: (rem) => peopleService.deleteReminder(rem.person_id || rem.personId || rem.contact_id || rem.id, rem.id),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['people-reminders-all'] });
-            queryClient.invalidateQueries({ queryKey: ['person-reminders', variables.person_id] });
+            const pId = variables?.person_id || variables?.personId || variables?.contact_id;
+            if (pId) {
+                queryClient.invalidateQueries({ queryKey: ['person-reminders', pId] });
+            }
             alert('Reminder dismissed.');
         }
     });
@@ -867,7 +871,7 @@ const BusinessPeople = () => {
         }
     };
 
-    const renderAvatar = (name, size = 42) => {
+    const renderAvatar = (name, size = 40) => {
         const firstLetter = (name || '?').trim().charAt(0).toUpperCase();
         let hash = 0;
         const str = name || '';
@@ -877,20 +881,23 @@ const BusinessPeople = () => {
         const hues = [145, 195, 220, 260, 310, 340, 25, 55];
         const hue = hues[Math.abs(hash) % hues.length];
         return (
-            <div style={{ 
-                width: `${size}px`, 
-                height: `${size}px`, 
-                borderRadius: size > 50 ? '24px' : '12px', 
-                background: `hsl(${hue}, 75%, 93%)`, 
-                color: `hsl(${hue}, 75%, 32%)`, 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                fontWeight: '900', 
-                fontSize: `${size * 0.45}px`,
-                fontFamily: "'Outfit', 'Inter', sans-serif",
-                flexShrink: 0
-            }}>
+            <div 
+                className="w-10 h-10 rounded-2xl flex items-center justify-center font-black flex-shrink-0"
+                style={{ 
+                    width: `${size}px`, 
+                    height: `${size}px`, 
+                    borderRadius: '16px', 
+                    background: `hsl(${hue}, 75%, 93%)`, 
+                    color: `hsl(${hue}, 75%, 32%)`, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    fontWeight: '900', 
+                    fontSize: `${Math.round(size * 0.45)}px`,
+                    fontFamily: "'Outfit', 'Inter', sans-serif",
+                    flexShrink: 0
+                }}
+            >
                 {firstLetter}
             </div>
         );
@@ -1209,7 +1216,7 @@ const BusinessPeople = () => {
                 <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                     {/* TAB 1: Contacts List */}
                     {activeTab === 'contacts' && (
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed' }} className="w-full table-fixed">
                             <FilterableTableHead 
                                 columns={[
                                     { key: 'name', label: 'Profile Contact', placeholder: 'Name...' },
@@ -1222,7 +1229,7 @@ const BusinessPeople = () => {
                                     { key: '_actions', label: '', noFilter: true }
                                 ]} 
                                 onFilterChange={setColFilters} 
-                                thStyle={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1.25rem 2rem' }}
+                                thStyle={{ position: 'sticky', top: 0, zIndex: 10, background: '#FFF', padding: '1rem 1rem' }}
                             />
                             <tbody>
                                 {isPeopleLoading ? (
@@ -1266,15 +1273,16 @@ const BusinessPeople = () => {
                                         const isPinned = pinnedPeopleIds.includes(p.id);
                                         return (
                                             <tr key={p.id} 
+                                                className="hover:bg-slate-50 transition-colors cursor-pointer"
                                                 style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s', background: 'white' }} 
                                                 onClick={() => setSelectedPersonId(p.id)}
                                                 onMouseOver={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
                                                 onMouseOut={(e) => { e.currentTarget.style.background = 'white'; }}
                                             >
-                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                            <td className="py-4 px-4" style={{ padding: '1rem 1rem' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                                     <div style={{ position: 'relative' }}>
-                                                        {renderAvatar(p.name, 42)}
+                                                        {renderAvatar(p.name, 40)}
                                                         {isPinned && (
                                                             <div style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#004aad', color: 'white', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                                                                 <Pin size={10} style={{ transform: 'rotate(45deg)' }} />
@@ -1282,7 +1290,7 @@ const BusinessPeople = () => {
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '1rem', margin: 0 }}>{p.name}</p>
+                                                        <p className="text-sm font-black text-gray-900" style={{ fontWeight: '900', color: '#111827', fontSize: '0.875rem', margin: 0 }}>{p.name}</p>
                                                         {activeConfig.payReminder && netBal !== 0 && (
                                                             <button 
                                                                 onClick={(e) => { e.stopPropagation(); handleSendWhatsAppReminder(p, netBal); }}
@@ -1294,37 +1302,37 @@ const BusinessPeople = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem' }}>
-                                                <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: '#EFF6FF', color: '#1E40AF', fontWeight: '800', fontSize: '0.72rem', textTransform: 'uppercase' }}>{p.role_type}</span>
+                                            <td className="py-4 px-4" style={{ padding: '1rem 1rem' }}>
+                                                <span className="px-3 py-1 text-xs font-black rounded-xl inline-block" style={{ padding: '0.25rem 0.75rem', borderRadius: '0.75rem', background: '#EFF6FF', color: '#1E40AF', fontWeight: '900', fontSize: '0.75rem', textTransform: 'uppercase' }}>{p.role_type}</span>
                                             </td>
                                             {activeConfig.partyGroup && (
-                                                <td style={{ padding: '1.5rem 2rem' }}>
+                                                <td className="py-4 px-4" style={{ padding: '1rem 1rem' }}>
                                                     {p.relationship ? (
-                                                        <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: '#FEF3C7', color: '#D97706', fontWeight: '800', fontSize: '0.72rem', textTransform: 'uppercase' }}>{p.relationship}</span>
+                                                        <span className="px-3 py-1 text-xs font-black rounded-xl inline-block" style={{ padding: '0.25rem 0.75rem', borderRadius: '0.75rem', background: '#FEF3C7', color: '#D97706', fontWeight: '900', fontSize: '0.75rem', textTransform: 'uppercase' }}>{p.relationship}</span>
                                                     ) : (
                                                         <span style={{ color: '#94A3B8', fontSize: '0.8rem' }}>None</span>
                                                     )}
                                                 </td>
                                             )}
                                             {activeConfig.partyStatus && (
-                                                <td style={{ padding: '1.5rem 2rem' }}>
-                                                    <span style={{ padding: '0.3rem 0.6rem', borderRadius: '6px', background: meta.status === 'active' ? '#ECFDF5' : '#FEE2E2', color: meta.status === 'active' ? '#047857' : '#EF4444', fontWeight: '800', fontSize: '0.72rem', textTransform: 'uppercase' }}>
+                                                <td className="py-4 px-4" style={{ padding: '1rem 1rem' }}>
+                                                    <span className="px-3 py-1 text-xs font-black rounded-xl inline-block" style={{ padding: '0.25rem 0.75rem', borderRadius: '0.75rem', background: meta.status === 'active' ? '#ECFDF5' : '#FEE2E2', color: meta.status === 'active' ? '#047857' : '#EF4444', fontWeight: '900', fontSize: '0.75rem', textTransform: 'uppercase' }}>
                                                         {meta.status}
                                                     </span>
                                                 </td>
                                             )}
-                                            <td style={{ padding: '1.5rem 2rem', color: '#64748B', fontWeight: '600' }}>{p.company || 'Individual'}</td>
-                                            <td style={{ padding: '1.5rem 2rem', color: '#475569' }}>
+                                            <td className="py-4 px-4" style={{ padding: '1rem 1rem', color: '#64748B', fontWeight: '600' }}>{p.company || 'Individual'}</td>
+                                            <td className="py-4 px-4" style={{ padding: '1rem 1rem', color: '#475569' }}>
                                                 <div style={{ fontSize: '0.85rem', fontWeight: '650' }}>{p.phone || 'N/A'}</div>
                                                 <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{p.email || ''}</div>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                                <span style={{ fontWeight: '900', fontSize: '1.1rem', color: netBal >= 0 ? '#16A34A' : '#EF4444' }}>
+                                            <td className="py-4 px-4" style={{ padding: '1rem 1rem', textAlign: 'right' }}>
+                                                <span className="text-sm font-black text-emerald-700" style={{ fontWeight: '900', fontSize: '0.875rem', color: netBal >= 0 ? '#047857' : '#EF4444' }}>
                                                     {formatCurr(p.net_balance)}
                                                 </span>
                                                 <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '700' }}>{netBal >= 0 ? 'RECEIVABLE' : 'PAYABLE'}</div>
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem', textAlign: 'right', position: 'relative' }}>
+                                            <td className="py-4 px-4" style={{ padding: '1rem 1rem', textAlign: 'right', position: 'relative' }}>
                                                 <div style={{ display: 'inline-block', position: 'relative' }}>
                                                     <button 
                                                         onClick={(e) => {
@@ -1544,7 +1552,7 @@ const BusinessPeople = () => {
                                                     Send
                                                 </button>
                                                 <button 
-                                                    onClick={() => deleteReminderMutation.mutate(r)}
+                                                    onClick={() => setAlertToDelete(r)}
                                                     style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
                                                     onMouseOver={(e) => (e.currentTarget.style.color = '#EF4444')}
                                                     onMouseOut={(e) => (e.currentTarget.style.color = '#94A3B8')}
@@ -2808,6 +2816,131 @@ const BusinessPeople = () => {
                         </div>
                     );
                 })()}
+            </AnimatePresence>
+
+            {/* Modal 6: Repayment Alert Delete Confirmation Dialog */}
+            <AnimatePresence>
+                {alertToDelete && (
+                    <div 
+                        style={{ 
+                            position: 'fixed', 
+                            inset: 0, 
+                            background: 'rgba(15, 23, 42, 0.45)', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            zIndex: 1100, 
+                            backdropFilter: 'blur(6px)',
+                            padding: '1rem'
+                        }}
+                    >
+                        <Motion.div 
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }} 
+                            animate={{ opacity: 1, scale: 1, y: 0 }} 
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }} 
+                            style={{ 
+                                background: 'white', 
+                                width: '100%', 
+                                maxWidth: '440px', 
+                                borderRadius: '24px', 
+                                padding: '2rem', 
+                                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', 
+                                position: 'relative',
+                                border: '1px solid #FEE2E2'
+                            }}
+                        >
+                            {/* Header icon + Warning Title */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', marginBottom: '1.25rem' }}>
+                                <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: '#FEE2E2', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <Trash2 size={22} />
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '1.15rem', fontWeight: '900', color: '#111827', margin: 0 }}>
+                                        Delete Repayment Alert
+                                    </h3>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#6B7280', fontWeight: '500' }}>
+                                        Scheduled alert deletion confirmation
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Warning details card with target contact and amount */}
+                            <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '1rem 1.25rem', border: '1px solid #E2E8F0', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>Target Contact</span>
+                                    <span style={{ fontSize: '0.9rem', fontWeight: '900', color: '#0F172A' }}>
+                                        {alertToDelete.target_contact || alertToDelete.person_name || 'Contact'}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (alertToDelete.memo_label || alertToDelete.title) ? '0.5rem' : '0' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>Claim Amount</span>
+                                    <span style={{ fontSize: '1rem', fontWeight: '900', color: '#DC2626' }}>
+                                        {formatCurr(alertToDelete.claim_cap !== undefined ? alertToDelete.claim_cap : alertToDelete.amount)}
+                                    </span>
+                                </div>
+                                {(alertToDelete.memo_label || alertToDelete.title) && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>Memo / Title</span>
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>
+                                            {alertToDelete.memo_label || alertToDelete.title}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <p style={{ fontSize: '0.85rem', color: '#4B5563', lineHeight: 1.5, margin: '0 0 1.5rem 0' }}>
+                                Are you sure you want to delete this scheduled repayment alert for <strong>{alertToDelete.target_contact || alertToDelete.person_name || 'this contact'}</strong>? This action cannot be reversed.
+                            </p>
+
+                            {/* Actions: Cancel & Confirm Delete */}
+                            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setAlertToDelete(null)}
+                                    style={{
+                                        padding: '0.65rem 1.25rem',
+                                        borderRadius: '12px',
+                                        border: '1px solid #D1D5DB',
+                                        background: 'white',
+                                        color: '#374151',
+                                        fontWeight: '700',
+                                        fontSize: '0.875rem',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const target = alertToDelete;
+                                        deleteReminderMutation.mutate(target, {
+                                            onSettled: () => {
+                                                setAlertToDelete(null);
+                                            }
+                                        });
+                                    }}
+                                    disabled={deleteReminderMutation.isPending}
+                                    style={{
+                                        padding: '0.65rem 1.25rem',
+                                        borderRadius: '12px',
+                                        border: 'none',
+                                        background: '#DC2626',
+                                        color: 'white',
+                                        fontWeight: '800',
+                                        fontSize: '0.875rem',
+                                        cursor: deleteReminderMutation.isPending ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}
+                                >
+                                    {deleteReminderMutation.isPending ? 'Deleting...' : 'Confirm Delete'}
+                                </button>
+                            </div>
+                        </Motion.div>
+                    </div>
+                )}
             </AnimatePresence>
         </div>
     );

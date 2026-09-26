@@ -1196,10 +1196,10 @@ const BusinessPayments = ({
     );
 
     return (
-        <div style={{ padding: '0 2.5rem 1.25rem 2.5rem', background: '#f4f7f6', minHeight: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
+        <div className="relative overflow-visible" style={{ padding: '0 2.5rem 1.25rem 2.5rem', background: '#f4f7f6', minHeight: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
             <div 
-                className="sticky top-0 z-20 bg-[#f4f7f6]/95 backdrop-blur-xs pt-4 pb-3" 
+                className="sticky top-0 z-30 bg-[#f4f7f6]/95 backdrop-blur-md pt-5 pb-4 -mx-6 px-6 border-b border-gray-200/40" 
                 style={{ 
                     display: 'flex', 
                     flexShrink: 0, 
@@ -1207,9 +1207,7 @@ const BusinessPayments = ({
                     alignItems: 'flex-end', 
                     marginBottom: '1.5rem',
                     position: 'sticky',
-                    top: 0,
-                    zIndex: 20,
-                    backgroundColor: '#f4f7f6'
+                    top: 0
                 }}
             >
                 <div>

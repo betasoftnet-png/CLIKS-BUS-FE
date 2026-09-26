@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 
-const CurrencyContext = createContext();
+export const CurrencyContext = createContext();
 
 export const CurrencyProvider = ({ children }) => {
     // Default to INR (₹)
