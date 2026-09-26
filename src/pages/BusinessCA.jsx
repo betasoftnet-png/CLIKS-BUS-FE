@@ -19,6 +19,13 @@ import StatutoryFinancialAuditSuite from '../components/ca/StatutoryFinancialAud
 import TaxAuditForm3CDHub from '../components/ca/TaxAuditForm3CDHub';
 import { applyTableFilters } from '../utils/filterUtils';
 
+export const COMING_SOON_ROLES = {
+  internal: 'Internal Auditor (CIA / CA / CMA)',
+  cost: 'Cost Auditor (ICMAI CMA)',
+  secretarial: 'Secretarial Auditor (ICSI CS)',
+  forensic: 'Forensic Auditor',
+};
+
 export default function BusinessCA({ mode }) {
     const location = useLocation();
     const activeMode = mode || (location.pathname.startsWith('/ca') ? 'personal' : 'business');
@@ -32,6 +39,8 @@ export default function BusinessCA({ mode }) {
     const [activeRoleTab, setActiveRoleTab] = useState('statutory');
     const [activeAuditorCategory, setActiveAuditorCategory] = useState("Statutory Financial Auditor (ICAI CA)");
     const [activeSuiteTool, setActiveSuiteTool] = useState('tool1');
+
+    const isComingSoonRole = Boolean(COMING_SOON_ROLES[selectedAuditorRole]);
 
     const handleSelectRole = (roleKey) => {
         setSelectedAuditorRoleState(roleKey);
@@ -2584,8 +2593,9 @@ export default function BusinessCA({ mode }) {
                     </div>
 
                     {/* ========================================================================= */}
-                    {/* 2. SUB-NAVIGATION ROW (MATCHING PICTURES 1 & 2 EXACTLY)                    */}
+                    {/* 2. SUB-NAVIGATION ROW (HIDDEN FOR ALL 4 COMING SOON ROLES)                */}
                     {/* ========================================================================= */}
+                    {!isComingSoonRole && (
                     <div className="flex items-center justify-between gap-3 mb-6 overflow-x-auto pb-1">
                       <div className="flex items-center gap-3 shrink-0">
                         <button
@@ -2686,58 +2696,45 @@ export default function BusinessCA({ mode }) {
                           <span>
                             {selectedAuditorRole === 'tax'
                               ? 'Tax Auditor (ICAI CA)'
-                              : selectedAuditorRole === 'internal'
-                              ? 'Internal Auditor (CIA / CA / CMA)'
-                              : selectedAuditorRole === 'cost'
-                              ? 'Cost Auditor (ICMAI CMA)'
-                              : selectedAuditorRole === 'secretarial'
-                              ? 'Secretarial Auditor (ICSI CS)'
-                              : selectedAuditorRole === 'forensic'
-                              ? 'Forensic Auditor'
                               : 'Statutory Financial Auditor (ICAI CA)'}
                           </span>
                         </button>
                       </div>
                     </div>
+                    )}
 
-                    {/* Auditor Category Specialized Suite Card */}
-                    {(activeSubTab === 'audit_suite' || personalTab === 'audit_suite' || personalTab === 'auditor_desk') && (
+                    {/* ========================================================================= */}
+                    {/* 3. DYNAMIC CONTENT AREA                                                   */}
+                    {/* ========================================================================= */}
+                    {isComingSoonRole ? (
+                      /* FULL "COMING SOON" VIEW DISPLAYED FOR INTERNAL, COST, SECRETARIAL, FORENSIC */
+                      <div className="bg-white rounded-3xl p-16 border border-gray-100 shadow-2xs flex flex-col items-center justify-center text-center space-y-4 min-h-[460px]">
+                        <div className="w-16 h-16 rounded-3xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-2xl shadow-2xs">
+                          🚀
+                        </div>
+
+                        <div className="space-y-1.5 max-w-md">
+                          <h3 className="text-xl font-black text-gray-900 tracking-tight">
+                            Coming Soon
+                          </h3>
+                          <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                            The <strong className="text-emerald-800">{COMING_SOON_ROLES[selectedAuditorRole]}</strong> compliance suite and verification engines are currently under scheduled deployment.
+                          </p>
+                        </div>
+
+                        <div className="pt-2">
+                          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-bold tracking-wide uppercase">
+                            <span>⏳</span>
+                            <span>MODULE IN PROGRESS</span>
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      (activeSubTab === 'audit_suite' || personalTab === 'audit_suite' || personalTab === 'auditor_desk') && (
                         (selectedAuditorRole === 'statutory' || activeAuditorCategory === "Statutory Financial Auditor (ICAI CA)") ? (
                             <StatutoryFinancialAuditSuite />
                         ) : (selectedAuditorRole === 'tax' || activeAuditorCategory === "Tax Auditor (ICAI CA)") ? (
                             <TaxAuditForm3CDHub />
-                        ) : ['internal', 'cost', 'secretarial', 'forensic'].includes(selectedAuditorRole) ? (
-                            <div className="bg-white rounded-3xl p-16 border border-gray-100 shadow-2xs flex flex-col items-center justify-center text-center space-y-4 min-h-[380px]">
-                              <div className="w-16 h-16 rounded-3xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-2xl shadow-2xs">
-                                🚀
-                              </div>
-
-                              <div className="space-y-1.5 max-w-md">
-                                <h3 className="text-xl font-black text-gray-900 tracking-tight">
-                                  Coming Soon
-                                </h3>
-                                <p className="text-xs text-gray-500 font-medium leading-relaxed">
-                                  The{' '}
-                                  <strong className="text-emerald-800">
-                                    {selectedAuditorRole === 'internal'
-                                      ? 'Internal Auditor (CIA / CA / CMA)'
-                                      : selectedAuditorRole === 'cost'
-                                      ? 'Cost Auditor (ICMAI CMA)'
-                                      : selectedAuditorRole === 'secretarial'
-                                      ? 'Secretarial Auditor (ICSI CS)'
-                                      : 'Forensic Auditor'}
-                                  </strong>{' '}
-                                  compliance suite and verification engines are currently under scheduled deployment.
-                                </p>
-                              </div>
-
-                              <div className="pt-2">
-                                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-bold tracking-wide uppercase">
-                                  <span>⏳</span>
-                                  <span>Module In Progress</span>
-                                </span>
-                              </div>
-                            </div>
                         ) : (
                             <div style={{
                                 background: '#FFFFFF',
@@ -3297,6 +3294,7 @@ export default function BusinessCA({ mode }) {
                             })()}
                             </div>
                         )
+                      )
                     )}
 
                     {/* Main Content Workspace Container */}
