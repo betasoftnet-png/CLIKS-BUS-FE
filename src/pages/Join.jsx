@@ -20,6 +20,8 @@ import { apiClient as api } from '../api/client';
 import logoPng from '../assets/cliks.png';
 import '../App.css';
 
+const BNX_EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@bnxmail\.com$/;
+
 const Join = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -38,6 +40,14 @@ const Join = () => {
     const [errorMsg, setErrorMsg] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Email domain validation: only @bnxmail.com addresses allowed
+    const cleanEmail = email.trim();
+    const isEmailValid = cleanEmail.length > 0 && BNX_EMAIL_REGEX.test(cleanEmail.toLowerCase());
+    const emailError = cleanEmail.length > 0 && !BNX_EMAIL_REGEX.test(cleanEmail.toLowerCase())
+        ? 'Only @bnxmail.com email addresses are allowed.'
+        : '';
+    const isSubmitDisabled = isSubmitting || !isEmailValid;
 
     // a) Immediately store referral code in localStorage on mount so it is not lost
     useEffect(() => {
@@ -71,8 +81,8 @@ const Join = () => {
             setErrorMsg('Please enter your full name.');
             return;
         }
-        if (!email.trim() || !email.includes('@')) {
-            setErrorMsg('Please provide a valid email address.');
+        if (!email.trim() || !BNX_EMAIL_REGEX.test(email.trim().toLowerCase())) {
+            setErrorMsg('Only @bnxmail.com email addresses are allowed.');
             return;
         }
         if (!password || password.length < 4) {
@@ -371,27 +381,33 @@ const Join = () => {
                             Work Email *
                         </label>
                         <div style={{ position: 'relative' }}>
-                            <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                            <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: emailError ? '#EF4444' : '#94A3B8' }} />
                             <input 
                                 type="email"
                                 required
-                                placeholder="you@business.com"
+                                placeholder="you@bnxmail.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 style={{
                                     width: '100%',
                                     padding: '0.8rem 1rem 0.8rem 2.75rem',
                                     borderRadius: '14px',
-                                    border: '1.5px solid #E2E8F0',
+                                    border: emailError ? '1.5px solid #EF4444' : '1.5px solid #E2E8F0',
                                     fontSize: '0.9rem',
                                     outline: 'none',
                                     transition: 'border 0.2s',
                                     boxSizing: 'border-box'
                                 }}
-                                onFocus={(e) => e.target.style.borderColor = '#10B981'}
-                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                onFocus={(e) => e.target.style.borderColor = emailError ? '#EF4444' : '#10B981'}
+                                onBlur={(e) => e.target.style.borderColor = emailError ? '#EF4444' : '#E2E8F0'}
                             />
                         </div>
+                        {emailError && (
+                            <p style={{ color: '#EF4444', fontSize: '0.78rem', marginTop: '0.35rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                                <span>Only @bnxmail.com email addresses are allowed.</span>
+                            </p>
+                        )}
                     </div>
 
                     {/* Password */}
@@ -479,24 +495,26 @@ const Join = () => {
                     {/* Submit Button */}
                     <button
                         type="submit"
-                        disabled={isSubmitting}
+                        disabled={isSubmitDisabled}
                         style={{
                             marginTop: '0.5rem',
                             padding: '0.95rem 1.5rem',
                             borderRadius: '14px',
                             border: 'none',
-                            background: 'linear-gradient(135deg, #064E3B 0%, #1B6B3A 100%)',
+                            background: isSubmitDisabled
+                                ? '#94A3B8'
+                                : 'linear-gradient(135deg, #064E3B 0%, #1B6B3A 100%)',
                             color: '#FFFFFF',
                             fontWeight: '800',
                             fontSize: '0.95rem',
-                            cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                            cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '0.5rem',
-                            boxShadow: '0 10px 25px -5px rgba(6, 78, 59, 0.3)',
-                            transition: 'transform 0.2s',
-                            opacity: isSubmitting ? 0.7 : 1
+                            boxShadow: isSubmitDisabled ? 'none' : '0 10px 25px -5px rgba(6, 78, 59, 0.3)',
+                            transition: 'all 0.2s',
+                            opacity: isSubmitDisabled ? 0.7 : 1
                         }}
                     >
                         {isSubmitting ? 'Creating Account...' : (
