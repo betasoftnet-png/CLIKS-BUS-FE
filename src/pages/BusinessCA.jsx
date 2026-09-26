@@ -2492,9 +2492,23 @@ export default function BusinessCA({ mode }) {
 
 
                     {/* ========================================================================= */}
-                    {/* 1. TOP AUDITOR ROLE SELECTION STRIP                                       */}
+                    {/* 1. STANDALONE TOP ROW: VERIFY ICAI BUTTON (TOP-RIGHT)                     */}
                     {/* ========================================================================= */}
-                    <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-3xl border border-gray-100 shadow-2xs mb-6 overflow-x-auto">
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleVerifyIcaiModal}
+                        className="px-4 py-1.5 bg-white border border-emerald-600/80 text-emerald-700 hover:bg-emerald-50 rounded-2xl text-xs font-bold shadow-2xs inline-flex items-center gap-1.5 transition-colors"
+                      >
+                        <span className="text-rose-500">🔖</span>
+                        <span>VERIFY ICAI</span>
+                      </button>
+                    </div>
+
+                    {/* ========================================================================= */}
+                    {/* 2. AUDITOR ROLE SELECTION STRIP (CLEAN FULL ROW WITHOUT VERIFY ICAI)      */}
+                    {/* ========================================================================= */}
+                    <div className="bg-white rounded-3xl border border-gray-100 shadow-2xs p-2.5 overflow-x-auto">
                       <div className="flex items-center gap-2 shrink-0">
                         {/* Tab 1: Statutory Financial Auditor */}
                         <button
@@ -2580,16 +2594,6 @@ export default function BusinessCA({ mode }) {
                           <span>Forensic Auditor</span>
                         </button>
                       </div>
-
-                      {/* VERIFY ICAI BUTTON */}
-                      <button
-                        type="button"
-                        onClick={handleVerifyIcaiModal}
-                        className="px-3.5 py-1.5 border border-emerald-600 text-emerald-700 hover:bg-emerald-50 rounded-2xl text-xs font-bold shrink-0 transition-colors inline-flex items-center gap-1.5"
-                      >
-                        <span>🔖</span>
-                        <span>VERIFY ICAI</span>
-                      </button>
                     </div>
 
                     {/* ========================================================================= */}
