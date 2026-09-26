@@ -2702,10 +2702,42 @@ export default function BusinessCA({ mode }) {
 
                     {/* Auditor Category Specialized Suite Card */}
                     {(activeSubTab === 'audit_suite' || personalTab === 'audit_suite' || personalTab === 'auditor_desk') && (
-                        activeAuditorCategory === "Statutory Financial Auditor (ICAI CA)" ? (
+                        (selectedAuditorRole === 'statutory' || activeAuditorCategory === "Statutory Financial Auditor (ICAI CA)") ? (
                             <StatutoryFinancialAuditSuite />
-                        ) : activeAuditorCategory === "Tax Auditor (ICAI CA)" ? (
+                        ) : (selectedAuditorRole === 'tax' || activeAuditorCategory === "Tax Auditor (ICAI CA)") ? (
                             <TaxAuditForm3CDHub />
+                        ) : ['internal', 'cost', 'secretarial', 'forensic'].includes(selectedAuditorRole) ? (
+                            <div className="bg-white rounded-3xl p-16 border border-gray-100 shadow-2xs flex flex-col items-center justify-center text-center space-y-4 min-h-[380px]">
+                              <div className="w-16 h-16 rounded-3xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-2xl shadow-2xs">
+                                🚀
+                              </div>
+
+                              <div className="space-y-1.5 max-w-md">
+                                <h3 className="text-xl font-black text-gray-900 tracking-tight">
+                                  Coming Soon
+                                </h3>
+                                <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                                  The{' '}
+                                  <strong className="text-emerald-800">
+                                    {selectedAuditorRole === 'internal'
+                                      ? 'Internal Auditor (CIA / CA / CMA)'
+                                      : selectedAuditorRole === 'cost'
+                                      ? 'Cost Auditor (ICMAI CMA)'
+                                      : selectedAuditorRole === 'secretarial'
+                                      ? 'Secretarial Auditor (ICSI CS)'
+                                      : 'Forensic Auditor'}
+                                  </strong>{' '}
+                                  compliance suite and verification engines are currently under scheduled deployment.
+                                </p>
+                              </div>
+
+                              <div className="pt-2">
+                                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-bold tracking-wide uppercase">
+                                  <span>⏳</span>
+                                  <span>Module In Progress</span>
+                                </span>
+                              </div>
+                            </div>
                         ) : (
                             <div style={{
                                 background: '#FFFFFF',
