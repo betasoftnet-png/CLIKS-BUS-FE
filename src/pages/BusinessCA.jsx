@@ -31,9 +31,9 @@ export default function BusinessCA({ mode }) {
     const [activeAuditorCategory, setActiveAuditorCategory] = useState("Statutory Financial Auditor (ICAI CA)");
     const [activeSuiteTool, setActiveSuiteTool] = useState('tool1');
 
-    const setSelectedAuditorRole = (role) => {
-        setSelectedAuditorRoleState(role);
-        setActiveRoleTab(role);
+    const handleSelectRole = (roleKey) => {
+        setSelectedAuditorRoleState(roleKey);
+        setActiveRoleTab(roleKey);
         const roleCategoryMap = {
             statutory: "Statutory Financial Auditor (ICAI CA)",
             tax: "Tax Auditor (ICAI CA)",
@@ -42,10 +42,15 @@ export default function BusinessCA({ mode }) {
             secretarial: "Secretarial Auditor (ICSI CS)",
             forensic: "Forensic Auditor (ICAI FAFD / CFE)"
         };
-        if (roleCategoryMap[role]) {
-            setActiveAuditorCategory(roleCategoryMap[role]);
+        if (roleCategoryMap[roleKey]) {
+            setActiveAuditorCategory(roleCategoryMap[roleKey]);
         }
+        setActiveSubTabState('audit_suite');
+        setPersonalTab('audit_suite');
+        setActiveSuiteTool('tool1');
     };
+
+    const setSelectedAuditorRole = handleSelectRole;
 
     const setActiveSubTab = (tab) => {
         setActiveSubTabState(tab);
@@ -2670,7 +2675,11 @@ export default function BusinessCA({ mode }) {
 
                       {/* RIGHT-ALIGNED CURRENT AUDITOR ROLE PILL (AS SEEN IN PICTURES 1 & 2) */}
                       <div className="shrink-0 pl-2">
-                        <div className="px-3 py-1 bg-emerald-50/70 border border-emerald-200/90 rounded-xl text-[10px] font-bold text-emerald-800 flex items-center gap-1.5 shadow-2xs">
+                        <button
+                          type="button"
+                          onClick={() => setActiveSubTab('audit_suite')}
+                          className="px-3 py-1 bg-emerald-50/70 hover:bg-emerald-100/80 border border-emerald-200/90 rounded-xl text-[10px] font-bold text-emerald-800 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                        >
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                           <span>
                             {selectedAuditorRole === 'tax'
@@ -2681,31 +2690,17 @@ export default function BusinessCA({ mode }) {
                               ? 'Cost Auditor (ICMAI CMA)'
                               : selectedAuditorRole === 'secretarial'
                               ? 'Secretarial Auditor (ICSI CS)'
+                              : selectedAuditorRole === 'forensic'
+                              ? 'Forensic Auditor'
                               : 'Statutory Financial Auditor (ICAI CA)'}
                           </span>
-                        </div>
+                        </button>
                       </div>
                     </div>
 
                     {/* Auditor Category Specialized Suite Card */}
-                    {personalTab === 'auditor_desk' && (
-                        ['internal', 'cost', 'secretarial', 'forensic'].includes(activeWorkspaceTab) ? (
-                            <div className="w-full bg-white rounded-2xl border border-slate-200 p-16 flex flex-col items-center justify-center text-center shadow-sm min-h-[380px]" style={{ width: '100%', background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '64px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minHeight: '380px' }}>
-                                <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 border border-emerald-100 shadow-sm" style={{ width: '64px', height: '64px', borderRadius: '16px', background: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', border: '1px solid #D1FAE5', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                                    <ClockIcon className="w-8 h-8" size={32} />
-                                </div>
-                                <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-emerald-100 text-emerald-800 mb-2" style={{ display: 'inline-block', padding: '4px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#D1FAE5', color: '#065F46', marginBottom: '8px' }}>
-                                    Under Development
-                                </span>
-                                <h3 className="text-2xl font-bold text-slate-900 tracking-tight mb-2" style={{ fontSize: '24px', fontWeight: '800', color: '#0F172A', letterSpacing: '-0.025em', margin: '0 0 8px 0' }}>
-                                    Coming Soon
-                                </h3>
-                                <p className="text-sm text-slate-500 max-w-md" style={{ fontSize: '14px', color: '#64748B', maxWidth: '448px', margin: 0, lineHeight: '1.5' }}>
-                                    This specialized audit desk is currently being prepared to meet statutory compliance standards. Full workflows will be available shortly.
-                                </p>
-                            </div>
-                        ) : (
-                            <div style={{
+                    {(activeSubTab === 'audit_suite' || personalTab === 'audit_suite' || personalTab === 'auditor_desk') && (
+                        <div style={{
                             background: '#FFFFFF',
                             borderRadius: '16px',
                             border: '1px solid #E2E8F0',
@@ -3262,7 +3257,6 @@ export default function BusinessCA({ mode }) {
                                 );
                             })()}
                         </div>
-                        )
                     )}
 
                     {/* Main Content Workspace Container */}
@@ -5196,7 +5190,7 @@ export default function BusinessCA({ mode }) {
                             )}
 
                             {/* 9. REPORTS TAB */}
-                            {(personalTab === 'reports' || personalTab === 'report' || activeSubTab === 'report') && (
+                            {activeSubTab === 'report' && (
                                 <Motion.div key="reports" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                     <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
