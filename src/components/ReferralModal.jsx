@@ -144,12 +144,6 @@ const ReferralModal = ({ isOpen, onClose, availablePoints }) => {
                             <p style={{ opacity: 0.95, fontSize: '0.9rem', fontWeight: '500', lineHeight: '1.5', margin: 0 }}>
                                 Refer a business owner → They join Cliks → They become active → You both earn rewards.
                             </p>
-                            
-                            {/* Points Available Chip (Wallet wording removed) */}
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 text-white text-xs font-semibold backdrop-blur-xs mb-6" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.2)', padding: '0.4rem 0.85rem', borderRadius: '99px', marginTop: '1rem', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.78rem', fontWeight: '800', color: '#FFFFFF' }}>
-                                <span>🎁</span>
-                                <span>{displayPoints} Points Available</span>
-                            </div>
                         </div>
 
                         {/* Modal Body */}

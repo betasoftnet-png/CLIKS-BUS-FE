@@ -24,5 +24,8 @@ export const antiFraudRules = [
   },
 ];
 
-export { BusinessReferral, AntiFraudRules };
+import ReferralShareModal from '../../components/referral/ReferralShareModal';
+import ShareInviteModal from '../../components/referral/ShareInviteModal';
+
+export { BusinessReferral, AntiFraudRules, ReferralShareModal, ShareInviteModal };
 export default BusinessReferral;

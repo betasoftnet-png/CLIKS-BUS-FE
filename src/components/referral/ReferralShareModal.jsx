@@ -63,14 +63,6 @@ export default function ReferralShareModal({
           <p className="text-[11px] text-emerald-200 mt-1 font-medium max-w-xs mx-auto">
             Refer a business owner → They join Cliks → They become active → You both earn rewards.
           </p>
-
-          {/* DYNAMIC AVAILABLE POINTS PILL (WAS HARDCODED TO 0) */}
-          <div className="mt-3">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-emerald-100 text-[10px] font-bold tracking-wide uppercase">
-              <span>🎁</span>
-              <span>{availablePoints ?? 100} Points Available</span>
-            </span>
-          </div>
         </div>
 
         {/* MODAL BODY */}
