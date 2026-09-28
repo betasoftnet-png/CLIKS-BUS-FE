@@ -203,6 +203,23 @@ const BusinessPayroll = () => {
         return list;
     }, [staffList, payrollRecords]);
 
+    // Input guards against negative numbers and exponent keys
+    const preventNegativeKeys = (e) => {
+        if (['-', '+', 'e', 'E'].includes(e.key)) {
+            e.preventDefault();
+        }
+    };
+
+    const sanitizePositiveInput = (setter) => (e) => {
+        const val = e.target.value;
+        if (val === '') {
+            setter('');
+            return;
+        }
+        const cleanVal = Math.max(0, parseFloat(val) || 0);
+        setter(cleanVal);
+    };
+
     // Form states
     const [payForm, setPayForm] = useState({
         employee_id: '',
@@ -603,9 +620,15 @@ const BusinessPayroll = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Basic Base Salary ({currency.symbol})</label>
                                     <input 
                                         type="number" 
+                                        min="0"
+                                        step="any"
+                                        onKeyDown={preventNegativeKeys}
                                         placeholder="e.g. 50000"
                                         value={payForm.basic_salary} 
-                                        onChange={(e) => setPayForm({ ...payForm, basic_salary: e.target.value })} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setPayForm({ ...payForm, basic_salary: val === '' ? '' : Math.max(0, parseFloat(val) || 0) });
+                                        }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                     />
                                 </div>
@@ -613,9 +636,15 @@ const BusinessPayroll = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>HRA Allowance ({currency.symbol})</label>
                                     <input 
                                         type="number" 
+                                        min="0"
+                                        step="any"
+                                        onKeyDown={preventNegativeKeys}
                                         placeholder="e.g. 5000"
                                         value={payForm.hra_amount} 
-                                        onChange={(e) => setPayForm({ ...payForm, hra_amount: e.target.value })} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setPayForm({ ...payForm, hra_amount: val === '' ? '' : Math.max(0, parseFloat(val) || 0) });
+                                        }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                     />
                                 </div>
@@ -625,9 +654,15 @@ const BusinessPayroll = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Special Allowance</label>
                                     <input 
                                         type="number" 
+                                        min="0"
+                                        step="any"
+                                        onKeyDown={preventNegativeKeys}
                                         placeholder="e.g. 2000"
                                         value={payForm.special_allowance} 
-                                        onChange={(e) => setPayForm({ ...payForm, special_allowance: e.target.value })} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setPayForm({ ...payForm, special_allowance: val === '' ? '' : Math.max(0, parseFloat(val) || 0) });
+                                        }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                     />
                                 </div>
@@ -635,9 +670,15 @@ const BusinessPayroll = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Bonus / Incentives</label>
                                     <input 
                                         type="number" 
+                                        min="0"
+                                        step="any"
+                                        onKeyDown={preventNegativeKeys}
                                         placeholder="e.g. 3000"
                                         value={payForm.bonus_amount} 
-                                        onChange={(e) => setPayForm({ ...payForm, bonus_amount: e.target.value })} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setPayForm({ ...payForm, bonus_amount: val === '' ? '' : Math.max(0, parseFloat(val) || 0) });
+                                        }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                     />
                                 </div>
@@ -656,9 +697,15 @@ const BusinessPayroll = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>ESI Deduction</label>
                                     <input 
                                         type="number" 
+                                        min="0"
+                                        step="any"
+                                        onKeyDown={preventNegativeKeys}
                                         placeholder="e.g. 325"
                                         value={payForm.esi_deduction} 
-                                        onChange={(e) => setPayForm({ ...payForm, esi_deduction: e.target.value })} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setPayForm({ ...payForm, esi_deduction: val === '' ? '' : Math.max(0, parseFloat(val) || 0) });
+                                        }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                     />
                                 </div>
@@ -666,9 +713,15 @@ const BusinessPayroll = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Estimated TDS</label>
                                     <input 
                                         type="number" 
+                                        min="0"
+                                        step="any"
+                                        onKeyDown={preventNegativeKeys}
                                         placeholder="e.g. 100"
                                         value={payForm.tds_deduction} 
-                                        onChange={(e) => setPayForm({ ...payForm, tds_deduction: e.target.value })} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setPayForm({ ...payForm, tds_deduction: val === '' ? '' : Math.max(0, parseFloat(val) || 0) });
+                                        }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                     />
                                 </div>
@@ -705,16 +758,19 @@ const BusinessPayroll = () => {
                                         <option key={r.id} value={r.name}>{r.name} ({r.department || 'Staff'})</option>
                                     ))}
                                 </select>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            </div>                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Loan Amount ({currency.symbol})</label>
                                     <input 
                                         type="number" 
+                                        min="0"
+                                        step="any"
+                                        onKeyDown={preventNegativeKeys}
                                         placeholder="e.g. 2000"
                                         value={loanForm.loan_amount} 
                                         onChange={(e) => {
-                                            const amt = e.target.value;
+                                            const raw = e.target.value;
+                                            const amt = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
                                             setLoanForm(prev => {
                                                 const emi = parseFloat(prev.emi_amount);
                                                 const loan = parseFloat(amt);
@@ -729,10 +785,14 @@ const BusinessPayroll = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Monthly EMI ({currency.symbol})</label>
                                     <input 
                                         type="number" 
+                                        min="0"
+                                        step="any"
+                                        onKeyDown={preventNegativeKeys}
                                         placeholder="e.g. 50"
                                         value={loanForm.emi_amount} 
                                         onChange={(e) => {
-                                            const emiStr = e.target.value;
+                                            const raw = e.target.value;
+                                            const emiStr = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
                                             setLoanForm(prev => {
                                                 const emi = parseFloat(emiStr);
                                                 const loan = parseFloat(prev.loan_amount);
@@ -750,6 +810,8 @@ const BusinessPayroll = () => {
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Loan Deduction Period (Months)</label>
                                 <input 
                                     type="number" 
+                                    min="0"
+                                    onKeyDown={preventNegativeKeys}
                                     placeholder="e.g. 40"
                                     value={
                                         loanForm.deduction_months !== undefined && loanForm.deduction_months !== ''
@@ -759,7 +821,8 @@ const BusinessPayroll = () => {
                                                 : '')
                                     }
                                     onChange={(e) => {
-                                        const val = e.target.value;
+                                        const raw = e.target.value;
+                                        const val = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
                                         const months = parseFloat(val);
                                         const loanAmt = parseFloat(loanForm.loan_amount);
                                         if (months > 0 && loanAmt > 0) {
@@ -768,7 +831,7 @@ const BusinessPayroll = () => {
                                         } else {
                                             setLoanForm(prev => ({ ...prev, deduction_months: val }));
                                         }
-                                    }}
+                                    }} 
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                 />
                                 {parseFloat(loanForm.loan_amount) > 0 && parseFloat(loanForm.emi_amount) > 0 && (
@@ -793,9 +856,16 @@ const BusinessPayroll = () => {
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Immediate Salary Advance ({currency.symbol})</label>
                                 <input 
                                     type="number" 
+                                    min="0"
+                                    step="any"
+                                    onKeyDown={preventNegativeKeys}
                                     placeholder="e.g. 500"
                                     value={loanForm.salary_advance} 
-                                    onChange={(e) => setLoanForm(prev => ({ ...prev, salary_advance: e.target.value }))} 
+                                    onChange={(e) => {
+                                        const raw = e.target.value;
+                                        const val = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
+                                        setLoanForm(prev => ({ ...prev, salary_advance: val }));
+                                    }} 
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                 />
                             </div>
