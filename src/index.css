@@ -725,3 +725,47 @@ body.dark-theme,
   border-color: #334155 !important;
   color: #F8FAFC !important;
 }
+
+/* Print styles for thermal POS receipt */
+@media print {
+  /* Hide the entire background app, sidebar, and modals */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Make only the designated receipt container visible */
+  #printable-pos-receipt,
+  #printable-pos-receipt *,
+  #thermal-receipt-pane,
+  #thermal-receipt-pane * {
+    visibility: visible;
+  }
+
+  /* Position receipt at the very top-left of the physical page */
+  #printable-pos-receipt,
+  #thermal-receipt-pane {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm; /* Standard 3-inch POS thermal printer roll */
+    max-width: 100%;
+    margin: 0;
+    padding: 10px;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Hide print/action buttons during printing */
+  .no-print {
+    display: none !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 0mm;
+  }
+}

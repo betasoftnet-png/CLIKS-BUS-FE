@@ -1455,28 +1455,7 @@ const BusinessPOS = () => {
     };
 
     const printReceipt = () => {
-        const printContents = document.getElementById('thermal-receipt-pane').innerHTML;
-        document.body.innerHTML = `
-            <html>
-                <head>
-                    <title>Print Receipt</title>
-                    <style>
-                        body { font-family: monospace; font-size: 12px; color: #000; background: #fff; margin: 0; padding: 15px; text-align: center; }
-                        h2, h3, p { margin: 4px 0; }
-                        hr { border: 0.5px dashed #000; margin: 8px 0; }
-                        .receipt-table { width: 100%; border-collapse: collapse; text-align: left; }
-                        .receipt-table td { padding: 2px 0; }
-                        .text-right { text-align: right; }
-                    </style>
-                </head>
-                <body>
-                    ${printContents}
-                    <script>window.print(); window.close();</script>
-                </body>
-            </html>
-        `;
         window.print();
-        window.location.reload(); // Reload back to app
     };
 
     return (
@@ -2683,6 +2662,7 @@ const BusinessPOS = () => {
                             onClick={() => setShowReceiptModal(false)}
                             aria-label="Close receipt modal"
                             title="Close"
+                            className="no-print"
                             style={{
                                 position: 'absolute',
                                 top: '-12px',
@@ -2716,7 +2696,7 @@ const BusinessPOS = () => {
                         </button>
 
                         {/* Modal Header */}
-                        <div style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', padding: '1.5rem', color: 'white', textAlign: 'center', position: 'relative', borderRadius: '20px 20px 0 0' }}>
+                        <div className="no-print" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', padding: '1.5rem', color: 'white', textAlign: 'center', position: 'relative', borderRadius: '20px 20px 0 0' }}>
                             <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
                                 <Check size={24} strokeWidth={3} />
                             </div>
@@ -2725,7 +2705,7 @@ const BusinessPOS = () => {
                         </div>
 
                         {/* Thermal Receipt Workspace (to print) */}
-                        <div id="thermal-receipt-pane" style={{ padding: '1.5rem', background: '#FFFFFF', flex: 1, overflowY: 'auto', maxHeight: '400px' }}>
+                        <div id="printable-pos-receipt" className="printable-pos-receipt" style={{ padding: '1.5rem', background: '#FFFFFF', flex: 1, overflowY: 'auto', maxHeight: '400px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'monospace', color: '#000' }}>
                                 <h4 style={{ margin: '0 0 4px', fontSize: '1.1rem', textTransform: 'uppercase' }}>CLIKS BUSINESS POS</h4>
                                 <p style={{ margin: 0, fontSize: '0.75rem' }}>Phone: +91 98765 43210</p>
@@ -2833,9 +2813,10 @@ const BusinessPOS = () => {
                         </div>
 
                         {/* Action Footer */}
-                        <div style={{ padding: '1.25rem', borderTop: '1px solid #F1F5F9', display: 'flex', gap: '0.75rem', borderRadius: '0 0 20px 20px' }}>
+                        <div className="no-print" style={{ padding: '1.25rem', borderTop: '1px solid #F1F5F9', display: 'flex', gap: '0.75rem', borderRadius: '0 0 20px 20px' }}>
                             <button 
                                 onClick={printReceipt}
+                                className="no-print"
                                 style={{ 
                                     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', 
                                     padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', 
@@ -2846,6 +2827,7 @@ const BusinessPOS = () => {
                             </button>
                             <button 
                                 onClick={() => setShowReceiptModal(false)}
+                                className="no-print"
                                 style={{ 
                                     flex: 1, padding: '0.75rem', borderRadius: '12px', border: 'none', 
                                     background: '#0F172A', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' 
