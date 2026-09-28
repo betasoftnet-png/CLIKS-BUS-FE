@@ -29,10 +29,12 @@ import {
     BadgeCheck
 } from 'lucide-react';
 import referralService, { REDEMPTION_CATALOG, STAGE_REWARDS } from '../services/referralService';
+import ReferralShareModal from '../components/referral/ReferralShareModal';
 import '../App.css';
 
 const BusinessReferral = () => {
     const [copied, setCopied] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [referralCode, setReferralCode] = useState('');
     const [referralLink, setReferralLink] = useState('');
     const [wallet, setWallet] = useState({ available_points: 0, pending_points: 0, total_earned_points: 0 });
@@ -143,6 +145,27 @@ const BusinessReferral = () => {
                         Refer a business owner → They join Cliks → They become active → You both earn rewards.
                     </p>
                 </div>
+                <button
+                    type="button"
+                    onClick={() => setIsShareModalOpen(true)}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.65rem 1.15rem',
+                        borderRadius: '14px',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #064E3B 0%, #047857 100%)',
+                        color: 'white',
+                        fontWeight: '800',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 8px 16px rgba(6, 78, 59, 0.2)'
+                    }}
+                >
+                    <Share2 size={16} />
+                    <span>Share Invite Modal</span>
+                </button>
             </div>
 
             {/* Main Content Area */}
@@ -262,6 +285,17 @@ const BusinessReferral = () => {
                                 }}
                             >
                                 {copied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Referral Link</>}
+                            </button>
+                            <button 
+                                onClick={() => setIsShareModalOpen(true)}
+                                style={{ 
+                                    display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.65rem 1.1rem', 
+                                    borderRadius: '12px', border: '1px solid #A7F3D0', cursor: 'pointer',
+                                    background: '#ECFDF5', color: '#064E3B',
+                                    fontWeight: '800', fontSize: '0.8rem', transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <Share2 size={16} /> Share
                             </button>
                         </div>
 
@@ -544,6 +578,14 @@ const BusinessReferral = () => {
                 )}
 
             </div>
+
+            {/* Share Referral Link Pop-up Modal */}
+            <ReferralShareModal 
+                isOpen={isShareModalOpen} 
+                onClose={() => setIsShareModalOpen(false)} 
+                referralCode={referralCode}
+                availablePoints={pointsBalance ?? wallet?.available_points ?? 100}
+            />
         </div>
     );
 };

@@ -22,13 +22,14 @@ import { useAuth } from '../context';
 import referralService from '../services/referralService';
 import '../App.css';
 
-const ReferralModal = ({ isOpen, onClose }) => {
+const ReferralModal = ({ isOpen, onClose, availablePoints }) => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [copied, setCopied] = useState(false);
     const referralCode = referralService.getUserReferralCode();
     const referralLink = referralService.getReferralLink();
     const wallet = referralService.getWallet();
+    const displayPoints = availablePoints ?? user?.referral_points ?? wallet?.available_points ?? 100;
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(referralLink);
@@ -147,7 +148,7 @@ const ReferralModal = ({ isOpen, onClose }) => {
                             {/* Points Available Chip (Wallet wording removed) */}
                             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 text-white text-xs font-semibold backdrop-blur-xs mb-6" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.2)', padding: '0.4rem 0.85rem', borderRadius: '99px', marginTop: '1rem', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.78rem', fontWeight: '800', color: '#FFFFFF' }}>
                                 <span>🎁</span>
-                                <span>{user?.referral_points ?? wallet?.available_points ?? 2200} Points Available</span>
+                                <span>{displayPoints} Points Available</span>
                             </div>
                         </div>
 

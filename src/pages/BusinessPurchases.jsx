@@ -1693,31 +1693,29 @@ const BusinessPurchases = () => {
                                             <button 
                                                 type="button" 
                                                 onClick={() => setIsNewProductModalOpen(true)}
-                                                className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg"
-                                                style={{ cursor: 'pointer' }}
+                                                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1 shadow-2xs cursor-pointer"
                                             >
-                                                + Create Product
+                                                <span>+</span>
+                                                <span>Create Product</span>
                                             </button>
                                         )}
-                                        <button type="button" onClick={handleAddItemField} style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Add Row</button>
+                                        <button 
+                                            type="button" 
+                                            onClick={handleAddItemField} 
+                                            className="px-3.5 py-1.5 bg-[#0e4b34] hover:bg-[#093625] text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1 shadow-xs cursor-pointer"
+                                            style={{ border: 'none' }}
+                                        >
+                                            <span>+</span>
+                                            <span>Add Row</span>
+                                        </button>
                                     </div>
                                 </div>
 
                                 {formItems.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((item, idx) => (
                                     <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'end' }}>
                                         <div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.25rem' }}>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1B6B3A' }}>Product Name</label>
-                                                {createDocType !== 'RETURN' && (
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => setIsNewProductModalOpen(true)}
-                                                        className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg"
-                                                        style={{ cursor: 'pointer' }}
-                                                    >
-                                                        + Create Product
-                                                    </button>
-                                                )}
                                             </div>
                                             <select 
                                                 required 

@@ -98,7 +98,7 @@ export const NewProductModal = ({ isOpen, onClose, onSuccess }) => {
                             <PackagePlus size={20} />
                         </div>
                         <div>
-                            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '850', color: '#1E293B' }}>Create New Product</h3>
+                            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '850', color: '#1E293B' }}>New Product Registration</h3>
                             <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748B' }}>Quickly register an item to append directly to this order.</p>
                         </div>
                     </div>

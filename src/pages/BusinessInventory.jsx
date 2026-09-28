@@ -225,7 +225,7 @@ const BusinessInventory = () => {
     // Auto-trigger product modal setup via search params
     const [searchParams, setSearchParams] = useSearchParams();
     React.useEffect(() => {
-        if (searchParams.get('create') === 'true') {
+        if (searchParams.get('create') === 'true' || searchParams.get('openModal') === 'true') {
             setIsModalOpen(true);
             setSearchParams({}, { replace: true });
         }
@@ -913,17 +913,35 @@ const BusinessInventory = () => {
                                                 const isDamagedGodown = String(row.warehouse || '').toLowerCase().includes('damaged');
                                                 const rawQty = parseFloat(row.quantity ?? row.opening_stock ?? 0) || 0;
                                                 const sellableQty = isDamagedGodown ? 0 : rawQty;
+                                                const minStock = row.min_stock ?? row.minStock ?? row.minimum_stock ?? row.min_stock_level ?? 0;
+                                                const reorderLevel = row.reorder_level ?? row.reorderLevel ?? row.reorder_point ?? row.reorder_qty ?? 0;
+                                                const displayStock = row.stock ?? row.quantity ?? row.sellable ?? sellableQty;
                                                 return (
                                                     <div>
-                                                        <p style={{ fontWeight: '850', color: isDamagedGodown ? '#DC2626' : (sellableQty < row.min_stock ? '#EF4444' : '#1E293B'), fontSize: '1.05rem', margin: 0 }}>
-                                                            {sellableQty} <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Sellable</span>
+                                                        <p style={{ fontWeight: '850', color: isDamagedGodown ? '#DC2626' : (displayStock < minStock ? '#EF4444' : '#1E293B'), fontSize: '1.05rem', margin: 0 }}>
+                                                            {displayStock}{' '}
+                                                            <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: '600' }}>Sellable</span>
                                                         </p>
                                                         {isDamagedGodown ? (
                                                             <span style={{ fontSize: '0.72rem', color: '#DC2626', fontWeight: '850', background: '#FEF2F2', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginTop: '2px' }}>
                                                                 ⚠️ Damaged Godown ({rawQty} Dmg)
                                                             </span>
                                                         ) : (
-                                                            <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Min: {row.min_stock} | Reorder: {row.reorder_level}</span>
+                                                            <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '500', marginTop: '2px' }}>
+                                                                <span>
+                                                                    Min:{' '}
+                                                                    <strong style={{ color: '#475569', fontWeight: '700' }}>
+                                                                        {minStock}
+                                                                    </strong>
+                                                                </span>
+                                                                <span style={{ margin: '0 4px', color: '#CBD5E1' }}>|</span>
+                                                                <span>
+                                                                    Reorder:{' '}
+                                                                    <strong style={{ color: '#475569', fontWeight: '700' }}>
+                                                                        {reorderLevel}
+                                                                    </strong>
+                                                                </span>
+                                                            </div>
                                                         )}
                                                     </div>
                                                 );
@@ -937,8 +955,18 @@ const BusinessInventory = () => {
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <div>
-                                                <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.85rem' }}>{row.gst_percentage}% GST</p>
-                                                <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>HSN: {row.hsn_code || 'N/A'}</span>
+                                                <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.85rem', margin: 0 }}>
+                                                    {(() => {
+                                                        const rate = row.gst_rate ?? row.gstRate ?? row.tax_rate ?? row.tax_percentage ?? row.gst_percentage ?? row.gst ?? null;
+                                                        if (rate !== null && rate !== undefined && rate !== '') {
+                                                            return `${rate}% GST`;
+                                                        }
+                                                        return '0% GST';
+                                                    })()}
+                                                </p>
+                                                <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: '500', marginTop: '2px' }}>
+                                                    HSN: <span style={{ color: '#475569', fontWeight: '600' }}>{row.hsn ?? row.hsn_code ?? row.hsnCode ?? 'N/A'}</span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>

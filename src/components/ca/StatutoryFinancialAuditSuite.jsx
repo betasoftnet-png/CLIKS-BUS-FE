@@ -261,7 +261,7 @@ const STATUTORY_AUDIT_MODULES = {
 
 export default function StatutoryFinancialAuditSuite() {
   // Active Tab state: 'rule11' | 'smart_vouching' | 'fixed_asset' | 'bank_brs' | 'governance' | 'asset_verification' | 'liabilities_solvency' | 'related_parties' | 'audit_opinion'
-  const [activeSuiteTab, setActiveSuiteTab] = useState('rule11');
+  const [activeSuiteTab, setActiveSuiteTab] = useState('governance');
 
   const activeModuleData = STATUTORY_AUDIT_MODULES[activeSuiteTab];
 
@@ -286,7 +286,7 @@ export default function StatutoryFinancialAuditSuite() {
           <div className="pt-1">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50/80 border border-amber-200/80 rounded-xl text-[10px] font-black text-amber-800">
               <span>📦</span>
-              <span>Core Deliverable: Rule 11(g) Audit Trail Certificate &amp; Statutory Filing Dossier</span>
+              <span>Core Deliverable: Rule 11(g) Audit Trail Certificate &amp; SA 230 Working Paper Bundle</span>
             </span>
           </div>
         </div>
@@ -300,10 +300,10 @@ export default function StatutoryFinancialAuditSuite() {
         <button
           type="button"
           onClick={() => setActiveSuiteTab('rule11')}
-          className={`px-3 py-2 rounded-xl font-bold transition-all ${
+          className={`px-3 py-2 rounded-xl transition-all ${
             activeSuiteTab === 'rule11'
-              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+              ? 'border-2 border-blue-500 text-blue-700 bg-white font-bold'
+              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border-2 border-transparent font-medium'
           }`}
         >
           Rule 11(g) Vault &amp; Certificate
@@ -313,10 +313,10 @@ export default function StatutoryFinancialAuditSuite() {
         <button
           type="button"
           onClick={() => setActiveSuiteTab('smart_vouching')}
-          className={`px-3 py-2 rounded-xl font-bold transition-all ${
+          className={`px-3 py-2 rounded-xl transition-all ${
             activeSuiteTab === 'smart_vouching'
-              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+              ? 'border-2 border-blue-500 text-blue-700 bg-white font-bold'
+              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border-2 border-transparent font-medium'
           }`}
         >
           Smart Vouching &amp; Sampler
@@ -326,10 +326,10 @@ export default function StatutoryFinancialAuditSuite() {
         <button
           type="button"
           onClick={() => setActiveSuiteTab('fixed_asset')}
-          className={`px-3 py-2 rounded-xl font-bold transition-all ${
+          className={`px-3 py-2 rounded-xl transition-all ${
             activeSuiteTab === 'fixed_asset'
-              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+              ? 'border-2 border-blue-500 text-blue-700 bg-white font-bold'
+              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border-2 border-transparent font-medium'
           }`}
         >
           Fixed Asset &amp; Depreciation
@@ -339,25 +339,23 @@ export default function StatutoryFinancialAuditSuite() {
         <button
           type="button"
           onClick={() => setActiveSuiteTab('bank_brs')}
-          className={`px-3 py-2 rounded-xl font-bold transition-all ${
+          className={`px-3 py-2 rounded-xl transition-all ${
             activeSuiteTab === 'bank_brs'
-              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+              ? 'border-2 border-blue-500 text-blue-700 bg-white font-bold'
+              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border-2 border-transparent font-medium'
           }`}
         >
           Direct Bank BRS Engine
         </button>
 
-        {/* ❌ REMOVED: SA 230 Working Paper Packager */}
-
         {/* Tab 5 (NEW) */}
         <button
           type="button"
           onClick={() => setActiveSuiteTab('governance')}
-          className={`px-3 py-2 rounded-xl font-bold transition-all ${
+          className={`px-3 py-2 rounded-xl transition-all ${
             activeSuiteTab === 'governance'
-              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+              ? 'border-2 border-blue-500 text-blue-700 bg-white font-bold'
+              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border-2 border-transparent font-medium'
           }`}
         >
           Corporate Governance, Appointment &amp; Pre-Audit Controls
@@ -367,10 +365,10 @@ export default function StatutoryFinancialAuditSuite() {
         <button
           type="button"
           onClick={() => setActiveSuiteTab('asset_verification')}
-          className={`px-3 py-2 rounded-xl font-bold transition-all ${
+          className={`px-3 py-2 rounded-xl transition-all ${
             activeSuiteTab === 'asset_verification'
-              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+              ? 'border-2 border-blue-500 text-blue-700 bg-white font-bold'
+              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border-2 border-transparent font-medium'
           }`}
         >
           Substantive Asset Verification &amp; Title Due Diligence
@@ -380,10 +378,10 @@ export default function StatutoryFinancialAuditSuite() {
         <button
           type="button"
           onClick={() => setActiveSuiteTab('liabilities_solvency')}
-          className={`px-3 py-2 rounded-xl font-bold transition-all ${
+          className={`px-3 py-2 rounded-xl transition-all ${
             activeSuiteTab === 'liabilities_solvency'
-              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+              ? 'border-2 border-blue-500 text-blue-700 bg-white font-bold'
+              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border-2 border-transparent font-medium'
           }`}
         >
           Corporate Liabilities, Solvency &amp; Liquidity Assurance
@@ -393,10 +391,10 @@ export default function StatutoryFinancialAuditSuite() {
         <button
           type="button"
           onClick={() => setActiveSuiteTab('related_parties')}
-          className={`px-3 py-2 rounded-xl font-bold transition-all ${
+          className={`px-3 py-2 rounded-xl transition-all ${
             activeSuiteTab === 'related_parties'
-              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+              ? 'border-2 border-blue-500 text-blue-700 bg-white font-bold'
+              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border-2 border-transparent font-medium'
           }`}
         >
           Related Parties, Corporate Capital &amp; Statutory Fraud
@@ -406,10 +404,10 @@ export default function StatutoryFinancialAuditSuite() {
         <button
           type="button"
           onClick={() => setActiveSuiteTab('audit_opinion')}
-          className={`px-3 py-2 rounded-xl font-bold transition-all ${
+          className={`px-3 py-2 rounded-xl transition-all ${
             activeSuiteTab === 'audit_opinion'
-              ? 'bg-blue-50 text-blue-700 border border-blue-200'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+              ? 'border-2 border-blue-500 text-blue-700 bg-white font-bold'
+              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border-2 border-transparent font-medium'
           }`}
         >
           Audit Opinion, Regulatory Closures &amp; Archival
@@ -460,44 +458,44 @@ export default function StatutoryFinancialAuditSuite() {
       {/* Render Structured Section Tables for Modules 1 to 5 (Tabs 5 to 9) */}
       {activeModuleData && (
         <div className="space-y-4">
-          <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl space-y-1">
-            <h3 className="text-sm font-black text-gray-900">{activeModuleData.title}</h3>
-            <p className="text-xs text-gray-600 font-medium">{activeModuleData.description}</p>
+          <div className="bg-[#eff6ff] border border-blue-100 rounded-2xl p-4 space-y-1">
+            <h3 className="font-bold text-gray-900 text-sm">{activeModuleData.title}</h3>
+            <p className="text-xs text-gray-500 font-medium leading-relaxed">{activeModuleData.description}</p>
           </div>
 
           <div className="overflow-x-auto rounded-2xl border border-gray-100 shadow-2xs">
             <table className="w-full text-left border-collapse table-fixed text-xs">
               <thead>
-                <tr className="bg-gray-50/80 border-b border-gray-100 text-[10px] font-black text-gray-500 uppercase tracking-wider">
-                  <th className="py-3 px-3 w-[20%]">Sub-Track</th>
-                  <th className="py-3 px-3 w-[15%]">Section (Companies Act, 2013)</th>
-                  <th className="py-3 px-3 w-[20%]">Mandatory Rules &amp; Standards</th>
-                  <th className="py-3 px-3 w-[15%]">CARO 2020 / Audit Clause</th>
-                  <th className="py-3 px-3 w-[12%]">Statutory Deliverable / Form</th>
-                  <th className="py-3 px-3 w-[18%]">Core Audit Verification Objective</th>
+                <tr className="bg-gray-50/80 border-b border-gray-200 text-[10px] font-black text-gray-500 uppercase tracking-wider">
+                  <th className="py-3 px-3.5 w-[20%]">SUB-TRACK</th>
+                  <th className="py-3 px-3.5 w-[15%]">SECTION (COMPANIES ACT, 2013)</th>
+                  <th className="py-3 px-3.5 w-[20%]">MANDATORY RULES &amp; STANDARDS</th>
+                  <th className="py-3 px-3.5 w-[15%]">CARO 2020 / AUDIT CLAUSE</th>
+                  <th className="py-3 px-3.5 w-[12%]">STATUTORY DELIVERABLE / FORM</th>
+                  <th className="py-3 px-3.5 w-[18%]">CORE AUDIT VERIFICATION OBJECTIVE</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-100">
                 {activeModuleData.subTracks.map((row) => (
-                  <tr key={row.id} className="hover:bg-gray-50/60 transition-colors">
-                    <td className="py-3 px-3 font-bold text-gray-900 align-top">
-                      {row.name}
+                  <tr key={row.id} className="hover:bg-gray-50/60 transition-colors border-b border-gray-100">
+                    <td className="py-3.5 px-3.5 font-bold text-gray-900 align-top">
+                      {row.name || row.title}
                     </td>
-                    <td className="py-3 px-3 font-semibold text-blue-700 align-top">
+                    <td className="py-3.5 px-3.5 font-semibold text-blue-700 align-top">
                       {row.section}
                     </td>
-                    <td className="py-3 px-3 text-gray-600 align-top">
+                    <td className="py-3.5 px-3.5 text-gray-600 align-top">
                       {row.rules}
                     </td>
-                    <td className="py-3 px-3 font-bold text-gray-800 align-top">
+                    <td className="py-3.5 px-3.5 font-bold text-gray-800 align-top">
                       {row.caroClause}
                     </td>
-                    <td className="py-3 px-3 align-top">
-                      <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 text-[10px]">
+                    <td className="py-3.5 px-3.5 align-top">
+                      <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 text-[10px]">
                         {row.deliverable}
                       </span>
                     </td>
-                    <td className="py-3 px-3 text-gray-600 align-top leading-relaxed">
+                    <td className="py-3.5 px-3.5 text-gray-600 align-top leading-relaxed">
                       {row.objective}
                     </td>
                   </tr>
