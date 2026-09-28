@@ -1235,7 +1235,6 @@ const BusinessCRM = () => {
         { key: 'gstin', label: 'GSTIN / Type', placeholder: 'Tax ID' },
         { key: 'credit_limit', label: 'Credit Limit', placeholder: 'e.g. 50000' },
         { key: 'outstanding', label: 'Outstanding', placeholder: 'e.g. 5000' },
-        { key: 'credit_status', label: 'Credit Status', placeholder: 'e.g. Good' },
         { key: 'loyalty_points', label: 'Loyalty Pts', placeholder: 'e.g. 100' },
         { key: '_actions', label: 'Actions', noFilter: true }
     ]} onFilterChange={setColFilters} />
@@ -1305,57 +1304,6 @@ const BusinessCRM = () => {
                                             <span style={{ fontSize: '0.9rem', fontWeight: '850', color: (row.current_balance || 0) > 0 ? '#B91C1C' : ((row.current_balance || 0) < 0 ? '#0891B2' : '#475569') }}>
                                                 {(row.current_balance || 0) > 0 ? formatCurrency(row.current_balance || 0) : ((row.current_balance || 0) < 0 ? `- ${formatCurrency(Math.abs(row.current_balance || 0))} (Adv)` : formatCurrency(0))}
                                             </span>
-                                        </td>
-                                        <td style={{ padding: '0.6rem 1rem' }}>
-                                            {(() => {
-                                                const rawCreditStatus = String(row.credit_status || row.creditStatus || '').toUpperCase().trim();
-                                                const rawStatus = String(row.status || '').toUpperCase().trim();
-                                                const curBal = Number(row.current_balance || 0);
-                                                const credLimit = Number(row.credit_limit || 0);
-
-                                                if (row.is_blocked || row.blocked || row.credit_blocked || rawCreditStatus === 'BLOCKED' || rawStatus === 'BLOCKED') {
-                                                    return (
-                                                        <span style={{ display: 'inline-flex', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#FEE2E2', color: '#991B1B', fontSize: '0.7rem', fontWeight: '800' }}>
-                                                            BLOCKED
-                                                        </span>
-                                                    );
-                                                }
-
-                                                if (curBal > credLimit || rawCreditStatus.includes('EXCEED') || rawStatus.includes('EXCEED')) {
-                                                    return (
-                                                        <span style={{ display: 'inline-flex', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#FEF2F2', color: '#B91C1C', fontSize: '0.7rem', fontWeight: '800' }}>
-                                                            EXCEEDED
-                                                        </span>
-                                                    );
-                                                }
-
-                                                if (
-                                                    rawCreditStatus === 'OVERDUE' ||
-                                                    rawStatus === 'OVERDUE' ||
-                                                    row.is_overdue ||
-                                                    row.has_overdue ||
-                                                    (row.overdue_amount && Number(row.overdue_amount) > 0) ||
-                                                    (row.overdue_days && Number(row.overdue_days) > 0)
-                                                ) {
-                                                    return (
-                                                        <span style={{ display: 'inline-flex', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#FFF1F2', color: '#E11D48', fontSize: '0.7rem', fontWeight: '800' }}>
-                                                            OVERDUE
-                                                        </span>
-                                                    );
-                                                }
-
-                                                if (curBal < 0) {
-                                                    return (
-                                                        <span style={{ display: 'inline-flex', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#CFFAFE', color: '#0891B2', fontSize: '0.7rem', fontWeight: '800' }}>
-                                                            ADVANCE IN
-                                                        </span>
-                                                    );
-                                                }
-
-                                                return (
-                                                    <span style={{ color: '#94A3B8', fontSize: '0.85rem', fontWeight: '600' }}>—</span>
-                                                );
-                                            })()}
                                         </td>
                                         {activeConfig.loyalty !== false && (
                                             <td style={{ padding: '0.6rem 1rem' }}>
