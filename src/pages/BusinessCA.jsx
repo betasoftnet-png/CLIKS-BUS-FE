@@ -2615,7 +2615,7 @@ export default function BusinessCA({ mode }) {
                     {/* 3. SUB-NAVIGATION ROW (CONTAINED WHITE CARD MATCHING PICTURE 1)           */}
                     {/* ========================================================================= */}
                     {!isComingSoonRole && (
-                      <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs px-4 py-2 flex items-center justify-between gap-3 overflow-x-auto">
+                      <div className="bg-white rounded-2xl border border-gray-200/90 shadow-2xs px-4 py-2 flex items-center justify-between gap-3 overflow-x-auto">
                         <div className="flex items-center gap-5 shrink-0 text-xs font-semibold text-gray-600">
                           <button
                             type="button"
@@ -2717,6 +2717,17 @@ export default function BusinessCA({ mode }) {
                           >
                             <span>📊</span>
                             <span>Reports</span>
+                          </button>
+                        </div>
+
+                        {/* Right-side profile icon slot */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            className="w-7 h-7 rounded-full bg-blue-50 border border-blue-200/90 text-blue-600 flex items-center justify-center text-xs font-bold shadow-2xs hover:bg-blue-100 transition-colors"
+                            title="Auditor Profile"
+                          >
+                            👤
                           </button>
                         </div>
                       </div>
