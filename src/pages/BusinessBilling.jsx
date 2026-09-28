@@ -3825,7 +3825,7 @@ const BusinessBilling = () => {
                                     </button>
                                 </div>
                                 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '380px', overflowY: 'auto', paddingRight: '0.25rem' }}>
                                     {formData.items.map((item, idx) => {
                                         let gridCols = '1.5fr';
                                         if (activeConfig.enableGst !== false) gridCols += ' 70px';
