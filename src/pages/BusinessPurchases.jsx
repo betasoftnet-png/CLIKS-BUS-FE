@@ -36,13 +36,14 @@ import {
 } from 'lucide-react';
 import { paymentsStore } from '../lib/paymentsStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { purchasesService, productsService, suppliersService, settingsService, returnsService, warehouseService, stockService } from '../services';
 import '../App.css';
 import { useCurrency, useAuth } from '../context';
 
 const BusinessPurchases = () => {
+    const navigate = useNavigate();
     const { currency, formatCurrency } = useCurrency();
     const { selectedPlan, user } = useAuth();
     const business = user?.business;
@@ -620,6 +621,16 @@ const BusinessPurchases = () => {
                 return [newItem];
             }
             return [...prev, newItem];
+        });
+    };
+
+    const handleGoToCreateProduct = () => {
+        // 1. Close current PO modal
+        setIsCreateModalOpen(false);
+
+        // 2. Navigate to Inventory Products session with modal query param / state
+        navigate('/inventory/products?create=true', {
+            state: { openCreateModal: true }
         });
     };
 
@@ -1692,7 +1703,7 @@ const BusinessPurchases = () => {
                                         {createDocType !== 'RETURN' && (
                                             <button 
                                                 type="button" 
-                                                onClick={() => setIsNewProductModalOpen(true)}
+                                                onClick={handleGoToCreateProduct}
                                                 className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1 shadow-2xs cursor-pointer"
                                             >
                                                 <span>+</span>

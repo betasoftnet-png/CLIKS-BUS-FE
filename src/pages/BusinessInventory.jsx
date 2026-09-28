@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { productsService, hsnService, warehouseService, stockService } from '../services';
 import { 
     Package, 
@@ -222,14 +222,15 @@ const BusinessInventory = () => {
         document.body.removeChild(link);
     };
     
-    // Auto-trigger product modal setup via search params
+    // Auto-trigger product modal setup via search params or route state
     const [searchParams, setSearchParams] = useSearchParams();
+    const location = useLocation();
     React.useEffect(() => {
-        if (searchParams.get('create') === 'true' || searchParams.get('openModal') === 'true') {
+        if (searchParams.get('create') === 'true' || searchParams.get('openModal') === 'true' || location.state?.openCreateModal) {
             setIsModalOpen(true);
             setSearchParams({}, { replace: true });
         }
-    }, [searchParams, setSearchParams]);
+    }, [searchParams, setSearchParams, location.state]);
 
 
 
