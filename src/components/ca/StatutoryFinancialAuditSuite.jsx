@@ -306,121 +306,36 @@ export default function StatutoryFinancialAuditSuite() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. SUITE TABS (MATCHING PICTURE 2 ACTIVE OUTLINE CONTAINER)               */}
+      {/* SUITE TABS (BORDERED ACTIVE PILL MATCHING TARGET DESIGN)                  */}
       {/* ========================================================================= */}
-      <div className="flex items-center gap-2 border-b border-gray-100 pb-2 overflow-x-auto text-xs whitespace-nowrap">
-        <button
-          type="button"
-          onClick={() => setActiveSuiteTab('rule11')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-            activeSuiteTab === 'rule11'
-              ? 'border-2 border-blue-400 text-blue-600 bg-white shadow-2xs'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          Rule 11(g) Vault &amp; Certificate
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveSuiteTab('smart_vouching')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-            activeSuiteTab === 'smart_vouching'
-              ? 'border-2 border-blue-400 text-blue-600 bg-white shadow-2xs'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          Smart Vouching &amp; Sampler
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveSuiteTab('fixed_asset')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-            activeSuiteTab === 'fixed_asset'
-              ? 'border-2 border-blue-400 text-blue-600 bg-white shadow-2xs'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          Fixed Asset &amp; Depreciation
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveSuiteTab('bank_brs')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-            activeSuiteTab === 'bank_brs'
-              ? 'border-2 border-blue-400 text-blue-600 bg-white shadow-2xs'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          Direct Bank BRS Engine
-        </button>
-
-        {/* Tab 5 (Active in Picture 2) */}
-        <button
-          type="button"
-          onClick={() => setActiveSuiteTab('governance')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-            activeSuiteTab === 'governance'
-              ? 'border-2 border-blue-400 text-blue-600 bg-white shadow-2xs'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          Corporate Governance, Appointment &amp; Pre-Audit Controls
-        </button>
-
-        {/* Tab 6 */}
-        <button
-          type="button"
-          onClick={() => setActiveSuiteTab('asset_verification')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-            activeSuiteTab === 'asset_verification'
-              ? 'border-2 border-blue-400 text-blue-600 bg-white shadow-2xs'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          Substantive Asset Verification &amp; Title Due Diligence
-        </button>
-
-        {/* Tab 7 */}
-        <button
-          type="button"
-          onClick={() => setActiveSuiteTab('liabilities_solvency')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-            activeSuiteTab === 'liabilities_solvency'
-              ? 'border-2 border-blue-400 text-blue-600 bg-white shadow-2xs'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          Corporate Liabilities, Solvency &amp; Liquidity Assurance
-        </button>
-
-        {/* Tab 8 */}
-        <button
-          type="button"
-          onClick={() => setActiveSuiteTab('related_parties')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-            activeSuiteTab === 'related_parties'
-              ? 'border-2 border-blue-400 text-blue-600 bg-white shadow-2xs'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          Related Parties, Corporate Capital &amp; Statutory Fraud
-        </button>
-
-        {/* Tab 9 */}
-        <button
-          type="button"
-          onClick={() => setActiveSuiteTab('audit_opinion')}
-          className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-            activeSuiteTab === 'audit_opinion'
-              ? 'border-2 border-blue-400 text-blue-600 bg-white shadow-2xs'
-              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          Audit Opinion, Regulatory Closures &amp; Archival
-        </button>
+      <div className="flex items-center gap-3 border-b border-gray-100 pb-3 overflow-x-auto text-xs whitespace-nowrap scrollbar-none">
+        {[
+          { id: 'rule11', label: 'Rule 11(g) Vault & Certificate' },
+          { id: 'smart_vouching', label: 'Smart Vouching & Sampler' },
+          { id: 'fixed_asset', label: 'Fixed Asset & Depreciation' },
+          { id: 'bank_brs', label: 'Direct Bank BRS Engine' },
+          { id: 'governance', label: 'Corporate Governance, Appointment & Pre-Audit Controls' },
+          { id: 'asset_verification', label: 'Substantive Asset Verification & Title Due Diligence' },
+          { id: 'liabilities_solvency', label: 'Corporate Liabilities, Solvency & Liquidity Assurance' },
+          { id: 'related_parties', label: 'Related Parties, Corporate Capital & Statutory Fraud' },
+          { id: 'audit_opinion', label: 'Audit Opinion, Regulatory Closures & Archival' },
+        ].map((tab) => {
+          const isActive = activeSuiteTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveSuiteTab(tab.id)}
+              className={`px-3 py-1.5 text-xs transition-all duration-150 cursor-pointer ${
+                isActive
+                  ? 'border border-[#3b82f6] text-[#2563eb] bg-white rounded-xl font-bold shadow-2xs'
+                  : 'text-gray-500 hover:text-gray-800 font-medium'
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* ========================================================================= */}
