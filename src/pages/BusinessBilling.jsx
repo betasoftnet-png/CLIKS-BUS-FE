@@ -6780,221 +6780,410 @@ const BusinessBilling = () => {
 
             {/* Generate e-Way Bill Modal */}
             {isEwayModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '580px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Create Government e-Way Bill</h3>
-                            <button onClick={() => { setIsEwayModalOpen(false); setValidationErrors({}); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto" style={{ zIndex: 1000 }}>
+                    {/* 
+                      HORIZONTAL SIZING FIX:
+                      Upgraded from `max-w-md` / 580px to `max-w-3xl sm:max-w-4xl w-full`
+                      Provides horizontal space, avoids vertical clutter, and keeps fields easily accessible.
+                    */}
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-3xl sm:max-w-4xl w-full max-h-[92vh] flex flex-col relative animate-in fade-in zoom-in-95 duration-150" style={{ maxWidth: '896px', width: '100%' }}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-7 py-5 border-b border-gray-100 shrink-0">
+                            <div>
+                                <h3 className="text-base font-black text-gray-900 tracking-tight">
+                                    Create Government e-Way Bill
+                                </h3>
+                                <p className="text-[11px] text-gray-400 font-semibold">
+                                    Generate logistics movement consignment notes &amp; Part-A/Part-B slip
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => { setIsEwayModalOpen(false); setValidationErrors({}); }}
+                                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 flex items-center justify-center text-xs transition-colors cursor-pointer"
+                            >
+                                ✕
+                            </button>
                         </div>
 
-                        <form onSubmit={handleCreateEway} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            {/* Consignor / Sender (From) Section */}
-                            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#475569', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Consignor / Sender (From)</h4>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.4rem', fontSize: '0.82rem', color: '#0F172A' }}>
-                                    <div><span style={{ color: '#64748B', fontWeight: '600' }}>Legal Name:</span> <span style={{ fontWeight: '750' }}>{defaultSender.legal_name}</span></div>
-                                    <div><span style={{ color: '#64748B', fontWeight: '600' }}>GSTIN:</span> <span style={{ fontWeight: '750', fontFamily: 'monospace' }}>{defaultSender.gstin}</span></div>
-                                    <div><span style={{ color: '#64748B', fontWeight: '600' }}>Dispatch From:</span> <span style={{ fontWeight: '750' }}>{defaultSender.location} ({defaultSender.state_code} - {defaultSender.state}) - {defaultSender.pincode}</span></div>
+                        <form onSubmit={handleCreateEway} className="flex flex-col flex-1 overflow-hidden" style={{ margin: 0 }}>
+                            {/* Scrollable Form Body */}
+                            <div className="p-7 overflow-y-auto space-y-5 flex-1">
+                                {/* TOP ROW: CONSIGNOR / SENDER (FROM) & AUTO-FILL LINKAGE */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    {/* CONSIGNOR / SENDER CARD */}
+                                    <div className="p-4 bg-gray-50/80 border border-gray-200/80 rounded-2xl space-y-2">
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 inline-block">
+                                            CONSIGNOR / SENDER (FROM)
+                                        </span>
+                                        <div className="space-y-1 text-xs">
+                                            <p className="font-bold text-gray-900">
+                                                Legal Name: <span className="font-normal text-gray-700">{defaultSender.legal_name || 'Welton Consignor'}</span>
+                                            </p>
+                                            <p className="font-bold text-gray-900">
+                                                GSTIN: <span className="font-mono text-emerald-700 font-bold">{defaultSender.gstin || '05AAAPG7885R002'}</span>
+                                            </p>
+                                            <p className="text-[11px] text-gray-500 leading-relaxed">
+                                                Dispatch From: {defaultSender.location || 'Dehradun'} ({defaultSender.state_code || '05'} - {defaultSender.state || 'Uttarakhand'}) - {defaultSender.pincode || '248001'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* AUTO-FILL FROM SALES INVOICE (OPTIONAL) */}
+                                    <div className="p-4 bg-purple-50/40 border border-purple-100 rounded-2xl space-y-3 flex flex-col justify-center">
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-purple-900 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200 w-fit">
+                                            AUTO-FILL FROM SALES INVOICE (OPTIONAL)
+                                        </span>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                Select Sales Invoice
+                                            </label>
+                                            <select 
+                                                value={ewayForm.is_invoice_selected ? invoices.find(inv => inv.invoice_number === ewayForm.invoice_number)?.id || '' : ''} 
+                                                onChange={(e) => {
+                                                    if (!e.target.value) {
+                                                        setEwayForm(prev => ({
+                                                            ...prev,
+                                                            is_invoice_selected: false,
+                                                            invoice_number: '',
+                                                            goods_items: [],
+                                                            goods_product_name: '',
+                                                            goods_hsn_code: '',
+                                                            goods_quantity: '',
+                                                            goods_unit: 'Pcs',
+                                                            goods_taxable_value: '',
+                                                            goods_gst_rate: '18',
+                                                            goods_total_value: ''
+                                                        }));
+                                                        return;
+                                                    }
+                                                    const selected = invoices.find(inv => String(inv.id) === e.target.value);
+                                                    if (selected) {
+                                                        const items = Array.isArray(selected.items) ? selected.items : [];
+                                                        const taxVal = items.reduce((sum, item) => sum + (parseFloat(item.price || item.rate || 0) * parseFloat(item.quantity || 0)), 0);
+                                                        const totalVal = selected.total_amount || selected.amount || 0;
+                                                        
+                                                        setEwayForm(prev => ({
+                                                            ...prev,
+                                                            invoice_number: selected.invoice_number || '',
+                                                            invoice_date: selected.created_at ? selected.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+                                                            delivery_location: selected.client_name || selected.billing_address || '',
+                                                            is_invoice_selected: true,
+                                                            goods_items: items,
+                                                            goods_product_name: items.map(i => i.description || i.product_name).join(', '),
+                                                            goods_hsn_code: items.map(i => i.hsn_code || i.hsn).filter(Boolean).join(', '),
+                                                            goods_quantity: items.reduce((sum, i) => sum + parseFloat(i.quantity || 0), 0),
+                                                            goods_unit: items[0]?.unit || 'Pcs',
+                                                            goods_taxable_value: taxVal,
+                                                            goods_gst_rate: items[0]?.tax_rate || 18,
+                                                            goods_total_value: totalVal
+                                                        }));
+                                                    }
+                                                }} 
+                                                className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-purple-600"
+                                            >
+                                                <option value="">-- Select Sales Invoice --</option>
+                                                {invoices.map(inv => (
+                                                    <option key={inv.id} value={inv.id}>
+                                                        {inv.invoice_number} ({inv.client_name || 'Walk-in'})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>AUTO-FILL FROM SALES INVOICE (OPTIONAL)</label>
-                                <select 
-                                    value={ewayForm.is_invoice_selected ? invoices.find(inv => inv.invoice_number === ewayForm.invoice_number)?.id || '' : ''} 
-                                    onChange={(e) => {
-                                        if (!e.target.value) {
-                                            setEwayForm(prev => ({
-                                                ...prev,
-                                                is_invoice_selected: false,
-                                                invoice_number: '',
-                                                goods_items: [],
-                                                goods_product_name: '',
-                                                goods_hsn_code: '',
-                                                goods_quantity: '',
-                                                goods_unit: 'Pcs',
-                                                goods_taxable_value: '',
-                                                goods_gst_rate: '18',
-                                                goods_total_value: ''
-                                            }));
-                                            return;
-                                        }
-                                        const selected = invoices.find(inv => String(inv.id) === e.target.value);
-                                        if (selected) {
-                                            const items = Array.isArray(selected.items) ? selected.items : [];
-                                            const taxVal = items.reduce((sum, item) => sum + (parseFloat(item.price || item.rate || 0) * parseFloat(item.quantity || 0)), 0);
-                                            const totalVal = selected.total_amount || selected.amount || 0;
-                                            
-                                            setEwayForm(prev => ({
-                                                ...prev,
-                                                invoice_number: selected.invoice_number || '',
-                                                invoice_date: selected.created_at ? selected.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-                                                delivery_location: selected.client_name || selected.billing_address || '',
-                                                is_invoice_selected: true,
-                                                goods_items: items,
-                                                goods_product_name: items.map(i => i.description || i.product_name).join(', '),
-                                                goods_hsn_code: items.map(i => i.hsn_code || i.hsn).filter(Boolean).join(', '),
-                                                goods_quantity: items.reduce((sum, i) => sum + parseFloat(i.quantity || 0), 0),
-                                                goods_unit: items[0]?.unit || 'Pcs',
-                                                goods_taxable_value: taxVal,
-                                                goods_gst_rate: items[0]?.tax_rate || 18,
-                                                goods_total_value: totalVal
-                                            }));
-                                        }
-                                    }} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
-                                >
-                                    <option value="">-- Select Sales Invoice --</option>
-                                    {invoices.map(inv => (
-                                        <option key={inv.id} value={inv.id}>
-                                            {inv.invoice_number} - {inv.client_name || 'Walk-in'} (₹{parseFloat(inv.total_amount || inv.amount || 0).toLocaleString()})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                                {/* GOODS DETAILS SECTION (WIDE GRID) */}
+                                <div className="p-5 bg-gray-50/60 border border-gray-200/80 rounded-2xl space-y-4">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-700 block">
+                                        GOODS DETAILS {ewayForm.is_invoice_selected ? '(AUTO-LOADED FROM INVOICE)' : '(MANUAL ENTRY)'}
+                                    </span>
 
-                            {/* Goods Details Section */}
-                            {ewayForm.is_invoice_selected ? (
-                                <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '1rem', border: '1px solid #E2E8F0' }}>
-                                    <h4 style={{ fontSize: '0.8rem', fontWeight: '900', color: '#475569', marginTop: 0, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Goods Details (Read-Only)</h4>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                        {ewayForm.goods_items.map((item, idx) => (
-                                            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '0.5rem', fontSize: '0.75rem', color: '#334155', borderBottom: idx < ewayForm.goods_items.length - 1 ? '1px solid #F1F5F9' : 'none', paddingBottom: idx < ewayForm.goods_items.length - 1 ? '0.5rem' : 0 }}>
-                                                <div>
-                                                    <span style={{ fontWeight: '700', display: 'block' }}>{item.description || 'N/A'}</span>
-                                                    {item.hsn_code && <span style={{ color: '#64748B', fontSize: '0.65rem' }}>HSN: {item.hsn_code}</span>}
-                                                </div>
-                                                <div style={{ textAlign: 'right' }}>{item.quantity} {item.unit || 'Pcs'}</div>
-                                                <div style={{ textAlign: 'right' }}>₹{parseFloat(item.price || 0).toLocaleString()}</div>
-                                                <div style={{ textAlign: 'right', fontWeight: '700' }}>₹{parseFloat(item.total || 0).toLocaleString()} <span style={{ fontSize: '0.6rem', color: '#64748B' }}>({item.tax_rate}%)</span></div>
+                                    {ewayForm.is_invoice_selected ? (
+                                        <div className="space-y-3">
+                                            <div className="space-y-2">
+                                                {ewayForm.goods_items.map((item, idx) => (
+                                                    <div key={idx} className="grid grid-cols-4 gap-2 text-xs text-gray-700 border-b border-gray-100 pb-2">
+                                                        <div>
+                                                            <span className="font-bold block text-gray-900">{item.description || item.product_name || 'Item'}</span>
+                                                            {item.hsn_code && <span className="text-[10px] text-gray-400">HSN: {item.hsn_code}</span>}
+                                                        </div>
+                                                        <div className="text-right">{item.quantity} {item.unit || 'Pcs'}</div>
+                                                        <div className="text-right">₹{parseFloat(item.price || 0).toLocaleString()}</div>
+                                                        <div className="text-right font-bold">₹{parseFloat(item.total || 0).toLocaleString()} <span className="text-[10px] font-normal text-gray-400">({item.tax_rate}%)</span></div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '0.6rem', marginTop: '0.2rem', fontWeight: '850', fontSize: '0.8rem', color: '#0F172A' }}>
-                                            <span>Total Invoice Value:</span>
-                                            <span>₹{parseFloat(ewayForm.goods_total_value || 0).toLocaleString()}</span>
+                                            <div className="flex justify-between border-t border-gray-200 pt-2 font-black text-xs text-gray-900">
+                                                <span>Total Invoice Value:</span>
+                                                <span>₹{parseFloat(ewayForm.goods_total_value || 0).toLocaleString()}</span>
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <>
+                                            {/* Product Name */}
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                    Product Name *
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="e.g. Steel Rods"
+                                                    value={ewayForm.goods_product_name}
+                                                    onChange={(e) => setEwayForm({ ...ewayForm, goods_product_name: e.target.value })}
+                                                    className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                    required
+                                                />
+                                                {validationErrors.goods_product_name && <span className="text-red-500 text-[10px] font-bold mt-1 block">{validationErrors.goods_product_name}</span>}
+                                            </div>
+
+                                            {/* 4-Column Grid: HSN/SAC, Unit, Quantity, Taxable Value */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                        HSN/SAC Code *
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g. 7214"
+                                                        value={ewayForm.goods_hsn_code}
+                                                        onChange={(e) => setEwayForm({ ...ewayForm, goods_hsn_code: e.target.value })}
+                                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                        required
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                        Unit *
+                                                    </label>
+                                                    <select
+                                                        value={ewayForm.goods_unit}
+                                                        onChange={(e) => setEwayForm({ ...ewayForm, goods_unit: e.target.value })}
+                                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                    >
+                                                        <option value="PCS">PCS</option>
+                                                        <option value="BOX">BOX</option>
+                                                        <option value="KGS">KGS</option>
+                                                        <option value="TON">TON</option>
+                                                        <option value="NOS">NOS</option>
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                        Quantity *
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        step="any"
+                                                        placeholder="e.g. 10"
+                                                        value={ewayForm.goods_quantity}
+                                                        onChange={(e) => setEwayForm({ ...ewayForm, goods_quantity: e.target.value })}
+                                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                        required
+                                                    />
+                                                    {validationErrors.goods_quantity && <span className="text-red-500 text-[10px] font-bold mt-1 block">{validationErrors.goods_quantity}</span>}
+                                                </div>
+
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                        Taxable Value (₹) *
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        step="any"
+                                                        placeholder="e.g. 50000"
+                                                        value={ewayForm.goods_taxable_value}
+                                                        onChange={(e) => setEwayForm({ ...ewayForm, goods_taxable_value: e.target.value })}
+                                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                        required
+                                                    />
+                                                    {validationErrors.goods_taxable_value && <span className="text-red-500 text-[10px] font-bold mt-1 block">{validationErrors.goods_taxable_value}</span>}
+                                                </div>
+                                            </div>
+
+                                            {/* GST Rate Row */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                        GST Rate (%)
+                                                    </label>
+                                                    <select
+                                                        value={ewayForm.goods_gst_rate}
+                                                        onChange={(e) => setEwayForm({ ...ewayForm, goods_gst_rate: e.target.value })}
+                                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                    >
+                                                        <option value="18">18%</option>
+                                                        <option value="12">12%</option>
+                                                        <option value="5">5%</option>
+                                                        <option value="28">28%</option>
+                                                        <option value="0">0%</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
-                            ) : (
-                                <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '1rem', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                    <h4 style={{ fontSize: '0.8rem', fontWeight: '900', color: '#475569', marginTop: 0, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Goods Details (Manual Entry)</h4>
-                                    
+
+                                {/* INVOICE & LOGISTICS DETAILS (SIDE-BY-SIDE 2-COLUMN GRID) */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>PRODUCT NAME *</label>
-                                        <input type="text" value={ewayForm.goods_product_name} onChange={(e) => setEwayForm({ ...ewayForm, goods_product_name: e.target.value })} style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: validationErrors.goods_product_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem' }} placeholder="e.g. Steel Rods" />
-                                        {validationErrors.goods_product_name && <span style={{ color: '#EF4444', fontSize: '0.65rem', fontWeight: '750', marginTop: '0.15rem', display: 'block' }}>{validationErrors.goods_product_name}</span>}
-                                    </div>
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>HSN/SAC CODE</label>
-                                            <input type="text" value={ewayForm.goods_hsn_code} onChange={(e) => setEwayForm({ ...ewayForm, goods_hsn_code: e.target.value })} style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem' }} placeholder="e.g. 7214" />
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>UNIT</label>
-                                            <input type="text" value={ewayForm.goods_unit} onChange={(e) => setEwayForm({ ...ewayForm, goods_unit: e.target.value })} style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem' }} placeholder="e.g. MT, Pcs, Kgs" />
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>QUANTITY *</label>
-                                            <input type="number" step="any" value={ewayForm.goods_quantity} onChange={(e) => setEwayForm({ ...ewayForm, goods_quantity: e.target.value })} style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: validationErrors.goods_quantity ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem' }} placeholder="e.g. 10" />
-                                            {validationErrors.goods_quantity && <span style={{ color: '#EF4444', fontSize: '0.65rem', fontWeight: '750', marginTop: '0.15rem', display: 'block' }}>{validationErrors.goods_quantity}</span>}
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>TAXABLE VALUE (₹) *</label>
-                                            <input type="number" step="any" value={ewayForm.goods_taxable_value} onChange={(e) => setEwayForm({ ...ewayForm, goods_taxable_value: e.target.value })} style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: validationErrors.goods_taxable_value ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem' }} placeholder="e.g. 50000" />
-                                            {validationErrors.goods_taxable_value && <span style={{ color: '#EF4444', fontSize: '0.65rem', fontWeight: '750', marginTop: '0.15rem', display: 'block' }}>{validationErrors.goods_taxable_value}</span>}
-                                        </div>
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                            Invoice Number *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="INV-2026-001"
+                                            value={ewayForm.invoice_number}
+                                            onChange={(e) => setEwayForm({ ...ewayForm, invoice_number: e.target.value })}
+                                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                            required
+                                        />
+                                        {validationErrors.invoice_number && <span className="text-red-500 text-[10px] font-bold mt-1 block">{validationErrors.invoice_number}</span>}
                                     </div>
 
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>GST RATE (%)</label>
-                                        <select value={ewayForm.goods_gst_rate} onChange={(e) => setEwayForm({ ...ewayForm, goods_gst_rate: e.target.value })} style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem', fontWeight: '600' }}>
-                                            <option value="0">0%</option>
-                                            <option value="5">5%</option>
-                                            <option value="12">12%</option>
-                                            <option value="18">18%</option>
-                                            <option value="28">28%</option>
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                            Invoice Date *
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={ewayForm.invoice_date}
+                                            onChange={(e) => setEwayForm({ ...ewayForm, invoice_date: e.target.value })}
+                                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                            required
+                                        />
+                                        {validationErrors.invoice_date && <span className="text-red-500 text-[10px] font-bold mt-1 block">{validationErrors.invoice_date}</span>}
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                            Transport Mode *
+                                        </label>
+                                        <select
+                                            value={ewayForm.transport_mode}
+                                            onChange={(e) => setEwayForm({ ...ewayForm, transport_mode: e.target.value })}
+                                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                        >
+                                            <option value="Road">Road</option>
+                                            <option value="Rail">Rail</option>
+                                            <option value="Air">Air</option>
+                                            <option value="Ship">Ship</option>
                                         </select>
                                     </div>
-                                </div>
-                            )}
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>INVOICE NUMBER *</label>
-                                    <input required type="text" value={ewayForm.invoice_number} onChange={(e) => setEwayForm({ ...ewayForm, invoice_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.invoice_number ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="INV-2026-001" />
-                                    {validationErrors.invoice_number && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.invoice_number}</span>}
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                            Transport Company Name *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. M/S UTTARAYAN CO-OPERATIVE"
+                                            value={ewayForm.transporter_name}
+                                            onChange={(e) => setEwayForm({ ...ewayForm, transporter_name: e.target.value })}
+                                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                            required
+                                        />
+                                        {validationErrors.transporter_name && <span className="text-red-500 text-[10px] font-bold mt-1 block">{validationErrors.transporter_name}</span>}
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                            Transporter GSTIN *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="05AAAAU6537D1Z0"
+                                            value={ewayForm.transporter_gstin}
+                                            onChange={(e) => setEwayForm({ ...ewayForm, transporter_gstin: e.target.value.toUpperCase() })}
+                                            onBlur={(e) => setEwayForm({ ...ewayForm, transporter_gstin: e.target.value.trim().toUpperCase() })}
+                                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-mono font-semibold text-gray-800 uppercase focus:outline-none"
+                                            required
+                                        />
+                                        {validationErrors.transporter_gstin && <span className="text-red-500 text-[10px] font-bold mt-1 block">{validationErrors.transporter_gstin}</span>}
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                            Vehicle Number {ewayForm.transport_mode === 'Road' ? '*' : '(OPTIONAL)'}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="MH-02-EH-9081"
+                                            value={ewayForm.vehicle_number}
+                                            onChange={(e) => setEwayForm({ ...ewayForm, vehicle_number: e.target.value.toUpperCase() })}
+                                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-mono font-semibold text-gray-800 uppercase focus:outline-none"
+                                        />
+                                        {validationErrors.vehicle_number && <span className="text-red-500 text-[10px] font-bold mt-1 block">{validationErrors.vehicle_number}</span>}
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                            Distance (KMs) *
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            placeholder="e.g. 150"
+                                            value={ewayForm.transport_distance}
+                                            onChange={(e) => setEwayForm({ ...ewayForm, transport_distance: e.target.value })}
+                                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                            required
+                                        />
+                                        {validationErrors.transport_distance && <span className="text-red-500 text-[10px] font-bold mt-1 block">{validationErrors.transport_distance}</span>}
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                            Dispatch Location *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Mumbai warehouse"
+                                            value={ewayForm.dispatch_location}
+                                            onChange={(e) => setEwayForm({ ...ewayForm, dispatch_location: e.target.value })}
+                                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                            required
+                                        />
+                                        {validationErrors.dispatch_location && <span className="text-red-500 text-[10px] font-bold mt-1 block">{validationErrors.dispatch_location}</span>}
+                                    </div>
+
+                                    <div className="md:col-span-2">
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                            Delivery Destination *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="Client site, Pune"
+                                            value={ewayForm.delivery_location}
+                                            onChange={(e) => setEwayForm({ ...ewayForm, delivery_location: e.target.value })}
+                                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                            required
+                                        />
+                                        {validationErrors.delivery_location && <span className="text-red-500 text-[10px] font-bold mt-1 block">{validationErrors.delivery_location}</span>}
+                                    </div>
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>INVOICE DATE *</label>
-                                    <input required type="date" value={ewayForm.invoice_date} onChange={(e) => setEwayForm({ ...ewayForm, invoice_date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.invoice_date ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontFamily: 'inherit' }} />
-                                    {validationErrors.invoice_date && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.invoice_date}</span>}
-                                </div>
+
+                                {createEwayMutation.isError && (
+                                    <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-200">
+                                        Failed to generate e-Way Bill: {createEwayMutation.error?.response?.data?.error?.message || createEwayMutation.error?.response?.data?.message || createEwayMutation.error?.message || 'Unknown error'}
+                                    </div>
+                                )}
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>TRANSPORT MODE *</label>
-                                    <select value={ewayForm.transport_mode} onChange={(e) => setEwayForm({ ...ewayForm, transport_mode: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                        <option value="Road">Road</option>
-                                        <option value="Rail">Rail</option>
-                                        <option value="Air">Air</option>
-                                        <option value="Ship">Ship</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>TRANSPORT COMPANY NAME *</label>
-                                    <input required type="text" value={ewayForm.transporter_name} onChange={(e) => setEwayForm({ ...ewayForm, transporter_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.transporter_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. M/S UTTARAYAN CO-OPERATIVE FOR RENEWABLE ENERGY" />
-                                    {validationErrors.transporter_name && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.transporter_name}</span>}
-                                </div>
+                            {/* Fixed Footer Submit Action */}
+                            <div className="px-7 py-4 border-t border-gray-100 bg-white rounded-b-3xl shrink-0">
+                                <button
+                                    type="submit"
+                                    disabled={createEwayMutation.isPending}
+                                    className="w-full py-3.5 bg-[#0e4b34] hover:bg-[#093625] text-white rounded-xl text-xs font-black shadow-md transition-all flex items-center justify-center cursor-pointer disabled:opacity-50"
+                                >
+                                    {createEwayMutation.isPending ? 'Generating e-Way Bill...' : 'Generate Official e-Way Bill'}
+                                </button>
                             </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>TRANSPORTER GSTIN *</label>
-                                    <input required type="text" value={ewayForm.transporter_gstin} onChange={(e) => setEwayForm({ ...ewayForm, transporter_gstin: e.target.value.toUpperCase() })} onBlur={(e) => setEwayForm({ ...ewayForm, transporter_gstin: e.target.value.trim().toUpperCase() })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.transporter_gstin ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="05AAAAU6537D1ZO" />
-                                    {validationErrors.transporter_gstin && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.transporter_gstin}</span>}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
-                                        VEHICLE NUMBER {ewayForm.transport_mode === 'Road' ? '*' : '(OPTIONAL)'}
-                                    </label>
-                                    <input type="text" value={ewayForm.vehicle_number} onChange={(e) => setEwayForm({ ...ewayForm, vehicle_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.vehicle_number ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="MH-02-EH-9081" />
-                                    {validationErrors.vehicle_number && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.vehicle_number}</span>}
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>DISTANCE (KMS) *</label>
-                                    <input required type="number" value={ewayForm.transport_distance} onChange={(e) => setEwayForm({ ...ewayForm, transport_distance: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.transport_distance ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. 150" />
-                                    {validationErrors.transport_distance && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.transport_distance}</span>}
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>DISPATCH LOCATION *</label>
-                                    <input required type="text" value={ewayForm.dispatch_location} onChange={(e) => setEwayForm({ ...ewayForm, dispatch_location: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.dispatch_location ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="Mumbai warehouse" />
-                                    {validationErrors.dispatch_location && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.dispatch_location}</span>}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>DELIVERY DESTINATION *</label>
-                                <input required type="text" value={ewayForm.delivery_location} onChange={(e) => setEwayForm({ ...ewayForm, delivery_location: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.delivery_location ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="Client site, Pune" />
-                                {validationErrors.delivery_location && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.delivery_location}</span>}
-                            </div>
-
-                            {createEwayMutation.isError && (
-                                <div style={{ color: '#EF4444', background: '#FEF2F2', padding: '0.8rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '700', border: '1px solid #FCA5A5' }}>
-                                    Failed to generate e-Way Bill: {createEwayMutation.error?.response?.data?.error?.message || createEwayMutation.error?.response?.data?.message || createEwayMutation.error?.message || 'Unknown error'}
-                                </div>
-                            )}
-
-                            <button type="submit" disabled={createEwayMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: createEwayMutation.isPending ? 'not-allowed' : 'pointer', opacity: createEwayMutation.isPending ? 0.7 : 1, boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}>
-                                {createEwayMutation.isPending ? 'Generating e-Way Bill...' : 'Generate Government e-Way Bill'}
-                            </button>
                         </form>
                     </div>
                 </div>
