@@ -33,9 +33,9 @@ export default function BusinessCA({ mode }) {
     const { user } = useAuth();
     const [activeTab] = useState('auditor'); // auditor | ca_cpa | cs_vault | consultant
 
-    const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports | senior_ca
+    const [personalTab, setPersonalTab] = useState('statutory_financial_auditor'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports | senior_ca | statutory_financial_auditor | audit_suite
     const [selectedAuditorRole, setSelectedAuditorRoleState] = useState('statutory');
-    const [activeSubTab, setActiveSubTabState] = useState('home');
+    const [activeSubTab, setActiveSubTabState] = useState('statutory_financial_auditor');
     const [activeRoleTab, setActiveRoleTab] = useState('statutory');
     const [activeAuditorCategory, setActiveAuditorCategory] = useState("Statutory Financial Auditor (ICAI CA)");
     const [activeSuiteTool, setActiveSuiteTool] = useState('tool1');
@@ -56,8 +56,8 @@ export default function BusinessCA({ mode }) {
         if (roleCategoryMap[roleKey]) {
             setActiveAuditorCategory(roleCategoryMap[roleKey]);
         }
-        setActiveSubTabState('audit_suite');
-        setPersonalTab('audit_suite');
+        setActiveSubTabState('statutory_financial_auditor');
+        setPersonalTab('statutory_financial_auditor');
         setActiveSuiteTool('tool1');
     };
 
@@ -68,6 +68,7 @@ export default function BusinessCA({ mode }) {
         if (tab === 'time_tracking') setPersonalTab('timetracking');
         else if (tab === 'report' || tab === 'reports') setPersonalTab('reports');
         else if (tab === 'consult' || tab === 'senior_ca') setPersonalTab('senior_ca');
+        else if (tab === 'statutory_financial_auditor' || tab === 'audit_suite') setPersonalTab('statutory_financial_auditor');
         else setPersonalTab(tab);
     };
 
@@ -75,6 +76,7 @@ export default function BusinessCA({ mode }) {
         if (personalTab === 'timetracking') setActiveSubTabState('time_tracking');
         else if (personalTab === 'reports') setActiveSubTabState('reports');
         else if (personalTab === 'senior_ca') setActiveSubTabState('consult');
+        else if (personalTab === 'statutory_financial_auditor' || personalTab === 'audit_suite') setActiveSubTabState('statutory_financial_auditor');
         else setActiveSubTabState(personalTab);
     }, [personalTab]);
 
@@ -2683,11 +2685,18 @@ export default function BusinessCA({ mode }) {
                             <span>Workpaper</span>
                           </button>
 
-                          {/* AUDITOR ACTIVE BUTTON (SOLID DARK GREEN AS IN PICTURE 1) */}
+                          {/* AUDITOR ACTIVE BUTTON */}
                           <button
                             type="button"
-                            onClick={() => setActiveSubTab('audit_suite')}
-                            className="px-3.5 py-1.5 bg-[#0e4b34] hover:bg-[#093625] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
+                            onClick={() => {
+                              setActiveSubTab('statutory_financial_auditor');
+                              setPersonalTab('statutory_financial_auditor');
+                            }}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer ${
+                              activeSubTab === 'statutory_financial_auditor' || activeSubTab === 'audit_suite' || personalTab === 'statutory_financial_auditor' || personalTab === 'audit_suite'
+                                ? 'bg-[#0e4b34] text-white shadow-2xs font-black'
+                                : 'text-gray-600 hover:bg-gray-50'
+                            }`}
                           >
                             <span>🏛️</span>
                             <span>
@@ -2755,7 +2764,7 @@ export default function BusinessCA({ mode }) {
                         </div>
                       </div>
                     ) : (
-                      (activeSubTab === 'audit_suite' || personalTab === 'audit_suite' || personalTab === 'auditor_desk') && (
+                      (activeSubTab === 'audit_suite' || personalTab === 'audit_suite' || personalTab === 'auditor_desk' || activeSubTab === 'statutory_financial_auditor' || personalTab === 'statutory_financial_auditor') && (
                         (selectedAuditorRole === 'statutory' || activeAuditorCategory === "Statutory Financial Auditor (ICAI CA)") ? (
                             <StatutoryFinancialAuditSuite />
                         ) : (selectedAuditorRole === 'tax' || activeAuditorCategory === "Tax Auditor (ICAI CA)") ? (
