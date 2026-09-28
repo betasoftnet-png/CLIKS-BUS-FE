@@ -31,6 +31,8 @@ import {
     Eye,
     Printer
 } from 'lucide-react';
+import VerifyVendorInvoiceModal from '../components/tax/VerifyVendorInvoiceModal';
+import GSTR3BTab from '../components/tax/GSTR3BTab';
 // Helper function to sanitize and ensure all PDF URLs start with https://
 const getSafePdfUrl = (url) => {
   if (!url) return "#";
@@ -859,9 +861,13 @@ const BusinessGST = () => {
 
     const handleAddReconcile = (e) => {
         e.preventDefault();
-        const amt = parseFloat(reconcileForm.invoice_amount);
-        if (isNaN(amt) || amt <= 0) {
-            setReconcileAmountError('Invoice total amount must be greater than 0.');
+        if (String(reconcileForm.invoice_amount).includes('.')) {
+            setReconcileAmountError('Float / decimal amounts (e.g. 0.01) are not allowed.');
+            return;
+        }
+        const amt = parseInt(reconcileForm.invoice_amount, 10);
+        if (isNaN(amt) || amt < 1) {
+            setReconcileAmountError('Invoice amount must be a whole positive number of at least ₹1.');
             return;
         }
         setReconcileAmountError('');
@@ -1180,72 +1186,10 @@ const BusinessGST = () => {
 
             {/* Tab 2b: GSTR-3B Monthly Return Summary */}
             {activeTab === 'gstr3b' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    {dbGstr3b && typeof dbGstr3b.outward_taxable !== 'undefined' ? (
-                        <>
-                            <div style={{ background: 'white', borderRadius: '20px', border: '1px solid #E2E8F0', padding: '1.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.01)', position: 'relative' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-                                    <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', background: '#F3E8FF', color: '#6B21A8', fontWeight: '850', fontSize: '0.75rem' }}>GSTR-3B COMPLIANCE</span>
-                                            <span style={{ fontSize: '0.8rem', fontWeight: '750', color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.25rem' }}><CheckCircle2 size={14} /> Status: Verified</span>
-                                        </div>
-                                        <h2 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#0F172A', margin: '0.4rem 0 0.2rem 0' }}>Self-Declared Summary Return (Monthly)</h2>
-                                        <p style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '500', margin: 0 }}>Aggregate outward liabilities set off against eligible input tax credits.</p>
-                                    </div>
-                                    <button style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', borderRadius: '12px', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(109,40,217,0.2)' }}>
-                                        <FileText size={15} /> File GSTR-3B Now
-                                    </button>
-                                </div>
-
-                                {/* Return Grid Section */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                                    <div style={{ border: '1px solid #F3E8FF', background: '#FAF5FF', borderRadius: '16px', padding: '1.25rem' }}>
-                                        <h4 style={{ color: '#6B21A8', fontSize: '0.8rem', fontWeight: '850', textTransform: 'uppercase', margin: '0 0 0.75rem 0', letterSpacing: '0.03em' }}>Outward Taxable Supplies (Sales)</h4>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#6B21A8', fontWeight: '600' }}>Taxable Value:</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.outward_taxable || 0)}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#6B21A8', fontWeight: '600' }}>Integrated Tax (IGST):</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.outward_igst || 0)}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#6B21A8', fontWeight: '600' }}>Central Tax (CGST):</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.outward_cgst || 0)}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#6B21A8', fontWeight: '600' }}>State Tax (SGST):</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.outward_sgst || 0)}</span></div>
-                                            <div style={{ marginTop: '0.4rem', borderTop: '1px dashed #E9D5FF', paddingTop: '0.4rem', display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.85rem', color: '#6B21A8', fontWeight: '800' }}>Total Liability:</span><span style={{ fontSize: '1rem', fontWeight: '900', color: '#6B21A8' }}>{formatCurrency(dbGstr3b?.total_output_tax || 0)}</span></div>
-                                        </div>
-                                    </div>
-                                    <div style={{ border: '1px solid #DCFCE7', background: '#F0FDF4', borderRadius: '16px', padding: '1.25rem' }}>
-                                        <h4 style={{ color: '#15803D', fontSize: '0.8rem', fontWeight: '850', textTransform: 'uppercase', margin: '0 0 0.75rem 0', letterSpacing: '0.03em' }}>Eligible Input Tax Credit (ITC)</h4>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '600' }}>Eligible IGST Available:</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.eligible_itc_igst || 0)}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '600' }}>Eligible Central Tax (CGST):</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.eligible_itc_cgst || 0)}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '600' }}>Eligible State Tax (SGST):</span><span style={{ fontWeight: '800' }}>{formatCurrency(dbGstr3b?.eligible_itc_sgst || 0)}</span></div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.8rem', color: '#15803D', fontWeight: '600' }}>Ineligible/Blocked Credit:</span><span style={{ fontWeight: '800' }}>{formatCurrency(0)}</span></div>
-                                            <div style={{ marginTop: '0.4rem', borderTop: '1px dashed #BBF7D0', paddingTop: '0.4rem', display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.85rem', color: '#15803D', fontWeight: '800' }}>Total Claimable ITC:</span><span style={{ fontSize: '1rem', fontWeight: '900', color: '#15803D' }}>{formatCurrency(dbGstr3b?.total_eligible_itc || 0)}</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Consolidated Liabilities Box */}
-                                <div style={{ padding: '1.25rem', borderRadius: '16px', background: '#FEF2F2', border: '1px solid #FEE2E2' }}>
-                                    <h4 style={{ color: '#991B1B', fontSize: '0.8rem', fontWeight: '850', textTransform: 'uppercase', margin: '0 0 0.75rem 0', letterSpacing: '0.03em' }}>Final Net Tax Liability Payable (Cash Outflow)</h4>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                                        {[
-                                            { label: 'Net IGST Payable', val: dbGstr3b?.net_payable_igst || 0 },
-                                            { label: 'Net CGST Payable', val: dbGstr3b?.net_payable_cgst || 0 },
-                                            { label: 'Net SGST Payable', val: dbGstr3b?.net_payable_sgst || 0 }
-                                        ].map((card, ix) => (
-                                            <div key={ix} style={{ background: 'white', border: '1px solid #FCA5A5', borderRadius: '10px', padding: '0.75rem 1rem' }}>
-                                                <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748B', fontWeight: '800' }}>{card.label}</p>
-                                                <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.1rem', fontWeight: '900', color: '#991B1B' }}>{formatCurrency(card.val)}</h3>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    ) : (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: '#64748B', background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
-                            Aggregating return summaries... If the service is temporarily unavailable, please verify connection.
-                        </div>
-                    )}
-                </div>
+                <GSTR3BTab 
+                    dbGstr3b={dbGstr3b} 
+                    formatCurrency={formatCurrency} 
+                />
             )}
 
             {/* Tab 2c: GSTR-9 Consolidated Annual Return Summary */}
@@ -1410,8 +1354,29 @@ const BusinessGST = () => {
                 </div>
             )}
 
-            {/* Verify Vendor Invoice Modal */}
-            {isReconcileModalOpen && (
+            {/* Verify Vendor Invoice Modal (New) */}
+            <VerifyVendorInvoiceModal
+                isOpen={isReconcileModalOpen && !selectedReconcile}
+                onClose={() => {
+                    setIsReconcileModalOpen(false);
+                    setSelectedReconcile(null);
+                    setReconcileAmountError('');
+                }}
+                onSettleReconciliation={(payload) => {
+                    const amt = parseInt(payload.invoice_amount, 10);
+                    const rate = parseInt(String(payload.gst_rate).replace(/[^0-9]/g, '')) || 18;
+                    runReconciliationMutation.mutate({
+                        vendor_gstin: payload.vendor_gstin,
+                        vendor_name: payload.vendor_name,
+                        invoice_amount: amt,
+                        gst_rate: rate,
+                        match_status: payload.reconciliation_status || 'PENDING'
+                    });
+                }}
+            />
+
+            {/* Existing Row Verification Inspection Modal */}
+            {isReconcileModalOpen && selectedReconcile && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
                     <div style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -1422,149 +1387,74 @@ const BusinessGST = () => {
                             <button onClick={() => { setIsReconcileModalOpen(false); setSelectedReconcile(null); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
-                        {selectedReconcile ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Vendor Name:</span>
-                                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }}>{selectedReconcile.vendor_name}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Vendor GSTIN:</span>
-                                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', fontFamily: 'monospace' }}>{selectedReconcile.vendor_gstin}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Invoice Number:</span>
-                                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1B6B3A' }}>{selectedReconcile.invoice_number}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Invoice Date:</span>
-                                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }}>{selectedReconcile.invoice_date}</span>
-                                    </div>
-                                    <div style={{ height: '1px', background: '#E2E8F0', margin: '0.25rem 0' }}></div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Invoice Value:</span>
-                                        <span style={{ fontSize: '0.9rem', fontWeight: '900', color: '#1E293B' }}>{formatCurrency(selectedReconcile.invoice_amount)}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>GST Amount:</span>
-                                        <span style={{ fontSize: '0.9rem', fontWeight: '900', color: '#1B6B3A' }}>{formatCurrency(selectedReconcile.total_tax)}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Eligible ITC:</span>
-                                        <span style={{ fontSize: '0.95rem', fontWeight: '950', color: '#1D4ED8' }}>{formatCurrency(selectedReconcile.eligible_itc)}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Status:</span>
-                                        <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#F1F5F9', color: '#475569', fontWeight: '850', fontSize: '0.7rem' }}>
-                                            {selectedReconcile.invoice_match_status.toUpperCase()}
-                                        </span>
-                                    </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Vendor Name:</span>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }}>{selectedReconcile.vendor_name}</span>
                                 </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Vendor GSTIN:</span>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', fontFamily: 'monospace' }}>{selectedReconcile.vendor_gstin}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Invoice Number:</span>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1B6B3A' }}>{selectedReconcile.invoice_number}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Invoice Date:</span>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }}>{selectedReconcile.invoice_date}</span>
+                                </div>
+                                <div style={{ height: '1px', background: '#E2E8F0', margin: '0.25rem 0' }}></div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Invoice Value:</span>
+                                    <span style={{ fontSize: '0.9rem', fontWeight: '900', color: '#1E293B' }}>{formatCurrency(selectedReconcile.invoice_amount)}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>GST Amount:</span>
+                                    <span style={{ fontSize: '0.9rem', fontWeight: '900', color: '#1B6B3A' }}>{formatCurrency(selectedReconcile.total_tax)}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Eligible ITC:</span>
+                                    <span style={{ fontSize: '0.95rem', fontWeight: '950', color: '#1D4ED8' }}>{formatCurrency(selectedReconcile.eligible_itc)}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Status:</span>
+                                    <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#F1F5F9', color: '#475569', fontWeight: '850', fontSize: '0.7rem' }}>
+                                        {selectedReconcile.invoice_match_status.toUpperCase()}
+                                    </span>
+                                </div>
+                            </div>
 
-                                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                                    <button
-                                        onClick={() => {
-                                            runReconciliationMutation.mutate({ ...selectedReconcile, match_status: 'Verified', id: selectedReconcile.id });
-                                            setIsReconcileModalOpen(false);
-                                            setSelectedReconcile(null);
-                                        }}
-                                        style={{ flex: 1, padding: '0.85rem', borderRadius: '14px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)' }}
-                                    >
-                                        Verify Invoice
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            runReconciliationMutation.mutate({ ...selectedReconcile, match_status: 'Rejected', id: selectedReconcile.id });
-                                            setIsReconcileModalOpen(false);
-                                            setSelectedReconcile(null);
-                                        }}
-                                        style={{ flex: 1, padding: '0.85rem', borderRadius: '14px', background: 'white', color: '#EF4444', border: '1px solid #FEE2E2', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}
-                                    >
-                                        Reject
-                                    </button>
-                                </div>
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
                                 <button
-                                    onClick={() => { setIsReconcileModalOpen(false); setSelectedReconcile(null); setReconcileAmountError(''); }}
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'white', color: '#64748B', border: '1px solid #E2E8F0', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer' }}
+                                    onClick={() => {
+                                        runReconciliationMutation.mutate({ ...selectedReconcile, match_status: 'Verified', id: selectedReconcile.id });
+                                        setIsReconcileModalOpen(false);
+                                        setSelectedReconcile(null);
+                                    }}
+                                    style={{ flex: 1, padding: '0.85rem', borderRadius: '14px', background: '#1B6B3A', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)' }}
                                 >
-                                    Close
+                                    Verify Invoice
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        runReconciliationMutation.mutate({ ...selectedReconcile, match_status: 'Rejected', id: selectedReconcile.id });
+                                        setIsReconcileModalOpen(false);
+                                        setSelectedReconcile(null);
+                                    }}
+                                    style={{ flex: 1, padding: '0.85rem', borderRadius: '14px', background: 'white', color: '#EF4444', border: '1px solid #FEE2E2', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer' }}
+                                >
+                                    Reject
                                 </button>
                             </div>
-                        ) : (
-                            <form onSubmit={handleAddReconcile} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Vendor GSTIN</label>
-                                        <input required type="text" value={reconcileForm.vendor_gstin} onChange={(e) => setReconcileForm({ ...reconcileForm, vendor_gstin: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="27AAAAA1111A1Z1" />
-                                    </div>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Vendor Name</label>
-                                        <input required type="text" value={reconcileForm.vendor_name} onChange={(e) => setReconcileForm({ ...reconcileForm, vendor_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Acme Hardwares" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Invoice Total Amount ({currency.code})</label>
-                                    <input 
-                                        required 
-                                        type="number" 
-                                        min="0.01"
-                                        step="any"
-                                        onKeyDown={(e) => {
-                                            if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
-                                                e.preventDefault();
-                                            }
-                                        }}
-                                        value={reconcileForm.invoice_amount} 
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            setReconcileForm({ ...reconcileForm, invoice_amount: val });
-                                            if (val !== '' && (parseFloat(val) <= 0 || String(val).includes('-'))) {
-                                                setReconcileAmountError('Invoice total amount must be greater than 0.');
-                                            } else {
-                                                setReconcileAmountError('');
-                                            }
-                                        }} 
-                                        style={{ 
-                                            width: '100%', 
-                                            padding: '0.8rem', 
-                                            borderRadius: '12px', 
-                                            border: (reconcileAmountError || (reconcileForm.invoice_amount !== '' && parseFloat(reconcileForm.invoice_amount) <= 0)) ? '1.5px solid #EF4444' : '1px solid #E2E8F0', 
-                                            outline: 'none',
-                                            boxSizing: 'border-box'
-                                        }} 
-                                    />
-                                    {(reconcileAmountError || (reconcileForm.invoice_amount !== '' && parseFloat(reconcileForm.invoice_amount) <= 0)) && (
-                                        <span style={{ display: 'block', fontSize: '0.72rem', color: '#DC2626', fontWeight: '600', marginTop: '0.35rem' }}>
-                                            Invoice total amount must be greater than 0.
-                                        </span>
-                                    )}
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>GST Rate %</label>
-                                        <select value={reconcileForm.gst_rate} onChange={(e) => setReconcileForm({ ...reconcileForm, gst_rate: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                            <option value="5">5% GST</option>
-                                            <option value="12">12% GST</option>
-                                            <option value="18">18% GST</option>
-                                            <option value="28">28% GST</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Match GSTR-2B</label>
-                                        <select value={reconcileForm.match_status} onChange={(e) => setReconcileForm({ ...reconcileForm, match_status: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                            <option value="Pending">PENDING</option>
-                                            <option value="Verified">VERIFIED (Matched)</option>
-                                            <option value="Rejected">REJECTED (Error)</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <button type="submit" disabled={runReconciliationMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #1D4ED8 0%, #1E3A8A 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: runReconciliationMutation.isPending ? 'not-allowed' : 'pointer', opacity: runReconciliationMutation.isPending ? 0.7 : 1, boxShadow: '0 6px 12px rgba(29, 78, 216, 0.15)' }}>
-                                    {runReconciliationMutation.isPending ? 'Settling Reconciliation...' : 'Settle Reconciliation Status'}
-                                </button>
-                            </form>
-                        )}
+                            <button
+                                onClick={() => { setIsReconcileModalOpen(false); setSelectedReconcile(null); setReconcileAmountError(''); }}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'white', color: '#64748B', border: '1px solid #E2E8F0', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer' }}
+                            >
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

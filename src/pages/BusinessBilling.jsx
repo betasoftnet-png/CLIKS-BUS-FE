@@ -6169,164 +6169,210 @@ const BusinessBilling = () => {
 
             {/* Generate e-Invoice Modal */}
             {isInvoiceModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '92vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Generate GST e-Invoice</h3>
-                            <button onClick={() => setIsInvoiceModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto" style={{ zIndex: 1000 }}>
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-3xl sm:max-w-4xl w-full max-h-[92vh] flex flex-col relative animate-in fade-in zoom-in-95 duration-150" style={{ maxWidth: '896px', width: '100%' }}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-7 py-5 border-b border-gray-100 shrink-0">
+                            <div>
+                                <h3 className="text-base font-black text-gray-900 tracking-tight">
+                                    Generate GST e-Invoice
+                                </h3>
+                                <p className="text-[11px] text-gray-400 font-semibold">
+                                    Authenticate B2B invoices and generate IRN &amp; Signed QR Code via IRP
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsInvoiceModalOpen(false)}
+                                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 flex items-center justify-center text-xs transition-colors cursor-pointer"
+                            >
+                                ✕
+                            </button>
                         </div>
 
-                        <form onSubmit={handleGenerateGstInvoice} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            {/* Sender (From) Section */}
-                            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                <div>
-                                    <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#475569', marginTop: 0, marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Sender (From)</h4>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.82rem', color: '#0F172A' }}>
-                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>Company Name:</span> <span style={{ fontWeight: '750' }}>{defaultSender.legal_name}</span></div>
-                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>GSTIN:</span> <span style={{ fontWeight: '750', fontFamily: 'monospace' }}>{defaultSender.gstin}</span></div>
-                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>State:</span> <span style={{ fontWeight: '750' }}>{defaultSender.state_code} - {defaultSender.state}</span></div>
-                                        <div><span style={{ color: '#64748B', fontWeight: '600' }}>Address:</span> <span style={{ fontWeight: '600', color: '#475569' }}>{defaultSender.address}, {defaultSender.location} - {defaultSender.pincode}</span></div>
+                        <form onSubmit={handleGenerateGstInvoice} className="flex flex-col flex-1 overflow-hidden" style={{ margin: 0 }}>
+                            {/* Scrollable Form Body */}
+                            <div className="p-7 overflow-y-auto space-y-5 flex-1">
+                                {/* 2-COLUMN SECTION: SENDER (FROM) & RECEIVER (TO) SIDE-BY-SIDE */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    {/* SENDER (FROM) CARD */}
+                                    <div className="p-4 bg-gray-50/80 border border-gray-200/80 rounded-2xl space-y-2">
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 inline-block">
+                                            SENDER (FROM)
+                                        </span>
+                                        <div className="space-y-1 text-xs">
+                                            <p className="font-bold text-gray-900">
+                                                Company Name: <span className="font-normal text-gray-700">{defaultSender.legal_name || 'Welton Consignor'}</span>
+                                            </p>
+                                            <p className="font-bold text-gray-900">
+                                                GSTIN: <span className="font-mono text-emerald-700 font-bold">{defaultSender.gstin || '05AAAPG7885R002'}</span>
+                                            </p>
+                                            <p className="font-bold text-gray-900">
+                                                State: <span className="font-normal text-gray-700">{defaultSender.state_code} - {defaultSender.state}</span>
+                                            </p>
+                                            <p className="text-[11px] text-gray-500 leading-relaxed">
+                                                Address: {defaultSender.address}, {defaultSender.location} - {defaultSender.pincode}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* RECEIVER (TO) CARD */}
+                                    <div className="p-4 bg-blue-50/40 border border-blue-100 rounded-2xl space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-blue-900 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                                RECEIVER (TO)
+                                            </span>
+                                            {/* Customer Source Radio */}
+                                            <div className="flex items-center gap-3 text-xs font-semibold text-gray-600">
+                                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                                    <input 
+                                                        type="radio" 
+                                                        name="customerMode" 
+                                                        value="existing" 
+                                                        checked={customerMode === 'existing'} 
+                                                        onChange={() => {
+                                                            setCustomerMode('existing');
+                                                            setInvoiceForm(prev => ({ ...prev, client_name: '', customer_gstin: '', place_of_supply: '33-Tamil Nadu' }));
+                                                        }}
+                                                        className="text-blue-600"
+                                                    />
+                                                    Existing Customer
+                                                </label>
+                                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                                    <input 
+                                                        type="radio" 
+                                                        name="customerMode" 
+                                                        value="manual" 
+                                                        checked={customerMode === 'manual'} 
+                                                        onChange={() => {
+                                                            setCustomerMode('manual');
+                                                            setInvoiceForm(prev => ({ ...prev, client_name: '', customer_gstin: '', place_of_supply: '33-Tamil Nadu' }));
+                                                        }}
+                                                        className="text-blue-600"
+                                                    />
+                                                    Manual Entry
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                Customer Name *
+                                            </label>
+                                            {customerMode === 'existing' ? (
+                                                <select 
+                                                    value={invoiceForm.client_name} 
+                                                    onChange={(e) => {
+                                                        const selectedName = e.target.value;
+                                                        const customer = customers.find(c => c.name === selectedName);
+                                                        setInvoiceForm(prev => ({
+                                                            ...prev,
+                                                            client_name: selectedName,
+                                                            customer_gstin: customer?.gstin || prev.customer_gstin,
+                                                            place_of_supply: customer?.place_of_supply || customer?.state || prev.place_of_supply
+                                                        }));
+                                                    }}
+                                                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                >
+                                                    <option value="">Select Customer</option>
+                                                    {customers.map(cust => (
+                                                        <option key={cust.id} value={cust.name}>{cust.name}</option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <input 
+                                                    required 
+                                                    type="text" 
+                                                    value={invoiceForm.client_name} 
+                                                    onChange={(e) => setInvoiceForm({ ...invoiceForm, client_name: e.target.value })} 
+                                                    placeholder="Enter customer legal name"
+                                                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                />
+                                            )}
+                                            {validationErrors.client_name && <span className="text-red-500 text-[11px] font-bold mt-1 block">{validationErrors.client_name}</span>}
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                    Customer GSTIN *
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    value={invoiceForm.customer_gstin} 
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.toUpperCase();
+                                                        const prefix = val.slice(0, 2);
+                                                        const autoState = GST_STATE_MAP[prefix];
+                                                        setInvoiceForm(prev => ({
+                                                            ...prev,
+                                                            customer_gstin: val,
+                                                            ...(autoState ? { place_of_supply: autoState } : {})
+                                                        }));
+                                                    }} 
+                                                    placeholder="e.g. 09AAAPG7885R002"
+                                                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-mono font-semibold text-gray-800 uppercase focus:outline-none focus:border-blue-600"
+                                                />
+                                                {validationErrors.customer_gstin && <span className="text-red-500 text-[11px] font-bold mt-1 block">{validationErrors.customer_gstin}</span>}
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                    State / Place of Supply *
+                                                </label>
+                                                <select 
+                                                    value={invoiceForm.place_of_supply} 
+                                                    onChange={(e) => setInvoiceForm({ ...invoiceForm, place_of_supply: e.target.value })} 
+                                                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                >
+                                                    <option value="05-Uttarakhand">05 - Uttarakhand</option>
+                                                    <option value="09-Uttar Pradesh">09 - Uttar Pradesh</option>
+                                                    <option value="07-Delhi">07 - Delhi</option>
+                                                    <option value="33-Tamil Nadu">33 - Tamil Nadu</option>
+                                                    <option value="27-Maharashtra">27 - Maharashtra</option>
+                                                    <option value="29-Karnataka">29 - Karnataka</option>
+                                                    <option value="24-Gujarat">24 - Gujarat</option>
+                                                    <option value="19-West Bengal">19 - West Bengal</option>
+                                                    <option value="08-Rajasthan">08 - Rajasthan</option>
+                                                    <option value="06-Haryana">06 - Haryana</option>
+                                                    <option value="03-Punjab">03 - Punjab</option>
+                                                    <option value="10-Bihar">10 - Bihar</option>
+                                                    <option value="36-Telangana">36 - Telangana</option>
+                                                    <option value="37-Andhra Pradesh">37 - Andhra Pradesh</option>
+                                                    <option value="32-Kerala">32 - Kerala</option>
+                                                    <option value="23-Madhya Pradesh">23 - Madhya Pradesh</option>
+                                                    <option value="21-Odisha">21 - Odisha</option>
+                                                    <option value="18-Assam">18 - Assam</option>
+                                                    <option value="20-Jharkhand">20 - Jharkhand</option>
+                                                    <option value="22-Chhattisgarh">22 - Chhattisgarh</option>
+                                                    <option value="30-Goa">30 - Goa</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {customerMode === 'manual' && (
+                                            <div className="flex items-center gap-1.5 pt-1">
+                                                <input 
+                                                    type="checkbox" 
+                                                    id="saveCustomerForFuture" 
+                                                    checked={saveCustomerForFuture} 
+                                                    onChange={(e) => setSaveCustomerForFuture(e.target.checked)} 
+                                                    className="cursor-pointer rounded text-blue-600"
+                                                />
+                                                <label htmlFor="saveCustomerForFuture" className="text-xs font-semibold text-gray-600 cursor-pointer">
+                                                    Save this customer for future use
+                                                </label>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Receiver (To) Section */}
-                            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '0.75rem' }}>
-                                <h4 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#475569', marginTop: 0, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Receiver (To)</h4>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                    {/* Customer Mode Selection */}
-                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '0.2rem' }}>
-                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B' }}>Customer Source:</span>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}>
-                                            <input 
-                                                type="radio" 
-                                                name="customerMode" 
-                                                value="existing" 
-                                                checked={customerMode === 'existing'} 
-                                                onChange={() => {
-                                                    setCustomerMode('existing');
-                                                    setInvoiceForm(prev => ({ ...prev, client_name: '', customer_gstin: '', place_of_supply: '33-Tamil Nadu' }));
-                                                }}
-                                            />
-                                            Existing Customer
-                                        </label>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}>
-                                            <input 
-                                                type="radio" 
-                                                name="customerMode" 
-                                                value="manual" 
-                                                checked={customerMode === 'manual'} 
-                                                onChange={() => {
-                                                    setCustomerMode('manual');
-                                                    setInvoiceForm(prev => ({ ...prev, client_name: '', customer_gstin: '', place_of_supply: '33-Tamil Nadu' }));
-                                                }}
-                                            />
-                                            Manual Entry
-                                        </label>
-                                    </div>
-
+                                {/* LINE ITEM & BILLING PARTICULARS (WIDE GRID) */}
+                                <div className="p-4 bg-gray-50/60 border border-gray-200/80 rounded-2xl space-y-4">
+                                    {/* Row 1: Product Name */}
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Customer Name *</label>
-                                        {customerMode === 'existing' ? (
-                                            <select 
-                                                value={invoiceForm.client_name} 
-                                                onChange={(e) => {
-                                                    const selectedName = e.target.value;
-                                                    const customer = customers.find(c => c.name === selectedName);
-                                                    setInvoiceForm(prev => ({
-                                                        ...prev,
-                                                        client_name: selectedName,
-                                                        customer_gstin: customer?.gstin || prev.customer_gstin,
-                                                        place_of_supply: customer?.place_of_supply || customer?.state || prev.place_of_supply
-                                                    }));
-                                                }}
-                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.client_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
-                                            >
-                                                <option value="">Select Customer</option>
-                                                {customers.map(cust => (
-                                                    <option key={cust.id} value={cust.name}>{cust.name}</option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <input 
-                                                required 
-                                                type="text" 
-                                                value={invoiceForm.client_name} 
-                                                onChange={(e) => setInvoiceForm({ ...invoiceForm, client_name: e.target.value })} 
-                                                placeholder="Enter Customer Name"
-                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.client_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
-                                            />
-                                        )}
-                                        {validationErrors.client_name && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.client_name}</span>}
-                                    </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem' }}>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Customer GSTIN</label>
-                                            <input 
-                                                type="text" 
-                                                value={invoiceForm.customer_gstin} 
-                                                onChange={(e) => {
-                                                    const val = e.target.value.toUpperCase();
-                                                    const prefix = val.slice(0, 2);
-                                                    const autoState = GST_STATE_MAP[prefix];
-                                                    setInvoiceForm(prev => ({
-                                                        ...prev,
-                                                        customer_gstin: val,
-                                                        ...(autoState ? { place_of_supply: autoState } : {})
-                                                    }));
-                                                }} 
-                                                placeholder="Enter GSTIN (e.g. 05AAAPG7885R002)"
-                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.customer_gstin ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
-                                            />
-                                            {validationErrors.customer_gstin && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.customer_gstin}</span>}
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>State / Place of Supply</label>
-                                            <select 
-                                                value={invoiceForm.place_of_supply} 
-                                                onChange={(e) => setInvoiceForm({ ...invoiceForm, place_of_supply: e.target.value })} 
-                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
-                                            >
-                                                <option value="05-Uttarakhand">05 - Uttarakhand</option>
-                                                <option value="09-Uttar Pradesh">09 - Uttar Pradesh</option>
-                                                <option value="07-Delhi">07 - Delhi</option>
-                                                <option value="33-Tamil Nadu">33 - Tamil Nadu</option>
-                                                <option value="27-Maharashtra">27 - Maharashtra</option>
-                                                <option value="29-Karnataka">29 - Karnataka</option>
-                                                <option value="24-Gujarat">24 - Gujarat</option>
-                                                <option value="19-West Bengal">19 - West Bengal</option>
-                                                <option value="08-Rajasthan">08 - Rajasthan</option>
-                                                <option value="06-Haryana">06 - Haryana</option>
-                                                <option value="03-Punjab">03 - Punjab</option>
-                                                <option value="10-Bihar">10 - Bihar</option>
-                                                <option value="36-Telangana">36 - Telangana</option>
-                                                <option value="37-Andhra Pradesh">37 - Andhra Pradesh</option>
-                                                <option value="32-Kerala">32 - Kerala</option>
-                                                <option value="23-Madhya Pradesh">23 - Madhya Pradesh</option>
-                                                <option value="21-Odisha">21 - Odisha</option>
-                                                <option value="18-Assam">18 - Assam</option>
-                                                <option value="20-Jharkhand">20 - Jharkhand</option>
-                                                <option value="22-Chhattisgarh">22 - Chhattisgarh</option>
-                                                <option value="30-Goa">30 - Goa</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    {customerMode === 'manual' && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
-                                            <input 
-                                                type="checkbox" 
-                                                id="saveCustomerForFuture" 
-                                                checked={saveCustomerForFuture} 
-                                                onChange={(e) => setSaveCustomerForFuture(e.target.checked)} 
-                                                style={{ cursor: 'pointer' }}
-                                            />
-                                            <label htmlFor="saveCustomerForFuture" style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569', cursor: 'pointer' }}>
-                                                Save this customer for future use
-                                            </label>
-                                        </div>
-                                    )}
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Product Name / Description *</label>
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                            Product Name / Description *
+                                        </label>
                                         <input 
                                             list="receiver-inventory-products"
                                             required 
@@ -6334,224 +6380,256 @@ const BusinessBilling = () => {
                                             value={invoiceForm.receiver_product_name} 
                                             onChange={(e) => setInvoiceForm({ ...invoiceForm, receiver_product_name: e.target.value, sender_product_name: e.target.value })} 
                                             placeholder="Select or enter Product Name / Description"
-                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.receiver_product_name ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} 
+                                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
                                         />
                                         <datalist id="receiver-inventory-products">
                                             {inventoryItems.map(item => (
                                                 <option key={item.id} value={item.name} />
                                             ))}
                                         </datalist>
-                                        {validationErrors.receiver_product_name && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.receiver_product_name}</span>}
+                                        {validationErrors.receiver_product_name && <span className="text-red-500 text-[11px] font-bold mt-1 block">{validationErrors.receiver_product_name}</span>}
                                     </div>
 
-                                    {/* Missing Mandatory E-Invoice Fields (HSN, Unit, Quantity) */}
-                                    <div className="grid grid-cols-3 gap-3 my-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.75rem', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
-                                      <div>
-                                        <label className="text-[11px] font-semibold text-gray-600" style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#4B5563', marginBottom: '0.25rem' }}>HSN/SAC Code *</label>
-                                        <input
-                                          type="text"
-                                          name="hsn_code"
-                                          value={invoiceForm.hsn_code || "100190"}
-                                          onChange={(e) => setInvoiceForm(prev => ({ ...prev, hsn_code: e.target.value }))}
-                                          className="w-full text-xs p-2 border rounded-lg"
-                                          style={{ width: '100%', fontSize: '0.75rem', padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '0.5rem', outline: 'none', boxSizing: 'border-box' }}
-                                          placeholder="100190"
-                                          required
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="text-[11px] font-semibold text-gray-600" style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#4B5563', marginBottom: '0.25rem' }}>Unit *</label>
-                                        <select
-                                          name="unit"
-                                          value={invoiceForm.unit || "BOX"}
-                                          onChange={(e) => setInvoiceForm(prev => ({ ...prev, unit: e.target.value }))}
-                                          className="w-full text-xs p-2 border rounded-lg bg-white"
-                                          style={{ width: '100%', fontSize: '0.75rem', padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '0.5rem', outline: 'none', background: 'white', boxSizing: 'border-box' }}
-                                        >
-                                          <option value="BOX">BOX</option>
-                                          <option value="KGS">KGS</option>
-                                          <option value="NOS">NOS</option>
-                                        </select>
-                                      </div>
-                                      <div>
-                                        <label className="text-[11px] font-semibold text-gray-600" style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#4B5563', marginBottom: '0.25rem' }}>Quantity *</label>
-                                        <input
-                                          type="number"
-                                          name="quantity"
-                                          min="1"
-                                          value={invoiceForm.quantity || 1}
-                                          onChange={(e) => setInvoiceForm(prev => ({ ...prev, quantity: e.target.value }))}
-                                          className="w-full text-xs p-2 border rounded-lg"
-                                          style={{ width: '100%', fontSize: '0.75rem', padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '0.5rem', outline: 'none', boxSizing: 'border-box' }}
-                                          required
-                                        />
-                                      </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* e-Invoice parameters Section */}
-                            <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Invoice Type</label>
-                                        <select 
-                                            value={invoiceForm.invoice_type} 
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                setInvoiceForm(prev => ({
-                                                    ...prev,
-                                                    invoice_type: val,
-                                                    ...(val !== 'Export' ? {
-                                                        export_under_lut: 'No',
-                                                        lut_document_path: '',
-                                                        lut_file_name: '',
-                                                        lut_uploaded_at: '',
-                                                        lut_uploaded_by: ''
-                                                    } : {})
-                                                }));
-                                            }} 
-                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
-                                        >
-                                            <option value="B2B">B2B</option>
-                                            <option value="B2C">B2C</option>
-                                            <option value="Export">Export</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Taxable Value (Before GST)</label>
-                                        <input required type="number" value={invoiceForm.taxable_value} onChange={(e) => setInvoiceForm({ ...invoiceForm, taxable_value: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: validationErrors.taxable_value ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} />
-                                        {validationErrors.taxable_value && <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.2rem', display: 'block' }}>{validationErrors.taxable_value}</span>}
-                                    </div>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>GST %</label>
-                                        <select 
-                                            value={invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? '0' : invoiceForm.gst_percentage} 
-                                            disabled={invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes'}
-                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, gst_percentage: parseInt(e.target.value) })} 
-                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? '#F1F5F9' : 'white', fontWeight: '600', cursor: invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? 'not-allowed' : 'pointer' }}
-                                        >
-                                            {invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' && <option value="0">0% (LUT)</option>}
-                                            <option value="5">5%</option>
-                                            <option value="12">12%</option>
-                                            <option value="18">18%</option>
-                                            <option value="28">28%</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reverse Charge</label>
-                                        <select value={invoiceForm.reverse_charge} onChange={(e) => setInvoiceForm({ ...invoiceForm, reverse_charge: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                            <option value="No">No</option>
-                                            <option value="Yes">Yes</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                {invoiceForm.invoice_type === 'Export' && (
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    {/* Row 2: 3 Columns for HSN/SAC, Unit, and Quantity */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Export Under LUT / Bond?</label>
-                                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', height: '2.8rem' }}>
-                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}>
-                                                    <input 
-                                                        type="radio" 
-                                                        name="export_under_lut" 
-                                                        value="Yes" 
-                                                        checked={invoiceForm.export_under_lut === 'Yes'} 
-                                                        onChange={() => {
-                                                            setInvoiceForm(prev => ({ ...prev, export_under_lut: 'Yes' }));
-                                                            setIsLutModalOpen(true);
-                                                        }}
-                                                    />
-                                                    Yes
-                                                </label>
-                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}>
-                                                    <input 
-                                                        type="radio" 
-                                                        name="export_under_lut" 
-                                                        value="No" 
-                                                        checked={invoiceForm.export_under_lut !== 'Yes'} 
-                                                        onChange={() => {
-                                                            setInvoiceForm(prev => ({ 
-                                                                ...prev, 
-                                                                export_under_lut: 'No',
-                                                                lut_document_path: '',
-                                                                lut_file_name: '',
-                                                                lut_uploaded_at: '',
-                                                                lut_uploaded_by: ''
-                                                            }));
-                                                        }}
-                                                    />
-                                                    No
-                                                </label>
-                                            </div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                HSN/SAC Code *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="hsn_code"
+                                                value={invoiceForm.hsn_code || "100190"}
+                                                onChange={(e) => setInvoiceForm(prev => ({ ...prev, hsn_code: e.target.value }))}
+                                                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                placeholder="e.g. 1001"
+                                                required
+                                            />
                                         </div>
-                                        {invoiceForm.export_under_lut === 'Yes' && invoiceForm.lut_file_name && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#047857', marginBottom: '0.2rem' }}>LUT DOC ATTACHED</label>
-                                                <span style={{ fontSize: '0.72rem', fontWeight: '750', color: '#065F46', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                                    📎 {invoiceForm.lut_file_name}
-                                                </span>
-                                            </div>
-                                        )}
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                Unit *
+                                            </label>
+                                            <select
+                                                name="unit"
+                                                value={invoiceForm.unit || "BOX"}
+                                                onChange={(e) => setInvoiceForm(prev => ({ ...prev, unit: e.target.value }))}
+                                                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                            >
+                                                <option value="BOX">BOX</option>
+                                                <option value="PCS">PCS</option>
+                                                <option value="KGS">KGS</option>
+                                                <option value="NOS">NOS</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                Quantity *
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="quantity"
+                                                min="1"
+                                                value={invoiceForm.quantity || 1}
+                                                onChange={(e) => setInvoiceForm(prev => ({ ...prev, quantity: e.target.value }))}
+                                                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                required
+                                            />
+                                        </div>
                                     </div>
-                                )}
 
-                                {/* Auto GST Detection Panel */}
+                                    {/* Row 3: 4 Columns for Invoice Type, Taxable Value, GST Rate, and Reverse Charge */}
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                Invoice Type
+                                            </label>
+                                            <select 
+                                                value={invoiceForm.invoice_type} 
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setInvoiceForm(prev => ({
+                                                        ...prev,
+                                                        invoice_type: val,
+                                                        ...(val !== 'Export' ? {
+                                                            export_under_lut: 'No',
+                                                            lut_document_path: '',
+                                                            lut_file_name: '',
+                                                            lut_uploaded_at: '',
+                                                            lut_uploaded_by: ''
+                                                        } : {})
+                                                    }));
+                                                }} 
+                                                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                            >
+                                                <option value="B2B">B2B</option>
+                                                <option value="B2C">B2C</option>
+                                                <option value="Export">Export</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                Taxable Value (Before GST) *
+                                            </label>
+                                            <input 
+                                                required 
+                                                type="number" 
+                                                min="1"
+                                                placeholder="0.00"
+                                                value={invoiceForm.taxable_value} 
+                                                onChange={(e) => setInvoiceForm({ ...invoiceForm, taxable_value: e.target.value })} 
+                                                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                            />
+                                            {validationErrors.taxable_value && <span className="text-red-500 text-[11px] font-bold mt-1 block">{validationErrors.taxable_value}</span>}
+                                        </div>
+
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                GST %
+                                            </label>
+                                            <select 
+                                                value={invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? '0' : invoiceForm.gst_percentage} 
+                                                disabled={invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes'}
+                                                onChange={(e) => setInvoiceForm({ ...invoiceForm, gst_percentage: parseInt(e.target.value) })} 
+                                                className={`w-full px-3 py-2 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none ${invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' ? 'bg-gray-100 cursor-not-allowed text-gray-500' : 'bg-white text-gray-800'}`}
+                                            >
+                                                {invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes' && <option value="0">0% (LUT)</option>}
+                                                <option value="18">18%</option>
+                                                <option value="12">12%</option>
+                                                <option value="5">5%</option>
+                                                <option value="28">28%</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                Reverse Charge
+                                            </label>
+                                            <select 
+                                                value={invoiceForm.reverse_charge} 
+                                                onChange={(e) => setInvoiceForm({ ...invoiceForm, reverse_charge: e.target.value })} 
+                                                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                            >
+                                                <option value="No">No</option>
+                                                <option value="Yes">Yes</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {invoiceForm.invoice_type === 'Export' && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                    Export Under LUT / Bond?
+                                                </label>
+                                                <div className="flex items-center gap-4 h-10">
+                                                    <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 cursor-pointer">
+                                                        <input 
+                                                            type="radio" 
+                                                            name="export_under_lut" 
+                                                            value="Yes" 
+                                                            checked={invoiceForm.export_under_lut === 'Yes'} 
+                                                            onChange={() => {
+                                                                setInvoiceForm(prev => ({ ...prev, export_under_lut: 'Yes' }));
+                                                                setIsLutModalOpen(true);
+                                                            }}
+                                                            className="text-purple-600"
+                                                        />
+                                                        Yes
+                                                    </label>
+                                                    <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 cursor-pointer">
+                                                        <input 
+                                                            type="radio" 
+                                                            name="export_under_lut" 
+                                                            value="No" 
+                                                            checked={invoiceForm.export_under_lut !== 'Yes'} 
+                                                            onChange={() => {
+                                                                setInvoiceForm(prev => ({ 
+                                                                    ...prev, 
+                                                                    export_under_lut: 'No',
+                                                                    lut_document_path: '',
+                                                                    lut_file_name: '',
+                                                                    lut_uploaded_at: '',
+                                                                    lut_uploaded_by: ''
+                                                                }));
+                                                            }}
+                                                            className="text-purple-600"
+                                                        />
+                                                        No
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            {invoiceForm.export_under_lut === 'Yes' && invoiceForm.lut_file_name && (
+                                                <div className="flex flex-col justify-center">
+                                                    <label className="text-[10px] font-bold text-emerald-700 uppercase block mb-0.5">LUT DOC ATTACHED</label>
+                                                    <span className="text-xs font-bold text-emerald-800 truncate">
+                                                        📎 {invoiceForm.lut_file_name}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* HORIZONTAL TAX SUMMARY RIBBON */}
                                 {(() => {
-                                    const senderStateCode = (gstProfile.state_code || '33').substring(0, 2);
-                                    const receiverStateCode = (invoiceForm.place_of_supply || '33').substring(0, 2);
+                                    const senderStateCode = (gstProfile.state_code || defaultSender.state_code || '05').substring(0, 2);
+                                    const receiverStateCode = (invoiceForm.place_of_supply || '09').substring(0, 2);
                                     const isSameState = senderStateCode === receiverStateCode;
                                     const isLut = invoiceForm.invoice_type === 'Export' && invoiceForm.export_under_lut === 'Yes';
-                                    const gstPct = isLut ? 0 : (parseFloat(invoiceForm.gst_percentage) || 12);
+                                    const gstPct = isLut ? 0 : (parseFloat(invoiceForm.gst_percentage) || 18);
                                     const taxable = parseFloat(invoiceForm.taxable_value) || 0;
                                     const taxTotal = taxable * (gstPct / 100);
+                                    const isInterState = !isSameState;
                                     return (
-                                        <div style={{ background: '#F5F3FF', padding: '0.8rem', borderRadius: '10px', border: '1px solid #DDD6FE', fontSize: '0.78rem', color: '#4C1D95' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', marginBottom: '0.25rem' }}>
-                                                <span>TAX TYPE DETERMINED:</span>
-                                                <span style={{ color: '#7C3AED' }}>
+                                        <div className="bg-purple-50/70 border border-purple-100 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 text-xs">
+                                            <div>
+                                                <span className="text-[10px] font-black uppercase tracking-wider text-purple-900 block">
+                                                    TAX TYPE DETERMINED
+                                                </span>
+                                                <span className="font-bold text-purple-700 text-sm">
                                                     {isLut ? 'EXPORT UNDER LUT (GST 0%)' : (isSameState ? 'INTRA-STATE (CGST + SGST)' : 'INTER-STATE (IGST)')}
                                                 </span>
                                             </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', color: '#5B21B6', fontSize: '0.74rem' }}>
+
+                                            <div className="flex items-center gap-6">
                                                 {isLut ? (
                                                     <>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                            <span>CGST (0%)</span>
-                                                            <span style={{ fontWeight: '700' }}>{formatCurrency(0)}</span>
+                                                        <div>
+                                                            <span className="text-[10px] text-gray-400 font-bold uppercase block">CGST (0%)</span>
+                                                            <span className="font-bold text-gray-800">{formatCurrency(0)}</span>
                                                         </div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                            <span>SGST (0%)</span>
-                                                            <span style={{ fontWeight: '700' }}>{formatCurrency(0)}</span>
+                                                        <div>
+                                                            <span className="text-[10px] text-gray-400 font-bold uppercase block">SGST (0%)</span>
+                                                            <span className="font-bold text-gray-800">{formatCurrency(0)}</span>
                                                         </div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                            <span>IGST (0%)</span>
-                                                            <span style={{ fontWeight: '700' }}>{formatCurrency(0)}</span>
+                                                        <div>
+                                                            <span className="text-[10px] text-gray-400 font-bold uppercase block">IGST (0%)</span>
+                                                            <span className="font-bold text-gray-800">{formatCurrency(0)}</span>
                                                         </div>
                                                     </>
                                                 ) : isSameState ? (
                                                     <>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                            <span>CGST ({gstPct / 2}%)</span>
-                                                            <span style={{ fontWeight: '700' }}>{formatCurrency(taxTotal / 2)}</span>
+                                                        <div>
+                                                            <span className="text-[10px] text-gray-400 font-bold uppercase block">CGST ({gstPct / 2}%)</span>
+                                                            <span className="font-bold text-gray-800">{formatCurrency(taxTotal / 2)}</span>
                                                         </div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                            <span>SGST ({gstPct / 2}%)</span>
-                                                            <span style={{ fontWeight: '700' }}>{formatCurrency(taxTotal / 2)}</span>
+                                                        <div>
+                                                            <span className="text-[10px] text-gray-400 font-bold uppercase block">SGST ({gstPct / 2}%)</span>
+                                                            <span className="font-bold text-gray-800">{formatCurrency(taxTotal / 2)}</span>
                                                         </div>
                                                     </>
                                                 ) : (
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <span>IGST ({gstPct}%)</span>
-                                                        <span style={{ fontWeight: '700' }}>{formatCurrency(taxTotal)}</span>
+                                                    <div>
+                                                        <span className="text-[10px] text-gray-400 font-bold uppercase block">IGST ({gstPct}%)</span>
+                                                        <span className="font-bold text-gray-800">{formatCurrency(taxTotal)}</span>
                                                     </div>
                                                 )}
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dotted #DDD6FE', paddingTop: '0.2rem', marginTop: '0.2rem', fontWeight: '800', fontSize: '0.78rem' }}>
-                                                    <span>Total Invoice Amount</span>
-                                                    <span>{formatCurrency(taxable + taxTotal)}</span>
+
+                                                <div className="border-l border-purple-200 pl-6">
+                                                    <span className="text-[10px] text-purple-900 font-black uppercase block">TOTAL INVOICE AMOUNT</span>
+                                                    <span className="text-base font-black text-purple-950">{formatCurrency(taxable + taxTotal)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -6559,13 +6637,16 @@ const BusinessBilling = () => {
                                 })()}
                             </div>
 
-                            <button 
-                                type="submit" 
-                                disabled={generateGstInvoiceMutation.isPending}
-                                style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: generateGstInvoiceMutation.isPending ? 'not-allowed' : 'pointer', opacity: generateGstInvoiceMutation.isPending ? 0.7 : 1, boxShadow: '0 6px 12px rgba(124, 58, 237, 0.15)' }}
-                            >
-                                {generateGstInvoiceMutation.isPending ? 'Generating...' : 'Generate / Authenticate e-Invoice'}
-                            </button>
+                            {/* Fixed Footer Submit Button */}
+                            <div className="px-7 py-4 border-t border-gray-100 bg-white rounded-b-3xl shrink-0">
+                                <button
+                                    type="submit"
+                                    disabled={generateGstInvoiceMutation.isPending}
+                                    className="w-full py-3.5 bg-[#6d28d9] hover:bg-[#5b21b6] text-white rounded-xl text-xs font-black shadow-md transition-all flex items-center justify-center cursor-pointer disabled:opacity-50"
+                                >
+                                    {generateGstInvoiceMutation.isPending ? 'Authenticating with NIC...' : 'Generate / Authenticate e-Invoice'}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
