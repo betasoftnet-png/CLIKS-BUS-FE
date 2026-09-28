@@ -333,6 +333,9 @@ const BusinessInventory = () => {
         min_stock: 5,
         reorder_level: 8,
         batch_number: '',
+        has_expiry: false,
+        is_perishable: false,
+        mfg_date: '',
         manufacturing_date: '',
         expiry_date: '',
         serial_number: '',
@@ -480,6 +483,9 @@ const BusinessInventory = () => {
             min_stock: 5,
             reorder_level: 8,
             batch_number: '',
+            has_expiry: false,
+            is_perishable: false,
+            mfg_date: '',
             manufacturing_date: '',
             expiry_date: '',
             serial_number: '',
@@ -523,8 +529,11 @@ const BusinessInventory = () => {
             min_stock: item.min_stock || 5,
             reorder_level: item.reorder_level || 8,
             batch_number: item.batch_number || '',
-            manufacturing_date: item.manufacturing_date || '',
-            expiry_date: item.expiry_date || '',
+            has_expiry: Boolean(item.has_expiry || item.is_perishable || (item.expiry_date && item.expiry_date !== '2029-01-10')),
+            is_perishable: Boolean(item.has_expiry || item.is_perishable || (item.expiry_date && item.expiry_date !== '2029-01-10')),
+            mfg_date: item.mfg_date || item.manufacturing_date || '',
+            manufacturing_date: item.manufacturing_date || item.mfg_date || '',
+            expiry_date: item.expiry_date && item.expiry_date !== '2029-01-10' ? item.expiry_date : '',
             serial_number: item.serial_number || '',
             primary_unit: item.primary_unit || 'pcs',
             secondary_unit: item.secondary_unit || 'box',
@@ -606,7 +615,11 @@ const BusinessInventory = () => {
             barcode: formData.barcode,
             serial_number: formData.serial_number,
             batch_number: formData.batch_number,
-            expiry_date: formData.expiry_date,
+            has_expiry: Boolean(formData.has_expiry),
+            is_perishable: Boolean(formData.has_expiry),
+            expiry_date: formData.has_expiry ? (formData.expiry_date || null) : null,
+            mfg_date: formData.has_expiry ? (formData.mfg_date || formData.manufacturing_date || null) : null,
+            manufacturing_date: formData.has_expiry ? (formData.manufacturing_date || formData.mfg_date || null) : null,
             tax_percentage: parseFloat(formData.gst_percentage) || 18,
             warehouse_id: formData.warehouse,
             hsn_code: formData.hsn_code,
@@ -1620,14 +1633,10 @@ const BusinessInventory = () => {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: !isStarterPlan ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: '1rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Batch Identifier</label>
                                             <input type="text" value={formData.batch_number} onChange={(e) => setFormData({...formData, batch_number: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="B-8902" />
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Expiry Date</label>
-                                            <input type="date" value={formData.expiry_date} onChange={(e) => setFormData({...formData, expiry_date: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} />
                                         </div>
                                         {!isStarterPlan && (
                                             <div>
@@ -1658,6 +1667,71 @@ const BusinessInventory = () => {
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Rack Location</label>
                                             <input type="text" value={formData.rack_number} onChange={(e) => setFormData({...formData, rack_number: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Rack 4" />
                                         </div>
+                                    </div>
+
+                                    {/* =================================================================== */}
+                                    {/* HAS EXPIRY / EXPIRY APPLICABLE TOGGLE                               */}
+                                    {/* =================================================================== */}
+                                    <div className="p-3.5 bg-gray-50 border border-gray-200/80 rounded-2xl space-y-3" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '1rem' }}>
+                                        <label className="flex items-center gap-2.5 cursor-pointer select-none" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', userSelect: 'none' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(formData.has_expiry)}
+                                                onChange={(e) => {
+                                                    const checked = e.target.checked;
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        has_expiry: checked,
+                                                        is_perishable: checked,
+                                                        expiry_date: checked ? prev.expiry_date : '',
+                                                        mfg_date: checked ? (prev.mfg_date || prev.manufacturing_date) : '',
+                                                        manufacturing_date: checked ? (prev.mfg_date || prev.manufacturing_date) : ''
+                                                    }));
+                                                }}
+                                                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer"
+                                                style={{ width: '16px', height: '16px', accentColor: '#059669', cursor: 'pointer' }}
+                                            />
+                                            <div>
+                                                <span className="text-xs font-bold text-gray-800" style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B', display: 'block' }}>
+                                                    Expiry Applicable / Perishable Product
+                                                </span>
+                                                <p className="text-[10px] text-gray-400 font-medium" style={{ margin: '2px 0 0 0', fontSize: '0.72rem', color: '#64748B' }}>
+                                                    Enable only for items with limited shelf-life (food, pharma, cosmetics). Leave unchecked for electronics, hardware, furniture, etc.
+                                                </p>
+                                            </div>
+                                        </label>
+
+                                        {/* Show MFG & Expiry Date inputs ONLY when hasExpiry is checked */}
+                                        {Boolean(formData.has_expiry) && (
+                                            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-gray-200/60 animate-in fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingTop: '0.75rem', marginTop: '0.5rem', borderTop: '1px solid #E2E8F0' }}>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1" style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                                                        Manufacturing Date (MFG)
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        value={formData.mfg_date || formData.manufacturing_date || ''}
+                                                        onChange={(e) => setFormData(prev => ({ ...prev, mfg_date: e.target.value, manufacturing_date: e.target.value }))}
+                                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                                        style={{ width: '100%', padding: '0.75rem', background: 'white', border: '1px solid #CBD5E1', borderRadius: '12px', fontSize: '0.82rem', fontWeight: '600', color: '#1E293B', boxSizing: 'border-box' }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1" style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                                                        Expiry Date *
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        min={new Date().toISOString().split('T')[0]}
+                                                        value={formData.expiry_date || ''}
+                                                        onChange={(e) => setFormData(prev => ({ ...prev, expiry_date: e.target.value }))}
+                                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-emerald-600"
+                                                        style={{ width: '100%', padding: '0.75rem', background: 'white', border: '1px solid #CBD5E1', borderRadius: '12px', fontSize: '0.82rem', fontWeight: '600', color: '#1E293B', boxSizing: 'border-box' }}
+                                                        required={Boolean(formData.has_expiry)}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Warranty Details */}

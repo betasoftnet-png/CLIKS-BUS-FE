@@ -61,6 +61,39 @@ const BusinessExpenses = ({ defaultTab }) => {
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
     const [editingRecurring, setEditingRecurring] = useState(null);
     const [editingBudget, setEditingBudget] = useState(null);
+    const [budgetError, setBudgetError] = useState('');
+
+    // Block negative sign (-), decimal point (.), and exponential (e) keys
+    const handleBudgetKeyDown = (e) => {
+        if (['-', '+', '.', 'e', 'E', 'Decimal'].includes(e.key)) {
+            e.preventDefault();
+        }
+    };
+
+    // Validate input to allow only whole positive integers (>= 1)
+    const handleBudgetChange = (e) => {
+        const val = e.target.value;
+
+        if (val === '') {
+            setNewBudget(prev => ({ ...prev, budget_limit: '' }));
+            setBudgetError('');
+            return;
+        }
+
+        if (val.includes('.') || val.includes('-')) {
+            setBudgetError('Decimal fractions and negative budgets are not allowed.');
+            return;
+        }
+
+        const intVal = parseInt(val, 10);
+        if (isNaN(intVal) || intVal < 1) {
+            setNewBudget(prev => ({ ...prev, budget_limit: val }));
+            setBudgetError('Budget must be a whole positive number of at least ₹1.');
+        } else {
+            setNewBudget(prev => ({ ...prev, budget_limit: String(intVal) }));
+            setBudgetError('');
+        }
+    };
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [payingClaimId, setPayingClaimId] = useState(null);
     const [paymentDetails, setPaymentDetails] = useState({
@@ -68,6 +101,47 @@ const BusinessExpenses = ({ defaultTab }) => {
         paymentDate: new Date().toISOString().split('T')[0]
     });
     const [isRecordSpendingModalOpen, setIsRecordSpendingModalOpen] = useState(false);
+    const [spendingAmountError, setSpendingAmountError] = useState('');
+
+    React.useEffect(() => {
+        if (!isRecordSpendingModalOpen) {
+            setSpendingAmountError('');
+        }
+    }, [isRecordSpendingModalOpen]);
+
+    // Block decimal point (.), minus (-), plus (+), and exponent (e) keys
+    const handleSpendingKeyDown = (e) => {
+        if (['.', 'Decimal', '-', '+', 'e', 'E'].includes(e.key)) {
+            e.preventDefault();
+        }
+    };
+
+    // Validate input to allow only whole positive integers (>= 1)
+    const handleSpendingAmountChange = (e) => {
+        const val = e.target.value;
+
+        if (val === '') {
+            setRecordSpendingForm(prev => ({ ...prev, amount: '' }));
+            setSpendingAmountError('');
+            return;
+        }
+
+        if (val.includes('.')) {
+            setRecordSpendingForm(prev => ({ ...prev, amount: val }));
+            setSpendingAmountError('Float / decimal amounts (e.g. 0.01) are not allowed.');
+            return;
+        }
+
+        const num = parseInt(val, 10);
+        if (isNaN(num) || num < 1) {
+            setRecordSpendingForm(prev => ({ ...prev, amount: val }));
+            setSpendingAmountError('Amount spent must be a positive whole integer of at least ₹1.');
+        } else {
+            setRecordSpendingForm(prev => ({ ...prev, amount: String(num) }));
+            setSpendingAmountError('');
+        }
+    };
+
     const [recordSpendingForm, setRecordSpendingForm] = useState({
         category_name: '',
         amount: '',
@@ -359,6 +433,42 @@ const BusinessExpenses = ({ defaultTab }) => {
         recurring_status: 'Active'
     });
 
+    const [recurringAmountError, setRecurringAmountError] = useState('');
+
+    // Block decimal point '.', negative signs '-', '+', and 'e' at keystroke level
+    const handleRecurringKeyDown = (e) => {
+        if (e.key === '.' || e.key === 'Decimal' || e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+            e.preventDefault();
+        }
+    };
+
+    // Validate amount to allow only whole positive integers (no floats / decimals)
+    const handleRecurringAmountChange = (e) => {
+        const val = e.target.value;
+
+        if (val === '') {
+            setNewRecurring(prev => ({ ...prev, expense_amount: '', amount: '' }));
+            setRecurringAmountError('');
+            return;
+        }
+
+        // Check if user pasted a decimal value or <= 0
+        if (val.includes('.')) {
+            setNewRecurring(prev => ({ ...prev, expense_amount: val, amount: val }));
+            setRecurringAmountError('Decimal / float amounts are not allowed. Please enter a whole amount.');
+            return;
+        }
+
+        const num = parseInt(val, 10);
+        if (isNaN(num) || num < 1) {
+            setNewRecurring(prev => ({ ...prev, expense_amount: val, amount: val }));
+            setRecurringAmountError('Amount must be a whole number of at least ₹1.');
+        } else {
+            setNewRecurring(prev => ({ ...prev, expense_amount: String(num), amount: num }));
+            setRecurringAmountError('');
+        }
+    };
+
     const handleCreateExpense = (e) => {
         e.preventDefault();
         createExpenseMutation.mutate(newExpense);
@@ -366,9 +476,16 @@ const BusinessExpenses = ({ defaultTab }) => {
 
     const handleSaveSpending = (e) => {
         e.preventDefault();
-        const spentAmt = parseFloat(recordSpendingForm.amount);
-        if (isNaN(spentAmt) || spentAmt <= 0) {
-            alert('Amount spent must be greater than 0');
+        const rawAmt = String(recordSpendingForm.amount || '');
+
+        if (rawAmt.includes('.')) {
+            setSpendingAmountError('Float / decimal amounts (e.g. 0.01) are not allowed.');
+            return;
+        }
+
+        const spentAmt = parseInt(rawAmt, 10);
+        if (isNaN(spentAmt) || spentAmt < 1) {
+            setSpendingAmountError('Please provide a valid whole amount of at least ₹1.');
             return;
         }
 
@@ -424,9 +541,15 @@ const BusinessExpenses = ({ defaultTab }) => {
 
     const handleSaveBudget = (e) => {
         e.preventDefault();
-        const budgetLimit = parseFloat(newBudget.budget_limit);
-        if (isNaN(budgetLimit) || budgetLimit <= 0) {
-            alert("Monthly budget must be greater than 0");
+        const rawBudget = String(newBudget.budget_limit || '');
+        if (rawBudget.includes('.') || rawBudget.includes('-')) {
+            setBudgetError('Decimal fractions and negative budgets are not allowed.');
+            return;
+        }
+
+        const budgetLimit = parseInt(rawBudget, 10);
+        if (isNaN(budgetLimit) || budgetLimit < 1) {
+            setBudgetError('Please provide a valid whole positive budget target of at least ₹1.');
             return;
         }
 
@@ -442,10 +565,15 @@ const BusinessExpenses = ({ defaultTab }) => {
             }
         }
 
+        const sanitizedMembers = newBudgetMembers.map(m => ({
+            ...m,
+            spent: Math.max(0, Math.abs(Number(m.spent) || 0))
+        }));
+
         const budgetData = {
             ...newBudget,
             budget_limit: String(budgetLimit),
-            team_members: newBudgetMembers
+            team_members: sanitizedMembers
         };
         if (editingBudget) {
             updateBudgetMutation.mutate({ id: editingBudget.id, data: budgetData });
@@ -468,13 +596,15 @@ const BusinessExpenses = ({ defaultTab }) => {
             return;
         }
 
+        const sanitizedSpent = empSalary ? Math.max(0, Math.abs(parseFloat(empSalary) || 0)) : 0;
+
         setNewBudgetMembers([
             ...newBudgetMembers,
             {
                 employee_id: empId,
                 name: empName,
-                salary: empSalary ? parseFloat(empSalary) : '',
-                spent: empSalary ? parseFloat(empSalary) : 0
+                salary: sanitizedSpent,
+                spent: sanitizedSpent
             }
         ]);
 
@@ -718,15 +848,29 @@ const BusinessExpenses = ({ defaultTab }) => {
 
     const handleSaveRecurring = (e) => {
         e.preventDefault();
-        const amt = parseFloat(newRecurring.expense_amount);
-        if (isNaN(amt) || amt <= 0) {
-            alert('Amount must be greater than 0');
+        const amtStr = String(newRecurring.expense_amount || newRecurring.amount || '');
+
+        if (amtStr.includes('.')) {
+            setRecurringAmountError('Decimal / float amounts are not allowed.');
             return;
         }
+
+        const intAmount = parseInt(amtStr, 10);
+        if (isNaN(intAmount) || intAmount < 1) {
+            setRecurringAmountError('Please enter a valid whole amount of at least ₹1.');
+            return;
+        }
+
+        const payload = {
+            ...newRecurring,
+            expense_amount: intAmount,
+            amount: intAmount
+        };
+
         if (editingRecurring) {
-            updateRecurringMutation.mutate({ id: editingRecurring.id, data: newRecurring });
+            updateRecurringMutation.mutate({ id: editingRecurring.id, data: payload });
         } else {
-            createRecurringMutation.mutate(newRecurring);
+            createRecurringMutation.mutate(payload);
         }
     };
 
@@ -1031,6 +1175,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 auto_create: 'Active',
                                 recurring_status: 'Active'
                             });
+                            setRecurringAmountError('');
                             setIsRecurringModalOpen(true);
                         }} className="crm-btn" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#3B82F6', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Add Subscription</button>
                     </div>
@@ -1097,6 +1242,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                         auto_create: rec.auto_create,
                                                         recurring_status: rec.recurring_status
                                                     });
+                                                    setRecurringAmountError('');
                                                     setIsRecurringModalOpen(true);
                                                 }}
                                                 style={{ border: 'none', background: '#E0F2FE', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#0369A1' }}
@@ -1132,6 +1278,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                             setNewBudget({ category_name: '', budget_limit: '', spent_amount: 0 });
                             setNewBudgetMembers([]);
                             setShowAddMemberForm(false);
+                            setBudgetError('');
                             setIsBudgetModalOpen(true);
                         }} className="crm-btn" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#BE185D', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Set Budget Limit</button>
                     </div>
@@ -1225,6 +1372,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                         }
                                                         setNewBudgetMembers(members);
                                                         setShowAddMemberForm(false);
+                                                        setBudgetError('');
                                                         setIsBudgetModalOpen(true);
                                                     }}
                                                     style={{ border: 'none', background: '#E0F2FE', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#0369A1' }}
@@ -1437,22 +1585,32 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 <input required type="text" value={newBudget.category_name} onChange={(e) => setNewBudget({ ...newBudget, category_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. HR Team" disabled={!!editingBudget} />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Monthly Budget ({currency.code})</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Monthly Budget ({currency.code || 'INR'}) *</label>
                                 <input 
                                     required 
                                     type="number" 
-                                    min="0.01"
-                                    step="any"
-                                    onKeyDown={(e) => {
-                                        if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
-                                            e.preventDefault();
-                                        }
-                                    }}
+                                    min="1"
+                                    step="1"
+                                    placeholder="e.g. 50000"
+                                    onKeyDown={handleBudgetKeyDown}
                                     value={newBudget.budget_limit} 
-                                    onChange={(e) => setNewBudget({ ...newBudget, budget_limit: e.target.value })} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
-                                    placeholder="e.g. 100000" 
+                                    onChange={handleBudgetChange} 
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '0.8rem', 
+                                        borderRadius: '12px', 
+                                        border: budgetError ? '1px solid #F87171' : '1px solid #E2E8F0', 
+                                        background: budgetError ? '#FEF2F2' : 'white',
+                                        outline: 'none',
+                                        boxSizing: 'border-box'
+                                    }} 
                                 />
+                                {budgetError && (
+                                    <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.72rem', fontWeight: '700', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <span>⚠️</span>
+                                        <span>{budgetError}</span>
+                                    </p>
+                                )}
                             </div>
 
                             {/* Team Members Section */}
@@ -1539,7 +1697,14 @@ const BusinessExpenses = ({ defaultTab }) => {
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Spent (Optional)</label>
                                             <input 
                                                 type="number" 
+                                                min="0"
+                                                step="1"
                                                 placeholder="e.g. 25000" 
+                                                onKeyDown={(e) => {
+                                                    if (['-', '+', 'e', 'E'].includes(e.key)) {
+                                                        e.preventDefault();
+                                                    }
+                                                }}
                                                 value={manualEmpSalary} 
                                                 onChange={(e) => setManualEmpSalary(e.target.value)} 
                                                 style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.8rem', boxSizing: 'border-box' }}
@@ -1569,22 +1734,25 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {newBudgetMembers.map(m => (
-                                                    <tr key={m.employee_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.4rem 0.6rem', fontWeight: '700' }}>{m.employee_id}</td>
-                                                        <td style={{ padding: '0.4rem 0.6rem' }}>{m.name}</td>
-                                                        <td style={{ padding: '0.4rem 0.6rem', color: '#64748B' }}>{m.spent ? formatCurrency(m.spent) : '-'}</td>
-                                                        <td style={{ padding: '0.4rem 0.6rem', textAlign: 'center' }}>
-                                                            <button 
-                                                                type="button" 
-                                                                onClick={() => setNewBudgetMembers(newBudgetMembers.filter(member => member.employee_id !== m.employee_id))}
-                                                                style={{ border: 'none', background: 'transparent', color: '#EF4444', fontWeight: '800', cursor: 'pointer' }}
-                                                            >
-                                                                Delete
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                {newBudgetMembers.map(m => {
+                                                    const sanitizedSpent = Math.max(0, Math.abs(Number(m.spent) || 0));
+                                                    return (
+                                                        <tr key={m.employee_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                            <td style={{ padding: '0.4rem 0.6rem', fontWeight: '700' }}>{m.employee_id}</td>
+                                                            <td style={{ padding: '0.4rem 0.6rem' }}>{m.name}</td>
+                                                            <td style={{ padding: '0.4rem 0.6rem', color: '#64748B' }}>{m.spent !== undefined && m.spent !== null ? formatCurrency(sanitizedSpent) : '-'}</td>
+                                                            <td style={{ padding: '0.4rem 0.6rem', textAlign: 'center' }}>
+                                                                <button 
+                                                                    type="button" 
+                                                                    onClick={() => setNewBudgetMembers(newBudgetMembers.filter(member => member.employee_id !== m.employee_id))}
+                                                                    style={{ border: 'none', background: 'transparent', color: '#EF4444', fontWeight: '800', cursor: 'pointer' }}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
                                             </tbody>
                                         </table>
                                     </div>
@@ -1594,8 +1762,9 @@ const BusinessExpenses = ({ defaultTab }) => {
 
                                 {/* Auto Budget Distribution Section */}
                                 {(() => {
-                                    const budgetPerMember = newBudgetMembers.length > 0
-                                        ? (parseFloat(newBudget.budget_limit) || 0) / newBudgetMembers.length
+                                    const totalBudget = parseInt(newBudget.budget_limit, 10);
+                                    const budgetPerMember = (newBudgetMembers.length > 0 && !isNaN(totalBudget) && totalBudget > 0)
+                                        ? Math.floor(totalBudget / newBudgetMembers.length)
                                         : 0;
                                     if (newBudgetMembers.length > 0) {
                                         return (
@@ -1619,7 +1788,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 })()}
                             </div>
 
-                            <button type="submit" disabled={createBudgetMutation.isPending || updateBudgetMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)', marginTop: '0.5rem' }}>
+                            <button type="submit" disabled={Boolean(budgetError) || !newBudget.budget_limit || createBudgetMutation.isPending || updateBudgetMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: (Boolean(budgetError) || !newBudget.budget_limit) ? '#94A3B8' : 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: (Boolean(budgetError) || !newBudget.budget_limit) ? 'not-allowed' : 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)', marginTop: '0.5rem' }}>
                                 {editingBudget ? 'Updating...' : 'Settle Budget Target'}
                             </button>
                         </form>
@@ -1637,8 +1806,9 @@ const BusinessExpenses = ({ defaultTab }) => {
                 } catch (e) {
                     parsedMembers = [];
                 }
-                const budgetPerMember = parsedMembers.length > 0
-                    ? (parseFloat(viewingTeamDetails.budget_limit) || 0) / parsedMembers.length
+                const totalBudget = parseInt(viewingTeamDetails.budget_limit, 10);
+                const budgetPerMember = (parsedMembers.length > 0 && !isNaN(totalBudget) && totalBudget > 0)
+                    ? Math.floor(totalBudget / parsedMembers.length)
                     : 0;
 
                 return (
@@ -1669,7 +1839,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                     {parsedMembers.length > 0 ? (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                             {parsedMembers.map(m => {
-                                                const mSpent = parseFloat(m.spent) || 0;
+                                                const mSpent = Math.max(0, Math.abs(parseFloat(m.spent) || 0));
                                                 const mRemaining = budgetPerMember - mSpent;
                                                 return (
                                                     <div key={m.employee_id} style={{ border: '1px solid #E2E8F0', borderRadius: '12px', padding: '0.8rem 1rem' }}>
@@ -1932,21 +2102,32 @@ const BusinessExpenses = ({ defaultTab }) => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Amount ({currency.code})</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>Amount ({currency.code || 'INR'}) *</label>
                                     <input 
                                         required 
                                         type="number" 
-                                        min="0.01"
-                                        step="any"
-                                        onKeyDown={(e) => {
-                                            if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
-                                                e.preventDefault();
-                                            }
-                                        }}
+                                        min="1"
+                                        step="1"
+                                        placeholder="e.g. 5000"
+                                        onKeyDown={handleRecurringKeyDown}
                                         value={newRecurring.expense_amount} 
-                                        onChange={(e) => setNewRecurring({ ...newRecurring, expense_amount: e.target.value })} 
-                                        style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        onChange={handleRecurringAmountChange} 
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '0.7rem', 
+                                            borderRadius: '10px', 
+                                            border: recurringAmountError ? '1px solid #F87171' : '1px solid #E2E8F0', 
+                                            background: recurringAmountError ? '#FEF2F2' : 'white',
+                                            outline: 'none',
+                                            boxSizing: 'border-box'
+                                        }} 
                                     />
+                                    {recurringAmountError && (
+                                        <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.72rem', fontWeight: '700', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <span>⚠️</span>
+                                            <span>{recurringAmountError}</span>
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -1980,7 +2161,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 </div>
                             </div>
 
-                            <button type="submit" disabled={createRecurringMutation.isPending || updateRecurringMutation.isPending} style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(59, 130, 246, 0.15)' }}>
+                            <button type="submit" disabled={Boolean(recurringAmountError) || !newRecurring.expense_amount || createRecurringMutation.isPending || updateRecurringMutation.isPending} style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: (Boolean(recurringAmountError) || !newRecurring.expense_amount) ? '#94A3B8' : 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: (Boolean(recurringAmountError) || !newRecurring.expense_amount) ? 'not-allowed' : 'pointer', boxShadow: '0 8px 16px rgba(59, 130, 246, 0.15)' }}>
                                 {editingRecurring ? 'Updating...' : 'Create Subscription'}
                             </button>
                         </form>
@@ -2112,22 +2293,33 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 }
                             })()}
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount Spent (₹)</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount Spent (₹) *</label>
                                 <input 
                                     required 
                                     type="number" 
-                                    min="0.01"
-                                    step="any"
-                                    onKeyDown={(e) => {
-                                        if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
-                                            e.preventDefault();
-                                        }
-                                    }}
-                                    placeholder="e.g. 2500" 
+                                    min="1"
+                                    step="1"
+                                    placeholder="e.g. 1500" 
+                                    onKeyDown={handleSpendingKeyDown}
                                     value={recordSpendingForm.amount} 
-                                    onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, amount: e.target.value })} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600', boxSizing: 'border-box' }} 
+                                    onChange={handleSpendingAmountChange} 
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '0.8rem', 
+                                        borderRadius: '12px', 
+                                        border: spendingAmountError ? '1px solid #F87171' : '1px solid #E2E8F0', 
+                                        background: spendingAmountError ? '#FEF2F2' : 'white',
+                                        outline: 'none', 
+                                        fontWeight: '600', 
+                                        boxSizing: 'border-box' 
+                                    }} 
                                 />
+                                {spendingAmountError && (
+                                    <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.72rem', fontWeight: '700', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <span>⚠️</span>
+                                        <span>{spendingAmountError}</span>
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Description (Optional)</label>
@@ -2165,8 +2357,8 @@ const BusinessExpenses = ({ defaultTab }) => {
  
                             <button 
                                 type="submit" 
-                                disabled={createExpenseMutation.isPending} 
-                                style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.15)' }}
+                                disabled={Boolean(spendingAmountError) || !recordSpendingForm.amount || createExpenseMutation.isPending} 
+                                style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: (Boolean(spendingAmountError) || !recordSpendingForm.amount) ? '#94A3B8' : 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: (Boolean(spendingAmountError) || !recordSpendingForm.amount) ? 'not-allowed' : 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.15)' }}
                             >
                                 {createExpenseMutation.isPending ? 'Saving...' : 'Save Spending'}
                             </button>

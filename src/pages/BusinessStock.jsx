@@ -30,9 +30,9 @@ import {
     Eye,
     Settings
 } from 'lucide-react';
-import '../App.css';
 import { useCurrency } from '../context';
 import StockItemDetailsModal from '../components/inventory/StockItemDetailsModal';
+import BatchesExpiriesTab from '../components/inventory/BatchesExpiriesTab';
 
 const BarChartIcon = ({ size = 16 }) => (
     <span style={{ fontSize: `${size}px`, lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}>📊</span>
@@ -119,11 +119,18 @@ const BusinessStock = () => {
             const damagedQty = isDamagedGodown ? rawQty : (parseFloat(p.damaged_stock ?? 0) || 0);
             const sellableQty = isDamagedGodown ? 0 : Math.max(0, rawQty - damagedQty);
 
+            const isPerishableProduct = Boolean(
+                p.has_expiry === true ||
+                p.is_perishable === true ||
+                (p.expiry_date && p.expiry_date !== '2029-01-10')
+            );
+
             list.push({
                 stock_id: `STK-${p.id}`,
                 id: p.id,
                 product_id: p.sku || `PROD-${p.id}`,
                 product_name: p.name || 'Unnamed Product',
+                category: p.category || '',
                 opening_stock: parseFloat(p.opening_stock || p.quantity || 0),
                 current_stock: rawQty,
                 available_stock: sellableQty,
@@ -134,7 +141,12 @@ const BusinessStock = () => {
                 average_cost: parseFloat(p.purchase_price || p.unit_price || 0),
                 selling_value: parseFloat(p.selling_price || (p.purchase_price * 1.2) || 0),
                 warehouse_name: warehouseName,
-                rack_number: p.rack_number || 'Rack A-1'
+                rack_number: p.rack_number || 'Rack A-1',
+                has_expiry: isPerishableProduct,
+                is_perishable: isPerishableProduct,
+                batch_number: p.batch_number || '',
+                manufacturing_date: isPerishableProduct ? (p.manufacturing_date || p.mfg_date || null) : null,
+                expiry_date: isPerishableProduct && p.expiry_date && p.expiry_date !== '2029-01-10' ? p.expiry_date : null
             });
         });
 
@@ -161,11 +173,18 @@ const BusinessStock = () => {
             const damagedQty = isDamagedGodown ? rawQty : 0;
             const sellableQty = isDamagedGodown ? 0 : rawQty;
 
+            const isPerishableStock = Boolean(
+                s.has_expiry === true ||
+                s.is_perishable === true ||
+                (s.expiry_date && s.expiry_date !== '2029-01-10')
+            );
+
             list.push({
                 stock_id: `STK-${s.id}`,
                 id: s.id,
                 product_id: s.sku || `PROD-${s.id}`,
                 product_name: s.name || 'Unnamed Stock Item',
+                category: s.category || '',
                 opening_stock: parseFloat(s.opening_stock || 10),
                 current_stock: rawQty,
                 available_stock: sellableQty,
@@ -176,7 +195,12 @@ const BusinessStock = () => {
                 average_cost: parseFloat(s.unit_price || 0),
                 selling_value: parseFloat((s.unit_price || 0) * 1.2),
                 warehouse_name: warehouseName,
-                rack_number: rackNumber
+                rack_number: rackNumber,
+                has_expiry: isPerishableStock,
+                is_perishable: isPerishableStock,
+                batch_number: s.batch_number || '',
+                manufacturing_date: isPerishableStock ? (s.manufacturing_date || s.mfg_date || null) : null,
+                expiry_date: isPerishableStock && s.expiry_date && s.expiry_date !== '2029-01-10' ? s.expiry_date : null
             });
         });
 
@@ -510,14 +534,20 @@ const BusinessStock = () => {
         };
     });
 
-    // Dynamic batches based on live stocks
-    const batches = stocks.map((s) => ({
-        batch_number: s.product_id.replace('PROD-', 'BAT-'),
-        product_name: s.product_name,
-        manufacturing_date: '2026-01-10',
-        expiry_date: '2029-01-10',
-        batch_quantity: s.current_stock
-    }));
+    // Dynamic batches based on live stocks with perishable / expiry verification
+    const batches = stocks.map((s) => {
+        const isPerishable = Boolean(s.has_expiry || s.is_perishable || (s.expiry_date && s.expiry_date !== '2029-01-10'));
+        return {
+            batch_number: s.batch_number || s.product_id.replace('PROD-', 'BAT-'),
+            product_name: s.product_name,
+            category: s.category || '',
+            manufacturing_date: isPerishable ? (s.manufacturing_date || 'N/A') : 'N/A',
+            expiry_date: isPerishable ? s.expiry_date : null,
+            batch_quantity: s.current_stock,
+            has_expiry: isPerishable,
+            is_perishable: isPerishable
+        };
+    });
 
     // Form inputs for Stock Adjustments
     const [adjustmentForm, setAdjustmentForm] = useState({
@@ -1060,43 +1090,7 @@ const BusinessStock = () => {
 
             {/* Tab 4: Batches & Expiry Dates */}
             {activeTab === 'batch' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Batch-Wise & Expiry Tracking (FIFO Engine)</h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#F8FAFC' }}>
-                            <tr>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Batch Number</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Product Description</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>MFG Date</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Expiry Date</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Batch Qty</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Days to Expiry</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {batches.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((bat) => {
-                                const daysLeft = Math.ceil((new Date(bat.expiry_date) - new Date()) / (1000 * 60 * 60 * 24));
-                                return (
-                                    <tr key={bat.batch_number} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1rem', fontWeight: '750', color: '#1E293B' }}>{bat.batch_number}</td>
-                                        <td style={{ padding: '1rem', fontWeight: '700' }}>{bat.product_name}</td>
-                                        <td style={{ padding: '1rem' }}>{bat.manufacturing_date}</td>
-                                        <td style={{ padding: '1rem', color: daysLeft < 120 ? '#EF4444' : '#1E293B', fontWeight: '700' }}>{bat.expiry_date}</td>
-                                        <td style={{ padding: '1rem', fontWeight: '800' }}>{bat.batch_quantity} pcs</td>
-                                        <td style={{ padding: '1rem' }}>
-                                            <span style={{ 
-                                                padding: '0.25rem 0.5rem', borderRadius: '6px',
-                                                background: daysLeft < 120 ? '#FEF2F2' : '#EFF6FF',
-                                                color: daysLeft < 120 ? '#EF4444' : '#1D4ED8',
-                                                fontWeight: '800', fontSize: '0.75rem'
-                                            }}>{daysLeft > 0 ? `${daysLeft} Days` : 'EXPIRED'}</span>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
+                <BatchesExpiriesTab batches={batches} />
             )}
 
             {/* Tab: Product Detail & Daily Selling History */}

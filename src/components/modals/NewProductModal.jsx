@@ -5,9 +5,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { productsService } from '../../services';
 import { useCurrency } from '../../context/CurrencyContext';
 
-export const NewProductModal = ({ isOpen, onClose, onSuccess }) => {
+export const NewProductModal = ({ isOpen, onClose, onSuccess, onProductCreated }) => {
     const { currency } = useCurrency();
     const queryClient = useQueryClient();
+
+    const [hasExpiry, setHasExpiry] = useState(false);
+    const [expiryDate, setExpiryDate] = useState('');
+    const [mfgDate, setMfgDate] = useState('');
 
     const [form, setForm] = useState({
         name: '',
@@ -40,9 +44,17 @@ export const NewProductModal = ({ isOpen, onClose, onSuccess }) => {
                 primary_unit: data.primary_unit || data.unit || form.primary_unit || 'pcs',
                 gst_percentage: parseInt(data.tax_percentage || form.tax_percentage || 18, 10),
                 tax_rate: parseInt(data.tax_percentage || form.tax_percentage || 18, 10),
-                category: data.category || form.category || 'General'
+                category: data.category || form.category || 'General',
+                has_expiry: hasExpiry,
+                is_perishable: hasExpiry,
+                expiry_date: hasExpiry ? expiryDate : null,
+                mfg_date: hasExpiry ? mfgDate : null,
+                manufacturing_date: hasExpiry ? mfgDate : null
             };
 
+            if (onProductCreated) {
+                onProductCreated(normalizedProduct);
+            }
             if (onSuccess) {
                 onSuccess(normalizedProduct);
             }
@@ -81,6 +93,11 @@ export const NewProductModal = ({ isOpen, onClose, onSuccess }) => {
             tax_percentage: parseInt(form.tax_percentage, 10) || 18,
             gst_percentage: parseInt(form.tax_percentage, 10) || 18,
             hsn_code: form.hsn_code.trim(),
+            has_expiry: hasExpiry,
+            is_perishable: hasExpiry,
+            expiry_date: hasExpiry ? expiryDate : null,
+            mfg_date: hasExpiry ? mfgDate : null,
+            manufacturing_date: hasExpiry ? mfgDate : null,
             quantity: 0,
             stock: 0
         };
@@ -226,6 +243,67 @@ export const NewProductModal = ({ isOpen, onClose, onSuccess }) => {
                                 style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
                             />
                         </div>
+                    </div>
+
+                    {/* =================================================================== */}
+                    {/* HAS EXPIRY / EXPIRY APPLICABLE TOGGLE                               */}
+                    {/* =================================================================== */}
+                    <div className="p-3.5 bg-gray-50 border border-gray-200/80 rounded-2xl space-y-3" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '1rem' }}>
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', userSelect: 'none' }}>
+                            <input
+                                type="checkbox"
+                                checked={hasExpiry}
+                                onChange={(e) => {
+                                    setHasExpiry(e.target.checked);
+                                    if (!e.target.checked) {
+                                        setExpiryDate('');
+                                        setMfgDate('');
+                                    }
+                                }}
+                                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer"
+                                style={{ width: '16px', height: '16px', accentColor: '#059669', cursor: 'pointer' }}
+                            />
+                            <div>
+                                <span className="text-xs font-bold text-gray-800" style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B', display: 'block' }}>
+                                    Expiry Applicable / Perishable Product
+                                </span>
+                                <p className="text-[10px] text-gray-400 font-medium" style={{ margin: '2px 0 0 0', fontSize: '0.72rem', color: '#64748B' }}>
+                                    Enable only for items with limited shelf-life (food, pharma, cosmetics). Leave unchecked for electronics, hardware, furniture, etc.
+                                </p>
+                            </div>
+                        </label>
+
+                        {/* Show MFG & Expiry Date inputs ONLY when hasExpiry is checked */}
+                        {hasExpiry && (
+                            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-gray-200/60 animate-in fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', paddingTop: '0.75rem', marginTop: '0.5rem', borderTop: '1px solid #E2E8F0' }}>
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1" style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                                        Manufacturing Date (MFG)
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={mfgDate}
+                                        onChange={(e) => setMfgDate(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                                        style={{ width: '100%', padding: '0.65rem', background: 'white', border: '1px solid #CBD5E1', borderRadius: '12px', fontSize: '0.82rem', fontWeight: '600', color: '#1E293B', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1" style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                                        Expiry Date *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        min={new Date().toISOString().split('T')[0]}
+                                        value={expiryDate}
+                                        onChange={(e) => setExpiryDate(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-emerald-600"
+                                        style={{ width: '100%', padding: '0.65rem', background: 'white', border: '1px solid #CBD5E1', borderRadius: '12px', fontSize: '0.82rem', fontWeight: '600', color: '#1E293B', boxSizing: 'border-box' }}
+                                        required={hasExpiry}
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Action buttons */}

@@ -238,7 +238,8 @@ const BusinessWarehouse = () => {
             warehouse_name: warehouseName,
             current_stock: current_stock,
             reserved_stock: s.reserved_stock || 0,
-            damaged_stock: s.damaged_stock || 0,
+            damaged_stock: s.damaged_qty ?? s.damaged_stock ?? s.damagedQuantity ?? s.damaged ?? s.broken_stock ?? 0,
+            damaged_qty: s.damaged_qty ?? s.damaged_stock ?? s.damagedQuantity ?? s.damaged ?? s.broken_stock ?? 0,
             in_transit_stock: s.in_transit_stock || 0,
             rack_number: rackNumber,
             shelf_number: s.shelf_number || 'N/A',
@@ -918,7 +919,29 @@ const BusinessWarehouse = () => {
                                                 </div>
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1B6B3A' }}>{st.current_stock} pcs</td>
-                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#EF4444' }}>{st.damaged_stock} pcs</td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                {(() => {
+                                                    const damagedCount =
+                                                        st.damaged_qty ??
+                                                        st.damaged_stock ??
+                                                        st.damagedQuantity ??
+                                                        st.damaged ??
+                                                        st.broken_stock ??
+                                                        0;
+
+                                                    return (
+                                                        <span
+                                                            style={{
+                                                                fontSize: '0.85rem',
+                                                                fontWeight: damagedCount > 0 ? '900' : '700',
+                                                                color: damagedCount > 0 ? '#EF4444' : '#94A3B8'
+                                                            }}
+                                                        >
+                                                            {damagedCount} pcs
+                                                        </span>
+                                                    );
+                                                })()}
+                                            </td>
                                             <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#F59E0B' }}>{st.in_transit_stock} pcs</td>
                                             <td style={{ padding: '1.5rem 2rem', fontWeight: '950', color: '#10B981' }}>{formatCurrency(st.warehouse_stock_value)}</td>
                                         </tr>
