@@ -307,6 +307,7 @@ function AuthenticatedApp() {
 
                 <Route path="/sales/returns" element={<BusinessReturns />} />
                 <Route path="/inventory/stock" element={<BusinessStock />} />
+                <Route path="/inventory/stock-items" element={<BusinessStock />} />
                 <Route path="/purchases/suppliers" element={<BusinessSuppliers />} />
                 <Route path="/payments" element={<Navigate to="/payments/transaction" replace />} />
                 <Route path="/payments/people" element={<BusinessPeople />} />
