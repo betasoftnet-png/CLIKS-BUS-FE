@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import {
     Users,
@@ -40,6 +40,7 @@ import { expensesService } from '../services/expensesService';
 import { splitExpenseService } from '../services/splitExpenseService';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
+import LodgeStaffClaimModal from '../components/hr/LodgeStaffClaimModal';
 import { useCurrency, useAuth } from '../context';
 import { config } from '../lib/config';
 
@@ -133,6 +134,61 @@ const BusinessStaffing = () => {
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [colFiltersHistory, setColFiltersHistory] = useState({});
     const [editForm, setEditForm] = useState({});
+
+    // 1. Calculate Yesterday's Date as max limit (blocks today & future dates)
+    const maxDobDate = useMemo(() => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return yesterday.toISOString().split('T')[0];
+    }, []);
+
+    // 2. Dynamic Age Calculator Helper
+    const calculateAge = (dobString) => {
+        if (!dobString) return null;
+        const birthDate = new Date(dobString);
+        const today = new Date();
+
+        if (isNaN(birthDate.getTime()) || birthDate >= today) return null;
+
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+
+        return age >= 0 ? age : null;
+    };
+
+    const handleOnboardDobChange = (e) => {
+        const selectedDate = e.target.value;
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        // Reject today or future dates if manually entered
+        if (selectedDate >= todayStr) {
+            return;
+        }
+
+        setNewEmp((prev) => ({
+            ...prev,
+            date_of_birth: selectedDate,
+        }));
+    };
+
+    const handleEditDobChange = (e) => {
+        const selectedDate = e.target.value;
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        // Reject today or future dates if manually entered
+        if (selectedDate >= todayStr) {
+            return;
+        }
+
+        setEditForm((prev) => ({
+            ...prev,
+            date_of_birth: selectedDate,
+        }));
+    };
 
     // Reimbursement module state variables
     const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
@@ -963,7 +1019,14 @@ const BusinessStaffing = () => {
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B', wordBreak: 'break-all', display: 'block' }}>{emp.emergency_contact_number}</span>
                                             </td>
                                             <td style={{ padding: '1.25rem 1.5rem', whiteSpace: 'nowrap' }}>
-                                                <p style={{ fontSize: '0.9rem', fontWeight: '600', margin: '0 0 0.15rem 0' }}>{emp.date_of_birth} ({emp.gender})</p>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', margin: '0 0 0.15rem 0' }}>
+                                                    <p style={{ fontSize: '0.9rem', fontWeight: '600', margin: 0 }}>{emp.date_of_birth} ({emp.gender})</p>
+                                                    {calculateAge(emp.date_of_birth) !== null && (
+                                                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.05rem 0.35rem', borderRadius: '4px' }}>
+                                                            Age: {calculateAge(emp.date_of_birth)} yrs
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <span style={{ fontSize: '0.8rem', color: '#E11D48', fontWeight: '800' }}>Blood group: {emp.blood_group}</span>
                                             </td>
                                             <td style={{ padding: '1.25rem 1.5rem', minWidth: '180px', wordBreak: 'break-word' }}>
@@ -1399,8 +1462,22 @@ const BusinessStaffing = () => {
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.5rem' }}>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Date of Birth</label>
-                                                <input required type="date" value={newEmp.date_of_birth} onChange={(e) => setNewEmp({ ...newEmp, date_of_birth: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Date of Birth</label>
+                                                    {calculateAge(newEmp.date_of_birth) !== null && (
+                                                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.1rem 0.4rem', borderRadius: '6px' }}>
+                                                            Age: {calculateAge(newEmp.date_of_birth)} yrs
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <input
+                                                    required
+                                                    type="date"
+                                                    max={maxDobDate}
+                                                    value={newEmp.date_of_birth}
+                                                    onChange={handleOnboardDobChange}
+                                                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                                />
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Gender</label>
@@ -1703,8 +1780,22 @@ const BusinessStaffing = () => {
                                                 </div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.5rem' }}>
                                                     <div>
-                                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Date of Birth</label>
-                                                        <input required type="date" value={editForm.date_of_birth || ''} onChange={(e) => setEditForm({ ...editForm, date_of_birth: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Date of Birth</label>
+                                                            {calculateAge(editForm.date_of_birth) !== null && (
+                                                                <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.1rem 0.4rem', borderRadius: '6px' }}>
+                                                                    Age: {calculateAge(editForm.date_of_birth)} yrs
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <input
+                                                            required
+                                                            type="date"
+                                                            max={maxDobDate}
+                                                            value={editForm.date_of_birth || ''}
+                                                            onChange={handleEditDobChange}
+                                                            style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                                        />
                                                     </div>
                                                     <div>
                                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Gender</label>
@@ -1872,7 +1963,17 @@ const BusinessStaffing = () => {
                                             </h4>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Employee ID</span> <span style={{ fontWeight: '800', color: '#0F172A' }}>{currentSelectedEmployee.employee_code}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Date of Birth</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.date_of_birth}</span></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}>
+                                                    <span style={{ color: '#64748B', fontWeight: '600' }}>Date of Birth</span>
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                        {currentSelectedEmployee.date_of_birth}
+                                                        {calculateAge(currentSelectedEmployee.date_of_birth) !== null && (
+                                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.05rem 0.35rem', borderRadius: '4px' }}>
+                                                                Age: {calculateAge(currentSelectedEmployee.date_of_birth)} yrs
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Gender</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.gender}</span></div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Blood Group</span> <span style={{ fontWeight: '800', color: '#E11D48' }}>{currentSelectedEmployee.blood_group}</span></div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Phone</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.phone_number}</span></div>
@@ -2150,263 +2251,17 @@ const BusinessStaffing = () => {
             })()}
 
             {/* Lodge Staff Claim Modal */}
-            {isClaimModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
-                    <div className="max-h-[90vh] flex flex-col" style={{ background: 'white', width: '100%', maxWidth: '440px', maxHeight: '90vh', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                        <div className="shrink-0" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.75rem', borderBottom: '1px solid #F1F5F9' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Lodge Staff Claim</h3>
-                            <button type="button" onClick={closeClaimModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
-                        </div>
-
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            const amountNum = parseFloat(newClaim.claim_amount);
-                            if (!newClaim.claim_amount || isNaN(amountNum) || amountNum <= 0) {
-                                setClaimAmountError('Claim amount must be greater than 0');
-                                return;
-                            }
-                            const cleanAmount = parseFloat(amountNum.toFixed(2));
-                            const allReceipts = receiptSets.map(s => (s.receipt || '').trim()).filter(Boolean);
-                            const attachmentRefs = receiptSets
-                                .map(s => (s.file_name ? s.file_name.trim() : ''))
-                                .filter(Boolean);
-                            const uniqueProofs = Array.from(new Set([...allReceipts, ...attachmentRefs]));
-                            const validFiles = receiptSets.filter(s => s.file_data && s.file_name).map(s => ({
-                                file_name: s.file_name,
-                                file_type: s.file_type,
-                                file_data: s.file_data
-                            }));
-                            const finalDesc = (newClaim.travel_expense || newClaim.description || '').trim() || 'Staff Reimbursement';
-                            const finalDate = newClaim.date || new Date().toISOString().split('T')[0];
-                            const finalTime = newClaim.time || new Date().toTimeString().slice(0, 5);
-
-                            const claimPayload = {
-                                ...newClaim,
-                                amount: cleanAmount,
-                                claim_amount: cleanAmount,
-                                employeeId: newClaim.employee_id || 1,
-                                employee_id: newClaim.employee_id || 1,
-                                employee_name: (newClaim.employee_name || '').trim(),
-                                employee_code: newClaim.employee_code || 'CLK-001',
-                                date: finalDate,
-                                time: finalTime,
-                                description: finalDesc,
-                                travel_expense: finalDesc,
-                                proofs: uniqueProofs,
-                                attachments: uniqueProofs,
-                                receipt: allReceipts.join(', ') || (uniqueProofs[0] || ''),
-                                receipts: allReceipts,
-                                files: validFiles,
-                                file_data: validFiles[0]?.file_data || '',
-                                file_name: validFiles[0]?.file_name || ''
-                            };
-                            lodgeClaimMutation.mutate(claimPayload);
-                        }} className="flex flex-col flex-1 min-h-0" style={{ margin: 0 }}>
-                            <div className="flex-1 overflow-y-auto pr-1" style={{ padding: '1.25rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Profile Name</label>
-                                <select 
-                                    required 
-                                    value={newClaim.employee_name} 
-                                    onChange={(e) => {
-                                        const name = e.target.value;
-                                        const emp = employees.find(s => `${s.first_name || ''} ${s.last_name || ''}`.trim() === name || s.name === name);
-                                        setNewClaim({ 
-                                            ...newClaim, 
-                                            employee_name: name,
-                                            employee_code: emp ? (emp.employee_id || `CLK-00${emp.id}`) : 'CLK-001',
-                                            employee_id: emp ? emp.id : 1
-                                        });
-                                    }}
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
-                                >
-                                    <option value="">-- Select Employee --</option>
-                                    {employees.map(emp => {
-                                        const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || emp.name || 'Employee';
-                                        return (
-                                            <option key={emp.id || emp.employee_id} value={fullName}>
-                                                {fullName} ({emp.department_name || emp.department || 'Staff'})
-                                            </option>
-                                        );
-                                    })}
-                                </select>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Out-of-pocket Description</label>
-                                <input required type="text" value={newClaim.travel_expense} onChange={(e) => setNewClaim({ ...newClaim, travel_expense: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Client Sample Box Dispatches" />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Date</label>
-                                    <input required type="date" value={newClaim.date} onChange={(e) => setNewClaim({ ...newClaim, date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Time</label>
-                                    <input required type="time" value={newClaim.time} onChange={(e) => setNewClaim({ ...newClaim, time: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} />
-                                </div>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Claim Amount ({currency.code})</label>
-                                <input 
-                                    required 
-                                    type="number" 
-                                    min="0.01"
-                                    step="any"
-                                    value={newClaim.claim_amount} 
-                                    onKeyDown={(e) => {
-                                        if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
-                                            e.preventDefault();
-                                        }
-                                    }}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        setNewClaim({ ...newClaim, claim_amount: val });
-                                        if (val !== '' && (parseFloat(val) <= 0 || String(val).includes('-'))) {
-                                            setClaimAmountError('Claim amount must be greater than 0');
-                                        } else {
-                                            setClaimAmountError('');
-                                        }
-                                    }} 
-                                    style={{ 
-                                        width: '100%', 
-                                        padding: '0.8rem', 
-                                        borderRadius: '12px', 
-                                        border: (claimAmountError || (newClaim.claim_amount !== '' && parseFloat(newClaim.claim_amount) <= 0)) ? '1.5px solid #EF4444' : '1px solid #E2E8F0', 
-                                        outline: 'none',
-                                        boxSizing: 'border-box'
-                                    }} 
-                                />
-                                {(claimAmountError || (newClaim.claim_amount !== '' && parseFloat(newClaim.claim_amount) <= 0)) && (
-                                    <span style={{ display: 'block', fontSize: '0.72rem', color: '#DC2626', fontWeight: '600', marginTop: '0.35rem' }}>
-                                        Claim amount must be greater than 0
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* Multi-Receipt Sets List */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                                {receiptSets.map((set, idx) => (
-                                    <div key={set.id || idx} style={{ border: '1px solid #F1F5F9', borderRadius: '12px', padding: '0.85rem', background: '#FAFAFA', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Receipt / Reference #{idx + 1} (Optional)</label>
-                                            {receiptSets.length > 1 && (
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => handleRemoveReceiptSet(idx)} 
-                                                    style={{ border: 'none', background: 'transparent', color: '#EF4444', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}
-                                                >
-                                                    Remove Set
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                            <input 
-                                                type="text" 
-                                                value={set.receipt} 
-                                                onChange={(e) => handleReceiptTextChange(idx, e.target.value)} 
-                                                style={{ flex: 1, padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
-                                                placeholder="e.g. UPI Ref No, Bank Txn ID, Receipt No., or Manual Reference" 
-                                            />
-                                            <input 
-                                                type="file" 
-                                                id={`claim-receipt-upload-${idx}`} 
-                                                accept=".png,.jpg,.jpeg,.webp,.pdf" 
-                                                style={{ display: 'none' }} 
-                                                onChange={(e) => handleSetFileChange(idx, e.target.files[0])} 
-                                            />
-                                            <button 
-                                                type="button" 
-                                                onClick={() => document.getElementById(`claim-receipt-upload-${idx}`).click()} 
-                                                style={{ 
-                                                    display: 'flex', 
-                                                    alignItems: 'center', 
-                                                    justifyContent: 'center', 
-                                                    width: '2.8rem', 
-                                                    height: '2.8rem', 
-                                                    borderRadius: '12px', 
-                                                    border: '1px solid #E2E8F0', 
-                                                    background: '#F8FAFC', 
-                                                    color: '#64748B', 
-                                                    fontSize: '1.25rem', 
-                                                    fontWeight: '600', 
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s',
-                                                    boxSizing: 'border-box'
-                                                }}
-                                            >
-                                                +
-                                            </button>
-                                        </div>
-
-                                        {set.file_name && (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', border: '1px solid #E2E8F0', borderRadius: '12px', background: 'white' }}>
-                                                {set.file_type && set.file_type.startsWith('image/') ? (
-                                                    <img 
-                                                        src={set.file_preview_url} 
-                                                        alt="Preview" 
-                                                        style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #CBD5E1' }} 
-                                                    />
-                                                ) : (
-                                                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.7rem' }}>
-                                                        PDF
-                                                    </div>
-                                                )}
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '700', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                        {set.file_name}
-                                                    </p>
-                                                    <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
-                                                        {set.file_type && set.file_type.startsWith('image/') ? 'Image File' : 'PDF Document'}
-                                                    </span>
-                                                </div>
-                                                <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => window.open(set.file_preview_url, '_blank')} 
-                                                        style={{ border: 'none', background: '#EFF6FF', color: '#2563EB', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
-                                                    >
-                                                        View
-                                                    </button>
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => document.getElementById(`claim-receipt-upload-${idx}`).click()} 
-                                                        style={{ border: 'none', background: '#F1F5F9', color: '#475569', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
-                                                    >
-                                                        Replace
-                                                    </button>
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => handleSetFileRemove(idx)} 
-                                                        style={{ border: 'none', background: '#FCE8E6', color: '#C5221F', padding: '0.3rem 0.5rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700' }}
-                                                    >
-                                                        Remove
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-
-                                <button 
-                                    type="button" 
-                                    onClick={handleAddReceiptSet} 
-                                    style={{ border: '1px dashed #10B981', background: '#ECFDF5', color: '#047857', padding: '0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
-                                >
-                                    + Add Another Receipt / Proof
-                                </button>
-                            </div>
-                        </div>
-
-                            <div className="shrink-0 border-t bg-gray-50/80 p-4">
-                                <button type="submit" disabled={lodgeClaimMutation.isPending} style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: lodgeClaimMutation.isPending ? 'not-allowed' : 'pointer', opacity: lodgeClaimMutation.isPending ? 0.7 : 1, boxShadow: '0 10px 20px rgba(16, 185, 129, 0.15)' }}>
-                                    {lodgeClaimMutation.isPending ? 'Lodging...' : 'Lodge Reimbursement Claim'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <LodgeStaffClaimModal
+                isOpen={isClaimModalOpen}
+                onClose={closeClaimModal}
+                staffList={employees}
+                onClaimSubmitted={() => {
+                    queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+                    queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+                    alert('Reimbursement claim submitted successfully.');
+                    closeClaimModal();
+                }}
+            />
 
 
             {/* Confirm Payment Modal */}
