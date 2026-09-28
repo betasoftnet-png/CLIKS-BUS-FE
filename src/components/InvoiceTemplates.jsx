@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React from 'react';
 import { InvoicePrintTemplate } from './invoice/InvoicePrintTemplate';
+import GeneralInvoiceTemplate from './sales/templates/GeneralInvoiceTemplate';
 
 // UTILS FOR PROFESSIONAL INVOICES
 const getParsedItems = (items) => {
@@ -2005,6 +2006,9 @@ export const InvoiceTemplates = {
 
     print_template: InvoicePrintTemplate,
     InvoicePrintTemplate: InvoicePrintTemplate,
+    general: GeneralInvoiceTemplate,
+    GeneralInvoiceTemplate: GeneralInvoiceTemplate,
+    general_invoice: GeneralInvoiceTemplate,
 
     Renderer: ({ type, data, business, config }) => {
         const TemplateComponent = InvoiceTemplates[type] || InvoiceTemplates.standard;
@@ -2017,5 +2021,5 @@ export const InvoiceTemplates = {
     }
 };
 
-export { InvoicePrintTemplate };
+export { InvoicePrintTemplate, GeneralInvoiceTemplate };
 

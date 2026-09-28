@@ -106,6 +106,17 @@ export const InvoicePrintTemplate = ({ data = {}, invoice, business = {}, config
 
             {/* 3-Column Items Table: DESCRIPTION (55%), QTY (15% center), UNIT PRICE (30% right) */}
             <div style={{ marginBottom: '35px' }}>
+                <div className="invoice-meta-summary flex items-center justify-between text-xs font-semibold py-2 px-1 text-gray-700" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', fontWeight: '600', padding: '8px 4px', color: '#374151', marginBottom: '8px' }}>
+                  <div>
+                    <span>Tax Invoice Ref: </span>
+                    <span className="font-bold text-gray-900" style={{ fontWeight: '700', color: '#111827' }}>{invData.invoice_number}</span>
+                  </div>
+                  
+                  {/* TOTAL NUMBER OF ITEMS PURCHASED DISPLAYED OUTSIDE THE GRID & THERMAL RECEIPT */}
+                  <div className="bg-gray-100 border border-gray-300 px-3 py-1 rounded-md text-xs font-bold text-gray-900" style={{ background: '#F3F4F6', border: '1px solid #D1D5DB', padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '700', color: '#111827' }}>
+                    Total Number of Items Purchased: <span className="font-black text-black" style={{ fontWeight: '900', color: '#000000' }}>{items?.length || 0}</span>
+                  </div>
+                </div>
                 <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: '0' }}>
                     <thead>
                         <tr>
