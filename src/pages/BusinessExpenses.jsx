@@ -1789,7 +1789,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                             </div>
 
                             <button type="submit" disabled={Boolean(budgetError) || !newBudget.budget_limit || createBudgetMutation.isPending || updateBudgetMutation.isPending} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: (Boolean(budgetError) || !newBudget.budget_limit) ? '#94A3B8' : 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: (Boolean(budgetError) || !newBudget.budget_limit) ? 'not-allowed' : 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.15)', marginTop: '0.5rem' }}>
-                                {editingBudget ? 'Updating...' : 'Settle Budget Target'}
+                                {editingBudget ? (updateBudgetMutation.isPending ? 'Updating...' : 'Update') : (createBudgetMutation.isPending ? 'Settling...' : 'Settle Budget Target')}
                             </button>
                         </form>
                     </div>
@@ -2162,7 +2162,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                             </div>
 
                             <button type="submit" disabled={Boolean(recurringAmountError) || !newRecurring.expense_amount || createRecurringMutation.isPending || updateRecurringMutation.isPending} style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: (Boolean(recurringAmountError) || !newRecurring.expense_amount) ? '#94A3B8' : 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: (Boolean(recurringAmountError) || !newRecurring.expense_amount) ? 'not-allowed' : 'pointer', boxShadow: '0 8px 16px rgba(59, 130, 246, 0.15)' }}>
-                                {editingRecurring ? 'Updating...' : 'Create Subscription'}
+                                {editingRecurring ? (updateRecurringMutation.isPending ? 'Updating...' : 'Update') : (createRecurringMutation.isPending ? 'Creating...' : 'Create Subscription')}
                             </button>
                         </form>
                     </div>
