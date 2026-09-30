@@ -1099,8 +1099,16 @@ const BusinessAccounting = () => {
     const totalIncomeGroupSum = Object.values(pAndLIncomeGroups).reduce((sum, val) => sum + val, 0);
     const totalExpenseGroupSum = Object.values(pAndLExpenseGroups).reduce((sum, val) => sum + val, 0);
 
-    const totalAssets = (parseFloat(dbBalanceSheet?.assets?.cash) || 0) +
-        (parseFloat(dbBalanceSheet?.assets?.bank) || 0) +
+    const calculatedCash = dbBankAccounts.length > 0
+        ? dbBankAccounts.filter(a => a.bank_type === 'Cash' || a.account_name.toLowerCase().includes('cash')).reduce((sum, a) => sum + (parseFloat(a.balance) || 0), 0)
+        : 0;
+
+    const calculatedBank = dbBankAccounts.length > 0
+        ? dbBankAccounts.filter(a => a.bank_type === 'Bank' || !a.account_name.toLowerCase().includes('cash')).reduce((sum, a) => sum + (parseFloat(a.balance) || 0), 0)
+        : 0;
+
+    const totalAssets = calculatedCash +
+        calculatedBank +
         (parseFloat(dbBalanceSheet?.assets?.inventory) || 0) +
         (parseFloat(dbBalanceSheet?.assets?.receivables) || 0) +
         (parseFloat(dbBalanceSheet?.assets?.fixed_assets) || 0);
@@ -1654,12 +1662,8 @@ const BusinessAccounting = () => {
                         ? finalTxList 
                         : (mockTransactions[selectedAccount?.id] || mockTransactions[selectedAccount?.account_name === 'Cash in Hand' ? 1 : 2] || []);
 
-                    const totalCashVal = dbBankAccounts.length > 0
-                        ? dbBankAccounts.filter(a => a.bank_type === 'Cash' || a.account_name.toLowerCase().includes('cash')).reduce((sum, a) => sum + (a.balance || 0), 0)
-                        : 0;
-                    const totalBankVal = dbBankAccounts.length > 0
-                        ? dbBankAccounts.filter(a => a.bank_type === 'Bank' || !a.account_name.toLowerCase().includes('cash')).reduce((sum, a) => sum + (a.balance || 0), 0)
-                        : 0;
+                    const totalCashVal = calculatedCash;
+                    const totalBankVal = calculatedBank;
 
                     return (
                         <div>
@@ -2833,8 +2837,8 @@ const BusinessAccounting = () => {
                                     .filter(cfg => cfg.visible)
                                     .map(cfg => {
                                         let amount = 0;
-                                        if (cfg.label === 'Cash in Hand') amount = dbBalanceSheet?.assets?.cash || 0;
-                                        else if (cfg.label === 'Bank Balance') amount = dbBalanceSheet?.assets?.bank || 0;
+                                        if (cfg.label === 'Cash in Hand') amount = calculatedCash;
+                                        else if (cfg.label === 'Bank Balance') amount = calculatedBank;
                                         else if (cfg.label === 'Inventory Value') amount = dbBalanceSheet?.assets?.inventory || 0;
                                         else if (cfg.label === 'Accounts Receivable') amount = dbBalanceSheet?.assets?.receivables || 0;
                                         else if (cfg.label === 'Fixed Assets') amount = dbBalanceSheet?.assets?.fixed_assets || 0;
