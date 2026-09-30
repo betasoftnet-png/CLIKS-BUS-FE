@@ -89,14 +89,14 @@ export default function GeneralInvoiceTemplate({ invoice, data }) {
       {/* =================================================================== */}
       {/* 4-COLUMN ITEMS TABLE WITH PROPER RIGHT ALIGNMENT                    */}
       {/* =================================================================== */}
-      <div className="w-full">
-        <table className="w-full border-collapse">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full border-collapse table-fixed min-w-[600px]">
           <thead>
             <tr className="border-b-2 border-gray-200 text-[10px] font-black uppercase text-gray-400">
-              <th className="py-3 text-left w-1/2">DESCRIPTION</th>
-              <th className="py-3 text-center w-1/12">QTY</th>
-              <th className="py-3 text-right w-1/5">UNIT PRICE</th>
-              <th className="py-3 text-right w-1/5">TOTAL AMOUNT</th>
+              <th className="py-3 text-left w-[45%]">DESCRIPTION</th>
+              <th className="py-3 text-center w-[15%]">QTY</th>
+              <th className="py-3 text-right w-[20%] pr-4">UNIT PRICE</th>
+              <th className="py-3 text-right w-[20%]">TOTAL AMOUNT</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-xs">
@@ -108,10 +108,10 @@ export default function GeneralInvoiceTemplate({ invoice, data }) {
               return (
                 <tr key={index} className="hover:bg-gray-50/50 transition-colors">
                   {/* Description & HSN */}
-                  <td className="py-4 pr-3 text-left">
-                    <p className="font-bold text-gray-900">{item.product_name || item.description || item.name}</p>
+                  <td className="py-4 pr-3 text-left break-words whitespace-normal">
+                    <p className="font-bold text-gray-900 break-words whitespace-normal">{item.product_name || item.description || item.name}</p>
                     {(item.hsn || item.hsn_code) && (
-                      <p className="text-[10px] text-gray-400 font-medium">HSN CODE: {item.hsn || item.hsn_code}</p>
+                      <p className="text-[10px] text-gray-400 font-medium break-words whitespace-normal">HSN CODE: {item.hsn || item.hsn_code}</p>
                     )}
                   </td>
 
@@ -121,12 +121,12 @@ export default function GeneralInvoiceTemplate({ invoice, data }) {
                   </td>
 
                   {/* Unit Price */}
-                  <td className="py-4 text-right font-medium text-gray-700">
+                  <td className="py-4 text-right font-medium text-gray-700 pr-4">
                     ₹{rate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
 
                   {/* TOTAL AMOUNT (PROPERLY ALIGNED & UNCLIPPED) */}
-                  <td className="py-4 text-right font-black text-gray-900">
+                  <td className="py-4 text-right font-black text-gray-900 break-words whitespace-normal">
                     ₹{lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
