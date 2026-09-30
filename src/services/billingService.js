@@ -40,10 +40,8 @@ export const billingService = {
             const safeLocal = Array.isArray(local) ? local : [];
             
             // Merge unique server/local by ID
-            console.log("safeLocal =", safeLocal);
-            console.log("Array.isArray(safeLocal) =", Array.isArray(safeLocal));
             const serverIds = new Set((Array.isArray(serverData) ? serverData : []).map(i => i?.id?.toString()).filter(Boolean));
-            const uniqueLocal = (Array.isArray(safeLocal) ? safeLocal : []).filter(i => !serverIds.has(i?.id?.toString()));
+            const uniqueLocal = safeLocal.filter(i => !serverIds.has(i?.id?.toString()));
             
             return [...uniqueLocal, ...(Array.isArray(serverData) ? serverData : [])];
         } catch (error) {
@@ -112,7 +110,8 @@ export const billingService = {
             const res = await apiClient.post(`/billing/invoices/${id}/payments`, data);
             return res?.data?.data || res?.data || res || { success: true };
         } catch (err) {
-            return { success: true };
+            console.error('[BillingService] Failed to create invoice payment:', err);
+            throw err;
         }
     },
     getInvoicePayments: (id) => apiClient.get(`/billing/invoices/${id}/payments`).then(res => res?.data?.data || res?.data || res || []),
