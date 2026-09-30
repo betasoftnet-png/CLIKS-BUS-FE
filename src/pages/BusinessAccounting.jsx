@@ -2695,7 +2695,71 @@ const BusinessAccounting = () => {
 
                                     <div style={{ display: 'flex', gap: '0.75rem', marginTop: '2rem' }}>
                                         <button 
-                                            onClick={() => window.print()}
+                                            onClick={() => {
+                                                const printWindow = window.open('', '_blank');
+                                                const itemsHtml = Array.isArray(selectedInvoiceForModal.items) && selectedInvoiceForModal.items.length > 0
+                                                    ? selectedInvoiceForModal.items.map(item => `
+                                                        <tr>
+                                                            <td style="border: 1px solid #E2E8F0; padding: 8px;">${item.name || item.product_name || 'Goods/Service Item'}</td>
+                                                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: center;">${item.qty || item.quantity || 1}</td>
+                                                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right;">${formatCurrency(item.rate || item.price || 0)}</td>
+                                                            <td style="border: 1px solid #E2E8F0; padding: 8px; text-align: right;">${formatCurrency((item.qty || item.quantity || 1) * (item.rate || item.price || 0))}</td>
+                                                        </tr>`).join('')
+                                                    : `<tr><td colspan="4" style="border: 1px solid #E2E8F0; padding: 8px; text-align: center;">No item details logged for this record.</td></tr>`;
+
+                                                printWindow.document.write(`
+                                                    <html>
+                                                        <head>
+                                                            <title>Invoice #${selectedInvoiceForModal.invoice_number}</title>
+                                                            <style>
+                                                                body { font-family: system-ui, sans-serif; padding: 2rem; color: #1E293B; }
+                                                                h1 { margin-bottom: 0.5rem; font-size: 1.5rem; color: #0F172A; }
+                                                                p { margin: 0.3rem 0; font-size: 0.9rem; color: #475569; }
+                                                                table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+                                                                td, th { border: 1px solid #E2E8F0; padding: 10px; font-size: 0.85rem; }
+                                                                th { background: #F8FAFC; text-align: left; color: #64748B; }
+                                                                .totals-section { margin-top: 2rem; text-align: right; }
+                                                                .totals-section p { font-size: 1rem; margin: 0.4rem 0; color: #475569; }
+                                                                .totals-section .balance { font-size: 1.15rem; color: #DC2626; font-weight: bold; }
+                                                            </style>
+                                                        </head>
+                                                        <body>
+                                                            <h1>Invoice Details</h1>
+                                                            <p><strong>Invoice Number:</strong> #${selectedInvoiceForModal.invoice_number}</p>
+                                                            <p><strong>Billed To:</strong> ${selectedInvoiceForModal.client_name} (${selectedInvoiceForModal.client_email || 'No email registered'})</p>
+                                                            <p><strong>Issued:</strong> ${selectedInvoiceForModal.created_at ? selectedInvoiceForModal.created_at.split('T')[0] : 'N/A'}</p>
+                                                            <p><strong>Due:</strong> ${selectedInvoiceForModal.due_date ? selectedInvoiceForModal.due_date.split('T')[0] : 'N/A'}</p>
+                                                            
+                                                            <table>
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Item Description</th>
+                                                                        <th style="text-align: center;">Qty</th>
+                                                                        <th style="text-align: right;">Rate (₹)</th>
+                                                                        <th style="text-align: right;">Amount (₹)</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    ${itemsHtml}
+                                                                </tbody>
+                                                            </table>
+
+                                                            <div class="totals-section">
+                                                                <p><strong>Total Value:</strong> ${formatCurrency(selectedInvoiceForModal.total_amount || selectedInvoiceForModal.amount || 0)}</p>
+                                                                <p><strong>Amount Settled:</strong> ${formatCurrency(selectedInvoiceForModal.paid_amount || 0)}</p>
+                                                                <p class="balance"><strong>Balance Pending:</strong> ${formatCurrency(selectedInvoiceForModal.due_amount !== undefined ? selectedInvoiceForModal.due_amount : (selectedInvoiceForModal.total_amount || selectedInvoiceForModal.amount || 0))}</p>
+                                                            </div>
+                                                            <script>
+                                                                window.onload = function() {
+                                                                    window.print();
+                                                                    setTimeout(function() { window.close(); }, 500);
+                                                                }
+                                                            </script>
+                                                        </body>
+                                                    </html>
+                                                `);
+                                                printWindow.document.close();
+                                            }}
                                             style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #CBD5E1', backgroundColor: '#ffffff', color: '#1E293B', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' }}
                                         >
                                             Print Invoice
