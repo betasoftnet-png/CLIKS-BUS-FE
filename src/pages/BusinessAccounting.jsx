@@ -2612,7 +2612,48 @@ const BusinessAccounting = () => {
                                             Cancel
                                         </button>
                                         <button 
-                                            onClick={() => {
+                                            onClick={async () => {
+                                                const token = localStorage.getItem('bnx_auth_token');
+                                                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                                                
+                                                if (reminderForm.channel === 'Email') {
+                                                    try {
+                                                        const toEmail = selectedInvoiceForModal.client_email;
+                                                        if (!toEmail) {
+                                                            alert("Client email is missing. Please update the invoice with a valid email address.");
+                                                            return;
+                                                        }
+                                                        const bodyContent = reminderForm.template === 'Urgent Overdue Alert' 
+                                                            ? `URGENT: Dear ${selectedInvoiceForModal.client_name}, invoice ${selectedInvoiceForModal.invoice_number} of amount ${formatCurrency(selectedInvoiceForModal.due_amount !== undefined ? selectedInvoiceForModal.due_amount : selectedInvoiceForModal.total_amount)} is severely overdue since ${selectedInvoiceForModal.due_date?.split('T')[0]}. Please clear immediately to avoid service pauses.`
+                                                            : `Dear ${selectedInvoiceForModal.client_name}, this is a friendly reminder that invoice ${selectedInvoiceForModal.invoice_number} is pending. The total due is ${formatCurrency(selectedInvoiceForModal.due_amount !== undefined ? selectedInvoiceForModal.due_amount : selectedInvoiceForModal.total_amount)} payable by ${selectedInvoiceForModal.due_date?.split('T')[0]}. Thank you!`;
+
+                                                        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.bnxmail.com';
+                                                        const res = await fetch(`${baseUrl}/api/mail/send`, {
+                                                            method: 'POST',
+                                                            headers: {
+                                                                'Content-Type': 'application/json',
+                                                                'Authorization': `Bearer ${token}`
+                                                            },
+                                                            body: JSON.stringify({
+                                                                to: toEmail,
+                                                                subject: `Payment Reminder: Invoice ${selectedInvoiceForModal.invoice_number}`,
+                                                                body: bodyContent,
+                                                                fromName: user.name || "Business Admin",
+                                                                isHtml: false
+                                                            })
+                                                        });
+                                                        
+                                                        if (!res.ok) throw new Error('Failed to send email');
+                                                        alert('Email sent successfully!');
+                                                    } catch (e) {
+                                                        console.error(e);
+                                                        alert('Failed to send email. Please try again.');
+                                                        return;
+                                                    }
+                                                } else {
+                                                    alert(`Reminder dispatched successfully via ${reminderForm.channel}!`);
+                                                }
+
                                                 // Save to reminder log
                                                 const history = JSON.parse(localStorage.getItem('reminder_history') || '[]');
                                                 history.push({
@@ -2624,7 +2665,6 @@ const BusinessAccounting = () => {
                                                 });
                                                 localStorage.setItem('reminder_history', JSON.stringify(history));
                                                 setIsReminderOpen(false);
-                                                alert(`Reminder dispatched successfully via ${reminderForm.channel}!`);
                                             }}
                                             style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', backgroundColor: '#0284C7', color: '#ffffff', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' }}
                                         >
