@@ -50,7 +50,6 @@ const MASTER_SHORTCUTS = [
 
     // 💼 Operational Expense & HR Shortcuts
     { id: 'new_expense', label: 'Add Expense', path: '/finance/expenses?create=true', icon: Receipt, color: '#EF4444' },
-    { id: 'attendance', label: 'Attendance', path: '/hr/attendance', icon: CalendarDays, color: '#0284C7' },
     { id: 'suppliers', label: 'Suppliers', path: '/purchases/suppliers?create=true', icon: Users, color: '#7C3AED' },
 
     // 🚀 Brand New Expansion Triggers
