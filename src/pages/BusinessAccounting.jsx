@@ -830,8 +830,12 @@ const BusinessAccounting = () => {
         e.preventDefault();
         
         const amt = parseFloat(entryForm.amount) || 0;
-        if (amt <= 0) {
-            alert("Amount must be greater than zero.");
+        if (amt < 0) {
+            alert("Validation Error: Amount cannot be negative. Please enter a valid positive amount.");
+            return;
+        }
+        if (amt === 0) {
+            alert("Validation Error: Amount must be greater than zero.");
             return;
         }
 
@@ -3194,7 +3198,12 @@ const BusinessAccounting = () => {
 
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount ({currency.symbol})</label>
-                                    <input required type="number" step="any" placeholder="0.00" value={entryForm.amount} onChange={(e) => setEntryForm({ ...entryForm, amount: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '1.5rem', fontWeight: '900', color: '#0F172A', textAlign: 'center' }} />
+                                    <input required type="number" min="0" step="any" placeholder="0.00" value={entryForm.amount} onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '' || Number(val) >= 0) {
+                                            setEntryForm({ ...entryForm, amount: val });
+                                        }
+                                    }} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '1.5rem', fontWeight: '900', color: '#0F172A', textAlign: 'center' }} />
                                 </div>
 
                                 <div>
