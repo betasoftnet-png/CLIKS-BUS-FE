@@ -4386,9 +4386,7 @@ const BusinessBilling = () => {
                                     { id: 'elegant_dark', name: 'Pro Accent Top', desc: 'Luxury Color Block', color: '#F59E0B', bg: '#FEF3C7' },
                                     { id: 'compact_retail', name: 'Thermal Receipt (POS)', desc: '80mm Small Roll Printing', color: '#4B5563', bg: '#E5E7EB' },
                                     { id: 'retro_mono', name: 'Global Classic', desc: 'Standard B2B Statement', color: '#059669', bg: '#D1FAE5' },
-                                    { id: 'creative_blue', name: 'Service Detailed', desc: 'Description Heavy', color: '#6366F1', bg: '#E0E7FF' },
                                     { id: 'executive', name: 'Legal Traditional', desc: 'Formal Dual-Rule', color: '#111827', bg: '#F3F4F6' },
-                                    { id: 'clean_stripe', name: 'Modern Sidebar', desc: 'Integrated Branding', color: '#059669', bg: '#D1FAE5' },
                                     { id: 'service_pro', name: 'Dynamic Hybrid', desc: 'Modern SaaS Style', color: '#2563EB', bg: '#DBEAFE' },
                                     { id: 'custom', name: 'Build Your Own', desc: 'Launch Builder Modal', color: customConfig.accentColor, bg: '#FDF2F8' }
                                 ].map((tmpl) => (

@@ -136,6 +136,11 @@ const INVOICE_RESPONSIVE_CSS = `
     gap: 20px !important;
   }
 
+  /* Global Box Sizing Fix for all templates */
+  .inv-agency-container, .inv-premium-corporate-container, .inv-emerald-container {
+    box-sizing: border-box !important;
+  }
+
   /* Premium Corporate Template Responsive Styles */
   .inv-premium-corporate-container {
     padding: 20px !important;
@@ -479,6 +484,9 @@ const INVOICE_RESPONSIVE_CSS = `
 /* Force perfect print styling to always render desktop layout for all A4 templates */
 @media print {
   /* Force A4 container styles */
+  .inv-agency-container, .inv-emerald-container, .inv-premium-corporate-container, .inv-bold-amethyst-container {
+    box-sizing: border-box !important;
+  }
   .inv-agency-container {
     padding: 50px 40px !important;
     min-height: 1100px !important;
@@ -1336,7 +1344,7 @@ export const InvoiceTemplates = {
         return (
             <div className="inv-executive-container" style={{ fontFamily: 'Georgia, serif', padding: '40px' }}>
                 <div style={{ textAlign: 'center', borderBottom: '3px double #000', paddingBottom: '20px', marginBottom: '30px' }}>
-                    <h1 style={{ margin: '0 0 5px 0', fontSize: '28px' }}>{business?.business_name?.toUpperCase() || 'BUSINESS NAME'}</h1>
+                    <h1 style={{ margin: '0 0 5px 0', fontSize: '28px' }}>{(business?.business_name || business?.name || 'BUSINESS NAME').toUpperCase()}</h1>
                     <div style={{ fontSize: '12px', fontStyle: 'italic' }}>{business?.address} | GSTIN: {business?.gstin}</div>
                 </div>
                 <div style={{ textAlign: 'center', fontSize: '18px', fontWeight: 'bold', marginBottom: '30px', letterSpacing: '2px' }}>STATEMENT OF ACCOUNTS</div>

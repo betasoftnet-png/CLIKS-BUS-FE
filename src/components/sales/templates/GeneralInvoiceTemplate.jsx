@@ -89,44 +89,37 @@ export default function GeneralInvoiceTemplate({ invoice, data }) {
       {/* =================================================================== */}
       {/* 4-COLUMN ITEMS TABLE WITH PROPER RIGHT ALIGNMENT                    */}
       {/* =================================================================== */}
-      <div className="w-full overflow-x-auto">
-        <table className="w-full border-collapse table-fixed min-w-[600px]">
+      <div style={{ width: '100%', boxSizing: 'border-box' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
           <thead>
-            <tr className="border-b-2 border-gray-200 text-[10px] font-black uppercase text-gray-400">
-              <th className="py-3 text-left w-[45%]">DESCRIPTION</th>
-              <th className="py-3 text-center w-[15%]">QTY</th>
-              <th className="py-3 text-right w-[20%] pr-4">UNIT PRICE</th>
-              <th className="py-3 text-right w-[20%]">TOTAL AMOUNT</th>
+            <tr style={{ borderBottom: '2px solid #E5E7EB', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', color: '#9CA3AF' }}>
+              <th style={{ padding: '12px 0', textAlign: 'left', width: '45%' }}>DESCRIPTION</th>
+              <th style={{ padding: '12px 0', textAlign: 'center', width: '15%' }}>QTY</th>
+              <th style={{ padding: '12px 0', textAlign: 'right', width: '20%', paddingRight: '8px' }}>UNIT PRICE</th>
+              <th style={{ padding: '12px 0', textAlign: 'right', width: '20%' }}>TOTAL AMOUNT</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 text-xs">
+          <tbody style={{ fontSize: '12px', color: '#374151' }}>
             {items.map((item, index) => {
               const qty = Number(item.quantity || item.qty || 1);
               const rate = Number(item.unit_price || item.price || item.rate || 0);
               const lineTotal = item.total !== undefined ? Number(item.total) : qty * rate;
 
               return (
-                <tr key={index} className="hover:bg-gray-50/50 transition-colors">
-                  {/* Description & HSN */}
-                  <td className="py-4 pr-3 text-left break-words whitespace-normal">
-                    <p className="font-bold text-gray-900 break-words whitespace-normal">{item.product_name || item.description || item.name}</p>
+                <tr key={index} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                  <td style={{ padding: '16px 8px 16px 0', textAlign: 'left', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                    <p style={{ fontWeight: '700', color: '#111827', margin: 0 }}>{item.product_name || item.description || item.name}</p>
                     {(item.hsn || item.hsn_code) && (
-                      <p className="text-[10px] text-gray-400 font-medium break-words whitespace-normal">HSN CODE: {item.hsn || item.hsn_code}</p>
+                      <p style={{ fontSize: '10px', color: '#9CA3AF', fontWeight: '500', margin: '4px 0 0 0' }}>HSN CODE: {item.hsn || item.hsn_code}</p>
                     )}
                   </td>
-
-                  {/* QTY */}
-                  <td className="py-4 text-center font-bold text-gray-800">
+                  <td style={{ padding: '16px 0', textAlign: 'center', fontWeight: '700', color: '#1F2937' }}>
                     {qty}
                   </td>
-
-                  {/* Unit Price */}
-                  <td className="py-4 text-right font-medium text-gray-700 pr-4">
+                  <td style={{ padding: '16px 8px 16px 0', textAlign: 'right', fontWeight: '500', color: '#374151' }}>
                     ₹{rate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
-
-                  {/* TOTAL AMOUNT (PROPERLY ALIGNED & UNCLIPPED) */}
-                  <td className="py-4 text-right font-black text-gray-900 break-words whitespace-normal">
+                  <td style={{ padding: '16px 0', textAlign: 'right', fontWeight: '900', color: '#111827' }}>
                     ₹{lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
@@ -139,25 +132,25 @@ export default function GeneralInvoiceTemplate({ invoice, data }) {
       {/* =================================================================== */}
       {/* TOTAL BILL SUMMARY (PROPER RIGHT ALIGNMENT)                         */}
       {/* =================================================================== */}
-      <div className="flex justify-end pt-4 border-t border-gray-100">
-        <div className="w-72 space-y-2 text-xs">
-          <div className="flex justify-between text-gray-500 font-medium">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '20px', borderTop: '1px solid #F3F4F6', width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ width: '280px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6B7280', fontWeight: '500' }}>
             <span>Subtotal:</span>
-            <span className="font-bold text-gray-800">
+            <span style={{ fontWeight: '700', color: '#1F2937' }}>
               ₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
 
-          <div className="flex justify-between text-gray-500 font-medium">
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6B7280', fontWeight: '500' }}>
             <span>GST ({taxRate}%):</span>
-            <span className="font-bold text-gray-800">
+            <span style={{ fontWeight: '700', color: '#1F2937' }}>
               ₹{taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
 
-          <div className="flex justify-between text-sm font-black text-gray-900 border-t-2 border-gray-900 pt-2">
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: '900', color: '#111827', borderTop: '2px solid #111827', paddingTop: '8px', marginTop: '4px' }}>
             <span>TOTAL AMOUNT:</span>
-            <span className="text-base text-blue-950 font-black">
+            <span style={{ color: '#172554' }}>
               ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
