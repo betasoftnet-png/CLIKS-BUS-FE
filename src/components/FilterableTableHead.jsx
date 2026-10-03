@@ -37,9 +37,9 @@ const FilterableTableHead = ({ columns = [], onFilterChange, thStyle = {} }) => 
     const hasAnyOpen = columns.some(c => !c.noFilter && openCols[c.key]);
 
     return (
-        <thead>
+        <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#F8FAFC', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
             {/* Column label row */}
-            <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
+            <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
                 {columns.map(col => {
                     const isOpen = !col.noFilter && !!openCols[col.key];
                     const hasValue = !col.noFilter && !!filters[col.key];
