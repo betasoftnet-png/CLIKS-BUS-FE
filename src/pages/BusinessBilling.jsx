@@ -4979,6 +4979,11 @@ const BusinessBilling = () => {
                                 }
                             }
 
+                            if (parseFloat(newReturnData.total_amount) < 0) {
+                                alert("Return amount cannot be negative. Please enter a valid positive amount.");
+                                return;
+                            }
+
                             createReturnMutation.mutate({
                                 ...newReturnData,
                                 return_type: returnFormType,
@@ -5241,8 +5246,13 @@ const BusinessBilling = () => {
                                     required 
                                     type="number" 
                                     step="any" 
+                                    min="0"
                                     value={newReturnData.total_amount} 
-                                    onChange={(e) => setNewReturnData({ ...newReturnData, total_amount: e.target.value })} 
+                                    onChange={(e) => {
+                                        let val = e.target.value;
+                                        if (parseFloat(val) < 0) val = '0';
+                                        setNewReturnData({ ...newReturnData, total_amount: val });
+                                    }} 
                                     style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 700 }} 
                                     placeholder="0.00" 
                                 />
