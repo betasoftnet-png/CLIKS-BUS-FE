@@ -3431,17 +3431,15 @@ const BusinessBilling = () => {
                         </table>
                     ) : activeMainTab === 'sales_returns' ? (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: '0.75rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Return Ref #</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Customer / Client</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Original Invoice</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Return Date</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Amount</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Status</th>
-                                    <th style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+                                { key: 'return_number', label: 'Return Ref #' },
+                                { key: 'customer_name', label: 'Customer / Client' },
+                                { key: 'invoice_number', label: 'Original Invoice' },
+                                { key: 'date', label: 'Return Date', placeholder: 'YYYY-MM-DD' },
+                                { key: 'amount', label: 'Amount' },
+                                { key: 'status', label: 'Status' },
+                                { key: 'actions', label: 'Actions', noFilter: true, align: 'right' }
+                            ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {salesReturnsList.length === 0 ? (
                                     <tr>
@@ -3454,7 +3452,7 @@ const BusinessBilling = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    salesReturnsList.map((ret) => (
+                                    salesReturnsList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ret) => (
                                         <tr key={ret.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                             <td style={{ padding: '0.75rem 1.25rem', fontWeight: '800', color: '#BE185D' }}>{ret.return_number || `RET-${ret.id}`}</td>
                                             <td style={{ padding: '0.75rem 1.25rem', fontWeight: '700', color: '#0F172A' }}>{ret.client_name || ret.customer_name || 'Customer'}</td>
@@ -3508,18 +3506,16 @@ const BusinessBilling = () => {
 
                     ) : (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: '0.75rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Claim Ref #</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Product / Item</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Customer / Supplier</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Serial / IMEI</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Claim Type</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Status</th>
-                                    <th style={{ padding: '0.75rem 1.25rem' }}>Period</th>
-                                    <th style={{ padding: '0.75rem 1.25rem', textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+                                { key: 'claim_number', label: 'Claim Ref #' },
+                                { key: 'product_name', label: 'Product / Item' },
+                                { key: 'customer_name', label: 'Customer / Supplier' },
+                                { key: 'serial_number', label: 'Serial / IMEI' },
+                                { key: 'claim_type', label: 'Claim Type' },
+                                { key: 'status', label: 'Status' },
+                                { key: 'period', label: 'Period' },
+                                { key: 'actions', label: 'Actions', noFilter: true, align: 'right' }
+                            ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {warrantyClaimsList.length === 0 ? (
                                     <tr>
@@ -3532,7 +3528,7 @@ const BusinessBilling = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    warrantyClaimsList.map((claim) => {
+                                    warrantyClaimsList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((claim) => {
                                         const claimRef = claim.claim_number || claim.return_number || claim.invoice_number || claim.invoice_id || `CLM-${claim.id}`;
                                         const isRet = String(claimRef).trim().toUpperCase().startsWith('RET-');
                                         const isDone = String(claim.status).toLowerCase() === 'done' || String(claim.status).toLowerCase() === 'completed';
