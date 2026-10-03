@@ -3298,7 +3298,14 @@ const BusinessBilling = () => {
                                                 <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#BE185D', flexShrink: 0 }}>
                                                     <FileText size={16} />
                                                 </div>
-                                                <span style={{ fontWeight: '750', color: '#0F172A', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.invoice_number}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.invoice_number}</span>
+                                                    {Boolean(inv.invoice_type === 'POS' || inv.source === 'POS' || String(inv.invoice_number).toUpperCase().startsWith('POS') || String(inv.notes || '').toUpperCase().includes('POS')) && (
+                                                        <span style={{ background: '#E0E7FF', color: '#3730A3', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
+                                                            Billed in POS
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
                                         <td style={{ width: '20%', padding: '0.75rem 1.25rem', overflow: 'hidden' }}>
@@ -3401,8 +3408,9 @@ const BusinessBilling = () => {
                                                     const clientName = (inv.client_name || '').toLowerCase();
                                                     const isBuyer = Boolean(currentBiz && clientName && currentBiz === clientName);
                                                     const isSupplier = !isBuyer;
+                                                    const isPos = Boolean(inv.invoice_type === 'POS' || inv.source === 'POS' || String(inv.invoice_number).toUpperCase().startsWith('POS') || String(inv.notes || '').toUpperCase().includes('POS'));
 
-                                                    return isSupplier && (inv.notes?.includes('Source: Purchase Invoice') || inv.invoice_type === 'B2B' || inv.invoice_number?.includes('PO')) && (
+                                                    return !isPos && isSupplier && (inv.notes?.includes('Source: Purchase Invoice') || inv.invoice_type === 'B2B' || inv.invoice_number?.includes('PO')) && (
                                                         <button 
                                                             onClick={() => handleOpenSupplierView(inv)} 
                                                             title="Supplier View (Confirm Order)" 
