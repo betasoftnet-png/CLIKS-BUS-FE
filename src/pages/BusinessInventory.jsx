@@ -725,12 +725,19 @@ const BusinessInventory = () => {
                             (i.category || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = filterCategory === 'All' || i.category === filterCategory;
         
-        const qty = parseFloat(i.quantity ?? i.current_stock ?? i.stock ?? i.opening_stock ?? 0) || 0;
-        const minStock = parseFloat(i.min_stock ?? 5) || 5;
-        const isLowStock = i.product_type === 'product' && qty < minStock;
+        const isDamaged = String(i.warehouse || '').toLowerCase().includes('damaged');
+        const qty = isDamaged ? 0 : (parseFloat(i.quantity ?? i.current_stock ?? i.stock ?? i.opening_stock ?? 0) || 0);
+        const minStock = parseFloat(i.min_stock ?? i.low_stock_threshold ?? 0) || 0;
+        const reorderLvl = parseFloat(i.reorder_level ?? 0) || 0;
+        
+        const isOutOfStock = i.product_type === 'product' && qty <= 0;
+        const isLowStock = i.product_type === 'product' && !isOutOfStock && ((minStock > 0 && qty < minStock) || (reorderLvl > 0 && qty <= reorderLvl));
+        const isInStock = i.product_type === 'product' && !isOutOfStock && !isLowStock;
+
         const matchesStockStatus = stockStatusFilter === 'All' || 
+                                 (stockStatusFilter === 'Out of Stock' && isOutOfStock) ||
                                  (stockStatusFilter === 'Low Stock' && isLowStock) || 
-                                 (stockStatusFilter === 'In Stock' && !isLowStock);
+                                 (stockStatusFilter === 'In Stock' && isInStock);
         
         return matchesSearch && matchesCategory && matchesStockStatus;
     }).sort((a, b) => (b.id || 0) - (a.id || 0)); // Recently added products shown on the very top!
@@ -864,6 +871,7 @@ const BusinessInventory = () => {
                                 <option value="All">All Stock Status</option>
                                 <option value="In Stock">In Stock</option>
                                 <option value="Low Stock">Low Stock Alerts</option>
+                                <option value="Out of Stock">Out of Stock</option>
                             </select>
                             <select 
                                 value={filterCategory} 
@@ -1012,16 +1020,47 @@ const BusinessInventory = () => {
                                                 const isDamagedGodown = String(row.warehouse || '').toLowerCase().includes('damaged');
                                                 const rawQty = parseFloat(row.quantity ?? row.opening_stock ?? 0) || 0;
                                                 const sellableQty = isDamagedGodown ? 0 : rawQty;
+                                                
+                                                const activeMinStock = parseFloat(row.min_stock ?? row.low_stock_threshold ?? 0) || 0;
+                                                const activeReorderLevel = parseFloat(row.reorder_level ?? 0) || 0;
+                                                
+                                                let statusText = 'IN STOCK';
+                                                let statusColor = '#15803D';
+                                                let statusBg = '#F0FDF4';
+                                                let StatusIcon = CheckCircle2;
+                                                
+                                                if (isDamagedGodown) {
+                                                    statusText = 'DAMAGED / NON-SELLABLE';
+                                                    statusColor = '#DC2626';
+                                                    statusBg = '#FEF2F2';
+                                                    StatusIcon = AlertTriangle;
+                                                } else if (row.product_type === 'service') {
+                                                    statusText = 'SERVICE';
+                                                    statusColor = '#1D4ED8';
+                                                    statusBg = '#EFF6FF';
+                                                    StatusIcon = CheckCircle2;
+                                                } else if (sellableQty <= 0) {
+                                                    statusText = 'OUT OF STOCK';
+                                                    statusColor = '#DC2626';
+                                                    statusBg = '#FEF2F2';
+                                                    StatusIcon = AlertTriangle;
+                                                } else if ((activeMinStock > 0 && sellableQty < activeMinStock) || (activeReorderLevel > 0 && sellableQty <= activeReorderLevel)) {
+                                                    statusText = 'LOW STOCK';
+                                                    statusColor = '#B91C1C';
+                                                    statusBg = '#FEF2F2';
+                                                    StatusIcon = AlertTriangle;
+                                                }
+
                                                 return (
                                                     <div style={{ 
                                                         display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
                                                         padding: '0.4rem 0.8rem', borderRadius: '10px',
-                                                        background: isDamagedGodown ? '#FEF2F2' : (row.product_type === 'service' ? '#EFF6FF' : (sellableQty < row.min_stock ? '#FEF2F2' : '#F0FDF4')),
-                                                        color: isDamagedGodown ? '#DC2626' : (row.product_type === 'service' ? '#1D4ED8' : (sellableQty < row.min_stock ? '#B91C1C' : '#15803D')),
+                                                        background: statusBg,
+                                                        color: statusColor,
                                                         fontSize: '0.8rem', fontWeight: '800'
                                                     }}>
-                                                        {isDamagedGodown ? <AlertTriangle size={12} /> : (row.product_type === 'service' ? <CheckCircle2 size={12} /> : (sellableQty < row.min_stock ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />))}
-                                                        {isDamagedGodown ? 'DAMAGED / NON-SELLABLE' : (row.product_type === 'service' ? 'SERVICE' : (sellableQty < row.min_stock ? 'LOW STOCK' : 'IN STOCK'))}
+                                                        <StatusIcon size={12} />
+                                                        {statusText}
                                                     </div>
                                                 );
                                             })()}
