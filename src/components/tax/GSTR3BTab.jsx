@@ -20,10 +20,10 @@ export default function GSTR3BTab({ dbGstr3b, formatCurrency, onFileGstr3b }) {
               <p style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '500', margin: 0 }}>Aggregate outward liabilities set off against eligible input tax credits.</p>
             </div>
             <button 
-              onClick={onFileGstr3b}
+              onClick={() => window.print()}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', borderRadius: '12px', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(109,40,217,0.2)' }}
             >
-              <FileText size={15} /> File GSTR-3B Now
+              <FileText size={15} /> Download Report
             </button>
           </div>
 
