@@ -932,9 +932,13 @@ const BusinessInventory = () => {
                                                 const isDamagedGodown = String(row.warehouse || '').toLowerCase().includes('damaged');
                                                 const rawQty = parseFloat(row.quantity ?? row.opening_stock ?? 0) || 0;
                                                 const sellableQty = isDamagedGodown ? 0 : rawQty;
-                                                const minStock = row.min_stock ?? row.minStock ?? row.minimum_stock ?? row.min_stock_level ?? 0;
-                                                const reorderLevel = row.reorder_level ?? row.reorderLevel ?? row.reorder_point ?? row.reorder_qty ?? 0;
+                                                const minStock = parseFloat(row.min_stock ?? row.low_stock_threshold ?? 0) || 0;
+                                                const reorderLevel = parseFloat(row.reorder_level ?? 0) || 0;
                                                 const displayStock = row.stock ?? row.quantity ?? row.sellable ?? sellableQty;
+                                                
+                                                const displayMinStock = minStock > 0 ? minStock : 'Not Set';
+                                                const displayReorderLevel = reorderLevel > 0 ? reorderLevel : 'Not Set';
+                                                
                                                 return (
                                                     <div>
                                                         <p style={{ fontWeight: '850', color: isDamagedGodown ? '#DC2626' : (displayStock < minStock ? '#EF4444' : '#1E293B'), fontSize: '1.05rem', margin: 0 }}>
@@ -950,14 +954,14 @@ const BusinessInventory = () => {
                                                                 <span>
                                                                     Min:{' '}
                                                                     <strong style={{ color: '#475569', fontWeight: '700' }}>
-                                                                        {minStock}
+                                                                        {displayMinStock}
                                                                     </strong>
                                                                 </span>
                                                                 <span style={{ margin: '0 4px', color: '#CBD5E1' }}>|</span>
                                                                 <span>
                                                                     Reorder:{' '}
                                                                     <strong style={{ color: '#475569', fontWeight: '700' }}>
-                                                                        {reorderLevel}
+                                                                        {displayReorderLevel}
                                                                     </strong>
                                                                 </span>
                                                             </div>
