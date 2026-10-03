@@ -14,8 +14,22 @@ export const ReceiveGoodsModal = ({
 
     // 1. Initialize items state atomically using a function callback in useState(() => ...)
     const [itemsState, setItemsState] = useState(() => {
-        const rawItems = doc?.items || doc?.order_items || [];
-        if (!rawItems || rawItems.length === 0) {
+        let rawItems = doc?.items || doc?.order_items || doc?.supplier_response_items || [];
+        
+        // Safely parse if it's a JSON string
+        if (typeof rawItems === 'string') {
+            try {
+                rawItems = JSON.parse(rawItems);
+            } catch (e) {
+                rawItems = [];
+            }
+        }
+
+        if (!Array.isArray(rawItems)) {
+            rawItems = [];
+        }
+
+        if (rawItems.length === 0) {
             return [{
                 product_id: doc?.product_id || 1,
                 product_name: doc?.product_name || 'Product Item',
