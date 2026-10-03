@@ -1865,11 +1865,11 @@ const BusinessBilling = () => {
             }
             const qty = parseFloat(ewayForm.goods_quantity);
             if (isNaN(qty) || qty <= 0) {
-                errors.goods_quantity = "Quantity must be a positive number";
+                errors.goods_quantity = "Quantity cannot be negative or zero.";
             }
             const taxable = parseFloat(ewayForm.goods_taxable_value);
             if (isNaN(taxable) || taxable < 0) {
-                errors.goods_taxable_value = "Taxable value must be a positive number";
+                errors.goods_taxable_value = "Amount/Taxable value cannot be negative. Please enter a valid positive amount.";
             }
         }
 
@@ -6998,7 +6998,17 @@ const BusinessBilling = () => {
                                                         step="any"
                                                         placeholder="e.g. 10"
                                                         value={ewayForm.goods_quantity}
-                                                        onChange={(e) => setEwayForm({ ...ewayForm, goods_quantity: e.target.value })}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                                e.preventDefault();
+                                                            }
+                                                        }}
+                                                        onChange={(e) => {
+                                                            let val = e.target.value;
+                                                            if (parseFloat(val) < 0) val = '0';
+                                                            if (val.length > 1 && val.startsWith('0') && !val.startsWith('0.')) val = val.replace(/^0+/, '');
+                                                            setEwayForm({ ...ewayForm, goods_quantity: val });
+                                                        }}
                                                         className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
                                                         required
                                                     />
@@ -7015,7 +7025,17 @@ const BusinessBilling = () => {
                                                         step="any"
                                                         placeholder="e.g. 50000"
                                                         value={ewayForm.goods_taxable_value}
-                                                        onChange={(e) => setEwayForm({ ...ewayForm, goods_taxable_value: e.target.value })}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                                                e.preventDefault();
+                                                            }
+                                                        }}
+                                                        onChange={(e) => {
+                                                            let val = e.target.value;
+                                                            if (parseFloat(val) < 0) val = '0';
+                                                            if (val.length > 1 && val.startsWith('0') && !val.startsWith('0.')) val = val.replace(/^0+/, '');
+                                                            setEwayForm({ ...ewayForm, goods_taxable_value: val });
+                                                        }}
                                                         className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
                                                         required
                                                     />
