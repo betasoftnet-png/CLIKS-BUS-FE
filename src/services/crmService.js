@@ -50,6 +50,16 @@ export const crmService = {
         }
     },
 
+    getLedger: async (id) => {
+        try {
+            const res = await apiClient.get(`/customers/${id}/ledger`);
+            return res.data?.data ?? res.data ?? [];
+        } catch (error) {
+            console.error('[CRM Service Ledger Error]', error.message);
+            return [];
+        }
+    },
+
     lookupCustomerByEmail: async (email) => {
         try {
             if (!email || !String(email).trim()) return { exists: false, loyalty_points: 0 };
