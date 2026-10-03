@@ -117,7 +117,8 @@ const BusinessStock = () => {
             const isDamagedGodown = String(warehouseName).toLowerCase().includes('damaged');
             const rawQty = parseFloat(p.quantity ?? p.opening_stock ?? 0) || 0;
             const damagedQty = isDamagedGodown ? rawQty : (parseFloat(p.damaged_stock ?? 0) || 0);
-            const sellableQty = isDamagedGodown ? 0 : Math.max(0, rawQty - damagedQty);
+            const expiredQty = parseFloat(p.expired_stock ?? 0) || 0;
+            const sellableQty = isDamagedGodown ? 0 : Math.max(0, rawQty - damagedQty - expiredQty);
 
             const isPerishableProduct = Boolean(
                 p.has_expiry === true ||
@@ -135,6 +136,7 @@ const BusinessStock = () => {
                 current_stock: rawQty,
                 available_stock: sellableQty,
                 damaged_stock: damagedQty,
+                expired_stock: expiredQty,
                 is_damaged_facility: isDamagedGodown,
                 minimum_stock: parseFloat(p.min_stock || 5),
                 purchase_cost: parseFloat(p.purchase_price || p.unit_price || 0),

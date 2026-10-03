@@ -330,6 +330,7 @@ const BusinessInventory = () => {
         quantity: 0,
         reserved_stock: 0,
         damaged_stock: 0,
+        expired_stock: 0,
         min_stock: 5,
         reorder_level: 8,
         batch_number: '',
@@ -480,6 +481,7 @@ const BusinessInventory = () => {
             quantity: 0,
             reserved_stock: 0,
             damaged_stock: 0,
+            expired_stock: 0,
             min_stock: 5,
             reorder_level: 8,
             batch_number: '',
@@ -526,6 +528,7 @@ const BusinessInventory = () => {
             quantity: item.quantity || 0,
             reserved_stock: item.reserved_stock || 0,
             damaged_stock: item.damaged_stock || 0,
+            expired_stock: item.expired_stock || 0,
             min_stock: item.min_stock || 5,
             reorder_level: item.reorder_level || 8,
             batch_number: item.batch_number || '',
@@ -610,6 +613,8 @@ const BusinessInventory = () => {
             is_unlimited: isUnlimited,
             min_stock: isUnlimited ? 0 : (parseFloat(formData.min_stock) || 0),
             reorder_level: isUnlimited ? 0 : (parseFloat(formData.reorder_level) || 0),
+            damaged_stock: isUnlimited ? 0 : (parseFloat(formData.damaged_stock) || 0),
+            expired_stock: isUnlimited ? 0 : (parseFloat(formData.expired_stock) || 0),
             purchase_price: parseFloat(formData.purchase_price) || 0,
             selling_price: parseFloat(formData.selling_price) || 0,
             barcode: formData.barcode,
@@ -1657,6 +1662,52 @@ const BusinessInventory = () => {
                                                 value={formData.isUnlimited ? 'N/A (Unlimited)' : (formData.reorder_level === 0 || formData.reorder_level === '0' || formData.reorder_level === '' ? '' : formData.reorder_level)} 
                                                 placeholder="8"
                                                 onChange={(e) => handleNumFieldChange('reorder_level', e.target.value)} 
+                                                style={{ 
+                                                    width: '100%', 
+                                                    padding: '0.85rem', 
+                                                    borderRadius: '14px', 
+                                                    border: '1px solid #DCF2E4', 
+                                                    outline: 'none', 
+                                                    background: formData.isUnlimited ? '#F1F5F9' : 'white',
+                                                    color: formData.isUnlimited ? '#94A3B8' : 'inherit',
+                                                    cursor: formData.isUnlimited ? 'not-allowed' : 'text',
+                                                    opacity: formData.isUnlimited ? 0.75 : 1
+                                                }} 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: formData.isUnlimited ? '#94A3B8' : '#DC2626', marginBottom: '0.5rem' }}>Damaged Qty</label>
+                                            <input 
+                                                type="text" 
+                                                inputMode="decimal"
+                                                maxLength={14}
+                                                disabled={formData.isUnlimited}
+                                                value={formData.isUnlimited ? 'N/A (Unlimited)' : (formData.damaged_stock === 0 || formData.damaged_stock === '0' || formData.damaged_stock === '' ? '' : formData.damaged_stock)} 
+                                                placeholder="0"
+                                                onChange={(e) => handleNumFieldChange('damaged_stock', e.target.value)} 
+                                                style={{ 
+                                                    width: '100%', 
+                                                    padding: '0.85rem', 
+                                                    borderRadius: '14px', 
+                                                    border: '1px solid #DCF2E4', 
+                                                    outline: 'none', 
+                                                    background: formData.isUnlimited ? '#F1F5F9' : 'white',
+                                                    color: formData.isUnlimited ? '#94A3B8' : 'inherit',
+                                                    cursor: formData.isUnlimited ? 'not-allowed' : 'text',
+                                                    opacity: formData.isUnlimited ? 0.75 : 1
+                                                }} 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: formData.isUnlimited ? '#94A3B8' : '#B45309', marginBottom: '0.5rem' }}>Expired Qty</label>
+                                            <input 
+                                                type="text" 
+                                                inputMode="decimal"
+                                                maxLength={14}
+                                                disabled={formData.isUnlimited}
+                                                value={formData.isUnlimited ? 'N/A (Unlimited)' : (formData.expired_stock === 0 || formData.expired_stock === '0' || formData.expired_stock === '' ? '' : formData.expired_stock)} 
+                                                placeholder="0"
+                                                onChange={(e) => handleNumFieldChange('expired_stock', e.target.value)} 
                                                 style={{ 
                                                     width: '100%', 
                                                     padding: '0.85rem', 
