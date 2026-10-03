@@ -689,9 +689,24 @@ const BusinessInventory = () => {
         }
 
         const isStockIn = adjustType === 'in';
-        const updatedQty = isStockIn ? selectedItem.quantity + amt : selectedItem.quantity - amt;
+        const isDamaged = adjustType === 'damaged';
+        const isExpired = adjustType === 'expired';
+        
+        let updatedQty = selectedItem.quantity;
+        let updatedDamaged = parseFloat(selectedItem.damaged_stock) || 0;
+        let updatedExpired = parseFloat(selectedItem.expired_stock) || 0;
 
-        if (!isStockIn && updatedQty < 0) {
+        if (isStockIn) {
+            updatedQty += amt;
+        } else if (adjustType === 'out') {
+            updatedQty -= amt;
+        } else if (isDamaged) {
+            updatedDamaged += amt;
+        } else if (isExpired) {
+            updatedExpired += amt;
+        }
+
+        if (adjustType === 'out' && updatedQty < 0) {
             alert('Stock cannot drop below zero units.');
             return;
         }
@@ -701,6 +716,8 @@ const BusinessInventory = () => {
             data: { 
                 ...selectedItem, 
                 quantity: updatedQty,
+                damaged_stock: updatedDamaged,
+                expired_stock: updatedExpired,
                 status: updatedQty < selectedItem.min_stock ? 'Low Stock' : 'In Stock'
             } 
         });
@@ -712,7 +729,7 @@ const BusinessInventory = () => {
                 id: `M-${100 + movementHistory.length + 1}`,
                 date: new Date().toISOString().split('T')[0],
                 item_name: selectedItem.name,
-                type: isStockIn ? 'In (Adjustment)' : 'Out (Adjustment)',
+                type: isStockIn ? 'In (Adjustment)' : isDamaged ? 'Damaged (Adjustment)' : isExpired ? 'Expired (Adjustment)' : 'Out (Adjustment)',
                 quantity: amt,
                 ref: 'Manual Adjustment',
                 warehouse: selectedItem.warehouse
@@ -1076,6 +1093,8 @@ const BusinessInventory = () => {
                                                     <div style={{ display: 'flex', background: '#F8FAFC', padding: '3px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
                                                         <button onClick={() => handleAdjust(row, 'in')} title="Induct Stock" style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ArrowUpRight size={14} /></button>
                                                         <button onClick={() => handleAdjust(row, 'out')} title="Deplete Stock" style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#EF4444', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '3px' }}><ArrowDownRight size={14} /></button>
+                                                        <button onClick={() => handleAdjust(row, 'damaged')} title="Mark Damaged" style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#DC2626', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '3px' }}><AlertTriangle size={14} /></button>
+                                                        <button onClick={() => handleAdjust(row, 'expired')} title="Mark Expired" style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#B45309', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '3px' }}><AlertCircle size={14} /></button>
                                                     </div>
                                                 )}
                                                 <button onClick={() => handleEdit(row)} title="Edit specifications" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={16} /></button>
@@ -1935,7 +1954,7 @@ const BusinessInventory = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <div>
                                 <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>
-                                    {adjustType === 'in' ? 'Induct Stock (Stock In)' : 'Deplete Stock (Stock Out)'}
+                                    {adjustType === 'in' ? 'Induct Stock (Stock In)' : adjustType === 'damaged' ? 'Mark Damaged Stock' : adjustType === 'expired' ? 'Mark Expired Stock' : 'Deplete Stock (Stock Out)'}
                                 </h3>
                                 <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Product: {selectedItem.name}</p>
                             </div>
@@ -1948,13 +1967,26 @@ const BusinessInventory = () => {
                                 <span style={{ color: '#064E3B' }}>{selectedItem.quantity} {selectedItem.primary_unit}</span>
                             </div>
 
+                            {(adjustType === 'damaged' || adjustType === 'expired') && (
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <div style={{ flex: 1, background: '#FEF2F2', padding: '1rem 1.25rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: '700' }}>
+                                        <span style={{ color: '#991B1B' }}>Damaged:</span>
+                                        <span style={{ color: '#7F1D1D' }}>{selectedItem.damaged_stock || 0}</span>
+                                    </div>
+                                    <div style={{ flex: 1, background: '#FFFBEB', padding: '1rem 1.25rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: '700' }}>
+                                        <span style={{ color: '#92400E' }}>Expired:</span>
+                                        <span style={{ color: '#78350F' }}>{selectedItem.expired_stock || 0}</span>
+                                    </div>
+                                </div>
+                            )}
+
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Adjustment Volume</label>
                                 <input required type="number" value={adjustAmount} onChange={(e) => setAdjustAmount(Math.max(1, parseInt(e.target.value) || 0))} style={{ width: '100%', padding: '1rem', borderRadius: '14px', border: '1px solid #E2E8F0', fontSize: '1.75rem', fontWeight: '900', color: '#064E3B', textAlign: 'center' }} />
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: adjustType === 'in' ? 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)' : 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
-                                Commit {adjustType === 'in' ? 'Stock Induction' : 'Stock Depletion'}
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: adjustType === 'in' ? 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)' : adjustType === 'damaged' ? 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)' : adjustType === 'expired' ? 'linear-gradient(135deg, #D97706 0%, #92400E 100%)' : 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
+                                Commit {adjustType === 'in' ? 'Stock Induction' : adjustType === 'damaged' ? 'Damaged Quantity' : adjustType === 'expired' ? 'Expired Quantity' : 'Stock Depletion'}
                             </button>
                         </form>
                     </div>
