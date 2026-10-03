@@ -4938,6 +4938,7 @@ const BusinessBilling = () => {
                                 quantity: parseFloat(it.return_quantity) || 1,
                                 price: parseFloat(it.price) || 0,
                                 unit: it.unit,
+                                serial_number: returnFormType === 'warranty' ? newReturnData.invoice_number : undefined,
                                 total: (parseFloat(it.price) || 0) * (parseFloat(it.return_quantity) || 1)
                             }));
 
@@ -4945,7 +4946,8 @@ const BusinessBilling = () => {
                                 itemsToReturn = [{
                                     product_name: newReturnData.product_name,
                                     return_quantity: 1,
-                                    price: 0
+                                    price: 0,
+                                    serial_number: returnFormType === 'warranty' ? newReturnData.invoice_number : undefined
                                 }];
                             }
 
@@ -4993,6 +4995,7 @@ const BusinessBilling = () => {
                                 refund_amount: parseFloat(newReturnData.total_amount) || 0,
                                 amount: parseFloat(newReturnData.total_amount) || 0,
                                 total_amount: parseFloat(newReturnData.total_amount) || 0,
+                                serial_number: returnFormType === 'warranty' ? newReturnData.invoice_number : undefined,
                                 items: itemsToReturn
                             });
                         }} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -5248,9 +5251,20 @@ const BusinessBilling = () => {
                                     step="any" 
                                     min="0"
                                     value={newReturnData.total_amount} 
+                                    onKeyDown={(e) => {
+                                        if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                            e.preventDefault();
+                                        }
+                                    }}
                                     onChange={(e) => {
                                         let val = e.target.value;
                                         if (parseFloat(val) < 0) val = '0';
+                                        
+                                        // Remove leading zero if it's not a decimal (e.g., '05' -> '5')
+                                        if (val.length > 1 && val.startsWith('0') && !val.startsWith('0.')) {
+                                            val = val.replace(/^0+/, '');
+                                        }
+                                        
                                         setNewReturnData({ ...newReturnData, total_amount: val });
                                     }} 
                                     style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 700 }} 
