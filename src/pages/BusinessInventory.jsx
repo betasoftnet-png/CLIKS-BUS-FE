@@ -898,8 +898,13 @@ const BusinessInventory = () => {
                                                     <Package size={20} />
                                                 </div>
                                                 <div>
-                                                    <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.95rem' }}>{row.name}</p>
-                                                    <span style={{ fontSize: '0.8rem', color: '#64748B' }}>SKU: {row.sku} | Code: {row.product_code}</span>
+                                                    <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.95rem', margin: '0 0 0.25rem 0' }}>{row.name}</p>
+                                                    <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                                                        {[
+                                                            row.sku ? `SKU: ${row.sku}` : null,
+                                                            `Code: ${row.product_code || 'PRO-' + row.id}`
+                                                        ].filter(Boolean).join(' | ')}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
