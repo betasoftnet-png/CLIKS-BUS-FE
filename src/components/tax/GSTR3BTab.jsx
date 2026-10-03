@@ -5,7 +5,7 @@ export default function GSTR3BTab({ dbGstr3b, formatCurrency, onFileGstr3b }) {
   const format = formatCurrency || ((val) => `₹${Number(val || 0).toLocaleString('en-IN')}`);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div id="invoice-print-area" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1rem' }}>
       {dbGstr3b && typeof dbGstr3b.outward_taxable !== 'undefined' ? (
         <div style={{ background: 'white', borderRadius: '20px', border: '1px solid #E2E8F0', padding: '1.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.01)', position: 'relative' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
@@ -20,6 +20,7 @@ export default function GSTR3BTab({ dbGstr3b, formatCurrency, onFileGstr3b }) {
               <p style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '500', margin: 0 }}>Aggregate outward liabilities set off against eligible input tax credits.</p>
             </div>
             <button 
+              className="no-print"
               onClick={() => window.print()}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', borderRadius: '12px', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 6px 12px rgba(109,40,217,0.2)' }}
             >
