@@ -221,11 +221,10 @@ const BusinessReports = () => {
                 }
                 if (id === 26) {
                     try {
-                        const res = await purchasesService.getPaymentReport();
-                        return res?.data || res || [];
-                    } catch {
                         const res = await purchasesService.getPurchases();
                         return res?.data || res || [];
+                    } catch (err) {
+                        return [];
                     }
                 }
                 if (id === 27) {
@@ -877,7 +876,11 @@ const BusinessReports = () => {
                                 {['inventory', 'parties'].includes(selectedReport.category) || [4, 5, 15, 16, 38].includes(selectedReport.id) ? (
                                     <StockPieChart reportData={reportDetails} title={`${selectedReport.title} Accordance & Stock Metrics`} />
                                 ) : (
-                                    <MonthlySalesBarChart reportData={reportDetails} title={`${selectedReport.title} Monthly Trend`} />
+                                    <MonthlySalesBarChart 
+                                        reportData={reportDetails} 
+                                        title={`${selectedReport.title} Monthly Trend`} 
+                                        subtitle={selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics'}
+                                    />
                                 )}
                             </div>
 
@@ -1320,10 +1323,10 @@ const BusinessReports = () => {
                                                                 color: row.payment_status === 'paid' ? '#16A34A' : '#D97706',
                                                                 padding: '0.2rem 0.5rem', borderRadius: '6px', fontWeight: '800', fontSize: '0.7rem', textTransform: 'uppercase'
                                                             }}>
-                                                                {row.payment_status || 'Settle-Sync'}
+                                                                {row.payment_status || 'PENDING'}
                                                             </span>
                                                         </td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#16A34A', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.paid_amount || row.total_amount || row.total)}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#16A34A', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.paid_amount !== undefined ? row.paid_amount : 0)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
