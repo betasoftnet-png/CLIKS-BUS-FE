@@ -1539,8 +1539,117 @@ const BusinessPOS = () => {
                         </div>
                     </div>
 
-                    {/* Search bar */}
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    {/* Top Filtering Row (Warehouse, Search, Categories) */}
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        {/* Warehouse Filter Dropdown (With Multi-Select Checkboxes) */}
+                        {!isStarterPlan && (
+                            <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={warehouseDropdownRef}>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsWarehouseDropdownOpen(!isWarehouseDropdownOpen)}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.4rem',
+                                        padding: '0.45rem 0.9rem',
+                                        borderRadius: '12px',
+                                        border: '1.5px solid #000000',
+                                        background: '#FFFFFF',
+                                        color: '#0F172A',
+                                        fontSize: '0.82rem',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        outline: 'none',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                        minWidth: '130px',
+                                        height: '100%'
+                                    }}
+                                >
+                                    <span>
+                                        {selectedWarehouseIds.length === 0
+                                            ? 'Warehouse'
+                                            : selectedWarehouseIds.length === 1
+                                                ? (dbWarehouses.find(w => String(w.id) === selectedWarehouseIds[0])?.name || dbWarehouses.find(w => String(w.id) === selectedWarehouseIds[0])?.warehouse_name || '1 Selected')
+                                                : `Warehouse (${selectedWarehouseIds.length})`}
+                                    </span>
+                                    <ChevronDown size={14} style={{ color: '#0F172A', transition: 'transform 0.2s', transform: isWarehouseDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                                </button>
+
+                                {/* Dropdown Popover List */}
+                                {isWarehouseDropdownOpen && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '100%',
+                                        left: 0,
+                                        marginTop: '6px',
+                                        background: '#FFFFFF',
+                                        border: '1px solid #E2E8F0',
+                                        borderRadius: '14px',
+                                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)',
+                                        zIndex: 50,
+                                        minWidth: '200px',
+                                        maxWidth: '280px',
+                                        padding: '0.5rem',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.25rem'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.25rem 0.4rem 0.4rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.2rem' }}>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Select Warehouses</span>
+                                            {selectedWarehouseIds.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedWarehouseIds([])}
+                                                    style={{ border: 'none', background: 'transparent', color: '#EF4444', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer', padding: 0 }}
+                                                >
+                                                    Clear All
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {dbWarehouses.length > 0 ? (
+                                            dbWarehouses.map(wh => {
+                                                const idStr = String(wh.id);
+                                                const isChecked = selectedWarehouseIds.includes(idStr);
+                                                const whName = wh.name || wh.warehouse_name || `Warehouse ${wh.code || wh.id}`;
+                                                return (
+                                                    <div
+                                                        key={wh.id}
+                                                        onClick={() => toggleWarehouseSelection(wh.id)}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.5rem',
+                                                            padding: '0.4rem 0.6rem',
+                                                            borderRadius: '8px',
+                                                            background: isChecked ? '#ECFDF5' : 'transparent',
+                                                            cursor: 'pointer',
+                                                            transition: 'background 0.15s'
+                                                        }}
+                                                        onMouseEnter={(e) => { if (!isChecked) e.currentTarget.style.background = '#F8FAFC'; }}
+                                                        onMouseLeave={(e) => { if (!isChecked) e.currentTarget.style.background = 'transparent'; }}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isChecked}
+                                                            onChange={() => {}} // Handled by container div click
+                                                            style={{ width: '13px', height: '13px', accentColor: '#10B981', cursor: 'pointer', margin: 0 }}
+                                                        />
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: isChecked ? '800' : '600', color: isChecked ? '#047857' : '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                            {whName}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div style={{ padding: '0.5rem', fontSize: '0.78rem', color: '#94A3B8', textAlign: 'center' }}>
+                                                No registered warehouses found
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         <div style={{ position: 'relative', flex: 1 }}>
                             <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input 
@@ -1548,14 +1657,14 @@ const BusinessPOS = () => {
                                 placeholder="Search item name, category or barcode SKU..." 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F8FAFC', fontSize: '0.9rem', fontWeight: 500, transition: 'border-color 0.2s' }}
+                                style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F8FAFC', fontSize: '0.9rem', fontWeight: 500, transition: 'border-color 0.2s', height: '100%' }}
                                 onFocus={(e) => e.target.style.borderColor = '#10B981'}
                                 onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
                             />
                         </div>
                         
                         {/* Category Chips Container */}
-                        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px', maxWidth: '50%' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px', maxWidth: '50%', alignItems: 'center' }}>
                             {categories.slice(0, 5).map(cat => (
                                 <button
                                     key={cat}
@@ -1570,7 +1679,10 @@ const BusinessPOS = () => {
                                         border: selectedCategory === cat ? '1px solid #10B981' : '1px solid #E2E8F0',
                                         background: selectedCategory === cat ? '#ECFDF5' : '#FFFFFF',
                                         color: selectedCategory === cat ? '#047857' : '#64748B',
-                                        transition: 'all 0.2s'
+                                        transition: 'all 0.2s',
+                                        height: '100%',
+                                        display: 'inline-flex',
+                                        alignItems: 'center'
                                     }}
                                 >
                                     {cat}
@@ -1578,115 +1690,6 @@ const BusinessPOS = () => {
                             ))}
                         </div>
                     </div>
-
-                    {/* Warehouse Filter Dropdown (With Multi-Select Checkboxes) */}
-                    {!isStarterPlan && (
-                        <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', position: 'relative' }} ref={warehouseDropdownRef}>
-                            <button
-                                type="button"
-                                onClick={() => setIsWarehouseDropdownOpen(!isWarehouseDropdownOpen)}
-                                style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.4rem',
-                                    padding: '0.45rem 0.9rem',
-                                    borderRadius: '12px',
-                                    border: '1.5px solid #000000',
-                                    background: '#FFFFFF',
-                                    color: '#0F172A',
-                                    fontSize: '0.82rem',
-                                    fontWeight: '700',
-                                    cursor: 'pointer',
-                                    outline: 'none',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                                    minWidth: '130px'
-                                }}
-                            >
-                                <span>
-                                    {selectedWarehouseIds.length === 0
-                                        ? 'Warehouse'
-                                        : selectedWarehouseIds.length === 1
-                                            ? (dbWarehouses.find(w => String(w.id) === selectedWarehouseIds[0])?.name || dbWarehouses.find(w => String(w.id) === selectedWarehouseIds[0])?.warehouse_name || '1 Selected')
-                                            : `Warehouse (${selectedWarehouseIds.length})`}
-                                </span>
-                                <ChevronDown size={14} style={{ color: '#0F172A', transition: 'transform 0.2s', transform: isWarehouseDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
-                            </button>
-
-                            {/* Dropdown Popover List */}
-                            {isWarehouseDropdownOpen && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '100%',
-                                    left: 0,
-                                    marginTop: '6px',
-                                    background: '#FFFFFF',
-                                    border: '1px solid #E2E8F0',
-                                    borderRadius: '14px',
-                                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)',
-                                    zIndex: 50,
-                                    minWidth: '200px',
-                                    maxWidth: '280px',
-                                    padding: '0.5rem',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '0.25rem'
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.25rem 0.4rem 0.4rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.2rem' }}>
-                                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Select Warehouses</span>
-                                        {selectedWarehouseIds.length > 0 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setSelectedWarehouseIds([])}
-                                                style={{ border: 'none', background: 'transparent', color: '#EF4444', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer', padding: 0 }}
-                                            >
-                                                Clear All
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {dbWarehouses.length > 0 ? (
-                                        dbWarehouses.map(wh => {
-                                            const idStr = String(wh.id);
-                                            const isChecked = selectedWarehouseIds.includes(idStr);
-                                            const whName = wh.name || wh.warehouse_name || `Warehouse ${wh.code || wh.id}`;
-                                            return (
-                                                <div
-                                                    key={wh.id}
-                                                    onClick={() => toggleWarehouseSelection(wh.id)}
-                                                    style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '0.5rem',
-                                                        padding: '0.4rem 0.6rem',
-                                                        borderRadius: '8px',
-                                                        background: isChecked ? '#ECFDF5' : 'transparent',
-                                                        cursor: 'pointer',
-                                                        transition: 'background 0.15s'
-                                                    }}
-                                                    onMouseEnter={(e) => { if (!isChecked) e.currentTarget.style.background = '#F8FAFC'; }}
-                                                    onMouseLeave={(e) => { if (!isChecked) e.currentTarget.style.background = 'transparent'; }}
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isChecked}
-                                                        onChange={() => {}} // Handled by container div click
-                                                        style={{ width: '13px', height: '13px', accentColor: '#10B981', cursor: 'pointer', margin: 0 }}
-                                                    />
-                                                    <span style={{ fontSize: '0.8rem', fontWeight: isChecked ? '800' : '600', color: isChecked ? '#047857' : '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                        {whName}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })
-                                    ) : (
-                                        <div style={{ padding: '0.5rem', fontSize: '0.78rem', color: '#94A3B8', textAlign: 'center' }}>
-                                            No registered warehouses found
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
                 </div>
 
                 {/* Products Grid scroll area */}
