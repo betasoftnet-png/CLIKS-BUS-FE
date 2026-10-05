@@ -532,8 +532,16 @@ const BusinessInventory = () => {
             min_stock: item.min_stock || 5,
             reorder_level: item.reorder_level || 8,
             batch_number: item.batch_number || '',
-            has_expiry: Boolean(item.has_expiry || item.is_perishable || (item.expiry_date && item.expiry_date !== '2029-01-10')),
-            is_perishable: Boolean(item.has_expiry || item.is_perishable || (item.expiry_date && item.expiry_date !== '2029-01-10')),
+            has_expiry: Boolean(
+                item.has_expiry === true || String(item.has_expiry) === '1' || String(item.has_expiry) === 'true' ||
+                item.is_perishable === true || String(item.is_perishable) === '1' || String(item.is_perishable) === 'true' ||
+                (item.expiry_date && item.expiry_date !== '2029-01-10' && String(item.is_perishable) !== '0' && String(item.is_perishable) !== 'false')
+            ),
+            is_perishable: Boolean(
+                item.has_expiry === true || String(item.has_expiry) === '1' || String(item.has_expiry) === 'true' ||
+                item.is_perishable === true || String(item.is_perishable) === '1' || String(item.is_perishable) === 'true' ||
+                (item.expiry_date && item.expiry_date !== '2029-01-10' && String(item.is_perishable) !== '0' && String(item.is_perishable) !== 'false')
+            ),
             mfg_date: item.mfg_date || item.manufacturing_date || '',
             manufacturing_date: item.manufacturing_date || item.mfg_date || '',
             expiry_date: item.expiry_date && item.expiry_date !== '2029-01-10' ? item.expiry_date : '',

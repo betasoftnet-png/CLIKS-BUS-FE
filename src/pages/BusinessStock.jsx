@@ -121,9 +121,9 @@ const BusinessStock = () => {
             const sellableQty = isDamagedGodown ? 0 : Math.max(0, rawQty - damagedQty - expiredQty);
 
             const isPerishableProduct = Boolean(
-                p.has_expiry === true ||
-                p.is_perishable === true ||
-                (p.expiry_date && p.expiry_date !== '2029-01-10')
+                p.has_expiry === true || String(p.has_expiry) === '1' || String(p.has_expiry) === 'true' ||
+                p.is_perishable === true || String(p.is_perishable) === '1' || String(p.is_perishable) === 'true' ||
+                (p.expiry_date && p.expiry_date !== '2029-01-10' && String(p.is_perishable) !== '0' && String(p.is_perishable) !== 'false')
             );
 
             list.push({
@@ -176,9 +176,9 @@ const BusinessStock = () => {
             const sellableQty = isDamagedGodown ? 0 : rawQty;
 
             const isPerishableStock = Boolean(
-                s.has_expiry === true ||
-                s.is_perishable === true ||
-                (s.expiry_date && s.expiry_date !== '2029-01-10')
+                s.has_expiry === true || String(s.has_expiry) === '1' || String(s.has_expiry) === 'true' ||
+                s.is_perishable === true || String(s.is_perishable) === '1' || String(s.is_perishable) === 'true' ||
+                (s.expiry_date && s.expiry_date !== '2029-01-10' && String(s.is_perishable) !== '0' && String(s.is_perishable) !== 'false')
             );
 
             list.push({
