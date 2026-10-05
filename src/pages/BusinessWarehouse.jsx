@@ -213,6 +213,7 @@ const BusinessWarehouse = () => {
 
     // Stateful Warehouse Stock Database mapped from live DB Stocks
     const whStocks = dbStocks.map(s => {
+        const product = dbProducts.find(p => p.sku === s.sku || p.name === s.name) || {};
         let warehouseName = s.location || s.warehouse || 'Unassigned';
         let rackNumber = 'N/A';
         let zoneName = 'Standard Zone';
@@ -229,6 +230,11 @@ const BusinessWarehouse = () => {
 
         const current_stock = s.quantity || 0;
         const average_cost = s.unit_price || 0;
+        
+        const dbTransfers = reportsData?.transfers || [];
+        const in_transit = dbTransfers
+            .filter(t => t.stock_id === s.id && (t.status === 'Pending' || t.status === 'In Transit' || t.status === 'Dispatched'))
+            .reduce((sum, t) => sum + (parseFloat(t.quantity) || 0), 0);
 
         return {
             wh_stock_id: `WHS-${s.id}`,
@@ -238,9 +244,10 @@ const BusinessWarehouse = () => {
             warehouse_name: warehouseName,
             current_stock: current_stock,
             reserved_stock: s.reserved_stock || 0,
-            damaged_stock: s.damaged_qty ?? s.damaged_stock ?? s.damagedQuantity ?? s.damaged ?? s.broken_stock ?? 0,
-            damaged_qty: s.damaged_qty ?? s.damaged_stock ?? s.damagedQuantity ?? s.damaged ?? s.broken_stock ?? 0,
-            in_transit_stock: s.in_transit_stock || 0,
+            damaged_stock: product.damaged_stock ?? s.damaged_qty ?? s.damaged_stock ?? s.damagedQuantity ?? s.damaged ?? s.broken_stock ?? 0,
+            damaged_qty: product.damaged_stock ?? s.damaged_qty ?? s.damaged_stock ?? s.damagedQuantity ?? s.damaged ?? s.broken_stock ?? 0,
+            expired_stock: product.expired_stock || 0,
+            in_transit_stock: s.in_transit_stock || in_transit,
             rack_number: rackNumber,
             shelf_number: s.shelf_number || 'N/A',
             bin_number: s.bin_number || 'N/A',
@@ -677,8 +684,20 @@ const BusinessWarehouse = () => {
         });
     };
 
+    // Transfer Reception Mutation
+    const receiveTransferMutation = useMutation({
+        mutationFn: (transferId) => apiClient.put(`/warehouses/transfers/${transferId}/receive`),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['businessWarehousesReports']);
+            queryClient.invalidateQueries(['businessProducts']);
+            queryClient.invalidateQueries(['businessStocks']);
+        },
+        onError: (err) => alert(err?.response?.data?.message || 'Failed to receive transfer')
+    });
+
     const handleCompleteTransfer = (trfId) => {
-        alert(`Transfer ${trfId} marked complete! Stock landed at destination warehouse.`);
+        const id = trfId.replace('TRF-', '');
+        receiveTransferMutation.mutate(id);
     };
 
     if (!isLoadingSettings && activeConfig.godown === false) {
@@ -1026,7 +1045,8 @@ const BusinessWarehouse = () => {
                                             {trf.transfer_status !== 'Completed' && (
                                                 <button
                                                     onClick={() => handleCompleteTransfer(trf.transfer_id)}
-                                                    style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
+                                                    disabled={receiveTransferMutation.isLoading}
+                                                    style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', opacity: receiveTransferMutation.isLoading ? 0.7 : 1 }}
                                                 >Mark Received</button>
                                             )}
                                         </td>

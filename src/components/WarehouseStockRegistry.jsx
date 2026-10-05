@@ -22,14 +22,15 @@ export default function WarehouseStockRegistry({
                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Location / Bin</th>
                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Current Stock</th>
                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Damaged</th>
+                            <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Expired</th>
                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>In Transit</th>
                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Stock Valuation</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredStocks.map((st) => (
-                            <tr 
-                                key={st.wh_stock_id} 
+                            <tr
+                                key={st.wh_stock_id}
                                 onClick={() => onSelectStock && onSelectStock(st)}
                                 style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s ease' }}
                                 className="hover:bg-slate-50/80"
@@ -54,7 +55,8 @@ export default function WarehouseStockRegistry({
                                 </td>
                                 <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1B6B3A' }}>{st.current_stock} pcs</td>
                                 <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#EF4444' }}>{st.damaged_stock} pcs</td>
-                                <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#F59E0B' }}>{st.in_transit_stock} pcs</td>
+                                <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#F59E0B' }}>{st.expired_stock} pcs</td>
+                                <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#3B82F6' }}>{st.in_transit_stock} pcs</td>
                                 <td style={{ padding: '1.5rem 2rem', fontWeight: '950', color: '#10B981' }}>{formatCurrency(st.warehouse_stock_value)}</td>
                             </tr>
                         ))}
