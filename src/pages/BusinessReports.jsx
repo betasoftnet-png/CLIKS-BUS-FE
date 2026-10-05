@@ -1252,7 +1252,7 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.purchase_number || row.bill_no || `PUR-${1000 + idx}`}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.supplier_name || row.Supplier?.company_name || 'Primary Sourced Distributor'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#0F172A', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.total_amount || row.total)}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#0F172A', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.grand_total || row.total_amount || row.total)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -1276,9 +1276,9 @@ const BusinessReports = () => {
                                             <tbody>
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name || row.company_name || 'Trade Vendor'}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.supplier_name || row.name || row.company_name || 'Trade Vendor'}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.phone || row.email || 'N/A'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#2563EB', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.total_purchases || row.outstanding_balance)}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#2563EB', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.total || row.total_purchases || row.outstanding_balance)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
