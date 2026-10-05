@@ -3328,12 +3328,12 @@ const BusinessBilling = () => {
                                                 <div style={{ 
                                                     display: 'inline-flex', alignItems: 'center', gap: '0.3rem', 
                                                     padding: '0.25rem 0.5rem', borderRadius: '6px',
-                                                    background: inv.status === 'Paid' ? '#D1FAE5' : (inv.status === 'Unpaid' ? '#FEE2E2' : '#FEF3C7'),
-                                                    color: inv.status === 'Paid' ? '#065F46' : (inv.status === 'Unpaid' ? '#991B1B' : '#92400E'),
+                                                    background: Boolean(inv.invoice_type === 'POS' || inv.source === 'POS' || String(inv.invoice_number).toUpperCase().startsWith('POS') || String(inv.notes || '').toUpperCase().includes('POS')) ? '#E0E7FF' : (inv.status === 'Paid' ? '#D1FAE5' : (inv.status === 'Unpaid' ? '#FEE2E2' : '#FEF3C7')),
+                                                    color: Boolean(inv.invoice_type === 'POS' || inv.source === 'POS' || String(inv.invoice_number).toUpperCase().startsWith('POS') || String(inv.notes || '').toUpperCase().includes('POS')) ? '#3730A3' : (inv.status === 'Paid' ? '#065F46' : (inv.status === 'Unpaid' ? '#991B1B' : '#92400E')),
                                                     fontSize: '0.75rem', fontWeight: '800', whiteSpace: 'nowrap'
                                                 }}>
-                                                    {inv.status === 'Paid' ? <CheckCircle2 size={10} /> : (inv.status === 'Overdue' ? <AlertTriangle size={10} /> : <Clock size={10} />)}
-                                                    {inv.status ? inv.status.toUpperCase() : 'ACTIVE'}
+                                                    {Boolean(inv.invoice_type === 'POS' || inv.source === 'POS' || String(inv.invoice_number).toUpperCase().startsWith('POS') || String(inv.notes || '').toUpperCase().includes('POS')) ? <Store size={10} /> : (inv.status === 'Paid' ? <CheckCircle2 size={10} /> : (inv.status === 'Overdue' ? <AlertTriangle size={10} /> : <Clock size={10} />))}
+                                                    {Boolean(inv.invoice_type === 'POS' || inv.source === 'POS' || String(inv.invoice_number).toUpperCase().startsWith('POS') || String(inv.notes || '').toUpperCase().includes('POS')) ? 'POS BILLED PRODUCT' : (inv.status ? inv.status.toUpperCase() : 'ACTIVE')}
                                                 </div>
 
                                                 {/* E-Invoice IRN Status Pill or Generate Button */}
