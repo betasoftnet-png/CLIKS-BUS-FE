@@ -733,13 +733,21 @@ const BusinessStaffing = () => {
     // Handle performance review submit
     const handlePerformanceSubmit = (e) => {
         e.preventDefault();
-        const empToUpdate = employees.find(emp => emp.employee_id === perfForm.employee_id);
+        
+        if (!perfForm.employee_id) {
+            alert('Please select an employee.');
+            return;
+        }
+        
+        const empToUpdate = employees.find(emp => String(emp.employee_id) === String(perfForm.employee_id));
         if (empToUpdate) {
             performanceMutation.mutate({
                 id: empToUpdate.employee_id,
                 rating: parseFloat(perfForm.rating) || 4.0,
                 target_score: parseInt(perfForm.target_score) || 85
             });
+        } else {
+            alert('Selected employee not found.');
         }
     };
 
@@ -1697,7 +1705,8 @@ const BusinessStaffing = () => {
                         <form onSubmit={handlePerformanceSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Employee</label>
-                                <select value={perfForm.employee_id} onChange={(e) => setPerfForm({ ...perfForm, employee_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                <select required value={perfForm.employee_id} onChange={(e) => setPerfForm({ ...perfForm, employee_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                    <option value="">-- Select Employee --</option>
                                     {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(emp => (
                                         <option key={emp.employee_id} value={emp.employee_id}>{emp.first_name} {emp.last_name}</option>
                                     ))}
