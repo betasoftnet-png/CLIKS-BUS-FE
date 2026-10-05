@@ -650,7 +650,8 @@ const BusinessInventory = () => {
             has_warranty: isWarrantyActive ? 'Yes' : 'No',
             warrantyDetails: isWarrantyActive ? 'Yes' : 'No',
             warranty_period: resolvedWarrantyPeriod,
-            warrantyPeriod: resolvedWarrantyPeriod
+            warrantyPeriod: resolvedWarrantyPeriod,
+            rack_number: formData.rack_number || null
         };
 
         if (editingItem) {
