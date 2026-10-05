@@ -24,7 +24,7 @@ export const MonthlySalesBarChart = ({ reportData, title = 'Monthly Sales Perfor
         let hasValidDate = false;
         reportData.forEach(item => {
             const dateStr = item.date || item.purchase_date || item.created_at || item.invoice_date || item.bill_date;
-            const val = parseFloat(item.paid_amount !== undefined ? item.paid_amount : (item.grand_total || item.total_sales || item.revenue || item.amount || item.total || item.total_amount || item.value || 0));
+            const val = parseFloat(item.due_amount !== undefined ? item.due_amount : (item.paid_amount !== undefined ? item.paid_amount : (item.grand_total || item.total_sales || item.revenue || item.amount || item.total || item.total_amount || item.value || 0)));
 
             if (dateStr) {
                 const d = new Date(dateStr);
@@ -40,7 +40,7 @@ export const MonthlySalesBarChart = ({ reportData, title = 'Monthly Sales Perfor
         if (!hasValidDate) {
             return reportData.slice(0, 12).map((item, idx) => ({
                 label: String(item.name || item.product_name || item.supplier_name || item.customer || item.purchase_number || item.billNo || item.order_number || item.ledger || item.hsn || item.category || `Item ${idx + 1}`).slice(0, 8),
-                value: parseFloat(item.paid_amount !== undefined ? item.paid_amount : (item.grand_total || item.total_sales || item.revenue || item.amount || item.total || item.total_amount || item.value || item.stockVal || 0)),
+                value: parseFloat(item.due_amount !== undefined ? item.due_amount : (item.paid_amount !== undefined ? item.paid_amount : (item.grand_total || item.total_sales || item.revenue || item.amount || item.total || item.total_amount || item.value || item.stockVal || 0))),
                 count: 1
             }));
         }

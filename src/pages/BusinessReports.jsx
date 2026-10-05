@@ -230,11 +230,18 @@ const BusinessReports = () => {
                 if (id === 27) {
                     try {
                         const res = await purchasesService.getPendingReport();
-                        return res?.data || res || [];
+                        const data = res?.data || res || [];
+                        return data.map(d => ({
+                            ...d,
+                            due_amount: Math.max(0, parseFloat(d.grand_total || d.total_amount || d.total || 0) - parseFloat(d.paid_amount || 0))
+                        }));
                     } catch {
                         const res = await purchasesService.getPurchases();
                         const raw = res?.data || res || [];
-                        return raw.filter(p => p.payment_status === 'unpaid' || p.payment_status === 'partial' || (p.balance_due || 0) > 0);
+                        return raw.filter(p => p.payment_status === 'unpaid' || p.payment_status === 'partial' || p.payment_status === 'pending' || (p.balance_due || 0) > 0).map(d => ({
+                            ...d,
+                            due_amount: Math.max(0, parseFloat(d.grand_total || d.total_amount || d.total || 0) - parseFloat(d.paid_amount || 0))
+                        }));
                     }
                 }
 
@@ -879,7 +886,7 @@ const BusinessReports = () => {
                                     <MonthlySalesBarChart 
                                         reportData={reportDetails} 
                                         title={`${selectedReport.title} Monthly Trend`} 
-                                        subtitle={selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics'}
+                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')}
                                     />
                                 )}
                             </div>
