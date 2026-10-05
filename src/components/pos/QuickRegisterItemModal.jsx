@@ -21,6 +21,7 @@ export const QuickRegisterItemModal = ({
 
     const [name, setName] = useState('');
     const [sellingPrice, setSellingPrice] = useState('');
+    const [sellingPriceError, setSellingPriceError] = useState('');
     const [unit, setUnit] = useState('PCS');
     const [openingStock, setOpeningStock] = useState('');
     const [isUnlimited, setIsUnlimited] = useState(false);
@@ -64,6 +65,7 @@ export const QuickRegisterItemModal = ({
         } else {
             setName('');
             setSellingPrice('');
+            setSellingPriceError('');
             setUnit('PCS');
             setOpeningStock('');
             setIsUnlimited(false);
@@ -368,14 +370,20 @@ export const QuickRegisterItemModal = ({
                             <input
                                 required
                                 type="number"
-                                min="0.01"
-                                step="any"
+                                min="1"
+                                step="1"
                                 value={sellingPrice}
                                 onKeyDown={(e) => {
+                                    if (['.', '-', 'e', 'E', '+'].includes(e.key)) {
+                                        e.preventDefault();
+                                        setSellingPriceError('Fractional values are not supported.');
+                                        return;
+                                    }
                                     if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
                                         return;
                                     }
                                     if (/^[0-9]$/.test(e.key)) {
+                                        setSellingPriceError('');
                                         const currentDigits = (e.target.value || '').replace(/[^0-9]/g, '');
                                         if (currentDigits.length >= 10) {
                                             e.preventDefault();
@@ -384,6 +392,15 @@ export const QuickRegisterItemModal = ({
                                 }}
                                 onChange={(e) => {
                                     let val = e.target.value;
+                                    if (val.includes('.') || val.includes('-') || val.includes('e') || val.includes('+')) {
+                                        setSellingPriceError('Fractional values are not supported.');
+                                        val = val.replace(/[^0-9]/g, '');
+                                    } else {
+                                        setSellingPriceError('');
+                                    }
+                                    
+                                    val = val.replace(/^0+/, '');
+                                    
                                     const digitsOnly = val.replace(/[^0-9]/g, '');
                                     if (digitsOnly.length > 10) {
                                         let truncated = '';
@@ -402,9 +419,12 @@ export const QuickRegisterItemModal = ({
                                     }
                                     setSellingPrice(val);
                                 }}
-                                style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }}
-                                placeholder="0.00"
+                                style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: sellingPriceError ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }}
+                                placeholder="0"
                             />
+                            {sellingPriceError && (
+                                <span style={{ display: 'block', color: '#EF4444', fontSize: '0.7rem', marginTop: '4px', fontWeight: 600 }}>{sellingPriceError}</span>
+                            )}
                         </div>
                         <div>
                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Unit *</label>
