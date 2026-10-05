@@ -1723,8 +1723,24 @@ const BusinessStaffing = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.25)' }}>
-                                Settle Appraisal Score
+                            <button 
+                                type="submit" 
+                                disabled={performanceMutation.isPending}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '1rem', 
+                                    borderRadius: '16px', 
+                                    background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    fontWeight: '800', 
+                                    fontSize: '1.1rem', 
+                                    cursor: performanceMutation.isPending ? 'not-allowed' : 'pointer', 
+                                    boxShadow: '0 10px 20px rgba(124, 58, 237, 0.25)',
+                                    opacity: performanceMutation.isPending ? 0.7 : 1
+                                }}
+                            >
+                                {performanceMutation.isPending ? 'Recording...' : 'Settle Appraisal Score'}
                             </button>
                         </form>
                     </div>
