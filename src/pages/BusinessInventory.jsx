@@ -243,12 +243,23 @@ const BusinessInventory = () => {
     });
 
     // Live catalog items database from productsService
-    const { data: items = [] } = useQuery({
+    const { data: rawItems = [] } = useQuery({
         queryKey: ['products'],
         queryFn: () => productsService.getProducts(),
         staleTime: 5 * 60 * 1000,
         refetchOnWindowFocus: false
     });
+    
+    const items = React.useMemo(() => {
+        return rawItems.map(item => {
+            const wId = item.warehouse_id || item.warehouse;
+            const wMatch = dbWarehouses.find(w => String(w.id) === String(wId) || String(w.warehouse_id) === String(wId) || String(w.name).toLowerCase() === String(wId || '').toLowerCase());
+            return {
+                ...item,
+                warehouse: wMatch ? (wMatch.name || wMatch.warehouse_name || wId) : (wId || 'Main Godown')
+            };
+        });
+    }, [rawItems, dbWarehouses]);
 
     const createMutation = useMutation({
         mutationFn: (data) => productsService.createProduct(data),

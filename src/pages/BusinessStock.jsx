@@ -106,6 +106,12 @@ const BusinessStock = () => {
     const stocks = React.useMemo(() => {
         const list = [];
         const seenNames = new Set();
+        
+        const resolveWarehouseName = (wIdOrName) => {
+            if (!wIdOrName) return 'Main Godown';
+            const found = (dbWarehouses || []).find(w => String(w.id) === String(wIdOrName) || String(w.warehouse_id) === String(wIdOrName) || String(w.name).toLowerCase() === String(wIdOrName).toLowerCase());
+            return found ? (found.name || found.warehouse_name || wIdOrName) : wIdOrName;
+        };
 
         const safeProds = Array.isArray(dbProducts) ? dbProducts : [];
         safeProds.forEach(p => {
@@ -113,7 +119,7 @@ const BusinessStock = () => {
             const nameKey = (p.name || '').toLowerCase().trim();
             if (nameKey) seenNames.add(nameKey);
 
-            const warehouseName = p.warehouse_id || p.warehouse || 'Main Godown';
+            const warehouseName = resolveWarehouseName(p.warehouse_id || p.warehouse);
             const isDamagedGodown = String(warehouseName).toLowerCase().includes('damaged');
             const rawQty = parseFloat(p.quantity ?? p.opening_stock ?? 0) || 0;
             const damagedQty = isDamagedGodown ? rawQty : (parseFloat(p.damaged_stock ?? 0) || 0);
@@ -207,7 +213,7 @@ const BusinessStock = () => {
         });
 
         return list;
-    }, [dbProducts, dbStocks]);
+    }, [dbProducts, dbStocks, dbWarehouses]);
 
     // Match sales items from POS / Billing to product inventory
     const matchesProduct = (item, product) => {
