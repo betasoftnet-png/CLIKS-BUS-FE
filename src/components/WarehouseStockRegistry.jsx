@@ -19,7 +19,7 @@ export default function WarehouseStockRegistry({
                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Stock ID</th>
                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Product Description</th>
                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Facility / Godown</th>
-                            <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Location / Bin</th>
+                            <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Location / Rack</th>
                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Current Stock</th>
                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Damaged</th>
                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Expired</th>
@@ -49,8 +49,10 @@ export default function WarehouseStockRegistry({
                                 </td>
                                 <td style={{ padding: '1.5rem 2rem' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ fontWeight: '700', color: '#475569' }}>{st.zone}</span>
-                                        <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{st.rack_number} | {st.shelf_number} | {st.bin_number}</span>
+                                        <span style={{ fontWeight: '700', color: '#475569' }}>{st.zone !== 'N/A' ? st.zone : ''}</span>
+                                        {st.rack_number && st.rack_number !== 'N/A' && (
+                                            <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Rack {st.rack_number}</span>
+                                        )}
                                     </div>
                                 </td>
                                 <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1B6B3A' }}>{st.current_stock} pcs</td>
