@@ -48,7 +48,7 @@ export default function LodgeStaffClaimModal({ isOpen, onClose, onClaimSubmitted
       return;
     }
 
-    const parsedAmount = parseFloat(claimAmount);
+    const parsedAmount = parseInt(claimAmount, 10);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       setAmountError('Claim amount must be greater than 0.');
       return;
@@ -111,22 +111,9 @@ export default function LodgeStaffClaimModal({ isOpen, onClose, onClaimSubmitted
       const token = localStorage.getItem('token') || localStorage.getItem('access_token');
       let response;
       try {
-        response = await apiClient.post('/hr/reimbursements', payload);
-      } catch (err1) {
-        try {
-          response = await apiClient.post('/expenses/reimburse', payload);
-        } catch (err2) {
-          const fetchRes = await fetch('/api/hr/reimbursements', {
-            method: 'POST',
-            headers: {
-              Authorization: token ? `Bearer ${token}` : '',
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-          });
-          const resData = await fetchRes.json().catch(() => ({}));
-          response = { status: fetchRes.status, data: resData };
-        }
+        response = await apiClient.post('/expenses/reimburse', payload);
+      } catch (err) {
+        throw new Error(err.response?.data?.message || err.message || 'Lodge claim failed');
       }
 
       if (response && (response.status === 200 || response.status === 201 || response.data?.success)) {
@@ -256,16 +243,16 @@ export default function LodgeStaffClaimModal({ isOpen, onClose, onClaimSubmitted
             </label>
             <input
               type="number"
-              min="0.01"
-              step="any"
-              placeholder="0.00"
+              min="1"
+              step="1"
+              placeholder="0"
               value={claimAmount}
               onKeyDown={(e) => {
-                if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') e.preventDefault();
+                if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E' || e.key === '.') e.preventDefault();
               }}
               onChange={(e) => {
-                const val = e.target.value;
-                if (parseFloat(val) <= 0 || val.startsWith('-')) {
+                const val = e.target.value.replace(/\./g, '');
+                if (parseInt(val, 10) <= 0 || val.startsWith('-')) {
                   setAmountError('Claim amount must be greater than 0.');
                 } else {
                   setAmountError('');
