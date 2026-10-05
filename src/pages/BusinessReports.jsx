@@ -108,11 +108,22 @@ const BusinessReports = () => {
                         min_stock: parseFloat(p.min_stock || 10),
                         selling_price: parseFloat(p.selling_price || p.price || 0),
                         purchase_price: parseFloat(p.cost_price || p.purchase_price || 0),
-                        category: p.category || 'General'
+                        category: p.category || 'General',
+                        updated_at: p.updated_at || p.created_at
                     }));
 
                     if (id === 5) return combinedList.filter(s => (parseFloat(s.quantity || s.stock_quantity || 0)) <= (parseFloat(s.min_stock || 10)));
-                    if (id === 16) return combinedList.filter(s => (parseFloat(s.quantity || s.stock_quantity || 0)) === 0);
+                    if (id === 16) {
+                        const ninetyDaysAgo = new Date();
+                        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+                        return combinedList.filter(s => {
+                            const qty = parseFloat(s.quantity || s.stock_quantity || 0);
+                            if (qty <= 0) return false; // Out of stock, not dead stock
+                            if (!s.updated_at && !s.created_at) return true;
+                            const d = new Date(s.updated_at || s.created_at);
+                            return isNaN(d) || d < ninetyDaysAgo;
+                        });
+                    }
                     return combinedList;
                 }
 
