@@ -6,7 +6,7 @@ import { BarChart3, PieChart, TrendingUp, Package, Building2, DollarSign } from 
  * Monthly Sales Bar Chart Component
  * Visualizes sales performance over monthly intervals or orders data.
  */
-export const MonthlySalesBarChart = ({ reportData, title = 'Monthly Sales Performance' }) => {
+export const MonthlySalesBarChart = ({ reportData, title = 'Monthly Sales Performance', subtitle = 'Monthly compilation of metric records and trends' }) => {
     const { formatCurrency } = useCurrency();
     const [hoveredIdx, setHoveredIdx] = useState(null);
 
@@ -70,7 +70,7 @@ export const MonthlySalesBarChart = ({ reportData, title = 'Monthly Sales Perfor
                     </div>
                     <div>
                         <h4 style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{title}</h4>
-                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '500' }}>Monthly sales trends and turnover metrics</span>
+                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '500' }}>{subtitle}</span>
                     </div>
                 </div>
                 <div style={{ background: '#F8FAFC', padding: '0.4rem 0.8rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem', fontWeight: '850', color: '#BE185D' }}>
