@@ -888,7 +888,11 @@ const BusinessReports = () => {
                             {/* Left Column: Visual Graph (Visible in 'graph' or 'both' mode) */}
                             <div style={{ height: '100%', minHeight: 0, overflowY: 'auto', display: (viewMode === 'graph' || viewMode === 'both') ? 'block' : 'none', paddingRight: '0.25rem' }}>
                                 {((['inventory', 'parties'].includes(selectedReport.category) && selectedReport.id !== 6) || [4, 5, 15, 16, 38].includes(selectedReport.id)) ? (
-                                    <StockPieChart reportData={reportDetails} title={`${selectedReport.title} Accordance & Stock Metrics`} />
+                                    <StockPieChart 
+                                        reportData={reportDetails} 
+                                        title={selectedReport.id === 15 ? 'Warehouse Capacity Utilization' : `${selectedReport.title} Accordance & Stock Metrics`}
+                                        subtitle={selectedReport.id === 15 ? 'Storage distribution and capacity metrics across all warehouse locations' : 'Stock valuation distribution & warehouse placement'}
+                                    />
                                 ) : (
                                     <MonthlySalesBarChart 
                                         reportData={reportDetails} 
@@ -1091,13 +1095,24 @@ const BusinessReports = () => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
-                                                    <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.location || 'Main Site'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#3B82F6', textAlign: 'right', fontSize: '0.85rem' }}>{row.capacity || 'Operational'}</td>
-                                                    </tr>
-                                                )) : (
+                                                {reportDetails?.length > 0 ? (
+                                                    (() => {
+                                                        const totalStock = reportDetails.reduce((sum, w) => sum + (parseFloat(w.total_quantity || 0)), 0);
+                                                        return reportDetails.map((row, idx) => {
+                                                            const qty = parseFloat(row.total_quantity || 0);
+                                                            const pct = totalStock > 0 ? ((qty / totalStock) * 100).toFixed(1) : 0;
+                                                            return (
+                                                                <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                    <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name}</td>
+                                                                    <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.location || 'Main Site'}</td>
+                                                                    <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#3B82F6', textAlign: 'right', fontSize: '0.85rem' }}>
+                                                                        {pct}% Utilized ({qty} units)
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        });
+                                                    })()
+                                                ) : (
                                                     <tr>
                                                         <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No active warehouses tracked.</td>
                                                     </tr>

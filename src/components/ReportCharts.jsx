@@ -161,7 +161,7 @@ export const MonthlySalesBarChart = ({ reportData, title = 'Monthly Sales Perfor
  * Stock & Warehouse Pie / Donut Chart Component
  * Visualizes stock breakdown by category, warehouse allocation, or stock status.
  */
-export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordance' }) => {
+export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordance', subtitle = 'Stock valuation distribution & warehouse placement' }) => {
     const { formatCurrency } = useCurrency();
     const [hoveredIndex, setHoveredIndex] = useState(null);
 
@@ -180,13 +180,14 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
         // Check if report is warehouse capacity (id 15)
         const isWarehouse = reportData.some(item => item.warehouse_name || item.warehouse_code || item.capacity_utilization !== undefined || (item.name && item.location && item.code && !item.sku && !item.selling_price));
         if (isWarehouse) {
+            const totalStock = reportData.reduce((sum, w) => sum + (parseFloat(w.total_quantity || 0)), 0);
             return reportData.map((w, idx) => {
-                const utilStr = String(w.capacity_utilization || w.utilization || '0%').replace('%', '');
-                const util = parseFloat(utilStr) || 0;
+                const qty = parseFloat(w.total_quantity || 0);
+                const pct = totalStock > 0 ? ((qty / totalStock) * 100).toFixed(1) : 0;
                 return {
                     label: w.warehouse_name || w.name || `Warehouse ${idx + 1}`,
-                    value: util > 0 ? util : 1,
-                    displayVal: `${util}% Capacity`,
+                    value: qty > 0 ? qty : 1, // SVG needs non-zero to render slice
+                    displayVal: `${pct}% Utilized (${qty} items)`,
                     color: colors[idx % colors.length]
                 };
             });
@@ -248,7 +249,7 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
                     </div>
                     <div>
                         <h4 style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{title}</h4>
-                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '500' }}>Stock valuation distribution & warehouse placement</span>
+                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '500' }}>{subtitle}</span>
                     </div>
                 </div>
             </div>
@@ -299,7 +300,7 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
                         position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
                         alignItems: 'center', justifyContent: 'center', pointerEvents: 'none'
                     }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Total SKUs</span>
+                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>{isWarehouse ? 'Warehouses' : 'Total SKUs'}</span>
                         <span style={{ fontSize: '1rem', fontWeight: '900', color: '#0F172A' }}>
                             {hoveredIndex !== null ? slices[hoveredIndex].label.slice(0, 10) : reportData.length}
                         </span>
