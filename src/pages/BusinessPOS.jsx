@@ -2643,8 +2643,9 @@ const BusinessPOS = () => {
 
             {/* SUCCESS RECEIPT POPUP MODAL */}
             {showReceiptModal && lastOrderData && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                <div className="pos-receipt-modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, backdropFilter: 'blur(8px)', padding: '1rem' }}>
                     <motion.div 
+                        className="pos-receipt-modal-content"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         style={{

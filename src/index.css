@@ -759,6 +759,21 @@ body.dark-theme,
     overflow: visible !important;
   }
 
+  /* Reset POS Modal centering for print to ensure top-left alignment */
+  .pos-receipt-modal-overlay {
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+  
+  .pos-receipt-modal-content {
+    transform: none !important;
+    position: static !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
   /* Hide print/action buttons during printing */
   .no-print {
     display: none !important;
