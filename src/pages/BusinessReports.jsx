@@ -92,7 +92,11 @@ const BusinessReports = () => {
                 if (id === 11) return await reportsService.getBalanceSheet();
 
                 // Stock & Inventory Module
-                if ([4, 5, 6, 16, 38].includes(id)) {
+                if (id === 6) {
+                    return await reportsService.getStockMovement().catch(() => []);
+                }
+                
+                if ([4, 5, 16, 38].includes(id)) {
                     const [stocksRes, productsRes] = await Promise.all([
                         stockService.getStocks().catch(() => []),
                         productsService.getProducts().catch(() => [])
@@ -883,7 +887,7 @@ const BusinessReports = () => {
                         <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', marginBottom: '1.25rem', display: viewMode === 'both' ? 'grid' : 'block', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'stretch' }}>
                             {/* Left Column: Visual Graph (Visible in 'graph' or 'both' mode) */}
                             <div style={{ height: '100%', minHeight: 0, overflowY: 'auto', display: (viewMode === 'graph' || viewMode === 'both') ? 'block' : 'none', paddingRight: '0.25rem' }}>
-                                {['inventory', 'parties'].includes(selectedReport.category) || [4, 5, 15, 16, 38].includes(selectedReport.id) ? (
+                                {((['inventory', 'parties'].includes(selectedReport.category) && selectedReport.id !== 6) || [4, 5, 15, 16, 38].includes(selectedReport.id)) ? (
                                     <StockPieChart reportData={reportDetails} title={`${selectedReport.title} Accordance & Stock Metrics`} />
                                 ) : (
                                     <MonthlySalesBarChart 
@@ -1016,7 +1020,7 @@ const BusinessReports = () => {
                                     )}
 
                                     {/* Stock / Inventory Module */}
-                                    {[4, 5, 6, 16].includes(selectedReport.id) && (
+                                    {[4, 5, 16].includes(selectedReport.id) && (
                                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                             <thead style={{ background: '#F8FAFC' }}>
                                                 <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
@@ -1035,6 +1039,41 @@ const BusinessReports = () => {
                                                 )) : (
                                                     <tr>
                                                         <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No inventory logs found in database.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    )}
+
+                                    {selectedReport.id === 6 && (
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead style={{ background: '#F8FAFC' }}>
+                                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Item Name</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Movement Type</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Qty</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>
+                                                            {new Date(row.created_at || row.date).toLocaleDateString()}
+                                                        </td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.product_name || row.name || 'Unnamed Stock'}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                                                            <span style={{ padding: '4px 8px', borderRadius: '4px', background: row.type === 'in' ? '#ECFDF5' : '#FEF2F2', color: row.type === 'in' ? '#047857' : '#B91C1C' }}>
+                                                                {row.type === 'in' ? 'Induction' : 'Depletion'}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: row.type === 'in' ? '#16A34A' : '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>
+                                                            {row.type === 'in' ? '+' : '-'}{row.quantity || 0} units
+                                                        </td>
+                                                    </tr>
+                                                )) : (
+                                                    <tr>
+                                                        <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No stock movement records found.</td>
                                                     </tr>
                                                 )}
                                             </tbody>

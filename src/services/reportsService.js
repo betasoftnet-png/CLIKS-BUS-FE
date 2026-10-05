@@ -15,6 +15,7 @@ export const reportsService = {
     getSalesByCustomer: () => apiClient.get('/reports/sales-by-customer').then(res => res.data.data || res.data),
     getSalesByProduct: async () => apiClient.get('/reports/sales-by-product').then(res => res.data.data || res.data),
     getChartSales: async () => apiClient.get('/reports/charts/sales').then(res => res.data.data || res.data),
+    getStockMovement: async () => apiClient.get('/reports/stock-movement').then(res => res.data.data || res.data),
     exportPdf: async () => apiClient.get('/reports/export/pdf').then(res => res.data.data || res.data)
 };
 
