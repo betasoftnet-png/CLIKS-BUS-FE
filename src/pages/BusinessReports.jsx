@@ -332,7 +332,7 @@ const BusinessReports = () => {
                         type: 'Purchase Order',
                         date: p.bill_date || p.created_at,
                         party: p.supplier_name,
-                        amount: parseFloat(p.total_amount || 0)
+                        amount: parseFloat(p.grand_total || p.total_amount || p.total || 0)
                     }));
                     return rawPur;
                 }
