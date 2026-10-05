@@ -70,6 +70,8 @@ const BusinessWarehouse = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isInwardModalOpen, setIsInwardModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [receivingTransferId, setReceivingTransferId] = useState(null);
+    const [receiveForm, setReceiveForm] = useState({ rack_number: '', shelf_number: '' });
     const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
     const [locallyDeletedIds, setLocallyDeletedIds] = useState([]);
     const [editingWarehouse, setEditingWarehouse] = useState(null);
@@ -686,18 +688,22 @@ const BusinessWarehouse = () => {
 
     // Transfer Reception Mutation
     const receiveTransferMutation = useMutation({
-        mutationFn: (transferId) => apiClient.put(`/warehouses/transfers/${transferId}/receive`),
+        mutationFn: (data) => apiClient.put(`/warehouses/transfers/${data.transferId}/receive`, { rack_number: data.rack_number, shelf_number: data.shelf_number }),
         onSuccess: () => {
             queryClient.invalidateQueries(['businessWarehousesReports']);
             queryClient.invalidateQueries(['businessProducts']);
             queryClient.invalidateQueries(['businessStocks']);
+            setReceivingTransferId(null);
+            setReceiveForm({ rack_number: '', shelf_number: '' });
         },
         onError: (err) => alert(err?.response?.data?.message || 'Failed to receive transfer')
     });
 
-    const handleCompleteTransfer = (trfId) => {
-        const id = trfId.replace('TRF-', '');
-        receiveTransferMutation.mutate(id);
+    const handleCompleteTransfer = (e) => {
+        e.preventDefault();
+        if (!receivingTransferId) return;
+        const id = receivingTransferId.replace('TRF-', '');
+        receiveTransferMutation.mutate({ transferId: id, rack_number: receiveForm.rack_number, shelf_number: receiveForm.shelf_number });
     };
 
     if (!isLoadingSettings && activeConfig.godown === false) {
@@ -1044,9 +1050,8 @@ const BusinessWarehouse = () => {
                                         <td style={{ padding: '1rem', textAlign: 'right' }}>
                                             {trf.transfer_status !== 'Completed' && (
                                                 <button
-                                                    onClick={() => handleCompleteTransfer(trf.transfer_id)}
-                                                    disabled={receiveTransferMutation.isLoading}
-                                                    style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', opacity: receiveTransferMutation.isLoading ? 0.7 : 1 }}
+                                                    onClick={() => setReceivingTransferId(trf.transfer_id)}
+                                                    style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
                                                 >Mark Received</button>
                                             )}
                                         </td>
@@ -1057,6 +1062,35 @@ const BusinessWarehouse = () => {
                     </div>
                 )}
             </div>
+            
+            {/* Receive Transfer Modal */}
+            {receivingTransferId && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '420px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Receive Stock</h3>
+                            <button onClick={() => { setReceivingTransferId(null); setReceiveForm({ rack_number: '', shelf_number: '' }); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}>X</button>
+                        </div>
+                        <p style={{ color: '#475569', marginBottom: '1.5rem', fontSize: '0.95rem' }}>Where are you storing this received stock in the destination warehouse?</p>
+                        
+                        <form onSubmit={handleCompleteTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Destination Rack (Optional)</label>
+                                <input type='text' value={receiveForm.rack_number} onChange={(e) => setReceiveForm({ ...receiveForm, rack_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} placeholder='e.g. Rack A1' />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Destination Shelf (Optional)</label>
+                                <input type='text' value={receiveForm.shelf_number} onChange={(e) => setReceiveForm({ ...receiveForm, shelf_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} placeholder='e.g. Shelf 3' />
+                            </div>
+
+                            <button type='submit' disabled={receiveTransferMutation.isLoading} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(5, 150, 105, 0.25)', opacity: receiveTransferMutation.isLoading ? 0.7 : 1 }}>
+                                {receiveTransferMutation.isLoading ? 'Receiving...' : 'Confirm Receipt'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Edit Warehouse Modal */}
             {editingWarehouse && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6,78,59,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>

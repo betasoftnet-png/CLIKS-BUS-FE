@@ -356,6 +356,7 @@ const BusinessInventory = () => {
         conversion_rate: 1,
         warehouse: '',
         rack_number: '',
+        shelf_number: '',
         has_warranty: 'No',
         warranty_period: '',
         isUnlimited: false
@@ -507,6 +508,7 @@ const BusinessInventory = () => {
             conversion_rate: 1,
             warehouse: '',
             rack_number: '',
+            shelf_number: '',
             has_warranty: 'No',
             warranty_period: '',
             isUnlimited: false
@@ -562,6 +564,7 @@ const BusinessInventory = () => {
             conversion_rate: item.conversion_rate || 1,
             warehouse: item.warehouse || 'Main Godown',
             rack_number: item.rack_number || '',
+            shelf_number: item.shelf_number || '',
             has_warranty: item.has_warranty || 'No',
             warranty_period: item.warranty_period || '',
             isUnlimited: Boolean(item.isUnlimited === true || item.is_unlimited === true || (parseFloat(item.quantity) >= 999999) || (parseFloat(item.opening_stock) >= 999999))
@@ -651,7 +654,8 @@ const BusinessInventory = () => {
             warrantyDetails: isWarrantyActive ? 'Yes' : 'No',
             warranty_period: resolvedWarrantyPeriod,
             warrantyPeriod: resolvedWarrantyPeriod,
-            rack_number: formData.rack_number || null
+            rack_number: formData.rack_number || null,
+            shelf_number: formData.shelf_number || null
         };
 
         if (editingItem) {
@@ -1804,6 +1808,10 @@ const BusinessInventory = () => {
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Rack Location</label>
                                             <input type="text" value={formData.rack_number} onChange={(e) => setFormData({...formData, rack_number: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Rack 4" />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Shelf Location</label>
+                                            <input type="text" value={formData.shelf_number} onChange={(e) => setFormData({...formData, shelf_number: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Shelf 2" />
                                         </div>
                                     </div>
 
