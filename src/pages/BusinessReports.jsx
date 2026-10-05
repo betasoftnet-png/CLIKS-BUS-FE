@@ -100,7 +100,7 @@ const BusinessReports = () => {
                     const rawStocks = stocksRes?.data || stocksRes || [];
                     const rawProducts = Array.isArray(productsRes) ? productsRes : (productsRes?.data || productsRes?.products || []);
 
-                    let combinedList = rawStocks.length > 0 ? rawStocks : rawProducts.map(p => ({
+                    let combinedList = rawProducts.length > 0 ? rawProducts.map(p => ({
                         product_name: p.name || p.product_name,
                         name: p.name || p.product_name,
                         sku: p.sku || `SKU-${p.id || 100}`,
@@ -110,6 +110,9 @@ const BusinessReports = () => {
                         purchase_price: parseFloat(p.cost_price || p.purchase_price || 0),
                         category: p.category || 'General',
                         updated_at: p.updated_at || p.created_at
+                    })) : rawStocks.map(s => ({
+                        ...s,
+                        min_stock: s.low_stock_threshold || 10
                     }));
 
                     if (id === 5) return combinedList.filter(s => (parseFloat(s.quantity || s.stock_quantity || 0)) <= (parseFloat(s.min_stock || 10)));

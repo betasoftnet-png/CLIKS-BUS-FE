@@ -178,7 +178,7 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
         }
 
         // Check if report is warehouse capacity (id 15)
-        const isWarehouse = reportData.some(item => item.warehouse_name || item.warehouse_code || item.capacity_utilization !== undefined || (item.name && item.location));
+        const isWarehouse = reportData.some(item => item.warehouse_name || item.warehouse_code || item.capacity_utilization !== undefined || (item.name && item.location && item.code && !item.sku && !item.selling_price));
         if (isWarehouse) {
             return reportData.map((w, idx) => {
                 const utilStr = String(w.capacity_utilization || w.utilization || '0%').replace('%', '');
@@ -301,7 +301,7 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
                     }}>
                         <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Total SKUs</span>
                         <span style={{ fontSize: '1rem', fontWeight: '900', color: '#0F172A' }}>
-                            {hoveredIndex !== null ? slices[hoveredIndex].label.slice(0, 10) : slices.length}
+                            {hoveredIndex !== null ? slices[hoveredIndex].label.slice(0, 10) : reportData.length}
                         </span>
                     </div>
                 </div>
