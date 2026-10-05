@@ -17,39 +17,38 @@ export default function BatchesExpiriesTab({
   };
 
   const processedBatches = useMemo(() => {
-    return batches.map(b => {
-      const perishable = isItemPerishable(b);
-      const expDate = perishable && b.expiry_date && b.expiry_date !== '2029-01-10' ? b.expiry_date : null;
-      const mfgDate = perishable && b.manufacturing_date && b.manufacturing_date !== 'N/A' ? b.manufacturing_date : null;
-      
-      let daysLeft = null;
-      if (expDate) {
-        daysLeft = Math.ceil((new Date(expDate) - new Date()) / (1000 * 60 * 60 * 24));
-      }
+    return batches
+      .filter(b => isItemPerishable(b))
+      .map(b => {
+        const expDate = b.expiry_date && b.expiry_date !== '2029-01-10' ? b.expiry_date : null;
+        const mfgDate = b.manufacturing_date && b.manufacturing_date !== 'N/A' ? b.manufacturing_date : null;
+        
+        let daysLeft = null;
+        if (expDate) {
+          daysLeft = Math.ceil((new Date(expDate) - new Date()) / (1000 * 60 * 60 * 24));
+        }
 
-      return {
-        ...b,
-        is_perishable: perishable,
-        has_expiry: perishable,
-        resolved_expiry_date: expDate,
-        resolved_mfg_date: mfgDate,
-        days_left: daysLeft
-      };
-    });
+        return {
+          ...b,
+          is_perishable: true,
+          has_expiry: true,
+          resolved_expiry_date: expDate,
+          resolved_mfg_date: mfgDate,
+          days_left: daysLeft
+        };
+      });
   }, [batches]);
 
   // Summary Metrics
   const stats = useMemo(() => {
     const total = processedBatches.length;
-    const perishable = processedBatches.filter(b => b.is_perishable);
-    const expiringSoon = perishable.filter(b => b.days_left !== null && b.days_left <= 120);
-    const nonPerishableCount = total - perishable.length;
+    const expiringSoon = processedBatches.filter(b => b.days_left !== null && b.days_left <= 120);
+    const expired = processedBatches.filter(b => b.days_left !== null && b.days_left <= 0);
 
     return {
       total,
-      perishableCount: perishable.length,
       expiringSoonCount: expiringSoon.length,
-      nonPerishableCount
+      expiredCount: expired.length
     };
   }, [processedBatches]);
 
@@ -57,8 +56,8 @@ export default function BatchesExpiriesTab({
   const filteredBatches = useMemo(() => {
     return processedBatches.filter(b => {
       // Filter tab
-      if (filterMode === 'perishable_only' && !b.is_perishable) return false;
-      if (filterMode === 'expiring_soon' && (!b.is_perishable || b.days_left === null || b.days_left > 120)) return false;
+      if (filterMode === 'expiring_soon' && (b.days_left === null || b.days_left > 120)) return false;
+      if (filterMode === 'expired' && (b.days_left === null || b.days_left > 0)) return false;
 
       // Text query
       if (searchQuery.trim()) {
@@ -86,7 +85,7 @@ export default function BatchesExpiriesTab({
         </div>
 
         {/* Filter Badges */}
-        <div className="flex items-center gap-2 bg-gray-100/80 p-1 rounded-2xl self-start sm:self-auto border border-gray-200/60">
+        <div className="flex bg-gray-100/70 p-1 rounded-2xl">
           <button
             type="button"
             onClick={() => setFilterMode('all')}
@@ -96,72 +95,62 @@ export default function BatchesExpiriesTab({
                 : 'text-gray-500 hover:text-gray-900'
             }`}
           >
-            All Batches ({stats.total})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterMode('perishable_only')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              filterMode === 'perishable_only'
-                ? 'bg-emerald-600 text-white shadow-xs font-black'
-                : 'text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            Perishable Only ({stats.perishableCount})
+            All Tracked Batches ({stats.total})
           </button>
           <button
             type="button"
             onClick={() => setFilterMode('expiring_soon')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
               filterMode === 'expiring_soon'
-                ? 'bg-rose-600 text-white shadow-xs font-black'
+                ? 'bg-amber-500 text-white shadow-xs font-black'
                 : 'text-gray-500 hover:text-gray-900'
             }`}
           >
             Expiring Soon ({stats.expiringSoonCount})
           </button>
+          <button
+            type="button"
+            onClick={() => setFilterMode('expired')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              filterMode === 'expired'
+                ? 'bg-rose-600 text-white shadow-xs font-black'
+                : 'text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            Expired ({stats.expiredCount})
+          </button>
         </div>
       </div>
 
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-        <div className="p-3.5 bg-gray-50/70 border border-gray-200/80 rounded-2xl flex items-center gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+        <div className="p-3.5 bg-emerald-50/50 border border-emerald-200/60 rounded-2xl flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
             <PackageCheck className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Total Batches</span>
-            <span className="text-base font-black text-gray-900">{stats.total} Batches</span>
+            <span className="text-[10px] uppercase font-bold text-emerald-700 block tracking-wider">Perishable Batches</span>
+            <span className="text-base font-black text-emerald-950">{stats.total} Tracked</span>
           </div>
         </div>
 
-        <div className="p-3.5 bg-emerald-50/50 border border-emerald-200/60 rounded-2xl flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
-            <Calendar className="w-4 h-4" />
+        <div className="p-3.5 bg-amber-50/50 border border-amber-200/60 rounded-2xl flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+            <AlertTriangle className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-emerald-700 block tracking-wider">Perishable Goods</span>
-            <span className="text-base font-black text-emerald-950">{stats.perishableCount} Tracked</span>
+            <span className="text-[10px] uppercase font-bold text-amber-700 block tracking-wider">Expiring ≤ 120 Days</span>
+            <span className="text-base font-black text-amber-950">{stats.expiringSoonCount} Batches</span>
           </div>
         </div>
 
         <div className="p-3.5 bg-rose-50/50 border border-rose-200/60 rounded-2xl flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
-            <AlertTriangle className="w-4 h-4" />
-          </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold text-rose-700 block tracking-wider">Expiring ≤ 120 Days</span>
-            <span className="text-base font-black text-rose-950">{stats.expiringSoonCount} Batches</span>
-          </div>
-        </div>
-
-        <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center font-bold">
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-slate-500 block tracking-wider">Non-Perishable</span>
-            <span className="text-base font-black text-slate-800">{stats.nonPerishableCount} Items</span>
+            <span className="text-[10px] uppercase font-bold text-rose-700 block tracking-wider">Expired Batches</span>
+            <span className="text-base font-black text-rose-950">{stats.expiredCount} Batches</span>
           </div>
         </div>
       </div>
@@ -195,13 +184,12 @@ export default function BatchesExpiriesTab({
             {filteredBatches.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-xs text-gray-400 font-semibold">
-                  No matching batches found.
+                  No perishable batches found.
                 </td>
               </tr>
             ) : (
               filteredBatches.map((bat, idx) => {
-                const isPerishable = bat.is_perishable;
-                const hasExp = Boolean(isPerishable && bat.resolved_expiry_date);
+                const hasExp = Boolean(bat.resolved_expiry_date);
                 const days = bat.days_left;
 
                 return (
@@ -214,14 +202,7 @@ export default function BatchesExpiriesTab({
                       {bat.batch_number}
                     </td>
                     <td className="py-3.5 px-4 font-bold text-gray-800">
-                      <div className="flex items-center gap-2">
-                        <span>{bat.product_name}</span>
-                        {!isPerishable && (
-                          <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-md">
-                            General
-                          </span>
-                        )}
-                      </div>
+                      <span>{bat.product_name}</span>
                     </td>
                     <td className="py-3.5 px-4 text-gray-600">
                       {bat.resolved_mfg_date || 'N/A'}
@@ -233,7 +214,7 @@ export default function BatchesExpiriesTab({
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gray-100 text-gray-500">
-                          N/A (Non-Perishable)
+                          Date Not Set
                         </span>
                       )}
                     </td>
@@ -255,7 +236,7 @@ export default function BatchesExpiriesTab({
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-medium bg-gray-50 border border-gray-200/60 text-gray-400">
-                          Not Applicable
+                          No Expiry Data
                         </span>
                       )}
                     </td>

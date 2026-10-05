@@ -182,8 +182,15 @@ const BusinessAccounting = () => {
     // Send Reminder Form State
     const [reminderForm, setReminderForm] = useState({
         channel: 'WhatsApp',
-        template: 'Standard Reminder'
+        template: 'Standard Reminder',
+        toEmail: ''
     });
+
+    useEffect(() => {
+        if (isReminderOpen && selectedInvoiceForModal) {
+            setReminderForm(prev => ({ ...prev, toEmail: selectedInvoiceForModal.client_email || '' }));
+        }
+    }, [isReminderOpen, selectedInvoiceForModal]);
 
     // Table Search, Sorting, Filtering and Pagination States
     const [receivablesSearch, setReceivablesSearch] = useState('');
@@ -2567,8 +2574,14 @@ const BusinessAccounting = () => {
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>Recipient</label>
-                                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#1E293B' }}>{selectedInvoiceForModal.client_name} ({selectedInvoiceForModal.client_email || 'No email'})</p>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>Recipient ({selectedInvoiceForModal.client_name})</label>
+                                            <input 
+                                                type="email" 
+                                                value={reminderForm.toEmail} 
+                                                onChange={(e) => setReminderForm(prev => ({ ...prev, toEmail: e.target.value }))}
+                                                placeholder="Enter recipient email address"
+                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem', background: 'white' }}
+                                            />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>Reminder Channel</label>
@@ -2618,9 +2631,9 @@ const BusinessAccounting = () => {
                                                 
                                                 if (reminderForm.channel === 'Email') {
                                                     try {
-                                                        const toEmail = selectedInvoiceForModal.client_email;
+                                                        const toEmail = reminderForm.toEmail;
                                                         if (!toEmail) {
-                                                            alert("Client email is missing. Please update the invoice with a valid email address.");
+                                                            alert("Please provide a valid recipient email address.");
                                                             return;
                                                         }
                                                         const bodyContent = reminderForm.template === 'Urgent Overdue Alert' 
@@ -2831,11 +2844,11 @@ const BusinessAccounting = () => {
                                                                 </div>
                                                             </div>
                                                             <script>
-                                                                window.onload = function() {
-                                                                    window.print();
-                                                                    setTimeout(function() { window.close(); }, 500);
-                                                                }
-                                                            </script>
+    setTimeout(function() {
+        window.print();
+        window.close();
+    }, 250);
+</script>
                                                         </body>
                                                     </html>
                                                 `);
