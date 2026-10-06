@@ -459,33 +459,52 @@ const BusinessReports = () => {
 
                 // ── GST Rate Wise Report
                 if (id === 39) {
-                    const sales = await reportsService.getSales().catch(() => []);
-                    const rawSales = sales?.data || sales || [];
+                    const invoices = await gstService.getInvoices().catch(() => []);
+                    const rawInvoices = Array.isArray(invoices) ? invoices : (invoices?.data || []);
 
                     const slabMap = {
-                        '5% Slab': { slab: '5% Slab', taxable: 0, tax: 0 },
-                        '12% Slab': { slab: '12% Slab', taxable: 0, tax: 0 },
-                        '18% Slab': { slab: '18% Slab', taxable: 0, tax: 0 },
-                        '28% Slab': { slab: '28% Slab', taxable: 0, tax: 0 }
+                        '5% Slab': { category: '5% Slab', slab: '5% Slab', taxable: 0, tax: 0, value: 0 },
+                        '12% Slab': { category: '12% Slab', slab: '12% Slab', taxable: 0, tax: 0, value: 0 },
+                        '18% Slab': { category: '18% Slab', slab: '18% Slab', taxable: 0, tax: 0, value: 0 },
+                        '28% Slab': { category: '28% Slab', slab: '28% Slab', taxable: 0, tax: 0, value: 0 }
                     };
 
-                    rawSales.forEach(s => {
-                        const total = parseFloat(s.grand_total || 0);
-                        const taxRate = parseFloat(s.tax_rate || 18);
-                        const slabKey = `${taxRate}% Slab`;
-                        const taxable = total / (1 + (taxRate / 100));
-                        const tax = total - taxable;
+                    rawInvoices.forEach(inv => {
+                        const invTaxRate = parseFloat(inv.gst_percentage || inv.goods_gst_rate || 0);
+                        const invTaxable = parseFloat(inv.taxable_value || inv.amount || inv.total_invoice || 0);
+                        const invTax = parseFloat(inv.total_tax || inv.gst_amount || 0);
 
-                        if (slabMap[slabKey]) {
-                            slabMap[slabKey].taxable += taxable;
-                            slabMap[slabKey].tax += tax;
+                        let items = [];
+                        try {
+                            items = typeof inv.items === 'string' ? JSON.parse(inv.items) : (Array.isArray(inv.items) ? inv.items : []);
+                        } catch(e) {}
+                        
+                        if (items.length > 0) {
+                            items.forEach(item => {
+                                const taxRate = parseFloat(item.taxRate || item.tax_rate || item.gst_rate || invTaxRate || 18);
+                                const slabKey = `${taxRate}% Slab`;
+                                const taxable = parseFloat(item.amount || item.total || item.taxable_value || 0);
+                                const tax = taxable * (taxRate / 100);
+                                
+                                if (!slabMap[slabKey]) slabMap[slabKey] = { category: slabKey, slab: slabKey, taxable: 0, tax: 0, value: 0 };
+                                slabMap[slabKey].taxable += taxable;
+                                slabMap[slabKey].tax += tax;
+                                slabMap[slabKey].value += taxable;
+                            });
+                        } else if (invTaxRate > 0) {
+                            const slabKey = `${invTaxRate}% Slab`;
+                            if (!slabMap[slabKey]) slabMap[slabKey] = { category: slabKey, slab: slabKey, taxable: 0, tax: 0, value: 0 };
+                            slabMap[slabKey].taxable += invTaxable;
+                            slabMap[slabKey].tax += invTax;
+                            slabMap[slabKey].value += invTaxable;
                         } else {
-                            slabMap['18% Slab'].taxable += taxable;
-                            slabMap['18% Slab'].tax += tax;
+                            slabMap['18% Slab'].taxable += invTaxable;
+                            slabMap['18% Slab'].tax += invTax;
+                            slabMap['18% Slab'].value += invTaxable;
                         }
                     });
 
-                    return Object.values(slabMap);
+                    return Object.values(slabMap).filter(s => s.taxable > 0 || ['5% Slab', '12% Slab', '18% Slab', '28% Slab'].includes(s.slab));
                 }
 
                 // ── Form 27EQ Compliance
@@ -919,8 +938,8 @@ const BusinessReports = () => {
                                 ) : (
                                     <MonthlySalesBarChart 
                                         reportData={reportDetails} 
-                                        title={selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : `${selectedReport.title} Monthly Trend`} 
-                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics'))))}
+                                        title={selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : `${selectedReport.title} Monthly Trend`)} 
+                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')))))}
                                     />
                                 )}
                             </div>
