@@ -290,9 +290,9 @@ const BusinessReports = () => {
                         purchasesService.getPurchases().catch(() => [])
                     ]);
                     const items = [
-                        ...(sales?.data || sales || []).map(t => ({ date: t.date || t.created_at, type: 'Sale', party: t.customer || 'Walk-in', total: parseFloat(t.grand_total || 0) })),
-                        ...(expenses?.data || expenses || []).map(t => ({ date: t.date || t.created_at, type: 'Expense', party: t.category || 'Admin', total: parseFloat(t.amount || 0) })),
-                        ...(purchases?.data || purchases || []).map(t => ({ date: t.bill_date || t.created_at, type: 'Purchase', party: t.supplier_name || 'Vendor', total: parseFloat(t.total_amount || 0) }))
+                        ...(sales?.data || sales || []).map(t => ({ date: t.date || t.created_at || t.invoice_date, type: 'Sale', party: t.customer || t.client_name || 'Walk-in', total: Math.abs(parseFloat(t.grand_total || t.total_amount || t.total || 0)), inflow: Math.abs(parseFloat(t.grand_total || t.total_amount || t.total || 0)), outflow: 0 })),
+                        ...(expenses?.data || expenses || []).map(t => ({ date: t.expense_date || t.date || t.created_at, type: 'Expense', party: t.category_name || t.category || 'Admin', total: Math.abs(parseFloat(t.amount || t.expense_amount || t.subtotal || 0)), inflow: 0, outflow: Math.abs(parseFloat(t.amount || t.expense_amount || t.subtotal || 0)) })),
+                        ...(purchases?.data || purchases || []).map(t => ({ date: t.bill_date || t.purchase_date || t.date || t.created_at, type: 'Purchase', party: t.supplier_name || t.supplier || 'Vendor', total: Math.abs(parseFloat(t.grand_total || t.total_amount || t.total || 0)), inflow: 0, outflow: Math.abs(parseFloat(t.grand_total || t.total_amount || t.total || 0)) }))
                     ];
                     return items.sort((a, b) => new Date(b.date) - new Date(a.date));
                 }
@@ -906,7 +906,7 @@ const BusinessReports = () => {
                                     <MonthlySalesBarChart 
                                         reportData={reportDetails} 
                                         title={`${selectedReport.title} Monthly Trend`} 
-                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics'))}
+                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')))}
                                     />
                                 )}
                             </div>
@@ -1638,10 +1638,12 @@ const BusinessReports = () => {
                                             <tbody>
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem' }}>{row.date}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem' }}>{new Date(row.date).toLocaleString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                                         <td style={{ padding: '0.6rem 1rem' }}><span style={{ fontSize: '0.7rem', fontWeight: '900', padding: '2px 6px', borderRadius: '4px', background: row.type === 'Sale' ? '#ECFDF5' : row.type === 'Purchase' ? '#EFF6FF' : '#FEF2F2', color: row.type === 'Sale' ? '#047857' : row.type === 'Purchase' ? '#1D4ED8' : '#B91C1C' }}>{row.type.toUpperCase()}</span></td>
                                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', fontWeight: '700' }}>{row.party}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', fontWeight: '850', textAlign: 'right' }}>{formatCurrency(row.total)}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', fontWeight: '850', textAlign: 'right', color: row.type === 'Sale' ? '#10B981' : '#EF4444' }}>
+                                                            {row.type === 'Sale' ? '+ ' : '- '}{formatCurrency(row.total)}
+                                                        </td>
                                                     </tr>
                                                 )) : (
                                                     <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center' }}>No transactions recorded.</td></tr>
