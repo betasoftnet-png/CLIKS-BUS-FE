@@ -218,10 +218,54 @@ const BusinessReports = () => {
                 }
                 if (id === 22) {
                     try {
-                        const res = await gstService.getGSTR3B();
-                        return res?.data || res || null;
+                        const [invoicesRes, recsRes] = await Promise.all([
+                            gstService.getInvoices().catch(() => []),
+                            gstService.getReconciliations().catch(() => [])
+                        ]);
+                        
+                        const rawInvoices = Array.isArray(invoicesRes) ? invoicesRes : (invoicesRes?.data || []);
+                        const rawRecs = Array.isArray(recsRes) ? recsRes : (recsRes?.data || []);
+
+                        let outward_taxable = 0;
+                        let total_output_tax = 0;
+                        rawInvoices.forEach(inv => {
+                            const invNum = (inv.invoice_number || '').toUpperCase();
+                            if (!invNum.startsWith('PO') && !invNum.startsWith('PUR') && !inv.purchase_invoice_id && inv.is_reconciliation !== 'true' && inv.is_reconciliation !== 1) {
+                                outward_taxable += parseFloat(inv.taxable_value || inv.amount || 0);
+                                total_output_tax += parseFloat(inv.total_tax || inv.gst_amount || 0);
+                            }
+                        });
+
+                        let eligible_itc = 0;
+                        let blocked_credit = 0;
+                        rawRecs.forEach(rec => {
+                            const taxAmt = parseFloat(rec.total_tax || rec.gst_amount || 0);
+                            const itcAmt = parseFloat(rec.eligible_itc || taxAmt);
+                            const s = (rec.invoice_match_status || rec.status || 'PENDING').toUpperCase();
+                            
+                            if (s.includes('INELIGIBLE') || s.includes('MISMATCH')) {
+                                blocked_credit += taxAmt;
+                            } else {
+                                eligible_itc += itcAmt;
+                            }
+                        });
+
+                        const net_payable = Math.max(0, total_output_tax - eligible_itc);
+
+                        return {
+                            outward_taxable,
+                            total_output_tax,
+                            total_eligible_itc: eligible_itc,
+                            blocked_credit: blocked_credit,
+                            net_payable: net_payable,
+                            chartData: [
+                                { category: 'Outward Liability', value: total_output_tax },
+                                { category: 'Eligible ITC', value: eligible_itc },
+                                { category: 'Net Payable', value: net_payable }
+                            ]
+                        };
                     } catch {
-                        return { outward_taxable: 0, outward_igst: 0, outward_cgst: 0, outward_sgst: 0, total_output_tax: 0, eligible_itc_igst: 0, eligible_itc_cgst: 0, eligible_itc_sgst: 0, total_eligible_itc: 0, net_payable_igst: 0, net_payable_cgst: 0, net_payable_sgst: 0 };
+                        return { outward_taxable: 0, total_output_tax: 0, total_eligible_itc: 0, blocked_credit: 0, net_payable: 0, chartData: [] };
                     }
                 }
                 if (id === 23) {
@@ -1044,9 +1088,9 @@ const BusinessReports = () => {
                                     />
                                 ) : (
                                     <MonthlySalesBarChart 
-                                        reportData={reportDetails} 
-                                        title={selectedReport.id === 12 ? 'GSTR-1 Outward Tax Liability' : (selectedReport.id === 21 ? 'GSTR-2 Inward ITC Reconciliation' : (selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : (selectedReport.id === 41 ? 'TCS Receivable Audit' : (selectedReport.id === 42 ? 'TDS Receivable Matrix' : (selectedReport.id === 43 ? 'TDS Payable Ledger' : `${selectedReport.title} Monthly Trend`)))))))} 
-                                        subtitle={selectedReport.id === 12 ? 'Monthly distribution of outward sales tax liabilities' : (selectedReport.id === 21 ? 'Vendor-wise distribution of claimable Input Tax Credit (ITC)' : (selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.id === 41 ? 'Counter-party distribution of TCS receivables from sales' : (selectedReport.id === 42 ? 'Client-wise distribution of TDS receivables' : (selectedReport.id === 43 ? 'Supplier-wise distribution of TDS payables' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')))))))))))}
+                                        reportData={selectedReport.id === 22 ? (reportDetails?.chartData || []) : reportDetails} 
+                                        title={selectedReport.id === 12 ? 'GSTR-1 Outward Tax Liability' : (selectedReport.id === 21 ? 'GSTR-2 Inward ITC Reconciliation' : (selectedReport.id === 22 ? 'GSTR-3B Tax Liability & Offset' : (selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : (selectedReport.id === 41 ? 'TCS Receivable Audit' : (selectedReport.id === 42 ? 'TDS Receivable Matrix' : (selectedReport.id === 43 ? 'TDS Payable Ledger' : `${selectedReport.title} Monthly Trend`))))))))} 
+                                        subtitle={selectedReport.id === 12 ? 'Monthly distribution of outward sales tax liabilities' : (selectedReport.id === 21 ? 'Vendor-wise distribution of claimable Input Tax Credit (ITC)' : (selectedReport.id === 22 ? 'Monthly tax liability and input credit offsets' : (selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.id === 41 ? 'Counter-party distribution of TCS receivables from sales' : (selectedReport.id === 42 ? 'Client-wise distribution of TDS receivables' : (selectedReport.id === 43 ? 'Supplier-wise distribution of TDS payables' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics'))))))))))))}
                                     />
                                 )}
                             </div>
@@ -1439,7 +1483,7 @@ const BusinessReports = () => {
                                                     <div style={{ fontSize: '0.72rem', fontWeight: '850', color: '#15803D', textTransform: 'uppercase' }}>Input Tax Credit (ITC)</div>
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}><span style={{ color: '#15803D', fontWeight: '600' }}>Eligible ITC:</span><span style={{ fontWeight: '800' }}>{formatCurrency(reportDetails?.total_eligible_itc)}</span></div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}><span style={{ color: '#15803D', fontWeight: '600' }}>Blocked Credit:</span><span style={{ fontWeight: '800' }}>{formatCurrency(0)}</span></div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}><span style={{ color: '#15803D', fontWeight: '600' }}>Blocked Credit:</span><span style={{ fontWeight: '800' }}>{formatCurrency(reportDetails?.blocked_credit || 0)}</span></div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1449,7 +1493,7 @@ const BusinessReports = () => {
                                                     <div style={{ fontSize: '0.7rem', color: '#991B1B', fontWeight: '600' }}>Consolidated tax payable in cash after input credits.</div>
                                                 </div>
                                                 <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#991B1B' }}>
-                                                    {formatCurrency((reportDetails?.net_payable_igst || 0) + (reportDetails?.net_payable_cgst || 0) + (reportDetails?.net_payable_sgst || 0))}
+                                                    {formatCurrency(reportDetails?.net_payable || 0)}
                                                 </div>
                                             </div>
                                         </div>
