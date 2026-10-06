@@ -170,12 +170,13 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
     const isParty = Array.isArray(reportData) && reportData.some(item => item.outstanding_balance !== undefined || item.total_due !== undefined || item.total_spent !== undefined || (item.name && item.phone && !item.sku && !item.selling_price));
     const isTrialBalance = Array.isArray(reportData) && reportData.some(item => item.ledger && (item.debit !== undefined || item.credit !== undefined));
     const isProfitLoss = reportData && !Array.isArray(reportData) && reportData.gross_revenue !== undefined;
+    const isBalanceSheet = reportData && !Array.isArray(reportData) && reportData.assets !== undefined && reportData.liabilities !== undefined;
 
     // Process data into categorical slices
     const processStockData = () => {
         const colors = ['#EC4899', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#6366F1', '#14B8A6', '#F43F5E'];
 
-        if (!reportData || (!Array.isArray(reportData) && !isProfitLoss) || (Array.isArray(reportData) && reportData.length === 0)) {
+        if (!reportData || (!Array.isArray(reportData) && !isProfitLoss && !isBalanceSheet) || (Array.isArray(reportData) && reportData.length === 0)) {
             return [
                 { label: 'In Stock', value: 0, count: 0, color: '#10B981', displayVal: '0 units' },
                 { label: 'Low Stock', value: 0, count: 0, color: '#F59E0B', displayVal: '0 units' },
@@ -190,6 +191,17 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
                 { label: 'Net Profit', value: Math.max(parseFloat(reportData.net_profit || 0), 0), displayVal: formatCurrency(reportData.net_profit || 0), color: '#10B981' }
             ].filter(x => x.value > 0);
             return list.length > 0 ? list : [{ label: 'Empty P&L', value: 1, displayVal: '₹0' }];
+        }
+
+        if (isBalanceSheet) {
+            const list = [
+                { label: 'Cash in Hand', value: parseFloat(reportData.assets.cash || 0), displayVal: formatCurrency(reportData.assets.cash || 0), color: '#10B981' },
+                { label: 'Bank Balances', value: parseFloat(reportData.assets.bank || 0), displayVal: formatCurrency(reportData.assets.bank || 0), color: '#3B82F6' },
+                { label: 'Inventory', value: parseFloat(reportData.assets.inventory || 0), displayVal: formatCurrency(reportData.assets.inventory || 0), color: '#8B5CF6' },
+                { label: 'Accounts Receivable', value: parseFloat(reportData.assets.receivables || 0), displayVal: formatCurrency(reportData.assets.receivables || 0), color: '#14B8A6' },
+                { label: 'Fixed Assets', value: parseFloat(reportData.assets.fixed_assets || 0), displayVal: formatCurrency(reportData.assets.fixed_assets || 0), color: '#F59E0B' }
+            ].filter(x => x.value > 0);
+            return list.length > 0 ? list : [{ label: 'No Assets', value: 1, displayVal: '₹0' }];
         }
 
         // Check if report is warehouse capacity (id 15)
