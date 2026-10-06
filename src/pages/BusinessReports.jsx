@@ -890,8 +890,8 @@ const BusinessReports = () => {
                                 {((['inventory', 'parties'].includes(selectedReport.category) && selectedReport.id !== 6) || [4, 5, 15, 16, 38].includes(selectedReport.id)) ? (
                                     <StockPieChart 
                                         reportData={reportDetails} 
-                                        title={selectedReport.id === 15 ? 'Warehouse Capacity Utilization' : `${selectedReport.title} Accordance & Stock Metrics`}
-                                        subtitle={selectedReport.id === 15 ? 'Storage distribution and capacity metrics across all warehouse locations' : 'Stock valuation distribution & warehouse placement'}
+                                        title={selectedReport.id === 15 ? 'Warehouse Capacity Utilization' : (selectedReport.category === 'parties' ? `${selectedReport.title} Outstanding Balance Distribution` : `${selectedReport.title} Accordance & Stock Metrics`)}
+                                        subtitle={selectedReport.id === 15 ? 'Storage distribution and capacity metrics across all warehouse locations' : (selectedReport.category === 'parties' ? 'Overview of pending balances across registered clients' : 'Stock valuation distribution & warehouse placement')}
                                     />
                                 ) : (
                                     <MonthlySalesBarChart 
@@ -1126,7 +1126,7 @@ const BusinessReports = () => {
                                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                             <thead style={{ background: '#F8FAFC' }}>
                                                 <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
-                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Trader Name</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
                                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Contact Phone</th>
                                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Outstanding Balance</th>
                                                 </tr>

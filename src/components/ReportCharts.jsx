@@ -165,6 +165,10 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
     const { formatCurrency } = useCurrency();
     const [hoveredIndex, setHoveredIndex] = useState(null);
 
+    // Determine types
+    const isWarehouse = Array.isArray(reportData) && reportData.some(item => item.warehouse_name || item.warehouse_code || item.capacity_utilization !== undefined || (item.name && item.location && item.code && !item.sku && !item.selling_price));
+    const isParty = Array.isArray(reportData) && reportData.some(item => item.outstanding_balance !== undefined || item.total_due !== undefined || item.total_spent !== undefined || (item.name && item.phone && !item.sku && !item.selling_price));
+
     // Process data into categorical slices
     const processStockData = () => {
         const colors = ['#EC4899', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#6366F1', '#14B8A6', '#F43F5E'];
@@ -178,7 +182,6 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
         }
 
         // Check if report is warehouse capacity (id 15)
-        const isWarehouse = reportData.some(item => item.warehouse_name || item.warehouse_code || item.capacity_utilization !== undefined || (item.name && item.location && item.code && !item.sku && !item.selling_price));
         if (isWarehouse) {
             const totalStock = reportData.reduce((sum, w) => sum + (parseFloat(w.total_quantity || 0)), 0);
             return reportData.map((w, idx) => {
@@ -193,7 +196,31 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
             });
         }
 
-        // Group by category or stock status
+        // Check if report is a party (customer/supplier)
+        if (isParty) {
+            const totalBal = reportData.reduce((sum, p) => sum + (parseFloat(p.outstanding_balance || p.total_due || 0)), 0);
+            const filtered = reportData.filter(p => parseFloat(p.outstanding_balance || p.total_due || 0) > 0);
+            
+            if (filtered.length === 0) {
+                return [{ label: 'Fully Settled', value: 1, displayVal: '₹0.00 Outstanding', color: '#10B981' }];
+            }
+
+            return filtered
+                .sort((a, b) => parseFloat(b.outstanding_balance || b.total_due || 0) - parseFloat(a.outstanding_balance || a.total_due || 0))
+                .slice(0, 8)
+                .map((p, idx) => {
+                    const bal = parseFloat(p.outstanding_balance || p.total_due || 0);
+                    const pct = totalBal > 0 ? ((bal / totalBal) * 100).toFixed(1) : 0;
+                    return {
+                        label: p.name || p.company_name || `Party ${idx + 1}`,
+                        value: bal,
+                        displayVal: `${pct}% (₹${bal.toFixed(2)})`,
+                        color: colors[idx % colors.length]
+                    };
+                });
+        }
+
+        // Group by category or stock status for generic products
         const catMap = {};
 
         reportData.forEach(item => {
@@ -300,7 +327,7 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
                         position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
                         alignItems: 'center', justifyContent: 'center', pointerEvents: 'none'
                     }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>{isWarehouse ? 'Warehouses' : 'Total SKUs'}</span>
+                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>{isWarehouse ? 'Warehouses' : (isParty ? 'Parties' : 'Total SKUs')}</span>
                         <span style={{ fontSize: '1rem', fontWeight: '900', color: '#0F172A' }}>
                             {hoveredIndex !== null ? slices[hoveredIndex].label.slice(0, 10) : reportData.length}
                         </span>
