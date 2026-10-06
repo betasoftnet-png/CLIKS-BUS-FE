@@ -459,17 +459,50 @@ const BusinessReports = () => {
 
                 // ── Bill-Wise Profit Margin
                 if (id === 30) {
-                    const sales = await reportsService.getSales();
-                    const raw = sales?.data || sales || [];
-                    return raw.map(s => {
-                        const amt = parseFloat(s.grand_total || 0);
-                        const cost = amt * 0.7;
+                    const [invoicesResponse, productsResponse] = await Promise.all([
+                        reportsService.getInvoices().catch(() => []),
+                        productsService.getProducts().catch(() => [])
+                    ]);
+                    const rawInvoices = invoicesResponse?.data || invoicesResponse || [];
+                    const productsList = Array.isArray(productsResponse) ? productsResponse : (productsResponse?.data || productsResponse?.products || []);
+
+                    const productCostMap = {};
+                    productsList.forEach(p => {
+                        const pid = p.id || p.product_id;
+                        if (pid) productCostMap[pid] = parseFloat(p.purchase_price || p.cost_price || 0);
+                        const pname = p.name || p.product_name;
+                        if (pname) productCostMap[pname] = parseFloat(p.purchase_price || p.cost_price || 0);
+                    });
+
+                    return rawInvoices.filter(s => s.status !== 'cancelled').map(s => {
+                        let totalCost = 0;
+                        try {
+                            const items = typeof s.items === 'string' ? JSON.parse(s.items) : (s.items || []);
+                            if (Array.isArray(items)) {
+                                items.forEach(item => {
+                                    const qty = parseFloat(item.quantity || 1);
+                                    let unitCost = parseFloat(item.cost_price || item.purchase_price || 0);
+                                    if (!unitCost) {
+                                        unitCost = productCostMap[item.product_id] || productCostMap[item.product_name || item.name || item.description] || 0;
+                                    }
+                                    totalCost += (unitCost * qty);
+                                });
+                            }
+                        } catch (e) {
+                            console.error('Error parsing items for profit calculation:', e);
+                        }
+
+                        const amt = parseFloat(s.grand_total || s.total_amount || 0);
+                        const profit = amt - totalCost;
+                        const marginPercent = amt > 0 ? ((profit / amt) * 100).toFixed(2) + '%' : '0.00%';
+
                         return {
-                            billNo: s.order_number,
-                            customer: s.customer || 'Client',
+                            date: s.date || s.created_at || s.invoice_date,
+                            billNo: s.invoice_number || s.order_number,
+                            customer: s.client_name || s.customer || 'Client',
                             revenue: amt,
-                            profit: amt - cost,
-                            margin: '30.00%'
+                            profit: profit,
+                            margin: marginPercent
                         };
                     });
                 }
