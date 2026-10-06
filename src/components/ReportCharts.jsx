@@ -198,24 +198,25 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
 
         // Check if report is a party (customer/supplier)
         if (isParty) {
-            const totalBal = reportData.reduce((sum, p) => sum + (parseFloat(p.outstanding_balance || p.total_due || 0)), 0);
-            const filtered = reportData.filter(p => parseFloat(p.outstanding_balance || p.total_due || 0) > 0);
+            const totalBal = reportData.reduce((sum, p) => sum + Math.abs(parseFloat(p.outstanding_balance || p.total_due || 0)), 0);
+            const filtered = reportData.filter(p => Math.abs(parseFloat(p.outstanding_balance || p.total_due || 0)) > 0);
             
             if (filtered.length === 0) {
                 return [{ label: 'Fully Settled', value: 1, displayVal: '₹0.00 Outstanding', color: '#10B981' }];
             }
 
             return filtered
-                .sort((a, b) => parseFloat(b.outstanding_balance || b.total_due || 0) - parseFloat(a.outstanding_balance || a.total_due || 0))
+                .sort((a, b) => Math.abs(parseFloat(b.outstanding_balance || b.total_due || 0)) - Math.abs(parseFloat(a.outstanding_balance || a.total_due || 0)))
                 .slice(0, 8)
                 .map((p, idx) => {
-                    const bal = parseFloat(p.outstanding_balance || p.total_due || 0);
+                    const rawBal = parseFloat(p.outstanding_balance || p.total_due || 0);
+                    const bal = Math.abs(rawBal);
                     const pct = totalBal > 0 ? ((bal / totalBal) * 100).toFixed(1) : 0;
                     return {
                         label: p.name || p.company_name || `Party ${idx + 1}`,
                         value: bal,
-                        displayVal: `${pct}% (₹${bal.toFixed(2)})`,
-                        color: colors[idx % colors.length]
+                        displayVal: `${pct}% (₹${bal.toFixed(2)}${rawBal < 0 ? ' Adv' : ''})`,
+                        color: rawBal < 0 ? '#10B981' : colors[idx % colors.length]
                     };
                 });
         }

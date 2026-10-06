@@ -891,7 +891,7 @@ const BusinessReports = () => {
                                     <StockPieChart 
                                         reportData={reportDetails} 
                                         title={selectedReport.id === 15 ? 'Warehouse Capacity Utilization' : (selectedReport.category === 'parties' ? `${selectedReport.title} Outstanding Balance Distribution` : `${selectedReport.title} Accordance & Stock Metrics`)}
-                                        subtitle={selectedReport.id === 15 ? 'Storage distribution and capacity metrics across all warehouse locations' : (selectedReport.category === 'parties' ? 'Overview of pending balances across registered clients' : 'Stock valuation distribution & warehouse placement')}
+                                        subtitle={selectedReport.id === 15 ? 'Storage distribution and capacity metrics across all warehouse locations' : (selectedReport.category === 'parties' ? 'Overview of pending balances across registered parties' : 'Stock valuation distribution & warehouse placement')}
                                     />
                                 ) : (
                                     <MonthlySalesBarChart 
@@ -1162,7 +1162,9 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name || row.company_name}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.email || row.phone || 'N/A'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.outstanding_balance)}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: (row.outstanding_balance || 0) < 0 ? '#10B981' : '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>
+                                                            {(row.outstanding_balance || 0) < 0 ? `${formatCurrency(Math.abs(row.outstanding_balance))} (Adv)` : formatCurrency(row.outstanding_balance || 0)}
+                                                        </td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
