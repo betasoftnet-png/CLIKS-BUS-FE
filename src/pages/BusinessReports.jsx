@@ -543,14 +543,26 @@ const BusinessReports = () => {
 
                 // ── TCS Receivable Audit
                 if (id === 41) {
-                    const cust = await crmService.getCustomers().catch(() => []);
-                    const list = cust?.data || cust || [];
-                    return list.map(c => ({
-                        party: c.name || c.first_name,
-                        taxableVal: parseFloat(c.outstanding_balance || 0),
-                        tcsVal: parseFloat(c.outstanding_balance || 0) * 0.01,
-                        status: 'Compiled'
-                    }));
+                    const invoices = await gstService.getInvoices().catch(() => []);
+                    const rawInvoices = Array.isArray(invoices) ? invoices : (invoices?.data || []);
+                    
+                    const partyMap = {};
+                    rawInvoices.forEach(inv => {
+                        const partyName = inv.customer_name || inv.client_name || inv.vendor_name || 'Walk-in Customer';
+                        if (!partyMap[partyName]) {
+                            partyMap[partyName] = { category: partyName, party: partyName, taxableVal: 0, tcsVal: 0, value: 0, status: 'Compiled' };
+                        }
+                        
+                        const turnover = parseFloat(inv.taxable_value || inv.amount || inv.total_invoice || inv.grand_total || 0);
+                        const tcs = parseFloat(inv.tcs_amount || 0) || (turnover * 0.001); // 0.1% TCS fallback
+                        
+                        partyMap[partyName].taxableVal += turnover;
+                        partyMap[partyName].tcsVal += tcs;
+                        partyMap[partyName].value += tcs;
+                        if (partyMap[partyName].tcsVal > 0) partyMap[partyName].status = 'Verified';
+                    });
+                    
+                    return Object.values(partyMap).sort((a, b) => b.tcsVal - a.tcsVal);
                 }
 
                 // ── TDS Receivables & Payables Matrix
@@ -960,8 +972,8 @@ const BusinessReports = () => {
                                 ) : (
                                     <MonthlySalesBarChart 
                                         reportData={reportDetails} 
-                                        title={selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : `${selectedReport.title} Monthly Trend`))} 
-                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics'))))))}
+                                        title={selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : (selectedReport.id === 41 ? 'TCS Receivable Audit' : `${selectedReport.title} Monthly Trend`)))} 
+                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.id === 41 ? 'Counter-party distribution of TCS receivables from sales' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')))))))}
                                     />
                                 )}
                             </div>
