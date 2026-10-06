@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService } from '../services';
 
 import { Toggle } from '../components/ui/toggle';
-import { Bell, Shield, Globe, Save, Sliders } from 'lucide-react';
+import { Bell, Shield, Globe, Save, Sliders, Award } from 'lucide-react';
 
 import { useLanguage } from '../context';
 
@@ -18,7 +18,11 @@ const Settings = () => {
         darkMode: false,
         language: localStorage.getItem('cliks_language') || 'EN-US',
         twoFactor: true,
-        dataSharing: false
+        dataSharing: false,
+        loyaltyEnabled: true,
+        loyaltyPointsPer100: 1,
+        loyaltyDiscountPer100: 1,
+        loyaltyMaxClaimPercent: 50
     });
 
     const { data: serverSettings, isLoading } = useQuery({
@@ -159,6 +163,41 @@ const Settings = () => {
                 />
             </SettingSection>
 
+            <SettingSection title="Customer Loyalty Program" icon={Award}>
+                <SettingItem
+                    label="Enable Loyalty Points"
+                    description="Reward customers with points for purchases."
+                    isToggled={localSettings.loyaltyEnabled}
+                    onToggle={() => handleToggle('loyaltyEnabled')}
+                />
+                {localSettings.loyaltyEnabled && (
+                    <>
+                        <SettingInputItem
+                            label="Points per ₹100 spent"
+                            description="Number of points earned for every ₹100 in an invoice."
+                            value={localSettings.loyaltyPointsPer100}
+                            onChange={(e) => setLocalSettings(p => ({ ...p, loyaltyPointsPer100: Number(e.target.value) }))}
+                            addon="pts"
+                        />
+                        <SettingInputItem
+                            label="Discount per 100 points"
+                            description="Monetary value discounted per 100 points redeemed."
+                            value={localSettings.loyaltyDiscountPer100}
+                            onChange={(e) => setLocalSettings(p => ({ ...p, loyaltyDiscountPer100: Number(e.target.value) }))}
+                            addon="₹"
+                        />
+                        <SettingInputItem
+                            label="Max Claim Percentage"
+                            description="Maximum percentage of a customer's total points they can claim per invoice."
+                            value={localSettings.loyaltyMaxClaimPercent}
+                            onChange={(e) => setLocalSettings(p => ({ ...p, loyaltyMaxClaimPercent: Number(e.target.value) }))}
+                            addon="%"
+                            last={true}
+                        />
+                    </>
+                )}
+            </SettingSection>
+
             <SettingSection title="Privacy & Security" icon={Shield}>
                 <SettingItem
                     label="Public Profile"
@@ -242,6 +281,31 @@ const SettingItem = ({ label, description, isToggled, onToggle, last = false }) 
             size="md"
             aria-label={label}
         />
+    </div>
+);
+
+const SettingInputItem = ({ label, description, value, onChange, last = false, type = 'number', addon = '' }) => (
+    <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '1.25rem 1.5rem',
+        borderBottom: last ? 'none' : '1px solid #F0FDF4'
+    }}>
+        <div style={{ marginRight: '1rem', flex: 1 }}>
+            <div style={{ fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>{label}</div>
+            <div style={{ fontSize: '0.85rem', color: '#64748B' }}>{description}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <input 
+                type={type} 
+                value={value} 
+                onChange={onChange}
+                style={{ width: '80px', padding: '0.4rem 0.5rem', border: '1px solid #CBD5E1', borderRadius: '6px', outline: 'none' }}
+                min="0"
+            />
+            {addon && <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}>{addon}</span>}
+        </div>
     </div>
 );
 

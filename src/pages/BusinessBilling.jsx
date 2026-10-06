@@ -1022,13 +1022,20 @@ const BusinessBilling = () => {
         });
 
         const rawTotal = (parseFloat(subtotal) || 0) + (parseFloat(totalTax) || 0);
-        const redeemedAmt = parseFloat(currentFormData.redeemed_points) || 0;
+        
+        // Settings for Loyalty
+        const discPer100 = activeConfig.loyaltyDiscountPer100 !== undefined ? activeConfig.loyaltyDiscountPer100 : 1;
+        const ptsPer100 = activeConfig.loyaltyPointsPer100 !== undefined ? activeConfig.loyaltyPointsPer100 : 1;
+        
+        const redeemedPts = parseFloat(currentFormData.redeemed_points) || 0;
+        const redeemedAmt = (redeemedPts / 100) * discPer100;
+        
         const adjustedTotal = rawTotal - redeemedAmt;
         const roundedTotal = activeConfig.roundOff !== false ? Math.max(0, Math.round(adjustedTotal)) : Math.max(0, adjustedTotal);
         const roundOff = roundedTotal - adjustedTotal;
         
-        // Rule: Earn 1 point per 100 units of final bill (in active currency)
-        const earnedPts = Math.max(0, Math.floor(roundedTotal / 100));
+        // Earn points based on final bill amount using dynamic setting
+        const earnedPts = Math.max(0, Math.floor(roundedTotal / 100) * ptsPer100);
 
         return {
             amount: parseFloat(subtotal) || 0,
@@ -4063,7 +4070,7 @@ const BusinessBilling = () => {
                                         </div>
                                     </div>
 
-                                    {activeConfig.loyalty !== false && (
+                                    {activeConfig.loyaltyEnabled !== false && (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.75rem', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #DCFCE7' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase' }}>
@@ -4071,7 +4078,8 @@ const BusinessBilling = () => {
                                                 </label>
                                             </div>
                                             <div style={{ fontSize: '0.75rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.2rem', margin: '0.1rem 0' }}>
-                                                ⭐ Available Points: {activeSelectedCustomer ? (activeSelectedCustomer.loyalty_points || 0) : 0}
+                                                ⭐ Available Points: {activeSelectedCustomer ? (activeSelectedCustomer.loyalty_points || 0) : 0} 
+                                                <span style={{color: '#86EFAC'}}>({activeConfig.loyaltyMaxClaimPercent || 100}% Claimable)</span>
                                             </div>
                                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                                 <input 
@@ -4085,7 +4093,8 @@ const BusinessBilling = () => {
                                                         if (isNaN(val) || rawVal === '') {
                                                             val = 0;
                                                         }
-                                                        const maxAvail = activeSelectedCustomer ? (activeSelectedCustomer.loyalty_points || 0) : 0;
+                                                        const maxClaimPct = activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 100;
+                                                        const maxAvail = activeSelectedCustomer ? Math.floor((activeSelectedCustomer.loyalty_points || 0) * (maxClaimPct / 100)) : 0;
                                                         if (val > maxAvail) val = maxAvail;
                                                         if (val < 0) val = 0;
                                                         
@@ -4099,7 +4108,8 @@ const BusinessBilling = () => {
                                                     type="button" 
                                                     onClick={() => {
                                                         if (!activeSelectedCustomer) return;
-                                                        const maxAvail = activeSelectedCustomer.loyalty_points || 0;
+                                                        const maxClaimPct = activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 100;
+                                                        const maxAvail = Math.floor((activeSelectedCustomer.loyalty_points || 0) * (maxClaimPct / 100));
                                                         const tmp = { ...formData, redeemed_points: maxAvail };
                                                         const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
                                                         setFormData({ ...tmp, ...newTotals });
@@ -4108,6 +4118,11 @@ const BusinessBilling = () => {
                                                     style={{ padding: '0.5rem 0.75rem', borderRadius: '6px', background: '#16A34A', color: 'white', border: 'none', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', opacity: (!activeSelectedCustomer || (activeSelectedCustomer.loyalty_points || 0) === 0) ? 0.5 : 1 }}
                                                 >Use Max</button>
                                             </div>
+                                            {(formData.redeemed_points > 0) && (
+                                                <div style={{fontSize: '0.7rem', color: '#166534', fontWeight: 600, marginTop: '0.2rem'}}>
+                                                    Discount Value: {formatCurrency((formData.redeemed_points / 100) * (activeConfig.loyaltyDiscountPer100 || 1))}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
