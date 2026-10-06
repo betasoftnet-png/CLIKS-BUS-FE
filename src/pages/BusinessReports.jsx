@@ -366,12 +366,23 @@ const BusinessReports = () => {
                 if (id === 34) {
                     const prods = await productsService.getProducts().catch(() => []);
                     const list = Array.isArray(prods) ? prods : (prods?.data || prods?.products || []);
-                    return list.map((p, idx) => ({
-                        hsn: p.hsn_code || p.sku || `HSN-00${idx + 1}`,
-                        item: p.name || p.product_name,
-                        value: parseFloat(p.selling_price || p.price || 0) * parseFloat(p.stock_quantity || p.quantity || 1),
-                        taxRate: p.tax_rate ? `${p.tax_rate}%` : '18%'
-                    }));
+                    const hsnGroups = {};
+                    list.forEach(p => {
+                        const hsn = p.hsn_code || 'Unassigned';
+                        const value = parseFloat(p.selling_price || p.price || 0) * parseFloat(p.stock_quantity || p.quantity || 1);
+                        if (!hsnGroups[hsn]) {
+                            hsnGroups[hsn] = { 
+                                hsn: hsn, 
+                                item: p.name || p.product_name || 'Product', 
+                                value: 0, 
+                                taxRate: p.tax_rate ? `${p.tax_rate}%` : '18%' 
+                            };
+                        } else if (hsnGroups[hsn].item !== (p.name || p.product_name)) {
+                            hsnGroups[hsn].item = 'Multiple Items';
+                        }
+                        hsnGroups[hsn].value += value;
+                    });
+                    return Object.values(hsnGroups).sort((a, b) => b.value - a.value);
                 }
 
                 // ── General Discount Audit
@@ -908,8 +919,8 @@ const BusinessReports = () => {
                                 ) : (
                                     <MonthlySalesBarChart 
                                         reportData={reportDetails} 
-                                        title={`${selectedReport.title} Monthly Trend`} 
-                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')))}
+                                        title={selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : `${selectedReport.title} Monthly Trend`} 
+                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics'))))}
                                     />
                                 )}
                             </div>

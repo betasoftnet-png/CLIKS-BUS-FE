@@ -50,7 +50,7 @@ export const MonthlySalesBarChart = ({ reportData, title = 'Monthly Sales Perfor
 
     const chartData = processSalesData();
     const maxValue = Math.max(...chartData.map(d => d.value), 1000);
-    const totalSales = chartData.reduce((sum, d) => sum + d.value, 0);
+    const totalSales = Array.isArray(reportData) ? reportData.reduce((sum, item) => sum + parseFloat(item.due_amount !== undefined ? item.due_amount : (item.paid_amount !== undefined ? item.paid_amount : ((item.inflow !== undefined || item.outflow !== undefined) ? (parseFloat(item.inflow || 0) + parseFloat(item.outflow || 0)) : (item.grand_total || item.total_sales || item.revenue || item.amount || item.total || item.total_amount || item.value || item.stockVal || item.quantity || 0)))), 0) : 0;
 
     const svgWidth = 650;
     const svgHeight = 220;
