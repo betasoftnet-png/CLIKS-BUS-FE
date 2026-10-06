@@ -1025,7 +1025,7 @@ const BusinessBilling = () => {
         
         // Settings for Loyalty
         const ptsFor1Rs = activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100;
-        const ptsPer100 = activeConfig.loyaltyPointsPer100 !== undefined ? activeConfig.loyaltyPointsPer100 : 1;
+        const rsPer1Point = activeConfig.loyaltyRsPer1Point !== undefined ? activeConfig.loyaltyRsPer1Point : 100;
         
         const redeemedPts = parseFloat(currentFormData.redeemed_points) || 0;
         const redeemedAmt = ptsFor1Rs > 0 ? (redeemedPts / ptsFor1Rs) : 0;
@@ -1035,7 +1035,7 @@ const BusinessBilling = () => {
         const roundOff = roundedTotal - adjustedTotal;
         
         // Earn points based on final bill amount using dynamic setting
-        const earnedPts = Math.max(0, Math.floor(roundedTotal / 100) * ptsPer100);
+        const earnedPts = rsPer1Point > 0 ? Math.floor(roundedTotal / rsPer1Point) : 0;
 
         return {
             amount: parseFloat(subtotal) || 0,

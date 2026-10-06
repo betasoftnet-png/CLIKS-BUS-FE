@@ -20,7 +20,7 @@ const Settings = () => {
         twoFactor: true,
         dataSharing: false,
         loyaltyEnabled: true,
-        loyaltyPointsPer100: 1,
+        loyaltyRsPer1Point: 100,
         loyaltyPointsPer1Rs: 100,
         loyaltyMaxClaimPercent: 50
     });
@@ -173,11 +173,11 @@ const Settings = () => {
                 {localSettings.loyaltyEnabled && (
                     <>
                         <SettingInputItem
-                            label="Points per ₹100 spent"
-                            description="Number of points earned for every ₹100 in an invoice."
-                            value={localSettings.loyaltyPointsPer100}
-                            onChange={(e) => setLocalSettings(p => ({ ...p, loyaltyPointsPer100: Number(e.target.value) }))}
-                            addon="pts"
+                            label="Spend required for 1 point"
+                            description="Amount in ₹ a customer must spend on an invoice to earn 1 loyalty point."
+                            value={localSettings.loyaltyRsPer1Point !== undefined ? localSettings.loyaltyRsPer1Point : 100}
+                            onChange={(e) => setLocalSettings(p => ({ ...p, loyaltyRsPer1Point: Number(e.target.value) }))}
+                            addon="₹"
                         />
                         <SettingInputItem
                             label="Points per ₹1 discount"
