@@ -325,22 +325,25 @@ const BusinessReports = () => {
                         suppliersService.getSuppliers().catch(() => [])
                     ]);
 
-                    const totalSales = (sales?.data || sales || []).reduce((sum, s) => sum + parseFloat(s.grand_total || 0), 0);
-                    const totalPurchases = (purchases?.data || purchases || []).reduce((sum, p) => sum + parseFloat(p.total_amount || 0), 0);
-                    const totalExpenses = (expenses?.data || expenses || []).reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+                    const totalSales = (sales?.data || sales || []).reduce((sum, s) => sum + parseFloat(s.grand_total || s.total_amount || s.total || 0), 0);
+                    const totalPurchases = (purchases?.data || purchases || []).reduce((sum, p) => sum + parseFloat(p.grand_total || p.total_amount || p.total || 0), 0);
+                    const totalExpenses = (expenses?.data || expenses || []).reduce((sum, e) => sum + parseFloat(e.amount || e.expense_amount || e.subtotal || 0), 0);
                     const totalStockVal = (stocks?.data || stocks || []).reduce((sum, k) => sum + (parseFloat(k.quantity || 0) * parseFloat(k.selling_price || k.price || 0)), 0);
                     const totalReceivables = (customers?.data || customers || []).reduce((sum, c) => sum + parseFloat(c.outstanding_balance || 0), 0);
                     const totalPayables = (suppliers?.data || suppliers || []).reduce((sum, s) => sum + parseFloat(s.outstanding_balance || 0), 0);
 
                     const cashBank = Math.max(0, totalSales - totalExpenses - totalPurchases);
-                    const capital = Math.max(0, cashBank + totalReceivables + totalStockVal - totalPayables);
+                    
+                    const totalDebitsExcludingCapital = cashBank + totalReceivables + totalStockVal + totalPurchases + totalExpenses;
+                    const totalCreditsExcludingCapital = totalPayables + totalSales;
+                    const capital = totalDebitsExcludingCapital - totalCreditsExcludingCapital;
 
                     return [
                         { ledger: 'Cash & Bank Balances', debit: cashBank, credit: 0 },
                         { ledger: 'Accounts Receivable', debit: totalReceivables, credit: 0 },
                         { ledger: 'Stock in Hand (Valuation)', debit: totalStockVal, credit: 0 },
                         { ledger: 'Accounts Payable', debit: 0, credit: totalPayables },
-                        { ledger: 'Capital Account', debit: 0, credit: capital },
+                        { ledger: 'Capital Account', debit: capital < 0 ? Math.abs(capital) : 0, credit: capital >= 0 ? capital : 0 },
                         { ledger: 'Sales Income', debit: 0, credit: totalSales },
                         { ledger: 'Purchases & Expense Acct', debit: totalPurchases + totalExpenses, credit: 0 }
                     ];
@@ -896,11 +899,11 @@ const BusinessReports = () => {
                         <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', marginBottom: '1.25rem', display: viewMode === 'both' ? 'grid' : 'block', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'stretch' }}>
                             {/* Left Column: Visual Graph (Visible in 'graph' or 'both' mode) */}
                             <div style={{ height: '100%', minHeight: 0, overflowY: 'auto', display: (viewMode === 'graph' || viewMode === 'both') ? 'block' : 'none', paddingRight: '0.25rem' }}>
-                                {((['inventory', 'parties'].includes(selectedReport.category) && selectedReport.id !== 6) || [4, 5, 15, 16, 38].includes(selectedReport.id)) ? (
+                                {((['inventory', 'parties'].includes(selectedReport.category) && selectedReport.id !== 6) || [4, 5, 15, 16, 32, 38].includes(selectedReport.id)) ? (
                                     <StockPieChart 
                                         reportData={reportDetails} 
-                                        title={selectedReport.id === 15 ? 'Warehouse Capacity Utilization' : (selectedReport.id === 17 ? 'Top Suppliers by Total Orders' : (selectedReport.id === 18 ? 'Party Ledger Balances' : (selectedReport.category === 'parties' ? `${selectedReport.title} Outstanding Balance Distribution` : `${selectedReport.title} Accordance & Stock Metrics`)))}
-                                        subtitle={selectedReport.id === 15 ? 'Storage distribution and capacity metrics across all warehouse locations' : (selectedReport.id === 17 ? 'Overview of supplier performance, fulfillment, and reliability' : (selectedReport.id === 18 ? 'Overview of pending balances across registered parties' : (selectedReport.category === 'parties' ? 'Overview of pending balances across registered parties' : 'Stock valuation distribution & warehouse placement')))}
+                                        title={selectedReport.id === 15 ? 'Warehouse Capacity Utilization' : (selectedReport.id === 17 ? 'Top Suppliers by Total Orders' : (selectedReport.id === 18 ? 'Party Ledger Balances' : (selectedReport.id === 32 ? 'Trial Balance Summary' : (selectedReport.category === 'parties' ? `${selectedReport.title} Outstanding Balance Distribution` : `${selectedReport.title} Accordance & Stock Metrics`))))}
+                                        subtitle={selectedReport.id === 15 ? 'Storage distribution and capacity metrics across all warehouse locations' : (selectedReport.id === 17 ? 'Overview of supplier performance, fulfillment, and reliability' : (selectedReport.id === 18 ? 'Overview of pending balances across registered parties' : (selectedReport.id === 32 ? 'Debit and Credit distribution across ledger heads' : (selectedReport.category === 'parties' ? 'Overview of pending balances across registered parties' : 'Stock valuation distribution & warehouse placement'))))}
                                     />
                                 ) : (
                                     <MonthlySalesBarChart 
@@ -1700,8 +1703,8 @@ const BusinessReports = () => {
                                                 )) : null}
                                                 <tr style={{ background: '#F8FAFC', fontWeight: '900', borderTop: '2px solid #CBD5E1' }}>
                                                     <td style={{ padding: '0.75rem 1rem' }}>TOTAL COMPILATION</td>
-                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{formatCurrency(1725000)}</td>
-                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{formatCurrency(1725000)}</td>
+                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{formatCurrency(reportDetails?.reduce((sum, r) => sum + (r.debit || 0), 0) || 0)}</td>
+                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>{formatCurrency(reportDetails?.reduce((sum, r) => sum + (r.credit || 0), 0) || 0)}</td>
                                                 </tr>
                                             </tbody>
                                         </table>

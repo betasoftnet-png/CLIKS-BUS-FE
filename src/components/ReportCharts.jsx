@@ -168,6 +168,7 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
     // Determine types
     const isWarehouse = Array.isArray(reportData) && reportData.some(item => item.warehouse_name || item.warehouse_code || item.capacity_utilization !== undefined || (item.name && item.location && item.code && !item.sku && !item.selling_price));
     const isParty = Array.isArray(reportData) && reportData.some(item => item.outstanding_balance !== undefined || item.total_due !== undefined || item.total_spent !== undefined || (item.name && item.phone && !item.sku && !item.selling_price));
+    const isTrialBalance = Array.isArray(reportData) && reportData.some(item => item.ledger && (item.debit !== undefined || item.credit !== undefined));
 
     // Process data into categorical slices
     const processStockData = () => {
@@ -240,6 +241,20 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
         }
 
         // Check if report is a party (customer/supplier)
+        if (isTrialBalance) {
+            const list = reportData.filter(item => (item.debit || 0) > 0 || (item.credit || 0) > 0).map((item, i) => {
+                const isDr = (item.debit || 0) > 0;
+                const val = isDr ? item.debit : item.credit;
+                return {
+                    label: `${item.ledger} ${isDr ? '(DR)' : '(CR)'}`,
+                    value: val,
+                    displayVal: `₹${val.toLocaleString()}`,
+                    color: isDr ? ['#3B82F6', '#10B981', '#06B6D4', '#6366F1'][i % 4] : ['#F43F5E', '#F59E0B', '#8B5CF6', '#EC4899'][i % 4]
+                };
+            });
+            return list.length > 0 ? list : [{ label: 'Empty Ledger', value: 1, displayVal: '₹0' }];
+        }
+
         if (isParty) {
             const totalBal = reportData.reduce((sum, p) => sum + Math.abs(parseFloat(p.outstanding_balance || p.total_due || 0)), 0);
             const filtered = reportData.filter(p => Math.abs(parseFloat(p.outstanding_balance || p.total_due || 0)) > 0);
