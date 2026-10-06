@@ -1474,9 +1474,9 @@ const BusinessReports = () => {
                                                         <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name || row.first_name}</td>
                                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>{formatCurrency(bal)}</td>
-                                                            <td style={{ padding: '0.6rem 1rem', color: '#16A34A', fontSize: '0.85rem', fontWeight: '600' }}>{formatCurrency(bal * 0.5)}</td>
-                                                            <td style={{ padding: '0.6rem 1rem', color: '#EA580C', fontSize: '0.85rem', fontWeight: '600' }}>{formatCurrency(bal * 0.3)}</td>
-                                                            <td style={{ padding: '0.6rem 1rem', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem', fontWeight: '750' }}>{formatCurrency(bal * 0.2)}</td>
+                                                            <td style={{ padding: '0.6rem 1rem', color: '#16A34A', fontSize: '0.85rem', fontWeight: '600' }}>{formatCurrency(row.aging_current || 0)}</td>
+                                                            <td style={{ padding: '0.6rem 1rem', color: '#EA580C', fontSize: '0.85rem', fontWeight: '600' }}>{formatCurrency(row.aging_30_60 || 0)}</td>
+                                                            <td style={{ padding: '0.6rem 1rem', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem', fontWeight: '750' }}>{formatCurrency(row.aging_60_plus || 0)}</td>
                                                         </tr>
                                                     );
                                                 }) : (

@@ -196,6 +196,25 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
             });
         }
 
+        // Check if report contains aging data
+        const isAging = reportData.some(item => item.aging_current !== undefined || item.aging_30_60 !== undefined);
+        if (isAging) {
+            const sumCurrent = reportData.reduce((sum, p) => sum + (parseFloat(p.aging_current) || 0), 0);
+            const sum30 = reportData.reduce((sum, p) => sum + (parseFloat(p.aging_30_60) || 0), 0);
+            const sum60 = reportData.reduce((sum, p) => sum + (parseFloat(p.aging_60_plus) || 0), 0);
+            const totalAging = sumCurrent + sum30 + sum60;
+
+            if (totalAging === 0) {
+                return [{ label: 'No Overdue', value: 1, displayVal: '₹0.00 Overdue', color: '#10B981' }];
+            }
+
+            const slices = [];
+            if (sumCurrent > 0) slices.push({ label: 'Current (0-30 Days)', value: sumCurrent, displayVal: `${((sumCurrent/totalAging)*100).toFixed(1)}% (₹${sumCurrent.toFixed(2)})`, color: '#10B981' });
+            if (sum30 > 0) slices.push({ label: '30-60 Days', value: sum30, displayVal: `${((sum30/totalAging)*100).toFixed(1)}% (₹${sum30.toFixed(2)})`, color: '#F59E0B' });
+            if (sum60 > 0) slices.push({ label: '60+ Days', value: sum60, displayVal: `${((sum60/totalAging)*100).toFixed(1)}% (₹${sum60.toFixed(2)})`, color: '#EF4444' });
+            return slices;
+        }
+
         // Check if report is a party (customer/supplier)
         if (isParty) {
             const totalBal = reportData.reduce((sum, p) => sum + Math.abs(parseFloat(p.outstanding_balance || p.total_due || 0)), 0);
