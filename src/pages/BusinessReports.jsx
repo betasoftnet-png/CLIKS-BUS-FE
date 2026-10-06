@@ -181,8 +181,23 @@ const BusinessReports = () => {
 
                 // GST & Compliance Module
                 if (id === 12) {
-                    const invoices = await gstService.getInvoices();
-                    return invoices?.data || invoices || [];
+                    const invoices = await gstService.getInvoices().catch(() => []);
+                    const rawInvoices = Array.isArray(invoices) ? invoices : (invoices?.data || []);
+                    return rawInvoices.filter(inv => {
+                        const invNum = (inv.invoice_number || '').toUpperCase();
+                        if (invNum.startsWith('PO') || invNum.startsWith('PUR')) return false;
+                        if (inv.purchase_invoice_id || inv.is_reconciliation === 'true' || inv.is_reconciliation === 1) return false;
+                        return true;
+                    }).map(inv => {
+                        const taxAmt = parseFloat(inv.total_tax || inv.gst_amount || 0);
+                        return {
+                            ...inv,
+                            tax_amount: taxAmt,
+                            place_of_supply: inv.place_of_supply || inv.customer_state || 'Intra-State (Local)',
+                            value: taxAmt,
+                            category: inv.invoice_type || 'B2C'
+                        };
+                    });
                 }
                 if (id === 21) {
                     const recs = await gstService.getReconciliations();
@@ -477,7 +492,9 @@ const BusinessReports = () => {
                         let items = [];
                         try {
                             items = typeof inv.items === 'string' ? JSON.parse(inv.items) : (Array.isArray(inv.items) ? inv.items : []);
-                        } catch(e) {}
+                        } catch {
+                            // Suppress parse errors for raw invoices
+                        }
                         
                         if (items.length > 0) {
                             items.forEach(item => {
@@ -1015,8 +1032,8 @@ const BusinessReports = () => {
                                 ) : (
                                     <MonthlySalesBarChart 
                                         reportData={reportDetails} 
-                                        title={selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : (selectedReport.id === 41 ? 'TCS Receivable Audit' : (selectedReport.id === 42 ? 'TDS Receivable Matrix' : (selectedReport.id === 43 ? 'TDS Payable Ledger' : `${selectedReport.title} Monthly Trend`)))))} 
-                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.id === 41 ? 'Counter-party distribution of TCS receivables from sales' : (selectedReport.id === 42 ? 'Client-wise distribution of TDS receivables' : (selectedReport.id === 43 ? 'Supplier-wise distribution of TDS payables' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')))))))))}
+                                        title={selectedReport.id === 12 ? 'GSTR-1 Outward Tax Liability' : (selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : (selectedReport.id === 41 ? 'TCS Receivable Audit' : (selectedReport.id === 42 ? 'TDS Receivable Matrix' : (selectedReport.id === 43 ? 'TDS Payable Ledger' : `${selectedReport.title} Monthly Trend`))))))} 
+                                        subtitle={selectedReport.id === 12 ? 'Monthly distribution of outward sales tax liabilities' : (selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.id === 41 ? 'Counter-party distribution of TCS receivables from sales' : (selectedReport.id === 42 ? 'Client-wise distribution of TDS receivables' : (selectedReport.id === 43 ? 'Supplier-wise distribution of TDS payables' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics'))))))))))}
                                     />
                                 )}
                             </div>
