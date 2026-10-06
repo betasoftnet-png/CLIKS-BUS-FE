@@ -141,7 +141,16 @@ const BusinessReports = () => {
                 }
 
                 // CRM & Parties Module
-                if ([7, 9, 18].includes(id)) {
+                if (id === 18) {
+                    const [custRes, suppRes] = await Promise.all([
+                        crmService.getCustomers().catch(() => []),
+                        suppliersService.getSuppliers().catch(() => [])
+                    ]);
+                    const customers = custRes?.data || custRes || [];
+                    const suppliers = suppRes?.data || suppRes || [];
+                    return [...customers, ...suppliers];
+                }
+                if ([7, 9].includes(id)) {
                     const cust = await crmService.getCustomers();
                     return cust?.data || cust || [];
                 }
@@ -890,8 +899,8 @@ const BusinessReports = () => {
                                 {((['inventory', 'parties'].includes(selectedReport.category) && selectedReport.id !== 6) || [4, 5, 15, 16, 38].includes(selectedReport.id)) ? (
                                     <StockPieChart 
                                         reportData={reportDetails} 
-                                        title={selectedReport.id === 15 ? 'Warehouse Capacity Utilization' : (selectedReport.id === 17 ? 'Top Suppliers by Total Orders' : (selectedReport.category === 'parties' ? `${selectedReport.title} Outstanding Balance Distribution` : `${selectedReport.title} Accordance & Stock Metrics`))}
-                                        subtitle={selectedReport.id === 15 ? 'Storage distribution and capacity metrics across all warehouse locations' : (selectedReport.id === 17 ? 'Overview of supplier performance, fulfillment, and reliability' : (selectedReport.category === 'parties' ? 'Overview of pending balances across registered parties' : 'Stock valuation distribution & warehouse placement'))}
+                                        title={selectedReport.id === 15 ? 'Warehouse Capacity Utilization' : (selectedReport.id === 17 ? 'Top Suppliers by Total Orders' : (selectedReport.id === 18 ? 'Party Ledger Balances' : (selectedReport.category === 'parties' ? `${selectedReport.title} Outstanding Balance Distribution` : `${selectedReport.title} Accordance & Stock Metrics`)))}
+                                        subtitle={selectedReport.id === 15 ? 'Storage distribution and capacity metrics across all warehouse locations' : (selectedReport.id === 17 ? 'Overview of supplier performance, fulfillment, and reliability' : (selectedReport.id === 18 ? 'Overview of pending balances across registered parties' : (selectedReport.category === 'parties' ? 'Overview of pending balances across registered parties' : 'Stock valuation distribution & warehouse placement')))}
                                     />
                                 ) : (
                                     <MonthlySalesBarChart 
@@ -1126,7 +1135,7 @@ const BusinessReports = () => {
                                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                             <thead style={{ background: '#F8FAFC' }}>
                                                 <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
-                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Customer Name</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>{selectedReport.id === 18 ? 'Party Name' : 'Customer Name'}</th>
                                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Contact Phone</th>
                                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Outstanding Balance</th>
                                                 </tr>
@@ -1134,7 +1143,7 @@ const BusinessReports = () => {
                                             <tbody>
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name || row.first_name}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name || row.company_name || row.supplier_name || row.first_name}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.phone || 'N/A'}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.outstanding_balance)}</td>
                                                     </tr>
