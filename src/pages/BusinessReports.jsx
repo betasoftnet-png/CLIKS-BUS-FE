@@ -509,14 +509,36 @@ const BusinessReports = () => {
 
                 // ── Form 27EQ Compliance
                 if (id === 40) {
-                    const sales = await reportsService.getSales().catch(() => []);
-                    const totalSales = (sales?.data || sales || []).reduce((sum, s) => sum + parseFloat(s.grand_total || 0), 0);
-                    return [
-                        { quarter: 'Q1 FY 2025-26', turnover: totalSales * 0.25, tcsCollection: totalSales * 0.0025 },
-                        { quarter: 'Q2 FY 2025-26', turnover: totalSales * 0.25, tcsCollection: totalSales * 0.0025 },
-                        { quarter: 'Q3 FY 2025-26', turnover: totalSales * 0.25, tcsCollection: totalSales * 0.0025 },
-                        { quarter: 'Q4 FY 2025-26', turnover: totalSales * 0.25, tcsCollection: totalSales * 0.0025 }
-                    ];
+                    const invoices = await gstService.getInvoices().catch(() => []);
+                    const rawInvoices = Array.isArray(invoices) ? invoices : (invoices?.data || []);
+
+                    const quarters = {
+                        'Q1 FY 2025-26': { category: 'Q1', quarter: 'Q1 FY 2025-26', turnover: 0, tcsCollection: 0, value: 0, status: 'Compiled' },
+                        'Q2 FY 2025-26': { category: 'Q2', quarter: 'Q2 FY 2025-26', turnover: 0, tcsCollection: 0, value: 0, status: 'Compiled' },
+                        'Q3 FY 2025-26': { category: 'Q3', quarter: 'Q3 FY 2025-26', turnover: 0, tcsCollection: 0, value: 0, status: 'Compiled' },
+                        'Q4 FY 2025-26': { category: 'Q4', quarter: 'Q4 FY 2025-26', turnover: 0, tcsCollection: 0, value: 0, status: 'Compiled' }
+                    };
+
+                    rawInvoices.forEach(inv => {
+                        const date = new Date(inv.invoice_date || inv.created_at || inv.date || Date.now());
+                        if (isNaN(date.getTime())) return;
+                        
+                        const month = date.getMonth(); 
+                        let qKey = 'Q4 FY 2025-26';
+                        if (month >= 3 && month <= 5) qKey = 'Q1 FY 2025-26';
+                        else if (month >= 6 && month <= 8) qKey = 'Q2 FY 2025-26';
+                        else if (month >= 9 && month <= 11) qKey = 'Q3 FY 2025-26';
+
+                        const turnover = parseFloat(inv.taxable_value || inv.amount || inv.total_invoice || inv.grand_total || 0);
+                        const tcs = parseFloat(inv.tcs_amount || 0) || (turnover * 0.001); // 0.1% TCS fallback
+
+                        quarters[qKey].turnover += turnover;
+                        quarters[qKey].tcsCollection += tcs;
+                        quarters[qKey].value += tcs;
+                        if (quarters[qKey].tcsCollection > 0) quarters[qKey].status = 'Verified';
+                    });
+
+                    return Object.values(quarters);
                 }
 
                 // ── TCS Receivable Audit
@@ -938,8 +960,8 @@ const BusinessReports = () => {
                                 ) : (
                                     <MonthlySalesBarChart 
                                         reportData={reportDetails} 
-                                        title={selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : `${selectedReport.title} Monthly Trend`)} 
-                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')))))}
+                                        title={selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : `${selectedReport.title} Monthly Trend`))} 
+                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics'))))))}
                                     />
                                 )}
                             </div>
