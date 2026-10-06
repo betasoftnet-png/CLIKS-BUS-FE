@@ -75,17 +75,28 @@ const BusinessReports = () => {
                     const productsList = Array.isArray(allProducts) ? allProducts : (allProducts?.data || allProducts?.products || []);
 
                     if (salesList && salesList.length > 0) {
-                        return salesList.map(s => ({
-                            name: s.name || 'Unnamed Product',
-                            total_quantity: parseFloat(s.total_quantity || s.quantity || 0),
-                            total_sales: parseFloat(s.total_sales || s.total || 0)
-                        }));
+                        const consolidatedMap = {};
+                        salesList.forEach(s => {
+                            const name = s.name || s.product_name || 'Unnamed Product';
+                            if (!consolidatedMap[name]) {
+                                consolidatedMap[name] = { name, total_quantity: 0, total_sales: 0 };
+                            }
+                            consolidatedMap[name].total_quantity += parseFloat(s.total_quantity || s.quantity || 0);
+                            consolidatedMap[name].total_sales += parseFloat(s.total_sales || s.total || 0);
+                        });
+                        return Object.values(consolidatedMap);
                     }
-                    return productsList.map(p => ({
-                        name: p.name || p.product_name || 'Unnamed Product',
-                        total_quantity: parseFloat(p.stock_quantity || p.quantity || 0),
-                        total_sales: (parseFloat(p.selling_price || p.price || 0)) * (parseFloat(p.stock_quantity || p.quantity || 0))
-                    }));
+                    
+                    const prodMap = {};
+                    productsList.forEach(p => {
+                        const name = p.name || p.product_name || 'Unnamed Product';
+                        if (!prodMap[name]) {
+                            prodMap[name] = { name, total_quantity: 0, total_sales: 0 };
+                        }
+                        prodMap[name].total_quantity += parseFloat(p.stock_quantity || p.quantity || 0);
+                        prodMap[name].total_sales += (parseFloat(p.selling_price || p.price || 0)) * parseFloat(p.stock_quantity || p.quantity || 0);
+                    });
+                    return Object.values(prodMap);
                 }
                 if (id === 3) return await reportsService.getSalesByCustomer();
                 if (id === 10) return await reportsService.getProfitLoss();

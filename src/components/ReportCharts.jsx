@@ -38,11 +38,15 @@ export const MonthlySalesBarChart = ({ reportData, title = 'Monthly Sales Perfor
         });
 
         if (!hasValidDate) {
-            return reportData.slice(0, 12).map((item, idx) => ({
-                label: String(item.name || item.product_name || item.supplier_name || item.customer || item.purchase_number || item.billNo || item.order_number || item.ledger || item.hsn || item.category || `Item ${idx + 1}`).slice(0, 8),
-                value: parseFloat(item.due_amount !== undefined ? item.due_amount : (item.paid_amount !== undefined ? item.paid_amount : ((item.inflow !== undefined || item.outflow !== undefined) ? (parseFloat(item.inflow || 0) + parseFloat(item.outflow || 0)) : (item.grand_total || item.total_sales || item.revenue || item.amount || item.total || item.total_amount || item.value || item.stockVal || item.quantity || 0)))),
-                count: 1
-            }));
+            return reportData.slice(0, 12).map((item, idx) => {
+                const rawName = String(item.name || item.product_name || item.supplier_name || item.customer || item.purchase_number || item.billNo || item.order_number || item.ledger || item.hsn || item.category || `Item ${idx + 1}`);
+                const shortLabel = rawName.length > 14 ? rawName.slice(0, 12) + '...' : rawName;
+                return {
+                    label: shortLabel,
+                    value: parseFloat(item.due_amount !== undefined ? item.due_amount : (item.paid_amount !== undefined ? item.paid_amount : ((item.inflow !== undefined || item.outflow !== undefined) ? (parseFloat(item.inflow || 0) + parseFloat(item.outflow || 0)) : (item.grand_total || item.total_sales || item.revenue || item.amount || item.total || item.total_amount || item.value || item.stockVal || item.quantity || 0)))),
+                    count: 1
+                };
+            });
         }
 
         return Object.values(monthlyMap);
