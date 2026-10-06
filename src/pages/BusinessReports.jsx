@@ -374,7 +374,12 @@ const BusinessReports = () => {
                 // Sales Returns Module
                 if (id === 14) {
                     const re = await returnsService.getReturns();
-                    return re?.data || re || [];
+                    const rawReturns = re?.data || re || [];
+                    return rawReturns.map(r => ({
+                        ...r,
+                        total_amount: Math.abs(parseFloat(r.total_amount || r.amount || r.refund_amount || 0)),
+                        date: r.date || r.return_date || r.created_at || new Date().toISOString()
+                    }));
                 }
 
                 // Purchases & Procurement Module
