@@ -565,17 +565,60 @@ const BusinessReports = () => {
                     return Object.values(partyMap).sort((a, b) => b.tcsVal - a.tcsVal);
                 }
 
-                // ── TDS Receivables & Payables Matrix
-                if ([42, 43].includes(id)) {
-                    const supp = await suppliersService.getSuppliers().catch(() => []);
-                    const list = supp?.data || supp || [];
-                    return list.map(s => ({
-                        party: s.supplier_name || s.name || s.company_name || 'Trade Vendor',
-                        section: 'Sec 194Q',
-                        baseAmt: parseFloat(s.outstanding_balance || 0),
-                        tdsVal: parseFloat(s.outstanding_balance || 0) * 0.01,
-                        status: id === 42 ? 'Pending Return' : 'Due for Deposit'
-                    }));
+                // ── TDS Receivable Matrix
+                if (id === 42) {
+                    const invoices = await gstService.getInvoices().catch(() => []);
+                    const rawInvoices = Array.isArray(invoices) ? invoices : (invoices?.data || []);
+                    
+                    const partyMap = {};
+                    rawInvoices.forEach(inv => {
+                        const partyName = inv.customer_name || inv.client_name || inv.vendor_name || 'Walk-in Customer';
+                        if (!partyMap[partyName]) {
+                            partyMap[partyName] = { category: partyName, party: partyName, section: 'Sec 194Q', baseAmt: 0, tdsVal: 0, value: 0, status: 'Compiled' };
+                        }
+                        
+                        const turnover = parseFloat(inv.taxable_value || inv.amount || inv.total_invoice || inv.grand_total || 0);
+                        const tds = parseFloat(inv.tds_amount || 0) || (turnover * 0.01);
+                        
+                        partyMap[partyName].baseAmt += turnover;
+                        partyMap[partyName].tdsVal += tds;
+                    });
+                    
+                    return Object.values(partyMap).map(p => {
+                        p.baseAmt = Math.max(0, p.baseAmt);
+                        p.tdsVal = Math.max(0, p.tdsVal);
+                        p.value = p.tdsVal;
+                        if (p.tdsVal > 0) p.status = 'Pending Return';
+                        return p;
+                    }).sort((a, b) => b.tdsVal - a.tdsVal);
+                }
+
+                // ── TDS Payable Ledger
+                if (id === 43) {
+                    const purchases = await purchasesService.getPurchases().catch(() => []);
+                    const rawPurchases = Array.isArray(purchases) ? purchases : (purchases?.data || []);
+                    
+                    const partyMap = {};
+                    rawPurchases.forEach(pur => {
+                        const partyName = pur.supplier_name || pur.supplier || pur.vendor_name || 'Trade Vendor';
+                        if (!partyMap[partyName]) {
+                            partyMap[partyName] = { category: partyName, party: partyName, section: 'Sec 194C', baseAmt: 0, tdsVal: 0, value: 0, status: 'Compiled' };
+                        }
+                        
+                        const turnover = parseFloat(pur.taxable_value || pur.amount || pur.grand_total || pur.total_amount || 0);
+                        const tds = parseFloat(pur.tds_amount || 0) || (turnover * 0.01);
+                        
+                        partyMap[partyName].baseAmt += turnover;
+                        partyMap[partyName].tdsVal += tds;
+                    });
+                    
+                    return Object.values(partyMap).map(p => {
+                        p.baseAmt = Math.max(0, p.baseAmt);
+                        p.tdsVal = Math.max(0, p.tdsVal);
+                        p.value = p.tdsVal;
+                        if (p.tdsVal > 0) p.status = 'Due for Deposit';
+                        return p;
+                    }).sort((a, b) => b.tdsVal - a.tdsVal);
                 }
             } catch (err) {
                 console.error('[Report Linker] Pipeline fetch failed:', err);
@@ -972,8 +1015,8 @@ const BusinessReports = () => {
                                 ) : (
                                     <MonthlySalesBarChart 
                                         reportData={reportDetails} 
-                                        title={selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : (selectedReport.id === 41 ? 'TCS Receivable Audit' : `${selectedReport.title} Monthly Trend`)))} 
-                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.id === 41 ? 'Counter-party distribution of TCS receivables from sales' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')))))))}
+                                        title={selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : (selectedReport.id === 41 ? 'TCS Receivable Audit' : (selectedReport.id === 42 ? 'TDS Receivable Matrix' : (selectedReport.id === 43 ? 'TDS Payable Ledger' : `${selectedReport.title} Monthly Trend`)))))} 
+                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.id === 41 ? 'Counter-party distribution of TCS receivables from sales' : (selectedReport.id === 42 ? 'Client-wise distribution of TDS receivables' : (selectedReport.id === 43 ? 'Supplier-wise distribution of TDS payables' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')))))))))}
                                     />
                                 )}
                             </div>
