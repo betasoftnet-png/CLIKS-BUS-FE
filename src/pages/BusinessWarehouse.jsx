@@ -130,6 +130,12 @@ const BusinessWarehouse = () => {
         refetchOnWindowFocus: false
     });
 
+    // Fetch Live Registered Products
+    const { data: dbProducts = [] } = useQuery({
+        queryKey: ['products'],
+        queryFn: () => productsService.getProducts()
+    });
+
     // Live Transfers database via useQuery
     const { data: reportsData } = useQuery({
         queryKey: ['warehouseReports'],
@@ -392,12 +398,6 @@ const BusinessWarehouse = () => {
         }, 0);
         return () => clearTimeout(timer);
     }, [dbStocks, dbWarehouses, newInward.stock_id, newInward.warehouse_id, newInward.destination_warehouse_id, newInward.received_by, user, newTransfer.stock_id, newTransfer.source_warehouse_id, newTransfer.destination_warehouse_id]);
-
-    // Fetch Live Registered Products for Goods Inward Receipt selection
-    const { data: dbProducts = [] } = useQuery({
-        queryKey: ['products'],
-        queryFn: () => productsService.getProducts()
-    });
 
     const inwardProductsList = React.useMemo(() => {
         const list = [];
