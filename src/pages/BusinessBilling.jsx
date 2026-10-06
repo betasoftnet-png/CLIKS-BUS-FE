@@ -4079,7 +4079,7 @@ const BusinessBilling = () => {
                                             </div>
                                             <div style={{ fontSize: '0.75rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.2rem', margin: '0.1rem 0' }}>
                                                 ⭐ Available Points: {activeSelectedCustomer ? (activeSelectedCustomer.loyalty_points || 0) : 0} 
-                                                <span style={{color: '#86EFAC'}}>({activeConfig.loyaltyMaxClaimPercent || 100}% Claimable)</span>
+                                                <span style={{color: '#86EFAC'}}>({activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50}% Claimable)</span>
                                             </div>
                                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                                 <input 
@@ -4093,7 +4093,7 @@ const BusinessBilling = () => {
                                                         if (isNaN(val) || rawVal === '') {
                                                             val = 0;
                                                         }
-                                                        const maxClaimPct = activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 100;
+                                                        const maxClaimPct = activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50;
                                                         const maxAvail = activeSelectedCustomer ? Math.floor((activeSelectedCustomer.loyalty_points || 0) * (maxClaimPct / 100)) : 0;
                                                         if (val > maxAvail) val = maxAvail;
                                                         if (val < 0) val = 0;
@@ -4108,7 +4108,7 @@ const BusinessBilling = () => {
                                                     type="button" 
                                                     onClick={() => {
                                                         if (!activeSelectedCustomer) return;
-                                                        const maxClaimPct = activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 100;
+                                                        const maxClaimPct = activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50;
                                                         const maxAvail = Math.floor((activeSelectedCustomer.loyalty_points || 0) * (maxClaimPct / 100));
                                                         const tmp = { ...formData, redeemed_points: maxAvail };
                                                         const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
