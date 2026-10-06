@@ -317,8 +317,18 @@ const BusinessReports = () => {
 
                 // Expense Audit Module
                 if (id === 19) {
-                    const ex = await expensesService.getExpenses();
-                    return ex?.data || ex || [];
+                    const ex = await expensesService.getExpenses().catch(() => []);
+                    const rawEx = Array.isArray(ex) ? ex : (ex?.data || []);
+                    return rawEx.map(r => {
+                        const amt = parseFloat(r.amount || 0);
+                        return {
+                            ...r,
+                            category: r.category_name || r.category || 'Business Overheads',
+                            date: r.expense_date || r.date || new Date().toISOString(),
+                            amount: amt,
+                            value: amt
+                        };
+                    });
                 }
 
                 // Sales Returns Module
@@ -1127,8 +1137,8 @@ const BusinessReports = () => {
                                 ) : (
                                     <MonthlySalesBarChart 
                                         reportData={(selectedReport.id === 22 || selectedReport.id === 23) ? (reportDetails?.chartData || []) : reportDetails} 
-                                        title={selectedReport.id === 12 ? 'GSTR-1 Outward Tax Liability' : (selectedReport.id === 21 ? 'GSTR-2 Inward ITC Reconciliation' : (selectedReport.id === 22 ? 'GSTR-3B Tax Liability & Offset' : (selectedReport.id === 23 ? 'GSTR-9 Annual Return Summary' : (selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : (selectedReport.id === 41 ? 'TCS Receivable Audit' : (selectedReport.id === 42 ? 'TDS Receivable Matrix' : (selectedReport.id === 43 ? 'TDS Payable Ledger' : `${selectedReport.title} Monthly Trend`)))))))))} 
-                                        subtitle={selectedReport.id === 12 ? 'Monthly distribution of outward sales tax liabilities' : (selectedReport.id === 21 ? 'Vendor-wise distribution of claimable Input Tax Credit (ITC)' : (selectedReport.id === 22 ? 'Monthly tax liability and input credit offsets' : (selectedReport.id === 23 ? 'Annual consolidated turnover and tax settlements' : (selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.id === 41 ? 'Counter-party distribution of TCS receivables from sales' : (selectedReport.id === 42 ? 'Client-wise distribution of TDS receivables' : (selectedReport.id === 43 ? 'Supplier-wise distribution of TDS payables' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')))))))))))))}
+                                        title={selectedReport.id === 12 ? 'GSTR-1 Outward Tax Liability' : (selectedReport.id === 19 ? 'Expense Category Audit' : (selectedReport.id === 21 ? 'GSTR-2 Inward ITC Reconciliation' : (selectedReport.id === 22 ? 'GSTR-3B Tax Liability & Offset' : (selectedReport.id === 23 ? 'GSTR-9 Annual Return Summary' : (selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : (selectedReport.id === 41 ? 'TCS Receivable Audit' : (selectedReport.id === 42 ? 'TDS Receivable Matrix' : (selectedReport.id === 43 ? 'TDS Payable Ledger' : `${selectedReport.title} Monthly Trend`))))))))))} 
+                                        subtitle={selectedReport.id === 12 ? 'Monthly distribution of outward sales tax liabilities' : (selectedReport.id === 19 ? 'Monthly distribution of business expenditures and overheads' : (selectedReport.id === 21 ? 'Vendor-wise distribution of claimable Input Tax Credit (ITC)' : (selectedReport.id === 22 ? 'Monthly tax liability and input credit offsets' : (selectedReport.id === 23 ? 'Annual consolidated turnover and tax settlements' : (selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.id === 41 ? 'Counter-party distribution of TCS receivables from sales' : (selectedReport.id === 42 ? 'Client-wise distribution of TDS receivables' : (selectedReport.id === 43 ? 'Supplier-wise distribution of TDS payables' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics'))))))))))))))}
                                     />
                                 )}
                             </div>
