@@ -46,7 +46,8 @@ import {
     Smartphone,
     Zap,
     Copy,
-    QrCode
+    QrCode,
+    Store
 } from 'lucide-react';
 import { complianceService } from '../services/complianceService';
 import { validateEmail, validateGstin, validatePhone, validatePan } from '../utils/validationRules';
