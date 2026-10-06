@@ -200,8 +200,21 @@ const BusinessReports = () => {
                     });
                 }
                 if (id === 21) {
-                    const recs = await gstService.getReconciliations();
-                    return recs?.data || recs || [];
+                    const recs = await gstService.getReconciliations().catch(() => []);
+                    const rawRecs = Array.isArray(recs) ? recs : (recs?.data || []);
+                    return rawRecs.map((rec, idx) => {
+                        const itc = parseFloat(rec.eligible_itc || rec.total_tax || rec.gst_amount || 0);
+                        const status = rec.invoice_match_status || rec.status || 'Pending';
+                        const vendor = rec.vendor_name || rec.supplier_name || rec.client_name || `Vendor Ref #${100 + idx}`;
+                        return {
+                            ...rec,
+                            party_name: vendor,
+                            status: status,
+                            book_tax: itc,
+                            value: itc,
+                            category: vendor
+                        };
+                    });
                 }
                 if (id === 22) {
                     try {
@@ -1032,8 +1045,8 @@ const BusinessReports = () => {
                                 ) : (
                                     <MonthlySalesBarChart 
                                         reportData={reportDetails} 
-                                        title={selectedReport.id === 12 ? 'GSTR-1 Outward Tax Liability' : (selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : (selectedReport.id === 41 ? 'TCS Receivable Audit' : (selectedReport.id === 42 ? 'TDS Receivable Matrix' : (selectedReport.id === 43 ? 'TDS Payable Ledger' : `${selectedReport.title} Monthly Trend`))))))} 
-                                        subtitle={selectedReport.id === 12 ? 'Monthly distribution of outward sales tax liabilities' : (selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.id === 41 ? 'Counter-party distribution of TCS receivables from sales' : (selectedReport.id === 42 ? 'Client-wise distribution of TDS receivables' : (selectedReport.id === 43 ? 'Supplier-wise distribution of TDS payables' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics'))))))))))}
+                                        title={selectedReport.id === 12 ? 'GSTR-1 Outward Tax Liability' : (selectedReport.id === 21 ? 'GSTR-2 Inward ITC Reconciliation' : (selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : (selectedReport.id === 41 ? 'TCS Receivable Audit' : (selectedReport.id === 42 ? 'TDS Receivable Matrix' : (selectedReport.id === 43 ? 'TDS Payable Ledger' : `${selectedReport.title} Monthly Trend`)))))))} 
+                                        subtitle={selectedReport.id === 12 ? 'Monthly distribution of outward sales tax liabilities' : (selectedReport.id === 21 ? 'Vendor-wise distribution of claimable Input Tax Credit (ITC)' : (selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.id === 41 ? 'Counter-party distribution of TCS receivables from sales' : (selectedReport.id === 42 ? 'Client-wise distribution of TDS receivables' : (selectedReport.id === 43 ? 'Supplier-wise distribution of TDS payables' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')))))))))))}
                                     />
                                 )}
                             </div>
@@ -1388,9 +1401,17 @@ const BusinessReports = () => {
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.party_name || row.supplier_name || `Vendor Ref #${100 + idx}`}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem', color: '#64748B' }}>
-                                                            <span style={{ background: '#DCFCE7', color: '#16A34A', padding: '0.2rem 0.4rem', borderRadius: '4px', fontWeight: '800', fontSize: '0.7rem' }}>
-                                                                {row.status || 'RECONCILED'}
-                                                            </span>
+                                                            {(() => {
+                                                                const s = (row.status || 'PENDING').toUpperCase();
+                                                                let bg = '#DCFCE7', col = '#16A34A';
+                                                                if (s.includes('PENDING')) { bg = '#FEF9C3'; col = '#CA8A04'; }
+                                                                else if (s.includes('INELIGIBLE') || s.includes('MISMATCH')) { bg = '#FEE2E2'; col = '#EF4444'; }
+                                                                return (
+                                                                    <span style={{ background: bg, color: col, padding: '0.2rem 0.4rem', borderRadius: '4px', fontWeight: '800', fontSize: '0.7rem' }}>
+                                                                        {s}
+                                                                    </span>
+                                                                );
+                                                            })()}
                                                         </td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.book_tax || row.portal_tax)}</td>
                                                     </tr>
