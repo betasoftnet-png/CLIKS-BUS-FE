@@ -268,16 +268,16 @@ const BusinessReports = () => {
                         expensesService.getExpenses().catch(() => [])
                     ]);
                     const rawSales = (sales?.data || sales || []).map(s => ({
-                        date: s.date || s.created_at,
-                        desc: `Sales Invoice: ${s.order_number}`,
-                        inflow: parseFloat(s.grand_total || 0),
+                        date: s.date || s.created_at || s.invoice_date,
+                        desc: `Sales Invoice: ${s.order_number || s.invoice_number || 'Unknown'}`,
+                        inflow: parseFloat(s.grand_total || s.total_amount || 0),
                         outflow: 0
                     }));
                     const rawExpenses = (expenses?.data || expenses || []).map(e => ({
-                        date: e.date || e.created_at,
-                        desc: `Expense: ${e.description || e.category}`,
+                        date: e.expense_date || e.date || e.created_at,
+                        desc: `Expense: ${e.description || e.category_name || e.category || 'General'}`,
                         inflow: 0,
-                        outflow: parseFloat(e.amount || 0)
+                        outflow: parseFloat(e.amount || e.expense_amount || e.subtotal || 0)
                     }));
                     return [...rawSales, ...rawExpenses].sort((a, b) => new Date(b.date) - new Date(a.date));
                 }
@@ -906,7 +906,7 @@ const BusinessReports = () => {
                                     <MonthlySalesBarChart 
                                         reportData={reportDetails} 
                                         title={`${selectedReport.title} Monthly Trend`} 
-                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')}
+                                        subtitle={selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics'))}
                                     />
                                 )}
                             </div>
@@ -1612,7 +1612,7 @@ const BusinessReports = () => {
                                             <tbody>
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.8rem' }}>{row.date}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.8rem' }}>{new Date(row.date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.desc}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>{row.inflow > 0 ? formatCurrency(row.inflow) : '-'}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>{row.outflow > 0 ? formatCurrency(row.outflow) : '-'}</td>
