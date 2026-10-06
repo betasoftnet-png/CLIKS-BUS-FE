@@ -169,17 +169,27 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
     const isWarehouse = Array.isArray(reportData) && reportData.some(item => item.warehouse_name || item.warehouse_code || item.capacity_utilization !== undefined || (item.name && item.location && item.code && !item.sku && !item.selling_price));
     const isParty = Array.isArray(reportData) && reportData.some(item => item.outstanding_balance !== undefined || item.total_due !== undefined || item.total_spent !== undefined || (item.name && item.phone && !item.sku && !item.selling_price));
     const isTrialBalance = Array.isArray(reportData) && reportData.some(item => item.ledger && (item.debit !== undefined || item.credit !== undefined));
+    const isProfitLoss = reportData && !Array.isArray(reportData) && reportData.gross_revenue !== undefined;
 
     // Process data into categorical slices
     const processStockData = () => {
         const colors = ['#EC4899', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#6366F1', '#14B8A6', '#F43F5E'];
 
-        if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
+        if (!reportData || (!Array.isArray(reportData) && !isProfitLoss) || (Array.isArray(reportData) && reportData.length === 0)) {
             return [
                 { label: 'In Stock', value: 0, count: 0, color: '#10B981', displayVal: '0 units' },
                 { label: 'Low Stock', value: 0, count: 0, color: '#F59E0B', displayVal: '0 units' },
                 { label: 'Out of Stock', value: 0, count: 0, color: '#EF4444', displayVal: '0 units' }
             ];
+        }
+
+        if (isProfitLoss) {
+            const list = [
+                { label: 'COGS', value: parseFloat(reportData.cost_of_goods || 0), displayVal: formatCurrency(reportData.cost_of_goods || 0), color: '#F43F5E' },
+                { label: 'Overheads', value: parseFloat(reportData.overheads || 0), displayVal: formatCurrency(reportData.overheads || 0), color: '#F59E0B' },
+                { label: 'Net Profit', value: Math.max(parseFloat(reportData.net_profit || 0), 0), displayVal: formatCurrency(reportData.net_profit || 0), color: '#10B981' }
+            ].filter(x => x.value > 0);
+            return list.length > 0 ? list : [{ label: 'Empty P&L', value: 1, displayVal: '₹0' }];
         }
 
         // Check if report is warehouse capacity (id 15)
