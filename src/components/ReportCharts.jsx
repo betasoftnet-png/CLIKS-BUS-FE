@@ -215,6 +215,30 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
             return slices;
         }
 
+        // Check if report contains scorecard data
+        const isScorecard = reportData.some(item => item.scorecard && item.scorecard.total_orders !== undefined);
+        if (isScorecard) {
+            const totalOrders = reportData.reduce((sum, p) => sum + (p.scorecard.total_orders || 0), 0);
+            const filtered = reportData.filter(p => p.scorecard.total_orders > 0);
+            if (filtered.length === 0) {
+                return [{ label: 'No Orders', value: 1, displayVal: '0 orders', color: '#64748B' }];
+            }
+
+            return filtered
+                .sort((a, b) => b.scorecard.total_orders - a.scorecard.total_orders)
+                .slice(0, 8)
+                .map((p, idx) => {
+                    const ord = p.scorecard.total_orders;
+                    const pct = totalOrders > 0 ? ((ord / totalOrders) * 100).toFixed(1) : 0;
+                    return {
+                        label: p.name || p.company_name || `Supplier ${idx + 1}`,
+                        value: ord,
+                        displayVal: `${pct}% (${ord} orders)`,
+                        color: colors[idx % colors.length]
+                    };
+                });
+        }
+
         // Check if report is a party (customer/supplier)
         if (isParty) {
             const totalBal = reportData.reduce((sum, p) => sum + Math.abs(parseFloat(p.outstanding_balance || p.total_due || 0)), 0);
@@ -347,9 +371,9 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
                         position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
                         alignItems: 'center', justifyContent: 'center', pointerEvents: 'none'
                     }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>{isWarehouse ? 'Warehouses' : (isParty ? 'Parties' : 'Total SKUs')}</span>
+                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>{isWarehouse ? 'Warehouses' : (isAging ? 'Buckets' : (isScorecard ? 'Suppliers' : (isParty ? 'Parties' : 'Total SKUs')))}</span>
                         <span style={{ fontSize: '1rem', fontWeight: '900', color: '#0F172A' }}>
-                            {hoveredIndex !== null ? slices[hoveredIndex].label.slice(0, 10) : reportData.length}
+                            {hoveredIndex !== null ? slices[hoveredIndex].label.slice(0, 10) : (isAging ? slices.length : reportData.length)}
                         </span>
                     </div>
                 </div>

@@ -890,8 +890,8 @@ const BusinessReports = () => {
                                 {((['inventory', 'parties'].includes(selectedReport.category) && selectedReport.id !== 6) || [4, 5, 15, 16, 38].includes(selectedReport.id)) ? (
                                     <StockPieChart 
                                         reportData={reportDetails} 
-                                        title={selectedReport.id === 15 ? 'Warehouse Capacity Utilization' : (selectedReport.category === 'parties' ? `${selectedReport.title} Outstanding Balance Distribution` : `${selectedReport.title} Accordance & Stock Metrics`)}
-                                        subtitle={selectedReport.id === 15 ? 'Storage distribution and capacity metrics across all warehouse locations' : (selectedReport.category === 'parties' ? 'Overview of pending balances across registered parties' : 'Stock valuation distribution & warehouse placement')}
+                                        title={selectedReport.id === 15 ? 'Warehouse Capacity Utilization' : (selectedReport.id === 17 ? 'Top Suppliers by Total Orders' : (selectedReport.category === 'parties' ? `${selectedReport.title} Outstanding Balance Distribution` : `${selectedReport.title} Accordance & Stock Metrics`))}
+                                        subtitle={selectedReport.id === 15 ? 'Storage distribution and capacity metrics across all warehouse locations' : (selectedReport.id === 17 ? 'Overview of supplier performance, fulfillment, and reliability' : (selectedReport.category === 'parties' ? 'Overview of pending balances across registered parties' : 'Stock valuation distribution & warehouse placement'))}
                                     />
                                 ) : (
                                     <MonthlySalesBarChart 
@@ -1148,7 +1148,8 @@ const BusinessReports = () => {
                                     )}
 
                                     {/* Suppliers Module */}
-                                    {[8, 17].includes(selectedReport.id) && (
+                                    {/* Suppliers Module (Excluding Scorecard) */}
+                                    {selectedReport.id === 8 && (
                                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                             <thead style={{ background: '#F8FAFC' }}>
                                                 <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
@@ -1169,6 +1170,41 @@ const BusinessReports = () => {
                                                 )) : (
                                                     <tr>
                                                         <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No suppliers located.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    )}
+
+                                    {/* Top Supplier Scorecard (ID 17) */}
+                                    {selectedReport.id === 17 && (
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead style={{ background: '#F8FAFC' }}>
+                                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier Name</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Total Orders</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Fulfillment</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Lead Time</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Reliability</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {reportDetails?.length > 0 ? reportDetails.map((row, idx) => {
+                                                    const s = row.scorecard || {};
+                                                    const reliability = s.reliability_score ?? 95;
+                                                    const color = reliability >= 90 ? '#10B981' : (reliability >= 75 ? '#F59E0B' : '#EF4444');
+                                                    return (
+                                                        <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name || row.company_name}</td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', textAlign: 'center', fontSize: '0.85rem' }}>{s.total_orders || 0}</td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', textAlign: 'center', fontSize: '0.85rem' }}>{s.fulfillment_rate ?? 100}%</td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', textAlign: 'center', fontSize: '0.85rem' }}>{s.lead_time_days ?? 2} days</td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '900', color: color, textAlign: 'right', fontSize: '0.9rem' }}>{reliability}/100</td>
+                                                        </tr>
+                                                    )
+                                                }) : (
+                                                    <tr>
+                                                        <td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No supplier performance data available.</td>
                                                     </tr>
                                                 )}
                                             </tbody>
