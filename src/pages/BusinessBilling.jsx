@@ -1024,11 +1024,11 @@ const BusinessBilling = () => {
         const rawTotal = (parseFloat(subtotal) || 0) + (parseFloat(totalTax) || 0);
         
         // Settings for Loyalty
-        const discPer100 = activeConfig.loyaltyDiscountPer100 !== undefined ? activeConfig.loyaltyDiscountPer100 : 1;
+        const ptsFor1Rs = activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100;
         const ptsPer100 = activeConfig.loyaltyPointsPer100 !== undefined ? activeConfig.loyaltyPointsPer100 : 1;
         
         const redeemedPts = parseFloat(currentFormData.redeemed_points) || 0;
-        const redeemedAmt = (redeemedPts / 100) * discPer100;
+        const redeemedAmt = ptsFor1Rs > 0 ? (redeemedPts / ptsFor1Rs) : 0;
         
         const adjustedTotal = rawTotal - redeemedAmt;
         const roundedTotal = activeConfig.roundOff !== false ? Math.max(0, Math.round(adjustedTotal)) : Math.max(0, adjustedTotal);
@@ -4120,7 +4120,7 @@ const BusinessBilling = () => {
                                             </div>
                                             {(formData.redeemed_points > 0) && (
                                                 <div style={{fontSize: '0.7rem', color: '#166534', fontWeight: 600, marginTop: '0.2rem'}}>
-                                                    Discount Value: {formatCurrency((formData.redeemed_points / 100) * (activeConfig.loyaltyDiscountPer100 || 1))}
+                                                    Discount Value: {formatCurrency(formData.redeemed_points / (activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100))}
                                                 </div>
                                             )}
                                         </div>

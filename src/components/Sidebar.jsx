@@ -970,7 +970,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
 
                 {/* Bottom Settings Block */}
                 <button
-                    onClick={() => handleItemClick('Settings', isAdminMode ? '/admin/settings' : '/customization')}
+                    onClick={() => handleItemClick('Settings', isAdminMode ? '/admin/settings' : '/settings')}
                     style={{
                         width: '100%',
                         display: 'flex',

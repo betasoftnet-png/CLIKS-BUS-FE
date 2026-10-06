@@ -21,7 +21,7 @@ const Settings = () => {
         dataSharing: false,
         loyaltyEnabled: true,
         loyaltyPointsPer100: 1,
-        loyaltyDiscountPer100: 1,
+        loyaltyPointsPer1Rs: 100,
         loyaltyMaxClaimPercent: 50
     });
 
@@ -180,11 +180,11 @@ const Settings = () => {
                             addon="pts"
                         />
                         <SettingInputItem
-                            label="Discount per 100 points"
-                            description="Monetary value discounted per 100 points redeemed."
-                            value={localSettings.loyaltyDiscountPer100}
-                            onChange={(e) => setLocalSettings(p => ({ ...p, loyaltyDiscountPer100: Number(e.target.value) }))}
-                            addon="₹"
+                            label="Points per ₹1 discount"
+                            description="Number of points required to get a ₹1 discount."
+                            value={localSettings.loyaltyPointsPer1Rs !== undefined ? localSettings.loyaltyPointsPer1Rs : 100}
+                            onChange={(e) => setLocalSettings(p => ({ ...p, loyaltyPointsPer1Rs: Number(e.target.value) }))}
+                            addon="pts"
                         />
                         <SettingInputItem
                             label="Max Claim Percentage"
