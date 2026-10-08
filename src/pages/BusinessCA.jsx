@@ -33,9 +33,9 @@ export default function BusinessCA({ mode }) {
     const { user } = useAuth();
     const [activeTab] = useState('auditor'); // auditor | ca_cpa | cs_vault | consultant
 
-    const [personalTab, setPersonalTab] = useState('statutory_financial_auditor'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports | senior_ca | statutory_financial_auditor | audit_suite
+    const [personalTab, setPersonalTab] = useState('home'); // home | clients | requests | insights | tasks | timetracking | workpaper | documents | reports | senior_ca | statutory_financial_auditor | audit_suite
     const [selectedAuditorRole, setSelectedAuditorRoleState] = useState('statutory');
-    const [activeSubTab, setActiveSubTabState] = useState('statutory_financial_auditor');
+    const [activeSubTab, setActiveSubTabState] = useState('home');
     const [activeRoleTab, setActiveRoleTab] = useState('statutory');
     const [activeAuditorCategory, setActiveAuditorCategory] = useState("Statutory Financial Auditor (ICAI CA)");
     const [activeSuiteTool, setActiveSuiteTool] = useState('tool1');
@@ -56,8 +56,8 @@ export default function BusinessCA({ mode }) {
         if (roleCategoryMap[roleKey]) {
             setActiveAuditorCategory(roleCategoryMap[roleKey]);
         }
-        setActiveSubTabState('statutory_financial_auditor');
-        setPersonalTab('statutory_financial_auditor');
+        setActiveSubTabState('home');
+        setPersonalTab('home');
         setActiveSuiteTool('tool1');
     };
 
@@ -2531,31 +2531,30 @@ export default function BusinessCA({ mode }) {
                     {/* ========================================================================= */}
                     {/* 2. TOP AUDITOR ROLE SELECTION STRIP                                       */}
                     {/* ========================================================================= */}
-                    <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-2 overflow-x-auto">
-                      <div className="flex items-center gap-2 shrink-0">
+                    <div className="w-fit bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200/90 shadow-sm p-1.5 flex items-center gap-2 overflow-x-auto">
                         <button
                           type="button"
                           onClick={() => handleSelectRole('statutory')}
-                          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-[13.5px] tracking-tight font-extrabold transition-all duration-200 ${
                             selectedAuditorRole === 'statutory'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs'
-                              : 'text-gray-600 hover:bg-gray-50'
+                              ? 'bg-[#0e4b34] text-white shadow-md border border-[#093625]'
+                              : 'text-gray-600 hover:bg-gray-100/80 border border-transparent hover:text-gray-900'
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'statutory' ? 'bg-emerald-600' : 'bg-gray-400'}`} />
+                          <span className={`w-2 h-2 rounded-full shadow-sm ${selectedAuditorRole === 'statutory' ? 'bg-emerald-300 shadow-emerald-900' : 'bg-gray-400'}`} />
                           <span>Statutory Financial Auditor (ICAI CA)</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => handleSelectRole('tax')}
-                          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-[13.5px] tracking-tight font-extrabold transition-all duration-200 ${
                             selectedAuditorRole === 'tax'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs'
-                              : 'text-gray-600 hover:bg-gray-50'
+                              ? 'bg-[#0e4b34] text-white shadow-md border border-[#093625]'
+                              : 'text-gray-600 hover:bg-gray-100/80 border border-transparent hover:text-gray-900'
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${selectedAuditorRole === 'tax' ? 'bg-emerald-600' : 'bg-gray-400'}`} />
+                          <span className={`w-2 h-2 rounded-full shadow-sm ${selectedAuditorRole === 'tax' ? 'bg-emerald-300 shadow-emerald-900' : 'bg-gray-400'}`} />
                           <span>Tax Auditor (ICAI CA)</span>
                         </button>
 
@@ -2612,7 +2611,6 @@ export default function BusinessCA({ mode }) {
                           <span>Forensic Auditor</span>
                         </button>
                         */}
-                      </div>
                     </div>
 
                     {/* ========================================================================= */}
@@ -2628,19 +2626,8 @@ export default function BusinessCA({ mode }) {
                               activeSubTab === 'home' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
-                            <span>🏠</span>
+                            <Home size={16} />
                             <span>Home</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setActiveSubTab('rule11')}
-                            className={`flex items-center gap-1.5 transition-colors ${
-                              activeSubTab === 'rule11' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
-                            }`}
-                          >
-                            <span>📜</span>
-                            <span>Rule 11(g) Vault & Certificate</span>
                           </button>
 
                           <button
@@ -2650,7 +2637,7 @@ export default function BusinessCA({ mode }) {
                               activeSubTab === 'clients' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
-                            <span>👥</span>
+                            <Users size={16} />
                             <span>Clients</span>
                           </button>
 
@@ -2661,7 +2648,7 @@ export default function BusinessCA({ mode }) {
                               activeSubTab === 'tasks' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
-                            <span>☑️</span>
+                            <CheckSquare size={16} />
                             <span>Tasks</span>
                           </button>
 
@@ -2672,7 +2659,7 @@ export default function BusinessCA({ mode }) {
                               activeSubTab === 'teams' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
-                            <span>👤</span>
+                            <Users size={16} />
                             <span>Teams</span>
                           </button>
 
@@ -2683,7 +2670,7 @@ export default function BusinessCA({ mode }) {
                               activeSubTab === 'time_tracking' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
-                            <span>🕒</span>
+                            <Clock size={16} />
                             <span>Time Tracking</span>
                           </button>
 
@@ -2694,7 +2681,7 @@ export default function BusinessCA({ mode }) {
                               activeSubTab === 'workpaper' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
-                            <span>📄</span>
+                            <FileText size={16} />
                             <span>Workpaper</span>
                           </button>
 
@@ -2705,7 +2692,7 @@ export default function BusinessCA({ mode }) {
                               activeSubTab === 'smart_vouching' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
-                            <span>🔍</span>
+                            <Search size={16} />
                             <span>Smart Vouching & Sampler</span>
                           </button>
 
@@ -2716,7 +2703,7 @@ export default function BusinessCA({ mode }) {
                               activeSubTab === 'fixed_asset' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
-                            <span>🏭</span>
+                            <Building size={16} />
                             <span>Fixed Asset & Depreciation</span>
                           </button>
 
@@ -2727,7 +2714,7 @@ export default function BusinessCA({ mode }) {
                               activeSubTab === 'bank_brs' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
-                            <span>🏦</span>
+                            <Landmark size={16} />
                             <span>Direct Bank BRS Engine</span>
                           </button>
 
@@ -2744,11 +2731,11 @@ export default function BusinessCA({ mode }) {
                                 : 'text-gray-600 hover:bg-gray-50'
                             }`}
                           >
-                            <span>🏛️</span>
+                            <FileCheck size={16} />
                             <span>
                               {selectedAuditorRole === 'tax'
                                 ? 'Tax Auditor'
-                                : 'Statutory Financial Auditor'}
+                                : 'Rule Book'}
                             </span>
                           </button>
 
@@ -2759,8 +2746,8 @@ export default function BusinessCA({ mode }) {
                               activeSubTab === 'consult' || activeSubTab === 'senior_ca' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
-                            <span>💬</span>
-                            <span>consult</span>
+                            <MessageSquare size={16} />
+                            <span>Consult</span>
                           </button>
 
                           <button
@@ -2770,7 +2757,7 @@ export default function BusinessCA({ mode }) {
                               activeSubTab === 'reports' || activeSubTab === 'report' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
                             }`}
                           >
-                            <span>📊</span>
+                            <BarChart size={16} />
                             <span>Reports</span>
                           </button>
                         </div>
@@ -3507,6 +3494,20 @@ export default function BusinessCA({ mode }) {
                                                 <CheckSquare size={16} /> Create Operations Task
                                             </button>
                                         </div>
+                                    </div>
+
+                                    {/* Rule 11(g) Vault Section */}
+                                    <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <ShieldCheck size={20} className="text-emerald-600" /> 
+                                            Rule 11(g) Vault & Certificate
+                                        </h3>
+                                        <p style={{ fontSize: '13px', color: '#64748B', margin: 0 }}>
+                                            Securely manage your Audit Trail & accounting software compliance certificates.
+                                        </p>
+                                        <button onClick={() => setActiveSubTab('rule11')} style={{ alignSelf: 'flex-start', padding: '12px 20px', background: '#0e4b34', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                            <Folder size={16} /> Access Rule 11(g) Vault
+                                        </button>
                                     </div>
                                 </Motion.div>
                             )}
