@@ -82,6 +82,10 @@ export const caService = {
     rejectTeamRequest: (id) => apiClient.post(`/ca/team-requests/${id}/reject`).then(res => res.data.data || res.data),
     cancelTeamRequest: (id) => apiClient.delete(`/ca/team-requests/${id}`).then(res => res.data.data || res.data),
 
+    // Rule 11(g) Audit Logs API
+    getRule11Logs: (customerId) => apiClient.get(`/auditLogs?module=CA${customerId ? `&customer_id=${customerId}` : ''}`).then(res => res.data?.data || res.data).catch(() => ({ logs: [] })),
+    logRule11Activity: (data) => apiClient.post('/auditLogs', data).then(res => res.data?.data || res.data),
+    
     // Billing & Audit Session Methods
     addAuditSession: (session) => apiClient.post('/ca/audit-sessions', session).then(res => res.data.data || res.data),
     getAuditSessions: () => apiClient.get('/ca/audit-sessions').then(res => res.data.data || res.data),

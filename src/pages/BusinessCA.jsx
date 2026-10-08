@@ -252,6 +252,15 @@ export default function BusinessCA({ mode }) {
     const [editingCheckItemText, setEditingCheckItemText] = useState('');
     const [newCheckItemText, setNewCheckItemText] = useState('');
 
+    // Rule 11(g) States
+    const [rule11CustomerFilter, setRule11CustomerFilter] = useState('');
+    const { data: rule11Data, refetch: refetchRule11Logs } = useQuery({
+        queryKey: ['rule11Logs', rule11CustomerFilter],
+        queryFn: () => caService.getRule11Logs(rule11CustomerFilter),
+        retry: false
+    });
+    const rule11Logs = rule11Data?.logs || [];
+
     const removeTeamMemberMutation = useMutation({
         mutationFn: (id) => caService.removeTeamMember(id),
         onSuccess: () => {
@@ -1253,24 +1262,40 @@ export default function BusinessCA({ mode }) {
     // Practice Workspace Management Mutations
     const addClientMutation = useMutation({
         mutationFn: (client) => caService.addClient(client),
-        onSuccess: () => {
+        onSuccess: (data) => {
             refetchClients();
             setShowAddClientModal(false);
             setNewClientName('');
             setNewClientEmail('');
             setNewClientIncome('');
+            
+            // Rule 11(g) Log
+            caService.logRule11Activity({
+                action_type: 'ADD_CLIENT',
+                message: `Added new taxpayer client: ${data?.name || 'Unknown'}`,
+                customer_id: data?.id || null
+            }).then(() => refetchRule11Logs()).catch(e => console.error(e));
         },
         onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to register client')
     });
 
     const addRequestMutation = useMutation({
         mutationFn: (req) => caService.addRequest(req),
-        onSuccess: () => {
+        onSuccess: (data, variables) => {
             refetchRequests();
             setShowAddRequestModal(false);
             setNewRequestTitle('');
             setNewRequestDesc('');
             setNewRequestDueDate('');
+
+            // Rule 11(g) Log
+            if (variables.client_id) {
+                caService.logRule11Activity({
+                    action_type: 'REQUEST_DOCUMENT',
+                    message: `Requested document '${variables.title}' from client`,
+                    customer_id: variables.client_id
+                }).then(() => refetchRule11Logs()).catch(e => console.error(e));
+            }
         },
         onError: (err) => alert(err.response?.data?.message || err.message || 'Failed to issue request')
     });
@@ -3498,16 +3523,74 @@ export default function BusinessCA({ mode }) {
 
                                     {/* Rule 11(g) Vault Section */}
                                     <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <ShieldCheck size={20} className="text-emerald-600" /> 
-                                            Rule 11(g) Vault & Certificate
-                                        </h3>
-                                        <p style={{ fontSize: '13px', color: '#64748B', margin: 0 }}>
-                                            Securely manage your Audit Trail & accounting software compliance certificates.
-                                        </p>
-                                        <button onClick={() => setActiveSubTab('rule11')} style={{ alignSelf: 'flex-start', padding: '12px 20px', background: '#0e4b34', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                            <Folder size={16} /> Access Rule 11(g) Vault
-                                        </button>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <h3 style={{ fontSize: '15px', fontWeight: '850', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <ShieldCheck size={20} className="text-emerald-600" /> 
+                                                    Rule 11(g) Audit Trail
+                                                </h3>
+                                                <p style={{ fontSize: '13px', color: '#64748B', margin: '4px 0 0 0' }}>
+                                                    Compliance logs of Chartered Accountant actions and file modifications.
+                                                </p>
+                                            </div>
+                                            <select 
+                                                value={rule11CustomerFilter}
+                                                onChange={(e) => setRule11CustomerFilter(e.target.value)}
+                                                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '13px', outline: 'none' }}
+                                            >
+                                                <option value="">All Taxpayers</option>
+                                                {allPracticeClients.map(client => (
+                                                    <option key={client.id} value={client.id}>{client.name} - {client.email}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #F1F5F9', borderRadius: '12px' }}>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                                <thead style={{ background: '#F8FAFC', position: 'sticky', top: 0 }}>
+                                                    <tr>
+                                                        <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '800', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}>Date & Time</th>
+                                                        <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '800', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}>Action / Event</th>
+                                                        <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '800', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}>Actor</th>
+                                                        <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '800', color: '#64748B', borderBottom: '1px solid #E2E8F0' }}>Client Context</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {rule11Logs.length === 0 ? (
+                                                        <tr>
+                                                            <td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
+                                                                No Rule 11(g) audit trail logs found.
+                                                            </td>
+                                                        </tr>
+                                                    ) : (
+                                                        rule11Logs.map(log => {
+                                                            const relatedClient = allPracticeClients.find(c => String(c.id) === String(log.customer_id));
+                                                            return (
+                                                                <tr key={log.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                    <td style={{ padding: '12px 16px', fontSize: '12px', color: '#475569' }}>
+                                                                        {new Date(log.created_at).toLocaleString()}
+                                                                    </td>
+                                                                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#0F172A', fontWeight: '600' }}>
+                                                                        {log.message}
+                                                                        {log.action_type && (
+                                                                            <span style={{ marginLeft: '8px', fontSize: '10px', background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px', color: '#64748B' }}>
+                                                                                {log.action_type}
+                                                                            </span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#475569' }}>
+                                                                        {log.actor}
+                                                                    </td>
+                                                                    <td style={{ padding: '12px 16px', fontSize: '13px', color: '#475569' }}>
+                                                                        {relatedClient ? relatedClient.name : '-'}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </Motion.div>
                             )}
