@@ -310,10 +310,6 @@ export default function StatutoryFinancialAuditSuite() {
       {/* ========================================================================= */}
       <div className="flex items-center gap-3 border-b border-gray-100 pb-3 overflow-x-auto text-xs whitespace-nowrap scrollbar-none">
         {[
-          { id: 'rule11', label: 'Rule 11(g) Vault & Certificate' },
-          { id: 'smart_vouching', label: 'Smart Vouching & Sampler' },
-          { id: 'fixed_asset', label: 'Fixed Asset & Depreciation' },
-          { id: 'bank_brs', label: 'Direct Bank BRS Engine' },
           { id: 'governance', label: 'Corporate Governance, Appointment & Pre-Audit Controls' },
           { id: 'asset_verification', label: 'Substantive Asset Verification & Title Due Diligence' },
           { id: 'liabilities_solvency', label: 'Corporate Liabilities, Solvency & Liquidity Assurance' },

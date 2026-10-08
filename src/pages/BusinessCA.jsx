@@ -2559,6 +2559,7 @@ export default function BusinessCA({ mode }) {
                           <span>Tax Auditor (ICAI CA)</span>
                         </button>
 
+                        {/* 
                         <button
                           type="button"
                           onClick={() => handleSelectRole('internal')}
@@ -2610,6 +2611,7 @@ export default function BusinessCA({ mode }) {
                           <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
                           <span>Forensic Auditor</span>
                         </button>
+                        */}
                       </div>
                     </div>
 
@@ -2628,6 +2630,17 @@ export default function BusinessCA({ mode }) {
                           >
                             <span>🏠</span>
                             <span>Home</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('rule11')}
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'rule11' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
+                            }`}
+                          >
+                            <span>📜</span>
+                            <span>Rule 11(g) Vault & Certificate</span>
                           </button>
 
                           <button
@@ -2683,6 +2696,39 @@ export default function BusinessCA({ mode }) {
                           >
                             <span>📄</span>
                             <span>Workpaper</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('smart_vouching')}
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'smart_vouching' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
+                            }`}
+                          >
+                            <span>🔍</span>
+                            <span>Smart Vouching & Sampler</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('fixed_asset')}
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'fixed_asset' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
+                            }`}
+                          >
+                            <span>🏭</span>
+                            <span>Fixed Asset & Depreciation</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setActiveSubTab('bank_brs')}
+                            className={`flex items-center gap-1.5 transition-colors ${
+                              activeSubTab === 'bank_brs' ? 'text-gray-900 font-bold' : 'hover:text-gray-900'
+                            }`}
+                          >
+                            <span>🏦</span>
+                            <span>Direct Bank BRS Engine</span>
                           </button>
 
                           {/* AUDITOR ACTIVE BUTTON */}
