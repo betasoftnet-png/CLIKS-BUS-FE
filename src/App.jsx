@@ -242,23 +242,7 @@ function AuthenticatedApp() {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/faq" element={<FAQ />} />
 
-                {/* Admin Control Center */}
-                <Route path="/admin/*" element={
-                  <ProtectedRoute role="admin">
-                    <Routes>
-                      <Route path="dashboard" element={<AdminDashboard />} />
-                      <Route path="users" element={<AdminUsers />} />
-                      <Route path="moderation" element={<AdminModeration />} />
-                      <Route path="logs" element={<AdminAuditLogs />} />
-                      <Route path="settings" element={<AdminSettings />} />
-                      <Route path="sales" element={<AdminSales />} />
-                      <Route path="sales-team" element={<AdminSalesTeam />} />
-                      <Route path="sales-leads" element={<AdminSalesLeads />} />
-                      <Route path="support-team" element={<AdminSupportTeam />} />
-                      <Route path="faq" element={<FAQ />} />
-                    </Routes>
-                  </ProtectedRoute>
-                } />
+                {/* Admin Control Center Moved to CLIKS-ADMIN-FE */}
 
                 {/* Sales Representative Workspaces */}
                 <Route path="/sales-portal/*" element={
@@ -380,19 +364,11 @@ function AppContent() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Landing />} />
-        <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
-        <Route path="/admin/login" element={
-          <Suspense fallback={<PageLoader />}>
-            <AdminLogin />
-          </Suspense>
-        } />
-        <Route path="/adminlogin" element={
-          <Suspense fallback={<PageLoader />}>
-            <AdminPortal />
-          </Suspense>
-        } />
-        <Route path="/social/betaclub/adminlogin" element={<Navigate to="/adminlogin" replace />} />
-        <Route path="/social/betaclub/admin" element={<Navigate to="/adminlogin" replace />} />
+        <Route path="/admin" element={<Navigate to="/" replace />} />
+        <Route path="/admin/login" element={<Navigate to="/" replace />} />
+        <Route path="/adminlogin" element={<Navigate to="/" replace />} />
+        <Route path="/social/betaclub/adminlogin" element={<Navigate to="/" replace />} />
+        <Route path="/social/betaclub/admin" element={<Navigate to="/" replace />} />
 
         <Route path="/sales/login" element={
           <Suspense fallback={<PageLoader />}>
