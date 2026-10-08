@@ -277,33 +277,7 @@ export default function StatutoryFinancialAuditSuite() {
   return (
     <div className="bg-white rounded-2xl p-6 border border-gray-200/80 shadow-xs space-y-5">
       
-      {/* ========================================================================= */}
-      {/* 1. SUITE HEADER & DELIVERABLE BADGE (MATCHING PICTURE 2)                  */}
-      {/* ========================================================================= */}
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">
-            📄
-          </div>
-          <h2 className="text-sm sm:text-base font-black text-gray-900 tracking-tight">
-            Statutory Financial Audit Suite
-          </h2>
-          <span className="px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-600 rounded-md text-[10px] font-black uppercase tracking-wider">
-            ICAI CA STANDARD
-          </span>
-        </div>
-
-        <p className="text-[11px] sm:text-xs text-gray-500 font-medium">
-          Prove a 'true and fair view' under Section 143 of the Companies Act and Indian Accounting Standards (Ind AS).
-        </p>
-
-        <div className="pt-0.5">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50/80 border border-amber-200/90 rounded-xl text-[10px] sm:text-[11px] font-black text-amber-800">
-            <span>📦</span>
-            <span>Core Deliverable: Rule 11(g) Audit Trail Certificate &amp; SA 230 Working Paper Bundle</span>
-          </span>
-        </div>
-      </div>
+      {/* Suite Header Removed */}
 
       {/* ========================================================================= */}
       {/* SUITE TABS (BORDERED ACTIVE PILL MATCHING TARGET DESIGN)                  */}
