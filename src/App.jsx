@@ -15,17 +15,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import FAQ from './pages/FAQ';
 
-// Admin Section Imports
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminUsers from './pages/admin/AdminUsers';
-import AdminSettings from './pages/admin/AdminSettings';
-import AdminModeration from './pages/admin/AdminModeration';
-import AdminAuditLogs from './pages/admin/AdminAuditLogs';
-import AdminLogin from './pages/admin/AdminLogin';
-import AdminPortal from './pages/AdminPortal';
-import AdminSales from './pages/admin/AdminSales';
-import AdminSalesTeam from './pages/admin/AdminSalesTeam';
-import AdminSalesLeads from './pages/admin/AdminSalesLeads';
+// Admin Control Center Moved to CLIKS-ADMIN-FE
 
 // Platform Marketing Reps Section Imports
 import SalesLogin from './pages/salesAgent/SalesLogin';
@@ -35,7 +25,6 @@ import SalesLeads from './pages/salesAgent/SalesLeads';
 // Customer Support Section Imports
 import SupportLogin from './pages/support/SupportLogin';
 import SupportDashboard from './pages/support/SupportDashboard';
-import AdminSupportTeam from './pages/admin/AdminSupportTeam';
 
 import BusinessDashboard from './pages/BusinessDashboard';
 import BusinessCA from './pages/BusinessCA';
