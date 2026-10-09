@@ -25,6 +25,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.print-only {
+  display: none;
+}
+
 .select-none {
   user-select: none;
   -webkit-user-select: none;
@@ -737,7 +741,9 @@ body.dark-theme,
   #printable-pos-receipt,
   #printable-pos-receipt *,
   #thermal-receipt-pane,
-  #thermal-receipt-pane * {
+  #thermal-receipt-pane *,
+  #invoice-print-area,
+  #invoice-print-area * {
     visibility: visible;
   }
 
@@ -759,6 +765,17 @@ body.dark-theme,
     overflow: visible !important;
   }
 
+  #invoice-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
   /* Reset POS Modal centering for print to ensure top-left alignment */
   .pos-receipt-modal-overlay {
     align-items: flex-start !important;
@@ -777,6 +794,10 @@ body.dark-theme,
   /* Hide print/action buttons during printing */
   .no-print {
     display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
   }
 
   @page {

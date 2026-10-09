@@ -81,7 +81,7 @@ export default function GSTR3BTab({ dbGstr3b, formatCurrency, onFileGstr3b }) {
 
       {/* FORMAL GSTR-3B PRINT DOCUMENT */}
       {dbGstr3b && (
-        <div className="hidden print:block w-full bg-white text-black font-sans p-8 print:p-2" style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <div className="print-only w-full bg-white text-black font-sans p-8 print:p-2" style={{ maxWidth: '800px', margin: '0 auto' }}>
           <div className="text-center border-b-2 border-black pb-4 mb-6">
             <h1 className="text-2xl font-black tracking-widest uppercase mb-1">FORM GSTR-3B</h1>
             <p className="text-sm font-bold m-0">[See Rule 61(5)]</p>
