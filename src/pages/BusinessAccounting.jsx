@@ -2640,12 +2640,13 @@ const BusinessAccounting = () => {
                                                             ? `URGENT: Dear ${selectedInvoiceForModal.client_name}, invoice ${selectedInvoiceForModal.invoice_number} of amount ${formatCurrency(selectedInvoiceForModal.due_amount !== undefined ? selectedInvoiceForModal.due_amount : selectedInvoiceForModal.total_amount)} is severely overdue since ${selectedInvoiceForModal.due_date?.split('T')[0]}. Please clear immediately to avoid service pauses.`
                                                             : `Dear ${selectedInvoiceForModal.client_name}, this is a friendly reminder that invoice ${selectedInvoiceForModal.invoice_number} is pending. The total due is ${formatCurrency(selectedInvoiceForModal.due_amount !== undefined ? selectedInvoiceForModal.due_amount : selectedInvoiceForModal.total_amount)} payable by ${selectedInvoiceForModal.due_date?.split('T')[0]}. Thank you!`;
 
-                                                        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.bnxmail.com';
-                                                        const res = await fetch(`${baseUrl}/api/mail/send`, {
+                                                        const baseUrl = 'https://api.bnxmail.com';
+                                                        const endpoint = baseUrl.includes('/api/v1') ? `${baseUrl}/mail/send` : `${baseUrl}/api/mail/send`;
+                                                        const res = await fetch(endpoint, {
                                                             method: 'POST',
                                                             headers: {
                                                                 'Content-Type': 'application/json',
-                                                                'Authorization': `Bearer ${token}`
+                                                                'Authorization': token ? (token.startsWith('Bearer ') ? token : `Bearer ${token}`) : ''
                                                             },
                                                             body: JSON.stringify({
                                                                 to: toEmail,
