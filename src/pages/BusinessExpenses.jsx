@@ -147,7 +147,9 @@ const BusinessExpenses = ({ defaultTab }) => {
         amount: '',
         description: '',
         date: new Date().toISOString().split('T')[0],
-        payment_mode: 'UPI'
+        payment_mode: 'UPI',
+        employee_id: '',
+        employee_name: ''
     });
     
     // Auto-trigger expense modal via search instructions
@@ -2331,6 +2333,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600', boxSizing: 'border-box' }} 
                                 />
                             </div>
+
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Date</label>
                                 <input 
