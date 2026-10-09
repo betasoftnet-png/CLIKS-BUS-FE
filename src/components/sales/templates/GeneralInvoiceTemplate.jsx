@@ -18,70 +18,70 @@ export default function GeneralInvoiceTemplate({ invoice, data }) {
   const grandTotal = inv?.total_amount !== undefined ? Number(inv.total_amount) : (subtotal + taxAmount);
 
   return (
-    <div className="max-w-4xl mx-auto p-8 bg-white font-sans text-gray-800 space-y-8 print:p-4 print:max-w-full">
+    <div className="max-w-5xl mx-auto p-10 bg-white font-sans text-gray-800 space-y-10 print:p-6 print:max-w-full print:w-full w-full">
       
       {/* HEADER SECTION */}
-      <div className="flex justify-between items-start border-b border-gray-100 pb-6">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-xl font-black text-gray-700">
+      <div className="flex justify-between items-start border-b-2 border-gray-100 pb-8">
+        <div className="flex items-start gap-5">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 flex items-center justify-center text-3xl font-black text-gray-800 shadow-sm">
             {(inv?.company_name || inv?.business_name || 'V').charAt(0)}
           </div>
           <div>
-            <div className="flex items-baseline gap-2">
-              <h1 className="text-xl font-black tracking-tight text-gray-900">
+            <div className="flex items-baseline gap-3">
+              <h1 className="text-3xl font-black tracking-tight text-gray-900">
                 {inv?.company_name || inv?.business_name || 'VINCENT1182003'}
               </h1>
-              <span className="text-xl font-black tracking-widest text-gray-400">
+              <span className="text-2xl font-black tracking-widest text-gray-300">
                 INVOICE
               </span>
             </div>
-            <p className="text-xs text-gray-500 font-medium">Global Solutions Enterprise</p>
-            <div className="mt-2 text-[11px] text-gray-500 space-y-0.5">
-              <p>GSTIN: <span className="font-bold text-gray-700">{inv?.gstin || 'N/A'}</span></p>
-              <p>EMAIL: <span className="text-gray-700">{inv?.email || 'vincent1182003@bnxmail.com'}</span></p>
+            <p className="text-sm text-gray-500 font-bold mt-1">Global Solutions Enterprise</p>
+            <div className="mt-3 text-[13px] text-gray-500 space-y-1">
+              <p>GSTIN: <span className="font-bold text-gray-800">{inv?.gstin || 'N/A'}</span></p>
+              <p>EMAIL: <span className="font-bold text-gray-800">{inv?.email || 'vincent1182003@bnxmail.com'}</span></p>
             </div>
           </div>
         </div>
 
-        <div className="text-right space-y-2">
-          <div className="inline-block bg-gray-50 border border-gray-200 rounded-xl px-4 py-1.5 text-xs font-bold text-gray-800">
-            INVOICE NO. <span className="font-black text-black ml-1">{inv?.invoice_number || 'INV-107141'}</span>
+        <div className="text-right space-y-3">
+          <div className="inline-block bg-gray-50 border border-gray-200 rounded-xl px-5 py-2.5 text-sm font-bold text-gray-600 shadow-sm">
+            INVOICE NO. <span className="font-black text-gray-900 ml-2 text-base">{inv?.invoice_number || 'INV-107141'}</span>
           </div>
-          <p className="text-xs text-gray-500">
-            DATE ISSUED: <span className="font-bold text-gray-800 ml-1">{inv?.date || inv?.due_date || '2026-09-10'}</span>
+          <p className="text-sm text-gray-500 font-semibold pt-1">
+            DATE ISSUED: <span className="font-black text-gray-900 ml-2">{inv?.date || inv?.due_date || '2026-09-10'}</span>
           </p>
         </div>
       </div>
 
       {/* BILL RECIPIENT & PAYMENT METRICS */}
-      <div className="flex justify-between items-start gap-6">
-        <div>
-          <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider block mb-1">
+      <div className="flex justify-between items-start gap-8 bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+        <div className="flex-1">
+          <span className="text-xs font-black uppercase text-gray-400 tracking-widest block mb-2">
             BILL RECIPIENT
           </span>
-          <h2 className="text-base font-black text-gray-900">
+          <h2 className="text-xl font-black text-gray-900 mb-1">
             {inv?.customer_name || inv?.client_name || 'Santhosh'}
           </h2>
-          <p className="text-xs text-gray-500 font-medium">
+          <p className="text-sm text-gray-600 font-medium leading-relaxed">
             {inv?.customer_business || inv?.billing_address || 'Santhosh Retailers'}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-gray-50/80 border border-gray-200/80 rounded-2xl text-center w-24">
-            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">
+        <div className="flex items-center gap-4">
+          <div className="p-4 bg-white border border-gray-200 shadow-sm rounded-2xl text-center w-32 shrink-0">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">
               PAYMENT MODE
             </span>
-            <p className="text-xs font-black text-blue-700">{inv?.payment_mode || 'Cash'}</p>
-            <p className="text-[9px] text-gray-400">Terms: Net 30</p>
+            <p className="text-sm font-black text-blue-700">{inv?.payment_mode || 'Cash'}</p>
+            <p className="text-[10px] font-semibold text-gray-400 mt-1">Terms: Net 30</p>
           </div>
 
-          <div className="p-3 bg-gray-50/80 border border-gray-200/80 rounded-2xl text-center w-24">
-            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">
+          <div className="p-4 bg-white border border-gray-200 shadow-sm rounded-2xl text-center w-32 shrink-0">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">
               CURRENCY
             </span>
-            <p className="text-xs font-black text-blue-700">INR (₹)</p>
-            <p className="text-[9px] text-gray-400">Indian Rupee</p>
+            <p className="text-sm font-black text-blue-700">INR (₹)</p>
+            <p className="text-[10px] font-semibold text-gray-400 mt-1">Indian Rupee</p>
           </div>
         </div>
       </div>
@@ -89,37 +89,37 @@ export default function GeneralInvoiceTemplate({ invoice, data }) {
       {/* =================================================================== */}
       {/* 4-COLUMN ITEMS TABLE WITH PROPER RIGHT ALIGNMENT                    */}
       {/* =================================================================== */}
-      <div style={{ width: '100%', boxSizing: 'border-box' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+      <div className="w-full">
+        <table className="w-full border-collapse">
           <thead>
-            <tr style={{ borderBottom: '2px solid #E5E7EB', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', color: '#9CA3AF' }}>
-              <th style={{ padding: '12px 0', textAlign: 'left', width: '45%' }}>DESCRIPTION</th>
-              <th style={{ padding: '12px 0', textAlign: 'center', width: '15%' }}>QTY</th>
-              <th style={{ padding: '12px 0', textAlign: 'right', width: '20%', paddingRight: '8px' }}>UNIT PRICE</th>
-              <th style={{ padding: '12px 0', textAlign: 'right', width: '20%' }}>TOTAL AMOUNT</th>
+            <tr className="border-b-2 border-gray-200 text-xs font-black text-gray-400 uppercase tracking-wider">
+              <th className="py-4 text-left w-1/2">DESCRIPTION</th>
+              <th className="py-4 text-center w-1/6">QTY</th>
+              <th className="py-4 text-right w-1/6 pr-2">UNIT PRICE</th>
+              <th className="py-4 text-right w-1/6">TOTAL AMOUNT</th>
             </tr>
           </thead>
-          <tbody style={{ fontSize: '12px', color: '#374151' }}>
+          <tbody className="text-sm text-gray-700">
             {items.map((item, index) => {
               const qty = Number(item.quantity || item.qty || 1);
               const rate = Number(item.unit_price || item.price || item.rate || 0);
               const lineTotal = item.total !== undefined ? Number(item.total) : qty * rate;
 
               return (
-                <tr key={index} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                  <td style={{ padding: '16px 8px 16px 0', textAlign: 'left', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
-                    <p style={{ fontWeight: '700', color: '#111827', margin: 0 }}>{item.product_name || item.description || item.name}</p>
+                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
+                  <td className="py-5 pr-4 text-left break-words">
+                    <p className="font-bold text-gray-900 text-base m-0">{item.product_name || item.description || item.name}</p>
                     {(item.hsn || item.hsn_code) && (
-                      <p style={{ fontSize: '10px', color: '#9CA3AF', fontWeight: '500', margin: '4px 0 0 0' }}>HSN CODE: {item.hsn || item.hsn_code}</p>
+                      <p className="text-xs text-gray-400 font-semibold mt-1">HSN CODE: {item.hsn || item.hsn_code}</p>
                     )}
                   </td>
-                  <td style={{ padding: '16px 0', textAlign: 'center', fontWeight: '700', color: '#1F2937' }}>
+                  <td className="py-5 text-center font-bold text-gray-800 text-base">
                     {qty}
                   </td>
-                  <td style={{ padding: '16px 8px 16px 0', textAlign: 'right', fontWeight: '500', color: '#374151' }}>
+                  <td className="py-5 pr-2 text-right font-semibold text-gray-600">
                     ₹{rate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
-                  <td style={{ padding: '16px 0', textAlign: 'right', fontWeight: '900', color: '#111827' }}>
+                  <td className="py-5 text-right font-black text-gray-900 text-base">
                     ₹{lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
@@ -132,25 +132,25 @@ export default function GeneralInvoiceTemplate({ invoice, data }) {
       {/* =================================================================== */}
       {/* TOTAL BILL SUMMARY (PROPER RIGHT ALIGNMENT)                         */}
       {/* =================================================================== */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '20px', borderTop: '1px solid #F3F4F6', width: '100%', boxSizing: 'border-box' }}>
-        <div style={{ width: '280px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6B7280', fontWeight: '500' }}>
+      <div className="flex justify-end pt-6 border-t-2 border-gray-100 w-full">
+        <div className="w-80 flex flex-col gap-4 text-sm bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+          <div className="flex justify-between text-gray-500 font-semibold items-center">
             <span>Subtotal:</span>
-            <span style={{ fontWeight: '700', color: '#1F2937' }}>
+            <span className="font-bold text-gray-800 text-base">
               ₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6B7280', fontWeight: '500' }}>
+          <div className="flex justify-between text-gray-500 font-semibold items-center">
             <span>GST ({taxRate}%):</span>
-            <span style={{ fontWeight: '700', color: '#1F2937' }}>
+            <span className="font-bold text-gray-800 text-base">
               ₹{taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: '900', color: '#111827', borderTop: '2px solid #111827', paddingTop: '8px', marginTop: '4px' }}>
+          <div className="flex justify-between items-center text-lg font-black text-gray-900 border-t-2 border-gray-300 pt-4 mt-1">
             <span>TOTAL AMOUNT:</span>
-            <span style={{ color: '#172554' }}>
+            <span className="text-blue-900 text-xl">
               ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
