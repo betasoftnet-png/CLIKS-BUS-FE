@@ -18,7 +18,8 @@ export const expensesService = {
     getRecurrings: () => apiClient.get('/expenses/recurring').then(res => res.data.data || res.data),
     createRecurring: (data) => apiClient.post('/expenses/recurring', data).then(res => res.data.data || res.data),
     updateRecurring: (id, data) => apiClient.put(`/expenses/recurring/${id}`, data).then(res => res.data.data || res.data),
-    deleteRecurring: (id) => apiClient.delete(`/expenses/recurring/${id}`).then(res => res.data.data || res.data)
+    deleteRecurring: (id) => apiClient.delete(`/expenses/recurring/${id}`).then(res => res.data.data || res.data),
+    getCategoryReport: () => apiClient.get('/expenses/reports/category').then(res => res.data.data || res.data)
 };
 
 export default expensesService;
