@@ -2725,20 +2725,29 @@ const BusinessAccounting = () => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {Array.isArray(selectedInvoiceForModal.items) && selectedInvoiceForModal.items.length > 0 ? (
-                                                    selectedInvoiceForModal.items.map((item, idx) => (
-                                                        <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                            <td style={{ padding: '0.6rem 0.85rem', fontWeight: '700' }}>{item.name || item.product_name || 'Goods/Service Item'}</td>
-                                                            <td style={{ padding: '0.6rem 0.85rem', textAlign: 'center' }}>{item.qty || item.quantity || 1}</td>
-                                                            <td style={{ padding: '0.6rem 0.85rem', textAlign: 'right' }}>{formatCurrency(item.rate || item.price || 0)}</td>
-                                                            <td style={{ padding: '0.6rem 0.85rem', textAlign: 'right', fontWeight: '750' }}>{formatCurrency((item.qty || item.quantity || 1) * (item.rate || item.price || 0))}</td>
+                                                {(() => {
+                                                    let safeItems = [];
+                                                    try {
+                                                        safeItems = typeof selectedInvoiceForModal.items === 'string'
+                                                            ? JSON.parse(selectedInvoiceForModal.items || '[]')
+                                                            : (selectedInvoiceForModal.items || []);
+                                                    } catch(e) {}
+                                                    
+                                                    return safeItems.length > 0 ? (
+                                                        safeItems.map((item, idx) => (
+                                                            <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                <td style={{ padding: '0.6rem 0.85rem', fontWeight: '700' }}>{item.name || item.product_name || 'Goods/Service Item'}</td>
+                                                                <td style={{ padding: '0.6rem 0.85rem', textAlign: 'center' }}>{item.qty || item.quantity || 1}</td>
+                                                                <td style={{ padding: '0.6rem 0.85rem', textAlign: 'right' }}>{formatCurrency(item.rate || item.price || 0)}</td>
+                                                                <td style={{ padding: '0.6rem 0.85rem', textAlign: 'right', fontWeight: '750' }}>{formatCurrency((item.qty || item.quantity || 1) * (item.rate || item.price || 0))}</td>
+                                                            </tr>
+                                                        ))
+                                                    ) : (
+                                                        <tr>
+                                                            <td colSpan={4} style={{ padding: '1rem', textAlign: 'center', color: '#94A3B8' }}>No item details logged for this record.</td>
                                                         </tr>
-                                                    ))
-                                                ) : (
-                                                    <tr>
-                                                        <td colSpan={4} style={{ padding: '1rem', textAlign: 'center', color: '#94A3B8' }}>No item details logged for this record.</td>
-                                                    </tr>
-                                                )}
+                                                    );
+                                                })()}
                                             </tbody>
                                         </table>
                                     </div>
@@ -2754,8 +2763,15 @@ const BusinessAccounting = () => {
                                         <button 
                                             onClick={() => {
                                                 const printWindow = window.open('', '_blank');
-                                                const itemsHtml = Array.isArray(selectedInvoiceForModal.items) && selectedInvoiceForModal.items.length > 0
-                                                    ? selectedInvoiceForModal.items.map(item => `
+                                                let safeItemsPrint = [];
+                                                try {
+                                                    safeItemsPrint = typeof selectedInvoiceForModal.items === 'string'
+                                                        ? JSON.parse(selectedInvoiceForModal.items || '[]')
+                                                        : (selectedInvoiceForModal.items || []);
+                                                } catch(e) {}
+
+                                                const itemsHtml = safeItemsPrint.length > 0
+                                                    ? safeItemsPrint.map(item => `
                                                         <tr>
                                                             <td style="padding: 12px 16px; border-bottom: 1px solid #E2E8F0; color: #1E293B; font-weight: 500;">${item.name || item.product_name || 'Goods/Service Item'}</td>
                                                             <td style="padding: 12px 16px; border-bottom: 1px solid #E2E8F0; color: #475569; text-align: center;">${item.qty || item.quantity || 1}</td>
