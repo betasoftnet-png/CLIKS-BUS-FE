@@ -90,13 +90,13 @@ export default function GeneralInvoiceTemplate({ invoice, data }) {
       {/* 4-COLUMN ITEMS TABLE WITH PROPER RIGHT ALIGNMENT                    */}
       {/* =================================================================== */}
       <div className="w-full">
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
           <thead>
             <tr className="border-b-2 border-gray-200 text-xs font-black text-gray-400 uppercase tracking-wider">
-              <th className="py-4 text-left w-1/2">DESCRIPTION</th>
-              <th className="py-4 text-center w-1/6">QTY</th>
-              <th className="py-4 text-right w-1/6 pr-2">UNIT PRICE</th>
-              <th className="py-4 text-right w-1/6">TOTAL AMOUNT</th>
+              <th className="py-4 text-left" style={{ width: '45%' }}>DESCRIPTION</th>
+              <th className="py-4 text-center" style={{ width: '15%' }}>QTY</th>
+              <th className="py-4 text-right pr-2" style={{ width: '20%' }}>UNIT PRICE</th>
+              <th className="py-4 text-right" style={{ width: '20%' }}>TOTAL AMOUNT</th>
             </tr>
           </thead>
           <tbody className="text-sm text-gray-700">
@@ -132,8 +132,8 @@ export default function GeneralInvoiceTemplate({ invoice, data }) {
       {/* =================================================================== */}
       {/* TOTAL BILL SUMMARY (PROPER RIGHT ALIGNMENT)                         */}
       {/* =================================================================== */}
-      <div className="flex justify-end pt-6 border-t-2 border-gray-100 w-full">
-        <div className="w-80 flex flex-col gap-4 text-sm bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+      <div className="flex justify-end pt-6 border-t-2 border-gray-100 w-full" style={{ pageBreakInside: 'avoid' }}>
+        <div className="w-80 flex flex-col gap-4 text-sm bg-gray-50/50 p-6 rounded-2xl border border-gray-100 print:bg-gray-50 print:border-gray-200">
           <div className="flex justify-between text-gray-500 font-semibold items-center">
             <span>Subtotal:</span>
             <span className="font-bold text-gray-800 text-base">
