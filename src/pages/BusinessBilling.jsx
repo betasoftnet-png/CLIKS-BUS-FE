@@ -3359,10 +3359,10 @@ const BusinessBilling = () => {
                                                 <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#BE185D', flexShrink: 0 }}>
                                                     <FileText size={16} />
                                                 </div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <span style={{ fontWeight: '750', color: '#0F172A', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.invoice_number}</span>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px', minWidth: 0 }}>
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{inv.invoice_number}</span>
                                                     {Boolean(inv.invoice_type === 'POS' || inv.source === 'POS' || String(inv.invoice_number).toUpperCase().startsWith('POS') || String(inv.notes || '').toUpperCase().includes('POS')) && (
-                                                        <span style={{ background: '#E0E7FF', color: '#3730A3', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
+                                                        <span style={{ background: '#E0E7FF', color: '#3730A3', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800', whiteSpace: 'nowrap', display: 'inline-block' }}>
                                                             Billed in POS
                                                         </span>
                                                     )}
