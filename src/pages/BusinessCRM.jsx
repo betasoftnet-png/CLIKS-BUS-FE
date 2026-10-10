@@ -727,7 +727,7 @@ const BusinessCRM = () => {
     const viewLedger = async (party) => {
         try {
             const ledgerRes = await crmService.getLedger(party.id);
-            const ledgerData = (ledgerRes && ledgerRes.success) ? ledgerRes.data : [];
+            const ledgerData = Array.isArray(ledgerRes) ? ledgerRes : (ledgerRes?.data || []);
             
             // Process ledger data to compute running balance and map fields
             const sorted = [...ledgerData].reverse(); // Oldest first
