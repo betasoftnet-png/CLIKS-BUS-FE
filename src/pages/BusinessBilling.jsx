@@ -2478,32 +2478,7 @@ const BusinessBilling = () => {
                             Dispatch Shipment
                         </button>
                     )}
-                    <button 
-                        type="button"
-                        onClick={() => setIsEwayModalOpen(true)}
-                        style={{ 
-                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                            padding: '0.65rem 1rem', borderRadius: '10px', 
-                            background: 'white', color: '#10B981', border: '1px solid #A7F3D0', 
-                            fontWeight: '750', cursor: 'pointer', fontSize: '0.85rem',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)', transition: 'all 0.2s' 
-                        }}
-                    >
-                        <Truck size={15} /> Generate e-Way Bill
-                    </button>
-                    <button 
-                        type="button"
-                        onClick={() => setIsInvoiceModalOpen(true)}
-                        style={{ 
-                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                            padding: '0.65rem 1rem', borderRadius: '10px', 
-                            background: 'linear-gradient(135deg, #6366F1 0%, #4338CA 100%)', color: 'white', border: 'none', 
-                            fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
-                            boxShadow: '0 8px 16px rgba(99, 102, 241, 0.2)', transition: 'all 0.2s' 
-                        }}
-                    >
-                        <Plus size={15} /> Generate e-Invoice
-                    </button>
+
                     <button 
                         onClick={() => setIsTemplatesModalOpen(true)}
                         style={{ 
