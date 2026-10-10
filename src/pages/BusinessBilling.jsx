@@ -2632,55 +2632,7 @@ const BusinessBilling = () => {
                     <span>DELIVERY CHALLAN</span>
                 </button>
 
-                {/* 6. e-Invoice */}
-                <button
-                    type="button"
-                    onClick={() => setActiveMainTab('einvoice')}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.5rem 0.95rem',
-                        borderRadius: '10px',
-                        fontSize: '0.82rem',
-                        fontWeight: '800',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        border: activeMainTab === 'einvoice' ? 'none' : '1px solid #E2E8F0',
-                        background: activeMainTab === 'einvoice' ? 'linear-gradient(135deg, #6366F1 0%, #4338CA 100%)' : '#FFFFFF',
-                        color: activeMainTab === 'einvoice' ? '#FFFFFF' : '#475569',
-                        boxShadow: activeMainTab === 'einvoice' ? '0 4px 12px rgba(99, 102, 241, 0.25)' : 'none',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    <QrCode size={15} />
-                    <span>e-Invoice</span>
-                </button>
 
-                {/* 7. e-Way Logistics */}
-                <button
-                    type="button"
-                    onClick={() => setActiveMainTab('eway')}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.5rem 0.95rem',
-                        borderRadius: '10px',
-                        fontSize: '0.82rem',
-                        fontWeight: '800',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        border: activeMainTab === 'eway' ? 'none' : '1px solid #E2E8F0',
-                        background: activeMainTab === 'eway' ? 'linear-gradient(135deg, #10B981 0%, #047857 100%)' : '#FFFFFF',
-                        color: activeMainTab === 'eway' ? '#FFFFFF' : '#475569',
-                        boxShadow: activeMainTab === 'eway' ? '0 4px 12px rgba(16, 185, 129, 0.25)' : 'none',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    <Truck size={15} />
-                    <span>e-Way Logistics</span>
-                </button>
             </div>
 
             {/* Invoices List / Delivery Section */}
@@ -3334,10 +3286,10 @@ const BusinessBilling = () => {
                                                 <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#FCE7F3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#BE185D', flexShrink: 0 }}>
                                                     <FileText size={16} />
                                                 </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px', minWidth: 0 }}>
-                                                    <span style={{ fontWeight: '750', color: '#0F172A', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{inv.invoice_number}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                                    <span style={{ fontWeight: '750', color: '#0F172A', fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.invoice_number}</span>
                                                     {Boolean(inv.invoice_type === 'POS' || inv.source === 'POS' || String(inv.invoice_number).toUpperCase().startsWith('POS') || String(inv.notes || '').toUpperCase().includes('POS')) && (
-                                                        <span style={{ background: '#E0E7FF', color: '#3730A3', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800', whiteSpace: 'nowrap', display: 'inline-block' }}>
+                                                        <span style={{ background: '#E0E7FF', color: '#3730A3', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800', whiteSpace: 'nowrap', flexShrink: 0 }}>
                                                             Billed in POS
                                                         </span>
                                                     )}

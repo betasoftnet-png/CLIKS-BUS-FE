@@ -649,6 +649,7 @@ const BusinessInventory = () => {
             manufacturing_date: formData.has_expiry ? (formData.manufacturing_date || formData.mfg_date || null) : null,
             tax_percentage: parseFloat(formData.gst_percentage) || 18,
             warehouse_id: formData.warehouse,
+            product_type: formData.product_type,
             hsn_code: formData.hsn_code,
             has_warranty: isWarrantyActive ? 'Yes' : 'No',
             warrantyDetails: isWarrantyActive ? 'Yes' : 'No',
