@@ -745,22 +745,51 @@ const BusinessBilling = () => {
     });
 
     const salesReturnsList = React.useMemo(() => {
-        return (allReturns || []).filter(r => (r.return_type === 'sales' || r.type === 'sales' || !r.return_type) &&
-            ((r.client_name || r.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (r.invoice_number || r.return_number || '').toLowerCase().includes(searchTerm.toLowerCase())));
-    }, [allReturns, searchTerm]);
+        return (allReturns || []).filter(r => {
+            const isSales = r.return_type === 'sales' || r.type === 'sales' || !r.return_type;
+            const matchSearch = (r.client_name || r.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                (r.invoice_number || r.return_number || '').toLowerCase().includes(searchTerm.toLowerCase());
+            const matchStatus = statusFilter === 'All' || (r.status || 'Processed').toLowerCase() === statusFilter.toLowerCase();
+            const rawDate = r.return_date || r.created_at;
+            const returnDateStr = rawDate ? new Date(rawDate).toISOString().split('T')[0] : '';
+            const matchDate = !dateFilter || returnDateStr === dateFilter;
+            
+            return isSales && matchSearch && matchStatus && matchDate;
+        });
+    }, [allReturns, searchTerm, statusFilter, dateFilter]);
 
     const purchaseReturnsList = React.useMemo(() => {
-        return (allReturns || []).filter(r => (r.return_type === 'purchase' || r.type === 'purchase') &&
-            ((r.supplier_name || r.vendor_name || r.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (r.bill_number || r.return_number || '').toLowerCase().includes(searchTerm.toLowerCase())));
-    }, [allReturns, searchTerm]);
+        return (allReturns || []).filter(r => {
+            const isPurchase = r.return_type === 'purchase' || r.type === 'purchase';
+            const matchSearch = (r.supplier_name || r.vendor_name || r.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                (r.bill_number || r.return_number || '').toLowerCase().includes(searchTerm.toLowerCase());
+            const matchStatus = statusFilter === 'All' || (r.status || 'Processed').toLowerCase() === statusFilter.toLowerCase();
+            const rawDate = r.return_date || r.created_at;
+            const returnDateStr = rawDate ? new Date(rawDate).toISOString().split('T')[0] : '';
+            const matchDate = !dateFilter || returnDateStr === dateFilter;
+
+            return isPurchase && matchSearch && matchStatus && matchDate;
+        });
+    }, [allReturns, searchTerm, statusFilter, dateFilter]);
 
     const warrantyClaimsList = React.useMemo(() => {
-        return (allReturns || []).filter(r => (r.return_type === 'warranty' || r.type === 'warranty' || r.claim_type === 'warranty' || 
-            (r.return_number && String(r.return_number).toUpperCase().startsWith('RET-')) || 
-            (r.claim_number && String(r.claim_number).toUpperCase().startsWith('RET-')) || 
-            (r.invoice_number && String(r.invoice_number).toUpperCase().startsWith('RET-'))) &&
-            ((r.product_name || r.item_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (r.client_name || r.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase())));
-    }, [allReturns, searchTerm]);
+        return (allReturns || []).filter(r => {
+            const isWarranty = r.return_type === 'warranty' || r.type === 'warranty' || r.claim_type === 'warranty' || 
+                (r.return_number && String(r.return_number).toUpperCase().startsWith('RET-')) || 
+                (r.claim_number && String(r.claim_number).toUpperCase().startsWith('RET-')) || 
+                (r.invoice_number && String(r.invoice_number).toUpperCase().startsWith('RET-'));
+                
+            const matchSearch = (r.product_name || r.item_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                (r.client_name || r.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase());
+                                
+            const matchStatus = statusFilter === 'All' || (r.status || 'Processed').toLowerCase() === statusFilter.toLowerCase();
+            const rawDate = r.return_date || r.created_at || r.warranty_start_date || r.purchase_date;
+            const claimDateStr = rawDate ? new Date(rawDate).toISOString().split('T')[0] : '';
+            const matchDate = !dateFilter || claimDateStr === dateFilter;
+            
+            return isWarranty && matchSearch && matchStatus && matchDate;
+        });
+    }, [allReturns, searchTerm, statusFilter, dateFilter]);
 
     // Fetch actual business profile for production-grade invoices
     const { data: businessProfile } = useQuery({
@@ -2321,8 +2350,11 @@ const BusinessBilling = () => {
             (inv.client_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (inv.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase());
         
-        const matchesStatus = statusFilter === 'All' || inv.status === statusFilter;
-        const matchesDate = !dateFilter || inv.due_date === dateFilter;
+        const matchesStatus = statusFilter === 'All' || (inv.status || 'Draft').toLowerCase() === statusFilter.toLowerCase();
+        
+        const rawDate = inv.due_date || inv.date || inv.created_at;
+        const invDateStr = rawDate ? new Date(rawDate).toISOString().split('T')[0] : '';
+        const matchesDate = !dateFilter || invDateStr === dateFilter || inv.due_date === dateFilter;
 
         return matchesSearch && matchesStatus && matchesDate;
     });
@@ -3262,11 +3294,32 @@ const BusinessBilling = () => {
                             style={{ padding: '0.45rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.82rem', color: '#64748B' }}
                         >
                             <option value="All">All Status</option>
-                            <option value="Paid">Paid</option>
-                            <option value="Unpaid">Unpaid</option>
-                            <option value="Partially Paid">Partially Paid</option>
-                            <option value="Overdue">Overdue</option>
-                            <option value="Draft">Draft</option>
+                            {activeMainTab === 'orders' && (
+                                <>
+                                    <option value="Paid">Paid</option>
+                                    <option value="Unpaid">Unpaid</option>
+                                    <option value="Partially Paid">Partially Paid</option>
+                                    <option value="Overdue">Overdue</option>
+                                    <option value="Draft">Draft</option>
+                                </>
+                            )}
+                            {(activeMainTab === 'sales_returns' || activeMainTab === 'purchase_returns') && (
+                                <>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Processed">Processed</option>
+                                    <option value="Approved">Approved</option>
+                                    <option value="Rejected">Rejected</option>
+                                </>
+                            )}
+                            {activeMainTab === 'warranty' && (
+                                <>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Processed">Processed</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Resolved">Resolved</option>
+                                    <option value="Rejected">Rejected</option>
+                                </>
+                            )}
                         </select>
                         <button style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                             <Filter size={15} />
