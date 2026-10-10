@@ -12,8 +12,13 @@ export const ReceiveGoodsModal = ({
 }) => {
     const { formatCurrency } = useCurrency();
 
-    // 1. Initialize items state atomically using a function callback in useState(() => ...)
-    const [itemsState, setItemsState] = useState(() => {
+    // 1. Initialize items state and sync with doc using useEffect
+    const [itemsState, setItemsState] = useState([]);
+    const [selectedWarehouse, setSelectedWarehouse] = useState('');
+
+    React.useEffect(() => {
+        if (!isOpen || !doc) return;
+
         let rawItems = doc?.items || doc?.order_items || doc?.supplier_response_items || [];
         
         // Safely parse if it's a JSON string
@@ -30,27 +35,25 @@ export const ReceiveGoodsModal = ({
         }
 
         if (rawItems.length === 0) {
-            return [{
+            setItemsState([{
                 product_id: doc?.product_id || 1,
                 product_name: doc?.product_name || 'Product Item',
                 quantity: Number(doc?.quantity) || 1,
                 received_quantity: Number(doc?.quantity) || 1,
                 purchase_price: doc?.grand_total || doc?.amount || 0,
                 primary_unit: doc?.primary_unit || 'pcs'
-            }];
+            }]);
+        } else {
+            setItemsState(rawItems.map(it => ({
+                ...it,
+                received_quantity: it.received_quantity !== undefined && it.received_quantity !== null && it.received_quantity !== ''
+                    ? Number(it.received_quantity)
+                    : Number(it.quantity || 1)
+            })));
         }
-        return rawItems.map(it => ({
-            ...it,
-            received_quantity: it.received_quantity !== undefined && it.received_quantity !== null && it.received_quantity !== ''
-                ? Number(it.received_quantity)
-                : Number(it.quantity || 1)
-        }));
-    });
 
-    // Warehouse state initialization
-    const [selectedWarehouse, setSelectedWarehouse] = useState(() => {
-        return doc?.warehouse_id || (warehousesList?.[0] ? (warehousesList[0].id || warehousesList[0].code || warehousesList[0].name || warehousesList[0].warehouse_name) : '1');
-    });
+        setSelectedWarehouse(doc?.warehouse_id || (warehousesList?.[0] ? (warehousesList[0].id || warehousesList[0].code || warehousesList[0].name || warehousesList[0].warehouse_name) : '1'));
+    }, [isOpen, doc, warehousesList]);
 
     // 2. Prevent re-render cascades in loops when computing received quantities
     const totalReceivedQty = useMemo(() => {
