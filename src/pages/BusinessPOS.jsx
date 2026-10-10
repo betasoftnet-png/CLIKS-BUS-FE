@@ -1051,7 +1051,7 @@ const BusinessPOS = () => {
                 sku: prod.sku,
                 price: prod.price || 0,
                 quantity: 1,
-                tax_rate: taxRate,
+                tax_rate: parseFloat(prod.tax_percentage) || parseFloat(prod.taxRate) || parseFloat(prod.gst_percentage) || parseFloat(prod.tax_rate) || 0,
                 unit: prodUnit,
                 total: prod.price || 0,
                 source: prod.source,
@@ -1174,7 +1174,13 @@ const BusinessPOS = () => {
         : (parseFloat(discountVal) || 0);
     
     const discountedTotal = Math.max(0, subtotal - discountAmount);
-    const calculatedTax = discountedTotal * (taxRate / 100);
+    const discountPercent = subtotal > 0 ? (discountAmount / subtotal) : 0;
+    
+    const calculatedTax = cart.reduce((acc, item) => {
+        const discountedItemTotal = item.total * (1 - discountPercent);
+        const itemTaxRate = parseFloat(item.tax_rate) || 0;
+        return acc + (discountedItemTotal * (itemTaxRate / 100));
+    }, 0);
     
     // Loyalty Point Redemption calculation: 1 loyalty point = ₹1 discount
     const availableCustomerPoints = selectedCustomerObj ? getCustomerLtp(selectedCustomerObj) : 0;
@@ -1243,7 +1249,7 @@ const BusinessPOS = () => {
                 quantity: parseFloat(item.quantity) || 0,
                 unit: item.unit,
                 price: item.price,
-                tax_rate: taxRate,
+                tax_rate: parseFloat(item.tax_rate) || 0,
                 total: item.total,
                 source: item.source
             }))
@@ -2425,7 +2431,7 @@ const BusinessPOS = () => {
                                     />
                                 </div>
 
-                                <div style={{ flex: 1 }}>
+                                <div style={{ flex: 1, display: 'none' }}>
                                     <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '2px' }}>GST Tax (%)</span>
                                     <select 
                                         value={taxRate}
@@ -2522,7 +2528,7 @@ const BusinessPOS = () => {
                                     const taxFontSz = taxStr.length > 14 ? '0.72rem' : '0.8rem';
                                     return (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#64748B', gap: '0.5rem' }}>
-                                            <span style={{ flexShrink: 0 }}>GST ({taxRate}%)</span>
+                                            <span style={{ flexShrink: 0 }}>Calculated GST</span>
                                             <span style={{ fontSize: taxFontSz, fontWeight: '600', whiteSpace: 'nowrap' }}>{taxStr}</span>
                                         </div>
                                     );
