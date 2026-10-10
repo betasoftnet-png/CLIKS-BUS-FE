@@ -1963,7 +1963,7 @@ const BusinessPOS = () => {
                                                                 {cardPriceStr} <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '700' }}>/</span>
                                                             </span>
                                                             <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
-                                                                {prod.unit || 'PCS'}
+                                                                {prod.unit || 'PCS'} <span style={{ color: '#94A3B8', margin: '0 4px' }}>•</span> {prod.tax_percentage !== undefined ? prod.tax_percentage : 0}% GST
                                                             </span>
                                                         </div>
                                                     );
@@ -2864,6 +2864,7 @@ const BusinessPOS = () => {
                     editingProduct={editingProduct}
                     currency={currency}
                     dbWarehouses={dbWarehouses}
+                    existingCategories={categories.filter(c => c !== 'All')}
                 />
             )}
 

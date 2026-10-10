@@ -12,6 +12,7 @@ export const QuickRegisterItemModal = ({
     editingProduct = null,
     currency: propCurrency,
     dbWarehouses = [],
+    existingCategories = [],
     onSuccess
 }) => {
     const currencyCtx = useContext(CurrencyContext);
@@ -504,9 +505,15 @@ export const QuickRegisterItemModal = ({
                                 type="text"
                                 value={category}
                                 onChange={(e) => setCategory(e.target.value)}
+                                list="quick-register-categories"
                                 style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }}
                                 placeholder="General"
                             />
+                            <datalist id="quick-register-categories">
+                                {existingCategories.map((cat, idx) => (
+                                    <option key={`cat_${idx}`} value={cat} />
+                                ))}
+                            </datalist>
                         </div>
                         <div>
                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Tax (GST %)</label>
