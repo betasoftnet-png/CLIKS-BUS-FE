@@ -437,6 +437,7 @@ const BusinessPOS = () => {
                         category: i.category || 'General',
                         warehouse_id: i.warehouse_id || i.location || 'Main Godown',
                         location: i.location || i.warehouse_id || 'Main Godown',
+                        tax_percentage: i.tax_percentage !== undefined && i.tax_percentage !== null ? parseFloat(i.tax_percentage) : 0,
                         source: 'inventory',
                         isUnlimited: isItemUnlimited
                     };
@@ -455,6 +456,7 @@ const BusinessPOS = () => {
                         category: p.category || p.category_name || 'General',
                         warehouse_id: p.warehouse_id || p.location || 'Main Godown',
                         location: p.location || p.warehouse_id || 'Main Godown',
+                        tax_percentage: p.tax_percentage !== undefined && p.tax_percentage !== null ? parseFloat(p.tax_percentage) : 0,
                         source: 'products',
                         isUnlimited: isItemUnlimited
                     };
@@ -473,6 +475,7 @@ const BusinessPOS = () => {
                         category: s.category || 'General',
                         warehouse_id: s.warehouse || s.location || 'Main Godown',
                         location: s.location || s.warehouse || 'Main Godown',
+                        tax_percentage: s.tax_percentage !== undefined && s.tax_percentage !== null ? parseFloat(s.tax_percentage) : 0,
                         source: 'stock',
                         isUnlimited: isItemUnlimited
                     };
