@@ -473,9 +473,27 @@ const BusinessPOS = () => {
                 // Format Stock Registry items
                 const stockItems = (stockRes || []).map(s => {
                     const isItemUnlimited = Boolean(s.isUnlimited === true || s.is_unlimited === true || (parseFloat(s.quantity) >= 999000) || (parseFloat(s.stock) >= 999000));
-                    const matchedProd = (prodRes || []).find(p => (p.sku && s.sku && p.sku === s.sku) || (p.name && s.name && p.name.toLowerCase() === s.name.toLowerCase())) || {};
-                    const matchedInv = (invRes || []).find(i => (i.sku && s.sku && i.sku === s.sku) || (i.name && s.name && i.name.toLowerCase() === s.name.toLowerCase())) || {};
-                    const derivedHsn = s.hsn_code || s.hsnCode || s.hsn || matchedProd.hsn_code || matchedInv.hsn_code || '';
+                    const sSkuLower = (s.sku || '').trim().toLowerCase();
+                    const sNameLower = (s.name || '').trim().toLowerCase();
+
+                    const matchedProd = (prodRes || []).find(p => {
+                        const pSkuLower = (p.sku || '').trim().toLowerCase();
+                        const pNameLower = (p.name || p.product_name || '').trim().toLowerCase();
+                        return (sSkuLower && pSkuLower && sSkuLower === pSkuLower) || 
+                               (sNameLower && pNameLower && sNameLower === pNameLower);
+                    }) || {};
+
+                    const matchedInv = (invRes || []).find(i => {
+                        const iSkuLower = (i.sku || '').trim().toLowerCase();
+                        const iNameLower = (i.name || '').trim().toLowerCase();
+                        return (sSkuLower && iSkuLower && sSkuLower === iSkuLower) || 
+                               (sNameLower && iNameLower && sNameLower === iNameLower);
+                    }) || {};
+
+                    const derivedHsn = s.hsn_code || s.hsnCode || s.hsn || 
+                                       matchedProd.hsn_code || matchedProd.hsnCode || matchedProd.hsn || matchedProd.hsn_sac || 
+                                       matchedInv.hsn_code || matchedInv.hsnCode || matchedInv.hsn || matchedInv.hsn_sac || '';
+
                     return {
                         id: s.id,
                         name: s.name,
@@ -496,8 +514,31 @@ const BusinessPOS = () => {
                     };
                 });
 
-                // Aggregate items by unique SKU/ID and Warehouse so separate SKU inventory records with identical names stay distinct
+                // Aggregate items and propagate HSN codes across all items with same SKU or Name
                 const allItems = [...catalogItems, ...legacyItems, ...stockItems];
+
+                // Cross-item HSN propagation: if any item sharing the same SKU or Name has an HSN code, share it
+                const hsnBySku = new Map();
+                const hsnByName = new Map();
+                allItems.forEach(item => {
+                    const code = item.hsn_code || item.hsnCode;
+                    if (code) {
+                        if (item.sku) hsnBySku.set((item.sku).trim().toLowerCase(), code);
+                        if (item.name) hsnByName.set((item.name).trim().toLowerCase(), code);
+                    }
+                });
+
+                allItems.forEach(item => {
+                    if (!item.hsn_code) {
+                        const skuCode = item.sku ? hsnBySku.get((item.sku).trim().toLowerCase()) : null;
+                        const nameCode = item.name ? hsnByName.get((item.name).trim().toLowerCase()) : null;
+                        if (skuCode || nameCode) {
+                            item.hsn_code = skuCode || nameCode;
+                            item.hsnCode = skuCode || nameCode;
+                        }
+                    }
+                });
+
                 const uniqueMap = new Map();
                 allItems.forEach(item => {
                     if (!item.name) return;
@@ -950,16 +991,30 @@ const BusinessPOS = () => {
     });
 
     const handleOpenEditProduct = (prod) => {
-        let resolvedHsn = prod.hsn_code || prod.hsnCode || prod.hsn || prod.hsn_sac || '';
+        let resolvedHsn = prod.hsn_code || prod.hsnCode || prod.hsn || prod.hsn_sac || prod.rawProduct?.hsn_code || prod.rawProduct?.hsnCode || prod.rawProduct?.hsn || prod.rawProduct?.hsn_sac || '';
         if (!resolvedHsn) {
+            const posCatalog = queryClient.getQueryData(['pos-catalog']) || [];
             const cachedProducts = queryClient.getQueryData(['products']) || [];
             const cachedInv = queryClient.getQueryData(['inventory']) || [];
             const cachedStocks = queryClient.getQueryData(['stocks']) || [];
-            const match = cachedProducts.find(p => (prod.id && p.id === prod.id) || (prod.sku && p.sku === prod.sku) || (prod.name && p.name && p.name.toLowerCase() === prod.name.toLowerCase()))
-                || cachedInv.find(i => (prod.id && i.id === prod.id) || (prod.sku && i.sku === prod.sku) || (prod.name && i.name && i.name.toLowerCase() === prod.name.toLowerCase()))
-                || cachedStocks.find(s => (prod.id && s.id === prod.id) || (prod.sku && s.sku === prod.sku) || (prod.name && s.name && s.name.toLowerCase() === prod.name.toLowerCase()));
-            if (match && (match.hsn_code || match.hsnCode || match.hsn)) {
-                resolvedHsn = match.hsn_code || match.hsnCode || match.hsn;
+            const allCached = [...posCatalog, ...cachedProducts, ...cachedInv, ...cachedStocks];
+
+            const targetSku = (prod.sku || '').trim().toLowerCase();
+            const targetName = (prod.name || '').trim().toLowerCase();
+            const targetId = prod.id ? String(prod.id) : null;
+
+            const match = allCached.find(p => {
+                const code = p.hsn_code || p.hsnCode || p.hsn || p.hsn_sac || p.rawProduct?.hsn_code;
+                if (!code) return false;
+                const pSku = (p.sku || '').trim().toLowerCase();
+                const pName = (p.name || p.product_name || '').trim().toLowerCase();
+                const pId = p.id ? String(p.id) : null;
+                return (targetSku && pSku && targetSku === pSku) ||
+                       (targetName && pName && targetName === pName) ||
+                       (targetId && pId && targetId === pId);
+            });
+            if (match) {
+                resolvedHsn = match.hsn_code || match.hsnCode || match.hsn || match.hsn_sac || match.rawProduct?.hsn_code || '';
             }
         }
 

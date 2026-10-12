@@ -128,29 +128,73 @@ export const QuickRegisterItemModal = ({
             setBarcode(editingProduct.barcode || editingProduct.sku || '');
 
             // Fallback lookup in query cache if editingProduct doesn't have hsn_code
-            let resolvedHsn = editingProduct.hsn_code || editingProduct.hsnCode || editingProduct.hsn || editingProduct.hsn_sac || '';
+            let resolvedHsn = editingProduct.hsn_code || editingProduct.hsnCode || editingProduct.hsn || editingProduct.hsn_sac || editingProduct.rawProduct?.hsn_code || editingProduct.rawProduct?.hsnCode || '';
             if (!resolvedHsn) {
+                const posCatalog = queryClient.getQueryData(['pos-catalog']) || [];
                 const cachedProducts = queryClient.getQueryData(['products']) || [];
                 const cachedInv = queryClient.getQueryData(['inventory']) || [];
                 const cachedStocks = queryClient.getQueryData(['stocks']) || [];
-                const match = cachedProducts.find(p => (editingProduct.id && p.id === editingProduct.id) || (editingProduct.sku && p.sku === editingProduct.sku) || (editingProduct.name && p.name && p.name.toLowerCase() === editingProduct.name.toLowerCase()))
-                    || cachedInv.find(i => (editingProduct.id && i.id === editingProduct.id) || (editingProduct.sku && i.sku === editingProduct.sku) || (editingProduct.name && i.name && i.name.toLowerCase() === editingProduct.name.toLowerCase()))
-                    || cachedStocks.find(s => (editingProduct.id && s.id === editingProduct.id) || (editingProduct.sku && s.sku === editingProduct.sku) || (editingProduct.name && s.name && s.name.toLowerCase() === editingProduct.name.toLowerCase()));
-                if (match && (match.hsn_code || match.hsnCode || match.hsn)) {
-                    resolvedHsn = match.hsn_code || match.hsnCode || match.hsn;
+                const allCached = [...posCatalog, ...cachedProducts, ...cachedInv, ...cachedStocks];
+
+                const targetSku = (editingProduct.sku || '').trim().toLowerCase();
+                const targetName = (editingProduct.name || editingProduct.product_name || '').trim().toLowerCase();
+                const targetId = editingProduct.id ? String(editingProduct.id) : null;
+
+                const match = allCached.find(p => {
+                    const code = p.hsn_code || p.hsnCode || p.hsn || p.hsn_sac || p.rawProduct?.hsn_code;
+                    if (!code) return false;
+                    const pSku = (p.sku || '').trim().toLowerCase();
+                    const pName = (p.name || p.product_name || '').trim().toLowerCase();
+                    const pId = p.id ? String(p.id) : null;
+                    return (targetSku && pSku && targetSku === pSku) ||
+                           (targetName && pName && targetName === pName) ||
+                           (targetId && pId && targetId === pId);
+                });
+                if (match) {
+                    resolvedHsn = match.hsn_code || match.hsnCode || match.hsn || match.hsn_sac || match.rawProduct?.hsn_code || '';
                 }
             }
 
-            setHsnCode(resolvedHsn);
+            setHsnCode(resolvedHsn || '');
             setHsnQueryOverride('');
             setUserInteractedHsn(false);
 
-            // Fetch live product from API if hsnCode is still empty
-            if (!resolvedHsn && editingProduct.id) {
-                productsService.getProducts().then(allProds => {
-                    const match = (allProds || []).find(p => String(p.id) === String(editingProduct.id) || (p.sku && p.sku === editingProduct.sku));
-                    if (match && (match.hsn_code || match.hsnCode || match.hsn)) {
-                        setHsnCode(match.hsn_code || match.hsnCode || match.hsn);
+            // Fetch live product from APIs if hsnCode is still empty, or auto-discover from HSN master taxonomy
+            if (!resolvedHsn) {
+                const targetSku = (editingProduct.sku || '').trim().toLowerCase();
+                const targetName = (editingProduct.name || editingProduct.product_name || '').trim().toLowerCase();
+                const targetId = editingProduct.id ? String(editingProduct.id) : null;
+
+                Promise.all([
+                    productsService.getProducts().catch(() => []),
+                    inventoryService.getInventory().catch(() => []),
+                    stockService.getStocks().catch(() => [])
+                ]).then(([prods, invs, stocks]) => {
+                    const allItems = [...(prods || []), ...(invs || []), ...(stocks || [])];
+                    const found = allItems.find(item => {
+                        const code = item.hsn_code || item.hsnCode || item.hsn || item.hsn_sac;
+                        if (!code) return false;
+                        const iSku = (item.sku || '').trim().toLowerCase();
+                        const iName = (item.name || item.product_name || '').trim().toLowerCase();
+                        const iId = item.id ? String(item.id) : null;
+                        return (targetSku && iSku && targetSku === iSku) ||
+                               (targetId && iId && targetId === iId) ||
+                               (targetName && iName && targetName === iName);
+                    });
+
+                    if (found) {
+                        const code = found.hsn_code || found.hsnCode || found.hsn || found.hsn_sac;
+                        setHsnCode(code);
+                    } else if (targetName && targetName.length >= 2) {
+                        // Intelligent HSN auto-discovery from HSN master table based on product name
+                        hsnService.searchHSN(targetName).then(results => {
+                            if (results && results.length > 0) {
+                                const bestCode = results[0]?.hsnCode || results[0]?.hsn_code;
+                                if (bestCode) {
+                                    setHsnCode(bestCode);
+                                }
+                            }
+                        }).catch(() => {});
                     }
                 }).catch(() => {});
             }

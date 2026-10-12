@@ -678,6 +678,7 @@ const BusinessWarehouse = () => {
                     rack_number: newWarehouseProduct.rack_number || null,
                     shelf_number: newWarehouseProduct.shelf_number || null,
                     bin_number: newWarehouseProduct.bin_number || null,
+                    hsn_code: newWarehouseProduct.hsn_code || null,
                     supplier_name: 'Direct Inward'
                 });
             } catch (stErr) {
