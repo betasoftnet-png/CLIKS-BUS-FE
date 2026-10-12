@@ -30,7 +30,8 @@ import {
     History,
     Info,
     UserPlus,
-    MoreVertical
+    MoreVertical,
+    Tag
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,6 +42,7 @@ import { posService } from '../services/posService';
 import { stockService } from '../services/stockService';
 import { hsnService } from '../services/hsnService';
 import { warehouseService } from '../services/warehouseService';
+import { settingsService } from '../services/settingsService';
 import '../App.css';
 import { customConfirm, customPrompt } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
@@ -405,6 +407,14 @@ const BusinessPOS = () => {
         }
     };
 
+    // Dynamic Master Settings (loyalty points, round-off, etc.)
+    const { data: userSettings } = useQuery({
+        queryKey: ['settings'],
+        queryFn: settingsService.getSettings,
+        refetchOnWindowFocus: false
+    });
+    const activeConfig = React.useMemo(() => userSettings?.data || userSettings || {}, [userSettings]);
+
     // Live Warehouses database via useQuery
     const { data: dbWarehouses = [] } = useQuery({
         queryKey: ['warehouses'],
@@ -763,8 +773,10 @@ const BusinessPOS = () => {
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
             queryClient.invalidateQueries({ queryKey: ['returns'] });
             queryClient.invalidateQueries({ queryKey: ['business-customers'] });
+            queryClient.invalidateQueries({ queryKey: ['customers'] });
             queryClient.refetchQueries({ queryKey: ['returns'] });
             queryClient.refetchQueries({ queryKey: ['business-customers'] });
+            queryClient.refetchQueries({ queryKey: ['customers'] });
             refetchSummary();
         },
         onError: (error) => {
@@ -1279,16 +1291,34 @@ const BusinessPOS = () => {
         return acc + (discountedItemTotal * (itemTaxRate / 100));
     }, 0);
     
-    // Loyalty Point Redemption calculation: 1 loyalty point = ₹1 discount
+    // Master Config for Loyalty
+    const loyaltyEnabled = activeConfig.loyaltyEnabled !== false;
+    const ptsFor1Rs = activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100;
+    const rsPer1Point = activeConfig.loyaltyRsPer1Point !== undefined ? activeConfig.loyaltyRsPer1Point : 100;
+    const maxClaimPct = activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50;
+
     const availableCustomerPoints = selectedCustomerObj ? getCustomerLtp(selectedCustomerObj) : 0;
-    const maxRedeemablePoints = Math.min(availableCustomerPoints, Math.floor(discountedTotal + calculatedTax));
-    const effectivePointsRedeemed = selectedCustomerObj ? Math.max(0, Math.min(maxRedeemablePoints, parseFloat(loyaltyPointsRedeemed) || 0)) : 0;
-    const loyaltyDiscountAmount = effectivePointsRedeemed; // 1 pt = ₹1
+    const maxClaimablePoints = Math.floor(availableCustomerPoints * (maxClaimPct / 100));
+    const maxPointsForBill = ptsFor1Rs > 0 ? Math.floor((discountedTotal + calculatedTax) * ptsFor1Rs) : 0;
+    const maxRedeemablePoints = loyaltyEnabled ? Math.min(maxClaimablePoints, maxPointsForBill) : 0;
+
+    const effectivePointsRedeemed = (loyaltyEnabled && selectedCustomerObj) ? Math.max(0, Math.min(maxRedeemablePoints, parseFloat(loyaltyPointsRedeemed) || 0)) : 0;
+    const loyaltyDiscountAmount = (loyaltyEnabled && ptsFor1Rs > 0) ? (effectivePointsRedeemed / ptsFor1Rs) : 0;
 
     const totalBeforeRound = Math.max(0, discountedTotal + calculatedTax - loyaltyDiscountAmount);
-    const finalTotal = Math.round(totalBeforeRound);
+    const finalTotal = activeConfig.roundOff !== false ? Math.max(0, Math.round(totalBeforeRound)) : Math.max(0, totalBeforeRound);
     const roundOff = finalTotal - totalBeforeRound;
     const hasValidCartItems = cart.some(item => (parseFloat(item.quantity) || 0) > 0);
+
+    // Dynamic loyalty points earned based on bill value
+    const autoEarnedPoints = (loyaltyEnabled && selectedCustomerObj && rsPer1Point > 0) ? Math.floor(finalTotal / rsPer1Point) : 0;
+    const effectivePointsEarned = isPtsEarnedManuallyEdited ? (parseFloat(loyaltyPointsEarned) || 0) : autoEarnedPoints;
+
+    React.useEffect(() => {
+        if (!isPtsEarnedManuallyEdited) {
+            setLoyaltyPointsEarned(autoEarnedPoints);
+        }
+    }, [autoEarnedPoints, isPtsEarnedManuallyEdited]);
 
     const handleCheckout = (mode) => {
         const validCartItems = cart.filter(item => (parseFloat(item.quantity) || 0) > 0);
@@ -1312,10 +1342,17 @@ const BusinessPOS = () => {
 
         setIsCheckingOut(true);
         
-        const ptsEarned = parseFloat(loyaltyPointsEarned) || 0;
+        const ptsEarned = effectivePointsEarned;
         const ptsRedeemed = effectivePointsRedeemed;
         const existingPts = availableCustomerPoints;
         const remainingPts = Math.max(0, existingPts - ptsRedeemed + ptsEarned);
+
+        if (selectedCustomerObj?.id) {
+            crmService.updateCustomer(selectedCustomerObj.id, {
+                ...selectedCustomerObj,
+                loyalty_points: remainingPts
+            }).catch(e => console.error('Failed automatic loyalty update in POS:', e));
+        }
 
         const payload = {
             customer_id: selectedCustomerObj?.id || null,
@@ -2542,65 +2579,98 @@ const BusinessPOS = () => {
                                     </select>
                                 </div>
 
-                                <div style={{ flex: 1 }}>
-                                    <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#DC2626', textTransform: 'uppercase', marginBottom: '2px' }}>Pts Redeemed</span>
-                                    <input 
-                                        type="number"
-                                        step="any"
-                                        min="0"
-                                        max={maxRedeemablePoints}
-                                        placeholder="0"
-                                        disabled={!selectedCustomerObj || availableCustomerPoints <= 0}
-                                        value={selectedCustomerObj ? (loyaltyPointsRedeemed || '') : ''}
-                                        onChange={(e) => {
-                                            if (!selectedCustomerObj) {
-                                                setLoyaltyPointsRedeemed(0);
-                                                return;
-                                            }
-                                            const rawVal = parseFloat(e.target.value);
-                                            if (isNaN(rawVal) || rawVal <= 0) {
-                                                setLoyaltyPointsRedeemed(0);
-                                                return;
-                                            }
-                                            if (rawVal > availableCustomerPoints) {
-                                                alert(`Cannot redeem more than available balance (${availableCustomerPoints} pts)`);
-                                                setLoyaltyPointsRedeemed(availableCustomerPoints);
-                                            } else {
-                                                setLoyaltyPointsRedeemed(rawVal);
-                                            }
-                                        }}
-                                        style={{ 
-                                            width: '100%', 
-                                            padding: '0.4rem 0.75rem', 
-                                            boxSizing: 'border-box', 
-                                            borderRadius: '8px', 
-                                            border: '1px solid #FCA5A5', 
-                                            background: !selectedCustomerObj ? '#F8FAFC' : '#FEF2F2', 
-                                            fontSize: '0.85rem', 
-                                            fontWeight: '800', 
-                                            color: '#DC2626', 
-                                            outline: 'none',
-                                            opacity: !selectedCustomerObj ? 0.6 : 1 
-                                        }}
-                                    />
-                                </div>
-
-                                <div style={{ flex: 1 }}>
-                                    <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#B45309', textTransform: 'uppercase', marginBottom: '2px' }}>Pts Earned</span>
-                                    <input 
-                                        type="number"
-                                        step="any"
-                                        min="0"
-                                        placeholder="0"
-                                        value={loyaltyPointsEarned || ''}
-                                        onChange={(e) => {
-                                            setLoyaltyPointsEarned(e.target.value);
-                                            setIsPtsEarnedManuallyEdited(true);
-                                        }}
-                                        style={{ width: '100%', padding: '0.4rem 0.75rem', boxSizing: 'border-box', borderRadius: '8px', border: '1px solid #FCD34D', background: '#FFFBEB', fontSize: '0.85rem', fontWeight: '800', color: '#B45309', outline: 'none' }}
-                                    />
-                                </div>
                             </div>
+
+                            {/* Loyalty Points System (Claiming & Bill-based Dynamic Earning) */}
+                            {loyaltyEnabled && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', padding: '0.65rem', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #DCFCE7' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase' }}>
+                                            <Tag size={12} /> Loyalty Points
+                                        </label>
+                                        {selectedCustomerObj ? (
+                                            <div style={{ fontSize: '0.7rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                ⭐ Available: {availableCustomerPoints}
+                                                <span style={{ color: '#16A34A', fontWeight: '600' }}>({maxClaimPct}% Claimable)</span>
+                                            </div>
+                                        ) : (
+                                            <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontStyle: 'italic' }}>Select customer to apply</span>
+                                        )}
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                        <input 
+                                            type="number"
+                                            step="any"
+                                            min="0"
+                                            max={maxRedeemablePoints}
+                                            placeholder="Redeem Points"
+                                            disabled={!selectedCustomerObj || maxRedeemablePoints <= 0}
+                                            value={loyaltyPointsRedeemed || ''}
+                                            onChange={(e) => {
+                                                if (!selectedCustomerObj) {
+                                                    setLoyaltyPointsRedeemed(0);
+                                                    return;
+                                                }
+                                                const rawVal = e.target.value;
+                                                let val = parseFloat(rawVal);
+                                                if (isNaN(val) || rawVal === '') val = 0;
+                                                if (val > maxRedeemablePoints) val = maxRedeemablePoints;
+                                                if (val < 0) val = 0;
+                                                setLoyaltyPointsRedeemed(val);
+                                            }}
+                                            style={{ 
+                                                flex: 1, 
+                                                padding: '0.4rem 0.6rem', 
+                                                boxSizing: 'border-box', 
+                                                borderRadius: '6px', 
+                                                border: '1px solid #BBF7D0', 
+                                                background: !selectedCustomerObj ? '#F8FAFC' : 'white', 
+                                                fontSize: '0.8rem', 
+                                                fontWeight: '700', 
+                                                color: '#15803D',
+                                                outline: 'none',
+                                                opacity: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 0.6 : 1
+                                            }} 
+                                        />
+                                        <button 
+                                            type="button" 
+                                            onClick={() => {
+                                                if (!selectedCustomerObj || maxRedeemablePoints <= 0) return;
+                                                setLoyaltyPointsRedeemed(maxRedeemablePoints);
+                                            }}
+                                            disabled={!selectedCustomerObj || maxRedeemablePoints <= 0}
+                                            style={{ 
+                                                padding: '0.4rem 0.65rem', 
+                                                borderRadius: '6px', 
+                                                background: '#16A34A', 
+                                                color: 'white', 
+                                                border: 'none', 
+                                                fontSize: '0.72rem', 
+                                                fontWeight: '800', 
+                                                cursor: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 'not-allowed' : 'pointer', 
+                                                opacity: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 0.5 : 1,
+                                                whiteSpace: 'nowrap'
+                                            }}
+                                        >
+                                            Use Max
+                                        </button>
+                                    </div>
+
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem' }}>
+                                        {effectivePointsRedeemed > 0 ? (
+                                            <span style={{ color: '#166534', fontWeight: '700' }}>
+                                                Discount Value: {formatCurrency(loyaltyDiscountAmount)} ({ptsFor1Rs} pts = ₹1)
+                                            </span>
+                                        ) : <span />}
+                                        {selectedCustomerObj && (
+                                            <span style={{ color: '#047857', fontWeight: '700' }}>
+                                                Points Earned: +{effectivePointsEarned} pts (₹{rsPer1Point} = 1 pt)
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Receipt Tally breakdown */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem 0', borderBottom: '1px solid #E2E8F0' }}>
