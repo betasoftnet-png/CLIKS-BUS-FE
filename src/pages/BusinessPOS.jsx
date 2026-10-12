@@ -2153,172 +2153,166 @@ const BusinessPOS = () => {
             <div style={{ flex: '0 0 calc(40% - 0.5rem)', width: 'calc(40% - 0.5rem)', minWidth: 0, background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
                 
                 {/* Customer Attachment Row */}
-                <div style={{ padding: '1.25rem', borderBottom: '1px solid #F1F5F9', background: '#FFF', flexShrink: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isCustomerSectionExpanded ? '0.6rem' : 0 }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                            Customer Information {selectedCustomerObj && !isCustomerSectionExpanded ? `(${selectedCustomerObj.name})` : ''}
+                <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid #F1F5F9', background: '#FFF', flexShrink: 0 }}>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        {/* Customer Info Label */}
+                        <span style={{ fontSize: '0.75rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            Customer Info
                         </span>
-                        <button
-                            type="button"
-                            onClick={() => setIsCustomerSectionExpanded(prev => !prev)}
-                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#64748B', padding: '2px' }}
-                            title={isCustomerSectionExpanded ? "Collapse Customer Section" : "Expand Customer Section"}
-                        >
-                            {isCustomerSectionExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
-                    </div>
 
-                    {isCustomerSectionExpanded && (
-                        <div style={{ position: 'relative' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0.4rem 0.65rem' }}>
-                                <User size={16} color="#64748B" />
-                                <input 
-                                    ref={customerInputRef}
-                                    type="text" 
-                                    placeholder="Assign Customer (Search name, phone, email...)" 
-                                    value={customerName}
-                                    onChange={(e) => {
-                                        setCustomerName(e.target.value);
-                                        setIsCustomerDropdownOpen(true);
-                                    }}
-                                    onFocus={() => setIsCustomerDropdownOpen(true)}
-                                    style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '0.85rem', fontWeight: '650', color: '#1E293B', minWidth: 0 }}
-                                />
-                                {customerName && (
-                                    <button 
-                                        type="button"
-                                        onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
-                                        title="Clear customer"
-                                        style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', color: '#94A3B8', padding: '2px' }}
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                )}
-
-                                {/* Dropdown toggle button for the list of already added customers */}
-                                <button
+                        {/* Search & Actions Bar in Same Line */}
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0.35rem 0.55rem' }}>
+                            <User size={15} color="#64748B" style={{ flexShrink: 0 }} />
+                            <input 
+                                ref={customerInputRef}
+                                type="text" 
+                                placeholder="Search customer (name, phone, email...)" 
+                                value={customerName}
+                                onChange={(e) => {
+                                    setCustomerName(e.target.value);
+                                    setIsCustomerDropdownOpen(true);
+                                }}
+                                onFocus={() => setIsCustomerDropdownOpen(true)}
+                                style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '0.82rem', fontWeight: '650', color: '#1E293B', minWidth: '60px' }}
+                            />
+                            {customerName && (
+                                <button 
                                     type="button"
-                                    onClick={() => setIsCustomerDropdownOpen(prev => !prev)}
-                                    title={isCustomerDropdownOpen ? "Close customer list" : "Show registered customer list"}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '3px',
-                                        padding: '0.3rem 0.5rem',
-                                        borderRadius: '6px',
-                                        border: '1px solid #E2E8F0',
-                                        background: isCustomerDropdownOpen ? '#E2E8F0' : '#FFFFFF',
-                                        color: '#475569',
-                                        fontSize: '0.72rem',
-                                        fontWeight: '750',
-                                        cursor: 'pointer',
-                                        whiteSpace: 'nowrap'
-                                    }}
+                                    onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
+                                    title="Clear customer"
+                                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', color: '#94A3B8', padding: '2px', flexShrink: 0 }}
                                 >
-                                    <span>List ({customers.length})</span>
-                                    <ChevronDown size={14} style={{ transform: isCustomerDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                                    <X size={14} />
                                 </button>
-
-                                {/* Add Customer Button on Right Side */}
-                                <button
-                                    type="button"
-                                    onClick={() => setIsAddCustomerModalOpen(true)}
-                                    title="Add New Customer"
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        padding: '0.35rem 0.65rem',
-                                        borderRadius: '8px',
-                                        border: 'none',
-                                        background: '#ECFDF5',
-                                        color: '#047857',
-                                        fontWeight: '750',
-                                        fontSize: '0.75rem',
-                                        cursor: 'pointer',
-                                        whiteSpace: 'nowrap',
-                                        transition: 'all 0.15s ease'
-                                    }}
-                                >
-                                    <UserPlus size={14} />
-                                    <span>Add Customer</span>
-                                </button>
-                            </div>
-
-                            {/* Dropdown autocomplete / list for Customers */}
-                            {isCustomerDropdownOpen && (
-                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', marginTop: '4px', zIndex: 30, boxShadow: '0 12px 28px -4px rgba(0,0,0,0.15)', maxHeight: '250px', overflowY: 'auto', padding: '0.25rem 0' }}>
-                                    <div style={{ padding: '0.4rem 0.85rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', fontWeight: '800', color: '#64748B' }}>
-                                        <span>{customerName.trim() ? 'Matching Customers' : `Registered Customers (${customers.length})`}</span>
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setIsCustomerDropdownOpen(false)} 
-                                            style={{ border: 'none', background: 'transparent', color: '#64748B', cursor: 'pointer', fontWeight: '700', fontSize: '0.72rem' }}
-                                        >
-                                            Close
-                                        </button>
-                                    </div>
-                                    {(() => {
-                                        const query = customerName.toLowerCase().trim();
-                                        const matches = query ? customers.filter(c => {
-                                            const nameMatch = (c.name || c.customer_name || c.contact_person || c.business_name || '').toLowerCase().includes(query);
-                                            const codeMatch = (c.code || c.customer_code || c.customer_id || '').toLowerCase().includes(query);
-                                            const phoneMatch = String(c.phone_number || c.phone || c.contact || c.phonenumber || c.mobile || '').toLowerCase().includes(query);
-                                            const emailMatch = (c.email || '').toLowerCase().includes(query);
-                                            return nameMatch || codeMatch || phoneMatch || emailMatch;
-                                        }) : customers;
-
-                                        if (matches.length === 0) {
-                                            return (
-                                                <div style={{ padding: '0.85rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.82rem', fontWeight: '600' }}>
-                                                    No customer found
-                                                </div>
-                                            );
-                                        }
-
-                                        return matches.map(cust => (
-                                            <div
-                                                key={cust.id}
-                                                onClick={() => {
-                                                    handleCustomerSelect(cust);
-                                                    setIsCustomerDropdownOpen(false);
-                                                }}
-                                                style={{ padding: '0.65rem 0.85rem', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F8FAFC', transition: 'background 0.15s ease' }}
-                                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ECFDF5'}
-                                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                            >
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden', paddingRight: '0.5rem' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>{cust.name}</span>
-                                                        {(cust.code || cust.customer_code) && (
-                                                            <span style={{ fontSize: '0.68rem', color: '#64748B', background: '#F1F5F9', padding: '0.1rem 0.35rem', borderRadius: '4px', fontFamily: 'monospace' }}>
-                                                                {cust.code || cust.customer_code}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.72rem', color: '#64748B', flexWrap: 'wrap' }}>
-                                                        {(cust.phone_number || cust.phone) && <span>Phone: {cust.phone_number || cust.phone}</span>}
-                                                        {cust.email && <span>Email: {cust.email}</span>}
-                                                    </div>
-                                                </div>
-                                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800' }}>
-                                                        ⭐ Loyalty Points: {getCustomerLtp(cust)}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ));
-                                    })()}
-                                    <div 
-                                        onClick={() => setIsCustomerDropdownOpen(false)}
-                                        style={{ padding: '0.4rem', textAlign: 'center', background: '#F8FAFC', fontSize: '0.75rem', color: '#64748B', borderTop: '1px solid #F1F5F9', cursor: 'pointer', fontWeight: '700' }}>
-                                        Close List
-                                    </div>
-                                </div>
                             )}
 
-                            {/* Selected Customer Details Banner */}
-                            {selectedCustomerObj && (
+                            {/* Dropdown toggle button for the list of already added customers */}
+                            <button
+                                type="button"
+                                onClick={() => setIsCustomerDropdownOpen(prev => !prev)}
+                                title={isCustomerDropdownOpen ? "Close customer list" : "Show registered customer list"}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '2px',
+                                    padding: '0.25rem 0.45rem',
+                                    borderRadius: '6px',
+                                    border: '1px solid #E2E8F0',
+                                    background: isCustomerDropdownOpen ? '#E2E8F0' : '#FFFFFF',
+                                    color: '#475569',
+                                    fontSize: '0.72rem',
+                                    fontWeight: '750',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0
+                                }}
+                            >
+                                <span>List ({customers.length})</span>
+                                <ChevronDown size={13} style={{ transform: isCustomerDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                            </button>
+
+                            {/* Add Customer Button on Right Side */}
+                            <button
+                                type="button"
+                                onClick={() => setIsAddCustomerModalOpen(true)}
+                                title="Add New Customer"
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '0.3rem 0.55rem',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: '#ECFDF5',
+                                    color: '#047857',
+                                    fontWeight: '750',
+                                    fontSize: '0.75rem',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap',
+                                    transition: 'all 0.15s ease',
+                                    flexShrink: 0
+                                }}
+                            >
+                                <UserPlus size={14} />
+                                <span>Add</span>
+                            </button>
+                        </div>
+
+                        {/* Dropdown autocomplete / list for Customers */}
+                        {isCustomerDropdownOpen && (
+                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', marginTop: '6px', zIndex: 30, boxShadow: '0 12px 28px -4px rgba(0,0,0,0.15)', maxHeight: '250px', overflowY: 'auto', padding: '0.25rem 0' }}>
+                                <div style={{ padding: '0.4rem 0.85rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', fontWeight: '800', color: '#64748B' }}>
+                                    <span>{customerName.trim() ? 'Matching Customers' : `Registered Customers (${customers.length})`}</span>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsCustomerDropdownOpen(false)} 
+                                        style={{ border: 'none', background: 'transparent', color: '#64748B', cursor: 'pointer', fontWeight: '700', fontSize: '0.72rem' }}
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                                {(() => {
+                                    const query = customerName.toLowerCase().trim();
+                                    const matches = query ? customers.filter(c => {
+                                        const nameMatch = (c.name || c.customer_name || c.contact_person || c.business_name || '').toLowerCase().includes(query);
+                                        const codeMatch = (c.code || c.customer_code || c.customer_id || '').toLowerCase().includes(query);
+                                        const phoneMatch = String(c.phone_number || c.phone || c.contact || c.phonenumber || c.mobile || '').toLowerCase().includes(query);
+                                        const emailMatch = (c.email || '').toLowerCase().includes(query);
+                                        return nameMatch || codeMatch || phoneMatch || emailMatch;
+                                    }) : customers;
+
+                                    if (matches.length === 0) {
+                                        return (
+                                            <div style={{ padding: '0.85rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.82rem', fontWeight: '600' }}>
+                                                No customer found
+                                            </div>
+                                        );
+                                    }
+
+                                    return matches.map(cust => (
+                                        <div
+                                            key={cust.id}
+                                            onClick={() => {
+                                                handleCustomerSelect(cust);
+                                                setIsCustomerDropdownOpen(false);
+                                            }}
+                                            style={{ padding: '0.65rem 0.85rem', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F8FAFC', transition: 'background 0.15s ease' }}
+                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ECFDF5'}
+                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden', paddingRight: '0.5rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.85rem' }}>{cust.name}</span>
+                                                    {(cust.code || cust.customer_code) && (
+                                                        <span style={{ fontSize: '0.68rem', color: '#64748B', background: '#F1F5F9', padding: '0.1rem 0.35rem', borderRadius: '4px', fontFamily: 'monospace' }}>
+                                                            {cust.code || cust.customer_code}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.72rem', color: '#64748B', flexWrap: 'wrap' }}>
+                                                    {(cust.phone_number || cust.phone) && <span>Phone: {cust.phone_number || cust.phone}</span>}
+                                                    {cust.email && <span>Email: {cust.email}</span>}
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                    ⭐ Loyalty Points: {getCustomerLtp(cust)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ));
+                                })()}
+                                <div 
+                                    onClick={() => setIsCustomerDropdownOpen(false)}
+                                    style={{ padding: '0.4rem', textAlign: 'center', background: '#F8FAFC', fontSize: '0.75rem', color: '#64748B', borderTop: '1px solid #F1F5F9', cursor: 'pointer', fontWeight: '700' }}>
+                                    Close List
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Selected Customer Details Banner */}
+                    {selectedCustomerObj && (
                                 <div style={{ marginTop: '0.6rem', padding: '0.65rem 0.85rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.8rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'nowrap', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                                         <span style={{ fontWeight: '850', color: '#065F46', fontSize: '0.85rem' }}>
@@ -2381,8 +2375,6 @@ const BusinessPOS = () => {
                                     </div>
                                 </div>
                             )}
-                        </div>
-                    )}
                 </div>
 
                 {/* Held Carts Row */}
