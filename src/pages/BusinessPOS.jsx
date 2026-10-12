@@ -2554,7 +2554,7 @@ const BusinessPOS = () => {
                 </div>
 
                 {/* Dynamic Totals Panel footer */}
-                <div style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', flexShrink: 0 }}>
+                <div style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', padding: '0.65rem 0.85rem', display: 'flex', flexDirection: 'column', gap: '0.45rem', flexShrink: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                             Payment Summary {!isTotalsSectionExpanded && `(${formatCurrency(finalTotal)})`}
@@ -2571,186 +2571,196 @@ const BusinessPOS = () => {
 
                     {isTotalsSectionExpanded && (
                         <>
-                            {/* Discount, Tax & Loyalty Points Quick adjustment Row */}
-                            <div style={{ display: 'flex', gap: '0.6rem' }}>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Discount</span>
-                                        <div style={{ display: 'flex', gap: '4px' }}>
-                                            <button onClick={() => setDiscountType('percentage')} style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.65rem', fontWeight: discountType === 'percentage' ? '800' : '400', color: discountType === 'percentage' ? '#10B981' : '#94A3B8', cursor: 'pointer' }}>%</button>
-                                            <span style={{ fontSize: '0.65rem', color: '#E2E8F0' }}>|</span>
-                                            <button onClick={() => setDiscountType('flat')} style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.65rem', fontWeight: discountType === 'flat' ? '800' : '400', color: discountType === 'flat' ? '#10B981' : '#94A3B8', cursor: 'pointer' }}>Flat</button>
-                                        </div>
-                                    </div>
-                                    <input 
-                                        type="number" 
-                                        placeholder="0"
-                                        value={discountVal || ''}
-                                        onChange={(e) => setDiscountVal(Math.max(0, parseFloat(e.target.value) || 0))}
-                                        style={{ width: '100%', padding: '0.4rem 0.75rem', boxSizing: 'border-box', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700', outline: 'none' }}
-                                    />
-                                </div>
-
-                                <div style={{ flex: 1, display: 'none' }}>
-                                    <span style={{ display: 'block', fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '2px' }}>GST Tax (%)</span>
-                                    <select 
-                                        value={taxRate}
-                                        onChange={(e) => setTaxRate(parseInt(e.target.value))}
-                                        style={{ width: '100%', padding: '0.4rem 0.75rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem', fontWeight: '700', background: 'white', outline: 'none' }}>
-                                        <option value={0}>0%</option>
-                                        <option value={5}>5%</option>
-                                        <option value={12}>12%</option>
-                                        <option value={18}>18%</option>
-                                        <option value={28}>28%</option>
-                                    </select>
-                                </div>
-
-                            </div>
-
-                            {/* Loyalty Points System (Claiming & Bill-based Dynamic Earning) */}
-                            {loyaltyEnabled && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', padding: '0.65rem', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #DCFCE7' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase' }}>
-                                            <Tag size={12} /> Loyalty Points
-                                        </label>
-                                        {selectedCustomerObj ? (
-                                            <div style={{ fontSize: '0.7rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                ⭐ Available: {availableCustomerPoints}
-                                                <span style={{ color: '#16A34A', fontWeight: '600' }}>({maxClaimPct}% Claimable)</span>
+                            {/* Two-Half Side-by-Side Compact Layout */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: '0.55rem', alignItems: 'stretch' }}>
+                                
+                                {/* FIRST HALF: Discount, Points Redeemed, Points Earned */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', justifyContent: 'space-between' }}>
+                                    
+                                    {/* Discount Row */}
+                                    <div style={{ background: '#FFFFFF', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                                            <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Discount</span>
+                                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setDiscountType('percentage')} 
+                                                    style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.62rem', fontWeight: discountType === 'percentage' ? '800' : '500', color: discountType === 'percentage' ? '#10B981' : '#94A3B8', cursor: 'pointer' }}
+                                                >
+                                                    %
+                                                </button>
+                                                <span style={{ fontSize: '0.6rem', color: '#CBD5E1' }}>|</span>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setDiscountType('flat')} 
+                                                    style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.62rem', fontWeight: discountType === 'flat' ? '800' : '500', color: discountType === 'flat' ? '#10B981' : '#94A3B8', cursor: 'pointer' }}
+                                                >
+                                                    Flat
+                                                </button>
                                             </div>
-                                        ) : (
-                                            <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontStyle: 'italic' }}>Select customer to apply</span>
-                                        )}
-                                    </div>
-
-                                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                        </div>
                                         <input 
-                                            type="number"
-                                            step="any"
+                                            type="number" 
+                                            placeholder="0"
                                             min="0"
-                                            max={maxRedeemablePoints}
-                                            placeholder="Redeem Points"
-                                            disabled={!selectedCustomerObj || maxRedeemablePoints <= 0}
-                                            value={loyaltyPointsRedeemed || ''}
-                                            onChange={(e) => {
-                                                if (!selectedCustomerObj) {
-                                                    setLoyaltyPointsRedeemed(0);
-                                                    return;
-                                                }
-                                                const rawVal = e.target.value;
-                                                let val = parseFloat(rawVal);
-                                                if (isNaN(val) || rawVal === '') val = 0;
-                                                if (val > maxRedeemablePoints) val = maxRedeemablePoints;
-                                                if (val < 0) val = 0;
-                                                setLoyaltyPointsRedeemed(val);
-                                            }}
-                                            style={{ 
-                                                flex: 1, 
-                                                padding: '0.4rem 0.6rem', 
-                                                boxSizing: 'border-box', 
-                                                borderRadius: '6px', 
-                                                border: '1px solid #BBF7D0', 
-                                                background: !selectedCustomerObj ? '#F8FAFC' : 'white', 
-                                                fontSize: '0.8rem', 
-                                                fontWeight: '700', 
-                                                color: '#15803D',
-                                                outline: 'none',
-                                                opacity: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 0.6 : 1
-                                            }} 
+                                            value={discountVal || ''}
+                                            onChange={(e) => setDiscountVal(Math.max(0, parseFloat(e.target.value) || 0))}
+                                            style={{ width: '100%', padding: '0.25rem 0.45rem', boxSizing: 'border-box', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem', fontWeight: '750', outline: 'none' }}
                                         />
-                                        <button 
-                                            type="button" 
-                                            onClick={() => {
-                                                if (!selectedCustomerObj || maxRedeemablePoints <= 0) return;
-                                                setLoyaltyPointsRedeemed(maxRedeemablePoints);
-                                            }}
-                                            disabled={!selectedCustomerObj || maxRedeemablePoints <= 0}
-                                            style={{ 
-                                                padding: '0.4rem 0.65rem', 
-                                                borderRadius: '6px', 
-                                                background: '#16A34A', 
-                                                color: 'white', 
-                                                border: 'none', 
-                                                fontSize: '0.72rem', 
-                                                fontWeight: '800', 
-                                                cursor: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 'not-allowed' : 'pointer', 
-                                                opacity: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 0.5 : 1,
-                                                whiteSpace: 'nowrap'
-                                            }}
-                                        >
-                                            Use Max
-                                        </button>
                                     </div>
 
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem' }}>
-                                        {effectivePointsRedeemed > 0 ? (
-                                            <span style={{ color: '#166534', fontWeight: '700' }}>
-                                                Discount Value: {formatCurrency(loyaltyDiscountAmount)} ({ptsFor1Rs} pts = ₹1)
-                                            </span>
-                                        ) : <span />}
-                                        {selectedCustomerObj && (
-                                            <span style={{ color: '#047857', fontWeight: '700' }}>
-                                                Points Earned: +{effectivePointsEarned} pts (₹{rsPer1Point} = 1 pt)
-                                            </span>
+                                    {/* Loyalty Points: Redeemed & Earned */}
+                                    {loyaltyEnabled && (
+                                        <div style={{ background: '#F0FDF4', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #DCFCE7', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                    <Tag size={10} /> Loyalty Pts
+                                                </span>
+                                                {selectedCustomerObj ? (
+                                                    <span style={{ fontSize: '0.62rem', color: '#15803D', fontWeight: '800' }}>
+                                                        ⭐ {availableCustomerPoints} <span style={{ color: '#16A34A', fontWeight: '600' }}>({maxClaimPct}%)</span>
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ fontSize: '0.58rem', color: '#94A3B8', fontStyle: 'italic' }}>No customer</span>
+                                                )}
+                                            </div>
+
+                                            {/* Points Redeemed Input + Max Button */}
+                                            <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                                                <input 
+                                                    type="number"
+                                                    step="any"
+                                                    min="0"
+                                                    max={maxRedeemablePoints}
+                                                    placeholder="Pts Redeem"
+                                                    disabled={!selectedCustomerObj || maxRedeemablePoints <= 0}
+                                                    value={loyaltyPointsRedeemed || ''}
+                                                    onChange={(e) => {
+                                                        if (!selectedCustomerObj) {
+                                                            setLoyaltyPointsRedeemed(0);
+                                                            return;
+                                                        }
+                                                        const rawVal = e.target.value;
+                                                        let val = parseFloat(rawVal);
+                                                        if (isNaN(val) || rawVal === '') val = 0;
+                                                        if (val > maxRedeemablePoints) val = maxRedeemablePoints;
+                                                        if (val < 0) val = 0;
+                                                        setLoyaltyPointsRedeemed(val);
+                                                    }}
+                                                    style={{ 
+                                                        flex: 1, 
+                                                        minWidth: 0,
+                                                        padding: '0.25rem 0.45rem', 
+                                                        boxSizing: 'border-box', 
+                                                        borderRadius: '6px', 
+                                                        border: '1px solid #BBF7D0', 
+                                                        background: !selectedCustomerObj ? '#F8FAFC' : 'white', 
+                                                        fontSize: '0.78rem', 
+                                                        fontWeight: '750', 
+                                                        color: '#15803D',
+                                                        outline: 'none',
+                                                        opacity: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 0.6 : 1
+                                                    }} 
+                                                />
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => {
+                                                        if (!selectedCustomerObj || maxRedeemablePoints <= 0) return;
+                                                        setLoyaltyPointsRedeemed(maxRedeemablePoints);
+                                                    }}
+                                                    disabled={!selectedCustomerObj || maxRedeemablePoints <= 0}
+                                                    style={{ 
+                                                        padding: '0.25rem 0.45rem', 
+                                                        borderRadius: '6px', 
+                                                        background: '#16A34A', 
+                                                        color: 'white', 
+                                                        border: 'none', 
+                                                        fontSize: '0.65rem', 
+                                                        fontWeight: '800', 
+                                                        cursor: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 'not-allowed' : 'pointer', 
+                                                        opacity: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 0.5 : 1,
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                >
+                                                    Max
+                                                </button>
+                                            </div>
+
+                                            {/* Preview: Redeemed Value & Points Earned */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.62rem', fontWeight: '700' }}>
+                                                <span style={{ color: '#166534' }}>
+                                                    {effectivePointsRedeemed > 0 ? `-${formatCurrency(loyaltyDiscountAmount)}` : `${ptsFor1Rs} pts = ₹1`}
+                                                </span>
+                                                {selectedCustomerObj ? (
+                                                    <span style={{ color: '#047857' }}>
+                                                        Earn: +{effectivePointsEarned} pts
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ color: '#047857' }}>
+                                                        ₹{rsPer1Point} = 1 pt
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* SECOND HALF: Subtotal, GST, Round Off, Payable Amount */}
+                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: '#FFFFFF', padding: '0.45rem 0.55rem', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                        {/* Subtotal */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', color: '#64748B' }}>
+                                            <span>Subtotal</span>
+                                            <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(subtotal)}</span>
+                                        </div>
+
+                                        {/* Discount if any */}
+                                        {discountAmount > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#EF4444', fontWeight: '600' }}>
+                                                <span>Discount ({discountType === 'percentage' ? `${discountVal}%` : 'Flat'})</span>
+                                                <span>-{formatCurrency(discountAmount)}</span>
+                                            </div>
                                         )}
+
+                                        {/* Calculated GST */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', color: '#64748B' }}>
+                                            <span>Calculated GST</span>
+                                            <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax)}</span>
+                                        </div>
+
+                                        {/* Loyalty Discount if any */}
+                                        {loyaltyDiscountAmount > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#DC2626', fontWeight: '600' }}>
+                                                <span>Pts Discount</span>
+                                                <span>-{formatCurrency(loyaltyDiscountAmount)}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Round Off */}
+                                        {Math.abs(roundOff) > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#94A3B8' }}>
+                                                <span>Round Off</span>
+                                                <span>{roundOff > 0 ? '+' : ''}{currency.symbol}{roundOff.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Payable Amount Divider & Value */}
+                                    <div style={{ borderTop: '1px dashed #CBD5E1', paddingTop: '0.3rem', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.76rem', fontWeight: '850', color: '#0F172A', textTransform: 'uppercase' }}>Payable</span>
+                                        {(() => {
+                                            const finalStr = formatCurrency(finalTotal);
+                                            const finalFontSz = finalStr.length > 14 ? '0.98rem' : (finalStr.length > 11 ? '1.12rem' : '1.25rem');
+                                            return (
+                                                <span style={{ fontSize: finalFontSz, fontWeight: '950', color: '#0F172A', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+                                                    {finalStr}
+                                                </span>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Receipt Tally breakdown */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', padding: '0.5rem 0', borderBottom: '1px solid #E2E8F0' }}>
-                                {(() => {
-                                    const subStr = formatCurrency(subtotal);
-                                    const subFontSz = subStr.length > 14 ? '0.72rem' : '0.8rem';
-                                    return (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#64748B', gap: '0.5rem' }}>
-                                            <span style={{ flexShrink: 0 }}>Subtotal</span>
-                                            <span style={{ fontSize: subFontSz, fontWeight: '600', whiteSpace: 'nowrap' }}>{subStr}</span>
-                                        </div>
-                                    );
-                                })()}
-                                {discountAmount > 0 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#EF4444', fontWeight: '500', gap: '0.5rem' }}>
-                                        <span style={{ flexShrink: 0 }}>Discount ({discountType === 'percentage' ? `${discountVal}%` : 'Flat'})</span>
-                                        <span style={{ fontSize: formatCurrency(discountAmount).length > 14 ? '0.72rem' : '0.8rem', whiteSpace: 'nowrap' }}>- {formatCurrency(discountAmount)}</span>
-                                    </div>
-                                )}
-                                {(() => {
-                                    const taxStr = formatCurrency(calculatedTax);
-                                    const taxFontSz = taxStr.length > 14 ? '0.72rem' : '0.8rem';
-                                    return (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#64748B', gap: '0.5rem' }}>
-                                            <span style={{ flexShrink: 0 }}>Calculated GST</span>
-                                            <span style={{ fontSize: taxFontSz, fontWeight: '600', whiteSpace: 'nowrap' }}>{taxStr}</span>
-                                        </div>
-                                    );
-                                })()}
-                                {loyaltyDiscountAmount > 0 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#DC2626', fontWeight: '600', gap: '0.5rem' }}>
-                                        <span style={{ flexShrink: 0 }}>Loyalty Discount ({effectivePointsRedeemed} pts)</span>
-                                        <span style={{ fontSize: formatCurrency(loyaltyDiscountAmount).length > 14 ? '0.72rem' : '0.8rem', whiteSpace: 'nowrap' }}>- {formatCurrency(loyaltyDiscountAmount)}</span>
-                                    </div>
-                                )}
-                                {Math.abs(roundOff) > 0 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#94A3B8', gap: '0.5rem' }}>
-                                        <span style={{ flexShrink: 0 }}>Round Off</span>
-                                        <span style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{roundOff > 0 ? '+' : ''}{currency.symbol}{roundOff.toFixed(2)}</span>
-                                    </div>
-                                )}
                             </div>
-
-                            {/* Grand total Display */}
-                            {(() => {
-                                const finalStr = formatCurrency(finalTotal);
-                                const finalFontSz = finalStr.length > 15 ? '1.15rem' : (finalStr.length > 12 ? '1.3rem' : '1.65rem');
-                                return (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', gap: '0.5rem' }}>
-                                        <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A', flexShrink: 0 }}>Payable Amount</span>
-                                        <span style={{ fontSize: finalFontSz, fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{finalStr}</span>
-                                    </div>
-                                );
-                            })()}
 
                             {/* Checkout Payment Action Matrix */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem', marginTop: '2px' }}>
