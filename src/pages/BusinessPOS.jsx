@@ -567,6 +567,7 @@ const BusinessPOS = () => {
                         const existing = uniqueMap.get(key);
                         uniqueMap.set(key, {
                             ...existing,
+                            tax_percentage: existing.tax_percentage || item.tax_percentage || 0,
                             hsn_code: existing.hsn_code || item.hsn_code || '',
                             hsnCode: existing.hsnCode || item.hsnCode || '',
                             barcode: existing.barcode || item.barcode || '',
@@ -1154,13 +1155,14 @@ const BusinessPOS = () => {
                         : item
                 );
             }
+            const extractedTaxRate = parseFloat(prod.tax_percentage ?? prod.rawProduct?.tax_percentage ?? prod.rawProduct?.gst_percentage ?? prod.taxRate ?? prod.gst_percentage ?? prod.tax_rate ?? 0) || 0;
             return [...prevCart, {
                 id: prod.id,
                 name: prod.name,
                 sku: prod.sku,
                 price: prod.price || 0,
                 quantity: 1,
-                tax_rate: parseFloat(prod.tax_percentage) || parseFloat(prod.taxRate) || parseFloat(prod.gst_percentage) || parseFloat(prod.tax_rate) || 0,
+                tax_rate: extractedTaxRate,
                 unit: prodUnit,
                 total: prod.price || 0,
                 source: prod.source,
@@ -1286,8 +1288,9 @@ const BusinessPOS = () => {
     const discountPercent = subtotal > 0 ? (discountAmount / subtotal) : 0;
     
     const calculatedTax = cart.reduce((acc, item) => {
+        const catItem = inventory.find(p => p.id === item.id || (p.sku && item.sku && p.sku === item.sku));
         const discountedItemTotal = item.total * (1 - discountPercent);
-        const itemTaxRate = parseFloat(item.tax_rate) || 0;
+        const itemTaxRate = parseFloat(item.tax_rate !== undefined && item.tax_rate !== null && !isNaN(parseFloat(item.tax_rate)) ? item.tax_rate : (catItem?.tax_percentage || 0)) || 0;
         return acc + (discountedItemTotal * (itemTaxRate / 100));
     }, 0);
     
@@ -2457,11 +2460,27 @@ const BusinessPOS = () => {
                                         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', paddingRight: '0.2rem' }}>
                                             <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
                                             {(() => {
+                                                const catItem = inventory.find(p => p.id === item.id || (p.sku && item.sku && p.sku === item.sku));
+                                                const itemTaxRate = parseFloat(item.tax_rate !== undefined && item.tax_rate !== null && !isNaN(parseFloat(item.tax_rate)) ? item.tax_rate : (catItem?.tax_percentage || 0)) || 0;
                                                 const cartPriceStr = `${formatCurrency(item.price)} / ${item.unit || 'PCS'}`;
                                                 const cartPriceFontSz = cartPriceStr.length > 22 ? '0.66rem' : '0.75rem';
                                                 return (
-                                                    <div style={{ display: 'flex', gap: '0.5rem', fontSize: cartPriceFontSz, color: '#64748B', marginTop: '2px', wordBreak: 'break-word' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem', fontSize: cartPriceFontSz, color: '#64748B', marginTop: '2px', wordBreak: 'break-word' }}>
                                                         <span>{cartPriceStr}</span>
+                                                        <span style={{ color: '#94A3B8' }}>•</span>
+                                                        <span style={{ 
+                                                            display: 'inline-flex', 
+                                                            alignItems: 'center', 
+                                                            background: '#F0FDFA', 
+                                                            color: '#0F766E', 
+                                                            border: '1px solid #CCFBF1', 
+                                                            padding: '0.5px 5px', 
+                                                            borderRadius: '4px', 
+                                                            fontSize: '0.68rem', 
+                                                            fontWeight: '800' 
+                                                        }}>
+                                                            {itemTaxRate}% GST
+                                                        </span>
                                                     </div>
                                                 );
                                             })()}
@@ -2508,11 +2527,18 @@ const BusinessPOS = () => {
                                         </div>
 
                                         {(() => {
+                                            const catItem = inventory.find(p => p.id === item.id || (p.sku && item.sku && p.sku === item.sku));
+                                            const itemTaxRate = parseFloat(item.tax_rate !== undefined && item.tax_rate !== null && !isNaN(parseFloat(item.tax_rate)) ? item.tax_rate : (catItem?.tax_percentage || 0)) || 0;
+                                            const discountedItemTotal = item.total * (1 - discountPercent);
+                                            const itemGstAmt = discountedItemTotal * (itemTaxRate / 100);
                                             const totalStr = formatCurrency(item.total);
                                             const totalFontSz = totalStr.length > 14 ? '0.72rem' : (totalStr.length > 10 ? '0.78rem' : '0.85rem');
                                             return (
-                                                <div style={{ flexShrink: 0, textAlign: 'right', paddingLeft: '0.2rem' }}>
-                                                    <span style={{ fontSize: totalFontSz, fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap' }}>{totalStr}</span>
+                                                <div style={{ flexShrink: 0, textAlign: 'right', paddingLeft: '0.2rem', minWidth: '70px' }}>
+                                                    <span style={{ fontSize: totalFontSz, fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap', display: 'block' }}>{totalStr}</span>
+                                                    <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#0D9488', whiteSpace: 'nowrap', display: 'block', marginTop: '1px' }}>
+                                                        +{formatCurrency(itemGstAmt)} GST
+                                                    </span>
                                                 </div>
                                             );
                                         })()}
