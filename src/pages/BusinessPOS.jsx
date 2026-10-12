@@ -313,6 +313,17 @@ const BusinessPOS = () => {
     const [historyPaymentMode, setHistoryPaymentMode] = useState('All');
     const customerInputRef = useRef(null);
 
+    // 1. Fetch Customers for CRM & Quick Search
+    const { data: customers = [] } = useQuery({
+        queryKey: ['business-customers'],
+        queryFn: async () => {
+            const res = await crmService.getCustomers();
+            if (Array.isArray(res)) return res;
+            const raw = res?.data?.data ?? res?.data ?? res?.customers ?? [];
+            return Array.isArray(raw) ? raw : [];
+        }
+    });
+
     // Add Customer State & Handler
     const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
     const [newCustomerData, setNewCustomerData] = useState({
@@ -332,6 +343,13 @@ const BusinessPOS = () => {
         if (!/^\d{10}$/.test(clean)) {
             return 'Phone number must be exactly 10 digits.';
         }
+        const existing = customers.find(c => {
+            const p = String(c.phone_number || c.phone || c.contact || c.phonenumber || c.mobile || '').trim();
+            return p && p === clean;
+        });
+        if (existing) {
+            return `Already a customer with this number (${existing.name})`;
+        }
         return '';
     };
 
@@ -339,7 +357,14 @@ const BusinessPOS = () => {
         if (!val || !val.trim()) return '';
         const clean = val.trim().toLowerCase();
         if (!clean.endsWith('@bnxmail.com') || !/^[^\s@]+@bnxmail\.com$/.test(clean)) {
-            return 'Email must use the @bnxmail.com domain.';
+            return 'Email must use the @bnxmail.com domain (e.g. name@bnxmail.com).';
+        }
+        const existing = customers.find(c => {
+            const em = String(c.email || '').trim().toLowerCase();
+            return em && em === clean;
+        });
+        if (existing) {
+            return `Already a customer with this email (${existing.name})`;
         }
         return '';
     };
@@ -369,6 +394,7 @@ const BusinessPOS = () => {
         }
 
         if (phoneErr || emailErr || gstinErr) {
+            alert(phoneErr || emailErr || gstinErr);
             return;
         }
 
@@ -401,7 +427,8 @@ const BusinessPOS = () => {
             alert('New Customer registered and assigned successfully!');
         } catch (err) {
             console.error('Failed to create customer:', err);
-            alert('Failed to register customer. Please try again.');
+            const errMsg = err?.response?.data?.message || err?.response?.data?.error || err.message;
+            alert(errMsg || 'Failed to register customer. Please try again.');
         } finally {
             setIsSavingCustomer(false);
         }
@@ -591,16 +618,6 @@ const BusinessPOS = () => {
         refetchOnWindowFocus: true
     });
 
-    // 3. Fetch Customers for Quick Search
-    const { data: customers = [] } = useQuery({
-        queryKey: ['business-customers'],
-        queryFn: async () => {
-            const res = await crmService.getCustomers();
-            if (Array.isArray(res)) return res;
-            const raw = res?.data?.data ?? res?.data ?? res?.customers ?? [];
-            return Array.isArray(raw) ? raw : [];
-        }
-    });
     
     // 4. Fetch Order History
     const { data: orderHistory = [], isLoading: isHistoryLoading } = useQuery({
@@ -2153,28 +2170,54 @@ const BusinessPOS = () => {
 
                     {isCustomerSectionExpanded && (
                         <div style={{ position: 'relative' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0.4rem 0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0.4rem 0.65rem' }}>
                                 <User size={16} color="#64748B" />
                                 <input 
                                     ref={customerInputRef}
                                     type="text" 
-                                    placeholder="Assign Customer (e.g., Walk-in / Search CRM...)" 
+                                    placeholder="Assign Customer (Search name, phone, email...)" 
                                     value={customerName}
                                     onChange={(e) => {
                                         setCustomerName(e.target.value);
                                         setIsCustomerDropdownOpen(true);
                                     }}
                                     onFocus={() => setIsCustomerDropdownOpen(true)}
-                                    style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '0.85rem', fontWeight: '650', color: '#1E293B' }}
+                                    style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '0.85rem', fontWeight: '650', color: '#1E293B', minWidth: 0 }}
                                 />
                                 {customerName && (
                                     <button 
+                                        type="button"
                                         onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
-                                        style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', color: '#94A3B8' }}
+                                        title="Clear customer"
+                                        style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', color: '#94A3B8', padding: '2px' }}
                                     >
                                         <X size={14} />
                                     </button>
                                 )}
+
+                                {/* Dropdown toggle button for the list of already added customers */}
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCustomerDropdownOpen(prev => !prev)}
+                                    title={isCustomerDropdownOpen ? "Close customer list" : "Show registered customer list"}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '3px',
+                                        padding: '0.3rem 0.5rem',
+                                        borderRadius: '6px',
+                                        border: '1px solid #E2E8F0',
+                                        background: isCustomerDropdownOpen ? '#E2E8F0' : '#FFFFFF',
+                                        color: '#475569',
+                                        fontSize: '0.72rem',
+                                        fontWeight: '750',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    <span>List ({customers.length})</span>
+                                    <ChevronDown size={14} style={{ transform: isCustomerDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                                </button>
 
                                 {/* Add Customer Button on Right Side */}
                                 <button
@@ -2202,18 +2245,28 @@ const BusinessPOS = () => {
                                 </button>
                             </div>
 
-                            {/* Dropdown autocomplete for Customers */}
-                            {isCustomerDropdownOpen && customerName.length > 0 && (
-                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', marginTop: '4px', zIndex: 30, boxShadow: '0 12px 24px -4px rgba(0,0,0,0.12)', maxHeight: '220px', overflowY: 'auto', padding: '0.25rem 0' }}>
+                            {/* Dropdown autocomplete / list for Customers */}
+                            {isCustomerDropdownOpen && (
+                                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', marginTop: '4px', zIndex: 30, boxShadow: '0 12px 28px -4px rgba(0,0,0,0.15)', maxHeight: '250px', overflowY: 'auto', padding: '0.25rem 0' }}>
+                                    <div style={{ padding: '0.4rem 0.85rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', fontWeight: '800', color: '#64748B' }}>
+                                        <span>{customerName.trim() ? 'Matching Customers' : `Registered Customers (${customers.length})`}</span>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setIsCustomerDropdownOpen(false)} 
+                                            style={{ border: 'none', background: 'transparent', color: '#64748B', cursor: 'pointer', fontWeight: '700', fontSize: '0.72rem' }}
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
                                     {(() => {
                                         const query = customerName.toLowerCase().trim();
-                                        const matches = customers.filter(c => {
+                                        const matches = query ? customers.filter(c => {
                                             const nameMatch = (c.name || c.customer_name || c.contact_person || c.business_name || '').toLowerCase().includes(query);
                                             const codeMatch = (c.code || c.customer_code || c.customer_id || '').toLowerCase().includes(query);
                                             const phoneMatch = String(c.phone_number || c.phone || c.contact || c.phonenumber || c.mobile || '').toLowerCase().includes(query);
                                             const emailMatch = (c.email || '').toLowerCase().includes(query);
                                             return nameMatch || codeMatch || phoneMatch || emailMatch;
-                                        });
+                                        }) : customers;
 
                                         if (matches.length === 0) {
                                             return (
@@ -2223,10 +2276,13 @@ const BusinessPOS = () => {
                                             );
                                         }
 
-                                        return matches.slice(0, 6).map(cust => (
+                                        return matches.map(cust => (
                                             <div
                                                 key={cust.id}
-                                                onClick={() => handleCustomerSelect(cust)}
+                                                onClick={() => {
+                                                    handleCustomerSelect(cust);
+                                                    setIsCustomerDropdownOpen(false);
+                                                }}
                                                 style={{ padding: '0.65rem 0.85rem', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F8FAFC', transition: 'background 0.15s ease' }}
                                                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ECFDF5'}
                                                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -3277,6 +3333,35 @@ const BusinessPOS = () => {
                             <button onClick={() => setIsAddCustomerModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
                         </div>
 
+                        {/* Existing Customer Quick Selector Dropdown */}
+                        {customers.length > 0 && (
+                            <div style={{ background: '#F8FAFC', padding: '0.6rem 0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '0.85rem' }}>
+                                <label style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
+                                    Already Registered Customers ({customers.length})
+                                </label>
+                                <select
+                                    value=""
+                                    onChange={(e) => {
+                                        const found = customers.find(c => String(c.id) === e.target.value);
+                                        if (found) {
+                                            handleCustomerSelect(found);
+                                            setIsAddCustomerModalOpen(false);
+                                            setNewCustomerData({ name: '', phone_number: '', email: '', gstin: '', billing_address: '' });
+                                            setCustomerErrors({ phone: '', email: '', gstin: '' });
+                                        }
+                                    }}
+                                    style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.82rem', fontWeight: '700', color: '#1E293B', background: 'white', outline: 'none' }}
+                                >
+                                    <option value="">-- Choose from already added customers --</option>
+                                    {customers.map(c => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name} {c.phone_number || c.phone ? `(${c.phone_number || c.phone})` : ''} {c.email ? `• ${c.email}` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         <form onSubmit={handleCreateCustomer} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Customer Name *</label>
@@ -3299,9 +3384,9 @@ const BusinessPOS = () => {
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             setNewCustomerData({ ...newCustomerData, phone_number: val });
-                                            if (touchedCustomerFields.phone) {
-                                                setCustomerErrors(prev => ({ ...prev, phone: validateCustomerPhone(val) }));
-                                            }
+                                            const err = validateCustomerPhone(val);
+                                            setCustomerErrors(prev => ({ ...prev, phone: err }));
+                                            setTouchedCustomerFields(prev => ({ ...prev, phone: true }));
                                         }} 
                                         onBlur={() => {
                                             setTouchedCustomerFields(prev => ({ ...prev, phone: true }));
@@ -3311,22 +3396,43 @@ const BusinessPOS = () => {
                                         placeholder="9876543210" 
                                     />
                                     {customerErrors.phone && (
-                                        <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#EF4444', fontWeight: '700' }}>
-                                            {customerErrors.phone}
-                                        </p>
+                                        <div style={{ marginTop: '4px' }}>
+                                            <p style={{ margin: '0 0 4px', fontSize: '0.72rem', color: '#EF4444', fontWeight: '700' }}>
+                                                {customerErrors.phone}
+                                            </p>
+                                            {(() => {
+                                                const cleanP = (newCustomerData.phone_number || '').trim();
+                                                const match = cleanP ? customers.find(c => String(c.phone_number || c.phone || c.contact || c.phonenumber || c.mobile || '').trim() === cleanP) : null;
+                                                if (!match) return null;
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleCustomerSelect(match);
+                                                            setIsAddCustomerModalOpen(false);
+                                                            setNewCustomerData({ name: '', phone_number: '', email: '', gstin: '', billing_address: '' });
+                                                            setCustomerErrors({ phone: '', email: '', gstin: '' });
+                                                        }}
+                                                        style={{ padding: '0.3rem 0.6rem', background: '#DC2626', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                                    >
+                                                        Select &quot;{match.name}&quot;
+                                                    </button>
+                                                );
+                                            })()}
+                                        </div>
                                     )}
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Email Address</label>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Email Address (@bnxmail.com)</label>
                                     <input 
                                         type="text" 
                                         value={newCustomerData.email} 
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             setNewCustomerData({ ...newCustomerData, email: val });
-                                            if (touchedCustomerFields.email) {
-                                                setCustomerErrors(prev => ({ ...prev, email: validateCustomerEmail(val) }));
-                                            }
+                                            const err = validateCustomerEmail(val);
+                                            setCustomerErrors(prev => ({ ...prev, email: err }));
+                                            setTouchedCustomerFields(prev => ({ ...prev, email: true }));
                                         }} 
                                         onBlur={() => {
                                             setTouchedCustomerFields(prev => ({ ...prev, email: true }));
@@ -3336,9 +3442,30 @@ const BusinessPOS = () => {
                                         placeholder="customer@bnxmail.com" 
                                     />
                                     {customerErrors.email && (
-                                        <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#EF4444', fontWeight: '700' }}>
-                                            {customerErrors.email}
-                                        </p>
+                                        <div style={{ marginTop: '4px' }}>
+                                            <p style={{ margin: '0 0 4px', fontSize: '0.72rem', color: '#EF4444', fontWeight: '700' }}>
+                                                {customerErrors.email}
+                                            </p>
+                                            {(() => {
+                                                const cleanE = (newCustomerData.email || '').trim().toLowerCase();
+                                                const match = cleanE ? customers.find(c => String(c.email || '').trim().toLowerCase() === cleanE) : null;
+                                                if (!match) return null;
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleCustomerSelect(match);
+                                                            setIsAddCustomerModalOpen(false);
+                                                            setNewCustomerData({ name: '', phone_number: '', email: '', gstin: '', billing_address: '' });
+                                                            setCustomerErrors({ phone: '', email: '', gstin: '' });
+                                                        }}
+                                                        style={{ padding: '0.3rem 0.6rem', background: '#DC2626', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                                    >
+                                                        Select &quot;{match.name}&quot;
+                                                    </button>
+                                                );
+                                            })()}
+                                        </div>
                                     )}
                                 </div>
                             </div>
