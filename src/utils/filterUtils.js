@@ -23,6 +23,10 @@ export const applyTableFilters = (item, filters) => {
             'current_balance': item.current_balance,
             'product_name': item.product_name || item.name,
             'employee': item.employee_name || item.name,
+            'in_transit': item.in_transit_stock !== undefined ? item.in_transit_stock : item.in_transit,
+            'current_stock': item.current_stock !== undefined ? item.current_stock : item.quantity,
+            'damaged': item.damaged_qty !== undefined ? item.damaged_qty : (item.damaged_stock !== undefined ? item.damaged_stock : item.damaged),
+            'valuation': item.warehouse_stock_value !== undefined ? item.warehouse_stock_value : item.valuation,
         };
 
         const exactMatch = valMap[key];

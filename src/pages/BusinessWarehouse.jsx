@@ -220,69 +220,164 @@ const BusinessWarehouse = () => {
         }));
 
     // Stateful Warehouse Stock Database mapped from live DB Stocks
-    const whStocks = dbStocks.map(s => {
-        const product = dbProducts.find(p => p.sku === s.sku || p.name === s.name) || {};
-        let warehouseName = s.location || s.warehouse || 'Unassigned';
-        let rackNumber = 'N/A';
-        let zoneName = 'Standard Zone';
-
-        if (s.location) {
-            if (s.location.includes('(')) {
-                const parts = s.location.split('(');
-                warehouseName = parts[0].trim();
-                rackNumber = parts[1].replace(')', '').trim();
-            } else {
-                warehouseName = s.location;
-            }
-        }
-
-        const current_stock = s.quantity || 0;
-        const average_cost = s.unit_price || 0;
-        
+    const whStocks = React.useMemo(() => {
         const dbTransfers = reportsData?.transfers || [];
-        const in_transit = dbTransfers
-            .filter(t => t.stock_id === s.id && (t.status === 'Pending' || t.status === 'In Transit' || t.status === 'Dispatched'))
-            .reduce((sum, t) => sum + (parseFloat(t.quantity) || 0), 0);
+        const activeTransfers = dbTransfers.filter(t => 
+            t.status === 'In Transit' || t.status === 'Pending' || t.status === 'Dispatched'
+        );
 
-        return {
-            wh_stock_id: `WHS-${s.id}`,
-            id: s.id,
-            product_id: s.sku || `PROD-${s.id}`,
-            product_name: s.name || 'Unknown Product',
-            warehouse_name: warehouseName,
-            current_stock: current_stock,
-            reserved_stock: s.reserved_stock || 0,
-            damaged_stock: product.damaged_stock ?? s.damaged_qty ?? s.damaged_stock ?? s.damagedQuantity ?? s.damaged ?? s.broken_stock ?? 0,
-            damaged_qty: product.damaged_stock ?? s.damaged_qty ?? s.damaged_stock ?? s.damagedQuantity ?? s.damaged ?? s.broken_stock ?? 0,
-            expired_stock: product.expired_stock || 0,
-            in_transit_stock: s.in_transit_stock || in_transit,
-            rack_number: rackNumber,
-            shelf_number: s.shelf_number || 'N/A',
-            bin_number: s.bin_number || 'N/A',
-            zone: zoneName,
-            warehouse_stock_value: current_stock * average_cost
-        };
-    });
+        // Map existing stock rows
+        const baseRows = dbStocks.map(s => {
+            const product = dbProducts.find(p => p.sku === s.sku || p.name === s.name) || {};
+            let warehouseName = s.location || s.warehouse || 'Unassigned';
+            let rackNumber = 'N/A';
+            let zoneName = 'Standard Zone';
+
+            if (s.location) {
+                if (s.location.includes('(')) {
+                    const parts = s.location.split('(');
+                    warehouseName = parts[0].trim();
+                    rackNumber = parts[1].replace(')', '').trim();
+                } else {
+                    warehouseName = s.location;
+                }
+            }
+
+            const current_stock = parseFloat(s.quantity) || 0;
+            const average_cost = parseFloat(s.unit_price) || 0;
+            
+            // Resolve warehouse ID for this stock row
+            const matchedWh = warehouses.find(w => 
+                (w.warehouse_name && w.warehouse_name.toLowerCase() === warehouseName.toLowerCase()) ||
+                (w.warehouse_code && w.warehouse_code.toLowerCase() === warehouseName.toLowerCase()) ||
+                String(w.id) === String(s.warehouse_id || s.warehouse)
+            );
+            const whId = matchedWh ? String(matchedWh.id) : null;
+
+            // In Transit OUT: Stock dispatched FROM this warehouse that is currently on the way
+            const in_transit_out = activeTransfers
+                .filter(t => {
+                    const isProdMatch = (t.product_name && s.name && t.product_name.toLowerCase() === s.name.toLowerCase()) ||
+                                        (t.sku && s.sku && t.sku.toLowerCase() === s.sku.toLowerCase()) ||
+                                        String(t.stock_id) === String(s.id);
+                    const matchesFrom = (whId && String(t.from_warehouse_id) === whId) ||
+                                        (t.from_warehouse_name && warehouseName && t.from_warehouse_name.toLowerCase() === warehouseName.toLowerCase());
+                    return isProdMatch && matchesFrom;
+                })
+                .reduce((sum, t) => sum + (parseFloat(t.quantity) || 0), 0);
+
+            // In Transit IN: Stock dispatched TO this warehouse that has not yet been received
+            const in_transit_in = activeTransfers
+                .filter(t => {
+                    const isProdMatch = (t.product_name && s.name && t.product_name.toLowerCase() === s.name.toLowerCase()) ||
+                                        (t.sku && s.sku && t.sku.toLowerCase() === s.sku.toLowerCase()) ||
+                                        String(t.stock_id) === String(s.id);
+                    const matchesTo = (whId && String(t.to_warehouse_id) === whId) ||
+                                      (t.to_warehouse_name && warehouseName && t.to_warehouse_name.toLowerCase() === warehouseName.toLowerCase());
+                    return isProdMatch && matchesTo;
+                })
+                .reduce((sum, t) => sum + (parseFloat(t.quantity) || 0), 0);
+
+            const in_transit = in_transit_out + in_transit_in;
+
+            return {
+                wh_stock_id: `WHS-${s.id}`,
+                id: s.id,
+                product_id: s.sku || `PROD-${s.id}`,
+                product_name: s.name || 'Unknown Product',
+                warehouse_name: warehouseName,
+                warehouse_id: whId,
+                current_stock: current_stock,
+                reserved_stock: s.reserved_stock || 0,
+                damaged_stock: product.damaged_stock ?? s.damaged_qty ?? s.damaged_stock ?? s.damagedQuantity ?? s.damaged ?? s.broken_stock ?? 0,
+                damaged_qty: product.damaged_stock ?? s.damaged_qty ?? s.damaged_stock ?? s.damagedQuantity ?? s.damaged ?? s.broken_stock ?? 0,
+                damaged: product.damaged_stock ?? s.damaged_qty ?? s.damaged_stock ?? s.damagedQuantity ?? s.damaged ?? s.broken_stock ?? 0,
+                expired_stock: product.expired_stock || 0,
+                in_transit_stock: in_transit,
+                in_transit: in_transit,
+                in_transit_out,
+                in_transit_in,
+                rack_number: rackNumber,
+                shelf_number: s.shelf_number || 'N/A',
+                bin_number: s.bin_number || 'N/A',
+                zone: zoneName,
+                warehouse_stock_value: current_stock * average_cost,
+                valuation: current_stock * average_cost
+            };
+        });
+
+        // Also check if any active inbound transfers target a warehouse that doesn't yet have this stock item
+        const extraRows = [];
+        activeTransfers.forEach((t, tIdx) => {
+            const destWh = warehouses.find(w => String(w.id) === String(t.to_warehouse_id)) || { warehouse_name: t.to_warehouse_name || `Warehouse #${t.to_warehouse_id}` };
+            const prodName = t.product_name || `Product #${t.stock_id}`;
+            const existsInBase = baseRows.some(r => 
+                ((r.warehouse_id && String(r.warehouse_id) === String(t.to_warehouse_id)) || (r.warehouse_name && r.warehouse_name.toLowerCase() === destWh.warehouse_name.toLowerCase())) &&
+                r.product_name.toLowerCase() === prodName.toLowerCase()
+            );
+
+            if (!existsInBase) {
+                const qty = parseFloat(t.quantity) || 0;
+                const existingExtra = extraRows.find(r =>
+                    ((r.warehouse_id && String(r.warehouse_id) === String(t.to_warehouse_id)) || (r.warehouse_name && r.warehouse_name.toLowerCase() === destWh.warehouse_name.toLowerCase())) &&
+                    r.product_name.toLowerCase() === prodName.toLowerCase()
+                );
+
+                if (existingExtra) {
+                    existingExtra.in_transit_stock += qty;
+                    existingExtra.in_transit += qty;
+                    existingExtra.in_transit_in += qty;
+                } else {
+                    extraRows.push({
+                        wh_stock_id: `WHS-TRF-${t.id || tIdx}`,
+                        id: `trf-${t.id || tIdx}`,
+                        product_id: t.sku || `PROD-TRF-${t.id}`,
+                        product_name: prodName,
+                        warehouse_name: destWh.warehouse_name,
+                        warehouse_id: t.to_warehouse_id,
+                        current_stock: 0,
+                        reserved_stock: 0,
+                        damaged_stock: 0,
+                        damaged_qty: 0,
+                        damaged: 0,
+                        expired_stock: 0,
+                        in_transit_stock: qty,
+                        in_transit: qty,
+                        in_transit_out: 0,
+                        in_transit_in: qty,
+                        rack_number: 'In Transit',
+                        shelf_number: 'N/A',
+                        bin_number: 'N/A',
+                        zone: 'En Route',
+                        warehouse_stock_value: 0,
+                        valuation: 0
+                    });
+                }
+            }
+        });
+
+        return [...baseRows, ...extraRows];
+    }, [dbStocks, dbProducts, reportsData?.transfers, warehouses]);
 
     // Stateful Stock Transfer Database mapped from live DB warehouse transfers
     const dbTransfers = reportsData?.transfers || [];
     const transfers = dbTransfers.map((t, idx) => {
-        const fromWH = warehouses.find(w => w.id === t.from_warehouse_id) || { warehouse_name: 'Facility' };
-        const toWH = warehouses.find(w => w.id === t.to_warehouse_id) || { warehouse_name: 'Branch' };
-        const product = dbStocks.find(s => s.id === t.stock_id) || { name: 'Unknown' };
+        const fromWH = warehouses.find(w => w.id === t.from_warehouse_id) || { warehouse_name: t.from_warehouse_name || 'Facility' };
+        const toWH = warehouses.find(w => w.id === t.to_warehouse_id) || { warehouse_name: t.to_warehouse_name || 'Branch' };
+        const product = dbStocks.find(s => String(s.id) === String(t.stock_id)) || { name: t.product_name || 'Unknown' };
 
         return {
             transfer_id: `TRF-${t.id || (idx + 100)}`,
             id: t.id,
             source_warehouse: fromWH.warehouse_name,
             destination_warehouse: toWH.warehouse_name,
-            product_name: product.name,
+            product_name: t.product_name || product.name,
             transfer_quantity: t.quantity || 0,
             transfer_status: t.status || 'Pending',
             dispatch_date: t.created_at ? t.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
             received_date: t.received_at ? t.received_at.split('T')[0] : 'N/A',
             carrier_name: t.carrier_name || 'N/A',
-            tracking_number: t.tracking_number || 'N/A'
+            tracking_number: t.tracking_number || t.reference || 'N/A'
         };
     });
 
@@ -671,9 +766,20 @@ const BusinessWarehouse = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
             alert('Stock Transfer Order dispatched! Marked in-transit across branches.');
             setIsTransferModalOpen(false);
-        }
+            setNewTransfer({
+                source_warehouse_id: '',
+                destination_warehouse_id: '',
+                stock_id: '',
+                transfer_quantity: 0,
+                carrier_name: '',
+                tracking_number: ''
+            });
+        },
+        onError: (err) => alert(err?.response?.data?.message || 'Failed to dispatch transfer')
     });
 
     const handleSaveTransfer = (e) => {
@@ -682,7 +788,10 @@ const BusinessWarehouse = () => {
             from_warehouse_id: parseInt(newTransfer.source_warehouse_id),
             to_warehouse_id: parseInt(newTransfer.destination_warehouse_id),
             stock_id: parseInt(newTransfer.stock_id),
-            quantity: parseInt(newTransfer.transfer_quantity)
+            quantity: parseInt(newTransfer.transfer_quantity),
+            carrier_name: newTransfer.carrier_name,
+            tracking_number: newTransfer.tracking_number,
+            reference: newTransfer.tracking_number || `TRF-${Date.now().toString().slice(-6)}`
         });
     };
 
@@ -690,11 +799,13 @@ const BusinessWarehouse = () => {
     const receiveTransferMutation = useMutation({
         mutationFn: (data) => apiClient.put(`/warehouses/transfers/${data.transferId}/receive`, { rack_number: data.rack_number, shelf_number: data.shelf_number }),
         onSuccess: () => {
-            queryClient.invalidateQueries(['businessWarehousesReports']);
-            queryClient.invalidateQueries(['businessProducts']);
-            queryClient.invalidateQueries(['businessStocks']);
+            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
             setReceivingTransferId(null);
             setReceiveForm({ rack_number: '', shelf_number: '' });
+            alert('Transfer received! Stock successfully added to destination warehouse.');
         },
         onError: (err) => alert(err?.response?.data?.message || 'Failed to receive transfer')
     });
@@ -773,7 +884,7 @@ const BusinessWarehouse = () => {
                 {[
                     { label: 'Active Godown Facilities', value: `${warehouses.length} Active`, icon: WarehouseIcon, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Multi-Warehouse Worth', value: formatCurrency(totalWarehouseValue), icon: DollarSign, color: '#10B981', bg: '#ECFDF5' },
-                    { label: 'Pending Shipments', value: `${transfers.filter(t => t.transfer_status === 'Pending').length} Unsent`, icon: Truck, color: '#3B82F6', bg: '#EFF6FF' },
+                    { label: 'Active Shipments', value: `${transfers.filter(t => t.transfer_status === 'Pending' || t.transfer_status === 'In Transit').length} In Transit`, icon: Truck, color: '#F59E0B', bg: '#FEF3C7' },
                     { label: 'Inward Receipts Audited', value: `${inwards.length} Records`, icon: FileText, color: '#8B5CF6', bg: '#F5F3FF' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -967,7 +1078,36 @@ const BusinessWarehouse = () => {
                                                     );
                                                 })()}
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#F59E0B' }}>{st.in_transit_stock} pcs</td>
+                                            <td style={{ padding: '1.5rem 2rem' }}>
+                                                {st.in_transit_stock > 0 ? (
+                                                    <span
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.4rem',
+                                                            background: '#FEF3C7',
+                                                            color: '#B45309',
+                                                            padding: '0.35rem 0.75rem',
+                                                            borderRadius: '9999px',
+                                                            fontSize: '0.85rem',
+                                                            fontWeight: '800'
+                                                        }}
+                                                    >
+                                                        <Truck size={14} style={{ color: '#D97706' }} />
+                                                        {st.in_transit_stock} pcs
+                                                        {st.in_transit_out > 0 && st.in_transit_in === 0 && (
+                                                            <span style={{ fontSize: '0.7rem', color: '#92400E', opacity: 0.85 }}>(Out)</span>
+                                                        )}
+                                                        {st.in_transit_in > 0 && st.in_transit_out === 0 && (
+                                                            <span style={{ fontSize: '0.7rem', color: '#92400E', opacity: 0.85 }}>(In)</span>
+                                                        )}
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#94A3B8' }}>
+                                                        0 pcs
+                                                    </span>
+                                                )}
+                                            </td>
                                             <td style={{ padding: '1.5rem 2rem', fontWeight: '950', color: '#10B981' }}>{formatCurrency(st.warehouse_stock_value)}</td>
                                         </tr>
                                     ))}
@@ -1184,8 +1324,29 @@ const BusinessWarehouse = () => {
                         <form onSubmit={handleSaveTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Product</label>
-                                <select value={newTransfer.stock_id} onChange={(e) => setNewTransfer({ ...newTransfer, stock_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}>
-                                    {dbStocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => <option key={s.id} value={s.id}>{s.name} (Avail: {s.quantity} pcs)</option>)}
+                                <select 
+                                    value={newTransfer.stock_id} 
+                                    onChange={(e) => {
+                                        const selectedId = e.target.value;
+                                        const selStock = dbStocks.find(s => String(s.id) === String(selectedId));
+                                        let matchedWhId = newTransfer.source_warehouse_id;
+                                        if (selStock?.location) {
+                                            const foundWh = warehouses.find(w => 
+                                                selStock.location.toLowerCase().includes((w.warehouse_name || '').toLowerCase()) ||
+                                                (w.warehouse_code && selStock.location.toLowerCase().includes(w.warehouse_code.toLowerCase())) ||
+                                                String(w.id) === String(selStock.warehouse_id || selStock.warehouse)
+                                            );
+                                            if (foundWh) matchedWh = String(foundWh.id);
+                                        }
+                                        setNewTransfer({ ...newTransfer, stock_id: selectedId, source_warehouse_id: matchedWh });
+                                    }} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                >
+                                    {dbStocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.name} - {s.location || 'Godown'} (Avail: {s.quantity} pcs)
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>

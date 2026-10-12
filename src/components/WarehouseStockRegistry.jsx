@@ -1,4 +1,5 @@
 import React from 'react';
+import { Truck } from 'lucide-react';
 
 export default function WarehouseStockRegistry({
     whStocks = [],
@@ -51,7 +52,7 @@ export default function WarehouseStockRegistry({
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                                         <span style={{ fontWeight: '700', color: '#475569' }}>{st.zone !== 'N/A' ? st.zone : ''}</span>
                                         {(st.rack_number && st.rack_number !== 'N/A') || (st.shelf_number && st.shelf_number !== 'N/A') ? (
-                                            <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>
+                                             <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>
                                                 {st.rack_number && st.rack_number !== 'N/A' ? `Rack ${st.rack_number}` : ''}
                                                 {st.rack_number && st.rack_number !== 'N/A' && st.shelf_number && st.shelf_number !== 'N/A' ? ' | ' : ''}
                                                 {st.shelf_number && st.shelf_number !== 'N/A' ? `Shelf ${st.shelf_number}` : ''}
@@ -62,7 +63,36 @@ export default function WarehouseStockRegistry({
                                 <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1B6B3A' }}>{st.current_stock} pcs</td>
                                 <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#EF4444' }}>{st.damaged_stock} pcs</td>
                                 <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#F59E0B' }}>{st.expired_stock} pcs</td>
-                                <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#3B82F6' }}>{st.in_transit_stock} pcs</td>
+                                <td style={{ padding: '1.5rem 2rem' }}>
+                                    {(st.in_transit_stock || st.in_transit) > 0 ? (
+                                        <span
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '0.4rem',
+                                                background: '#FEF3C7',
+                                                color: '#B45309',
+                                                padding: '0.35rem 0.75rem',
+                                                borderRadius: '9999px',
+                                                fontSize: '0.85rem',
+                                                fontWeight: '800'
+                                            }}
+                                        >
+                                            <Truck size={14} style={{ color: '#D97706' }} />
+                                            {st.in_transit_stock || st.in_transit} pcs
+                                            {st.in_transit_out > 0 && !st.in_transit_in && (
+                                                <span style={{ fontSize: '0.7rem', color: '#92400E', opacity: 0.85 }}>(Out)</span>
+                                            )}
+                                            {st.in_transit_in > 0 && !st.in_transit_out && (
+                                                <span style={{ fontSize: '0.7rem', color: '#92400E', opacity: 0.85 }}>(In)</span>
+                                            )}
+                                        </span>
+                                    ) : (
+                                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#94A3B8' }}>
+                                            0 pcs
+                                        </span>
+                                    )}
+                                </td>
                                 <td style={{ padding: '1.5rem 2rem', fontWeight: '950', color: '#10B981' }}>{formatCurrency(st.warehouse_stock_value)}</td>
                             </tr>
                         ))}

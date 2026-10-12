@@ -1,4 +1,5 @@
 import React from 'react';
+import { Truck } from 'lucide-react';
 
 export default function WarehouseStockRegistryTab({
   stocks = [],
@@ -79,8 +80,20 @@ export default function WarehouseStockRegistryTab({
                     })()}
                   </td>
 
-                  <td className="py-3.5 px-4 font-bold text-amber-600">
-                    {item.in_transit_stock ?? item.in_transit ?? 0} pcs
+                  <td className="py-3.5 px-4 align-middle">
+                    {(() => {
+                      const inTransitQty = item.in_transit_stock ?? item.in_transit ?? 0;
+                      return inTransitQty > 0 ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
+                          <Truck className="w-3.5 h-3.5 text-amber-600" />
+                          {inTransitQty} pcs
+                        </span>
+                      ) : (
+                        <span className="text-xs font-bold text-gray-400">
+                          0 pcs
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="py-3.5 px-4 font-black text-emerald-600">
                     {formatCurrency(item.warehouse_stock_value || (item.current_stock * (item.unit_price || item.average_cost || 0)))}

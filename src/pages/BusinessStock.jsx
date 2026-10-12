@@ -532,11 +532,11 @@ const BusinessStock = () => {
         const toWh = dbWarehouses.find(w => w.id === t.to_warehouse_id);
         return {
             transfer_id: `TRF-${t.id}`,
-            product_name: product?.product_name || `Stock Item #${t.stock_id}`,
+            product_name: t.product_name || product?.product_name || `Stock Item #${t.stock_id}`,
             qty: t.quantity || 0,
-            from_warehouse: fromWh?.name || 'Main Godown',
-            to_warehouse: toWh?.name || 'Shop Front',
-            status: 'Completed',
+            from_warehouse: t.from_warehouse_name || fromWh?.name || 'Main Godown',
+            to_warehouse: t.to_warehouse_name || toWh?.name || 'Shop Front',
+            status: t.status || 'Completed',
             transfer_date: t.created_at ? t.created_at.split('T')[0] : '2026-05-08',
             reference: `REF-TRF-${t.id}`
         };
@@ -784,6 +784,8 @@ const BusinessStock = () => {
     // Compute live inventory valuations
     const totalInventoryValue = stocks.reduce((sum, s) => sum + (s.current_stock * s.average_cost), 0);
     const lowStockAlertsCount = stocks.filter(s => s.current_stock <= s.reorder_level).length;
+    const activeInTransitTransfers = transfers.filter(t => t.status === 'In Transit' || t.status === 'Pending' || t.status === 'Dispatched');
+    const totalInTransitQty = activeInTransitTransfers.reduce((sum, t) => sum + (parseFloat(t.qty) || 0), 0);
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
@@ -821,7 +823,7 @@ const BusinessStock = () => {
                     { label: 'Total Inventory Valuation (Cost basis)', value: formatCurrency(totalInventoryValue), icon: DollarSign, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Low Stock Alerts (Reorder Level)', value: `${lowStockAlertsCount} Items`, icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
                     { label: 'Total Warehouses Registered', value: `${dbWarehouses.length} Registered`, icon: Warehouse, color: '#3B82F6', bg: '#EFF6FF' },
-                    { label: 'Dynamic In-Transit Stock', value: `${transfers.length} Transfers`, icon: Activity, color: '#8B5CF6', bg: '#F5F3FF' }
+                    { label: 'Dynamic In-Transit Stock', value: `${totalInTransitQty} pcs (${activeInTransitTransfers.length} Active)`, icon: Activity, color: '#8B5CF6', bg: '#F5F3FF' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                         {/* Decorative background watermark */}
@@ -1087,7 +1089,17 @@ const BusinessStock = () => {
                                     <td style={{ padding: '1rem' }}>{trf.to_warehouse}</td>
                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{trf.qty} pcs</td>
                                     <td style={{ padding: '1rem' }}>
-                                        <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#ECFDF5', color: '#10B981', fontWeight: '800', fontSize: '0.75rem' }}>{trf.status.toUpperCase()}</span>
+                                        <span style={{ 
+                                            padding: '0.25rem 0.6rem', 
+                                            borderRadius: '6px', 
+                                            background: trf.status === 'Completed' ? '#ECFDF5' : '#FEF3C7', 
+                                            color: trf.status === 'Completed' ? '#10B981' : '#B45309', 
+                                            fontWeight: '800', 
+                                            fontSize: '0.75rem',
+                                            border: trf.status === 'Completed' ? '1px solid #A7F3D0' : '1px solid #FDE68A'
+                                        }}>
+                                            {trf.status.toUpperCase()}
+                                        </span>
                                     </td>
                                 </tr>
                             ))}
