@@ -71,7 +71,7 @@ const BusinessWarehouse = () => {
     const [isInwardModalOpen, setIsInwardModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [receivingTransferId, setReceivingTransferId] = useState(null);
-    const [receiveForm, setReceiveForm] = useState({ rack_number: '', shelf_number: '' });
+    const [receiveForm, setReceiveForm] = useState({ rack_number: '', shelf_number: '', bin_number: '', zone: '' });
     const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
     const [locallyDeletedIds, setLocallyDeletedIds] = useState([]);
     const [editingWarehouse, setEditingWarehouse] = useState(null);
@@ -90,7 +90,11 @@ const BusinessWarehouse = () => {
         purchase_price: 0,
         selling_price: 0,
         barcode: '',
-        hsn_code: ''
+        hsn_code: '',
+        zone: 'Zone A',
+        rack_number: '',
+        shelf_number: '',
+        bin_number: ''
     });
 
     const [isViewListModalOpen, setIsViewListModalOpen] = useState(false);
@@ -230,18 +234,29 @@ const BusinessWarehouse = () => {
         const baseRows = dbStocks.map(s => {
             const product = dbProducts.find(p => p.sku === s.sku || p.name === s.name) || {};
             let warehouseName = s.location || s.warehouse || 'Unassigned';
-            let rackNumber = 'N/A';
-            let zoneName = 'Standard Zone';
 
+            const cleanVal = (v) => {
+                if (v === null || v === undefined) return '';
+                const str = String(v).trim();
+                if (str === 'N/A' || str === 'null' || str === 'undefined' || str === '-' || str === 'Standard Zone') return '';
+                return str;
+            };
+
+            let locRack = '';
             if (s.location) {
                 if (s.location.includes('(')) {
                     const parts = s.location.split('(');
                     warehouseName = parts[0].trim();
-                    rackNumber = parts[1].replace(')', '').trim();
+                    locRack = cleanVal(parts[1].replace(')', '').trim());
                 } else {
                     warehouseName = s.location;
                 }
             }
+
+            const rackNumber = cleanVal(s.rack_number) || cleanVal(product.rack_number) || locRack;
+            const shelfNumber = cleanVal(s.shelf_number) || cleanVal(product.shelf_number);
+            const binNumber = cleanVal(s.bin_number) || cleanVal(product.bin_number);
+            const zoneName = cleanVal(s.zone) || cleanVal(product.zone) || cleanVal(s.storage_zone) || (rackNumber || shelfNumber || binNumber ? 'Zone A' : '');
 
             const current_stock = parseFloat(s.quantity) || 0;
             const average_cost = parseFloat(s.unit_price) || 0;
@@ -298,9 +313,9 @@ const BusinessWarehouse = () => {
                 in_transit_out,
                 in_transit_in,
                 rack_number: rackNumber,
-                shelf_number: s.shelf_number || 'N/A',
-                bin_number: s.bin_number || 'N/A',
-                zone: zoneName,
+                shelf_number: shelfNumber,
+                bin_number: binNumber,
+                zone: zoneName || 'Zone A',
                 warehouse_stock_value: current_stock * average_cost,
                 valuation: current_stock * average_cost
             };
@@ -346,8 +361,8 @@ const BusinessWarehouse = () => {
                         in_transit_out: 0,
                         in_transit_in: qty,
                         rack_number: 'In Transit',
-                        shelf_number: 'N/A',
-                        bin_number: 'N/A',
+                        shelf_number: '',
+                        bin_number: '',
                         zone: 'En Route',
                         warehouse_stock_value: 0,
                         valuation: 0
@@ -620,7 +635,11 @@ const BusinessWarehouse = () => {
             purchase_price: 0,
             selling_price: 0,
             barcode: '',
-            hsn_code: ''
+            hsn_code: '',
+            zone: 'Zone A',
+            rack_number: '',
+            shelf_number: '',
+            bin_number: ''
         });
         setIsAddProductModalOpen(true);
     };
@@ -636,7 +655,11 @@ const BusinessWarehouse = () => {
 
             await productsService.createProduct({
                 ...newWarehouseProduct,
-                warehouse_id: targetIdStr
+                warehouse_id: targetIdStr,
+                zone: newWarehouseProduct.zone || 'Zone A',
+                rack_number: newWarehouseProduct.rack_number || null,
+                shelf_number: newWarehouseProduct.shelf_number || null,
+                bin_number: newWarehouseProduct.bin_number || null
             });
 
             try {
@@ -650,6 +673,11 @@ const BusinessWarehouse = () => {
                     cost_price: parseFloat(newWarehouseProduct.purchase_price) || 0,
                     location: targetName,
                     warehouse: targetCode,
+                    warehouse_id: targetIdStr,
+                    zone: newWarehouseProduct.zone || 'Zone A',
+                    rack_number: newWarehouseProduct.rack_number || null,
+                    shelf_number: newWarehouseProduct.shelf_number || null,
+                    bin_number: newWarehouseProduct.bin_number || null,
                     supplier_name: 'Direct Inward'
                 });
             } catch (stErr) {
@@ -797,14 +825,19 @@ const BusinessWarehouse = () => {
 
     // Transfer Reception Mutation
     const receiveTransferMutation = useMutation({
-        mutationFn: (data) => apiClient.put(`/warehouses/transfers/${data.transferId}/receive`, { rack_number: data.rack_number, shelf_number: data.shelf_number }),
+        mutationFn: (data) => apiClient.put(`/warehouses/transfers/${data.transferId}/receive`, {
+            rack_number: data.rack_number,
+            shelf_number: data.shelf_number,
+            bin_number: data.bin_number,
+            zone: data.zone
+        }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['warehouses'] });
             setReceivingTransferId(null);
-            setReceiveForm({ rack_number: '', shelf_number: '' });
+            setReceiveForm({ rack_number: '', shelf_number: '', bin_number: '', zone: '' });
             alert('Transfer received! Stock successfully added to destination warehouse.');
         },
         onError: (err) => alert(err?.response?.data?.message || 'Failed to receive transfer')
@@ -814,7 +847,13 @@ const BusinessWarehouse = () => {
         e.preventDefault();
         if (!receivingTransferId) return;
         const id = receivingTransferId.replace('TRF-', '');
-        receiveTransferMutation.mutate({ transferId: id, rack_number: receiveForm.rack_number, shelf_number: receiveForm.shelf_number });
+        receiveTransferMutation.mutate({
+            transferId: id,
+            rack_number: receiveForm.rack_number,
+            shelf_number: receiveForm.shelf_number,
+            bin_number: receiveForm.bin_number,
+            zone: receiveForm.zone
+        });
     };
 
     if (!isLoadingSettings && activeConfig.godown === false) {
@@ -1049,10 +1088,32 @@ const BusinessWarehouse = () => {
                                                 <p style={{ fontWeight: '700', color: '#1E293B' }}>{st.product_name}</p>
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                    <span style={{ fontWeight: '700', color: '#475569' }}>{st.zone}</span>
-                                                    <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{st.rack_number} | {st.shelf_number} | {st.bin_number}</span>
-                                                </div>
+                                                {(() => {
+                                                    const coords = [];
+                                                    if (st.rack_number && st.rack_number !== 'N/A' && st.rack_number !== 'In Transit') {
+                                                        coords.push(`Rack ${st.rack_number.replace(/^Rack\s*/i, '')}`);
+                                                    } else if (st.rack_number === 'In Transit') {
+                                                        coords.push('In Transit');
+                                                    }
+                                                    if (st.shelf_number && st.shelf_number !== 'N/A') {
+                                                        coords.push(`Shelf ${st.shelf_number.replace(/^Shelf\s*/i, '')}`);
+                                                    }
+                                                    if (st.bin_number && st.bin_number !== 'N/A') {
+                                                        coords.push(`Bin ${st.bin_number.replace(/^Bin\s*/i, '')}`);
+                                                    }
+
+                                                    const displayZone = st.zone && st.zone !== 'N/A' ? st.zone : (coords.length > 0 ? 'Zone A' : 'Storage Zone');
+                                                    const displayCoords = coords.length > 0 ? coords.join(' | ') : 'Open Floor / Unassigned';
+
+                                                    return (
+                                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                            <span style={{ fontWeight: '700', color: '#475569' }}>{displayZone}</span>
+                                                            <span style={{ fontSize: '0.8rem', color: coords.length > 0 ? '#64748B' : '#94A3B8' }}>
+                                                                {displayCoords}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1B6B3A' }}>{st.current_stock} pcs</td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
@@ -1209,18 +1270,30 @@ const BusinessWarehouse = () => {
                     <div style={{ background: 'white', width: '100%', maxWidth: '420px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Receive Stock</h3>
-                            <button onClick={() => { setReceivingTransferId(null); setReceiveForm({ rack_number: '', shelf_number: '' }); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}>X</button>
+                            <button onClick={() => { setReceivingTransferId(null); setReceiveForm({ rack_number: '', shelf_number: '', bin_number: '', zone: '' }); }} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}>X</button>
                         </div>
                         <p style={{ color: '#475569', marginBottom: '1.5rem', fontSize: '0.95rem' }}>Where are you storing this received stock in the destination warehouse?</p>
                         
                         <form onSubmit={handleCompleteTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Destination Rack (Optional)</label>
-                                <input type='text' value={receiveForm.rack_number} onChange={(e) => setReceiveForm({ ...receiveForm, rack_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} placeholder='e.g. Rack A1' />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Destination Zone</label>
+                                    <input type='text' value={receiveForm.zone} onChange={(e) => setReceiveForm({ ...receiveForm, zone: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} placeholder='e.g. Zone A' />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Destination Rack</label>
+                                    <input type='text' value={receiveForm.rack_number} onChange={(e) => setReceiveForm({ ...receiveForm, rack_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} placeholder='e.g. Rack A1' />
+                                </div>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Destination Shelf (Optional)</label>
-                                <input type='text' value={receiveForm.shelf_number} onChange={(e) => setReceiveForm({ ...receiveForm, shelf_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} placeholder='e.g. Shelf 3' />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Destination Shelf</label>
+                                    <input type='text' value={receiveForm.shelf_number} onChange={(e) => setReceiveForm({ ...receiveForm, shelf_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} placeholder='e.g. Shelf 3' />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Destination Bin</label>
+                                    <input type='text' value={receiveForm.bin_number} onChange={(e) => setReceiveForm({ ...receiveForm, bin_number: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} placeholder='e.g. Bin B2' />
+                                </div>
                             </div>
 
                             <button type='submit' disabled={receiveTransferMutation.isLoading} style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(5, 150, 105, 0.25)', opacity: receiveTransferMutation.isLoading ? 0.7 : 1 }}>
@@ -1621,6 +1694,32 @@ const BusinessWarehouse = () => {
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>HSN Code</label>
                                     <input type="text" value={newWarehouseProduct.hsn_code} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, hsn_code: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.9rem' }} placeholder="e.g. 7306" />
+                                </div>
+                            </div>
+
+                            {/* Storage Location & Coordinates */}
+                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#0F172A', fontWeight: '800', fontSize: '0.82rem' }}>
+                                    <span>📍</span>
+                                    <span>Storage Zone & Physical Coordinates</span>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem', textTransform: 'uppercase' }}>Storage Zone</label>
+                                        <input type="text" value={newWarehouseProduct.zone} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, zone: e.target.value })} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white' }} placeholder="Zone A" />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem', textTransform: 'uppercase' }}>Rack No.</label>
+                                        <input type="text" value={newWarehouseProduct.rack_number} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, rack_number: e.target.value })} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white' }} placeholder="Rack 4" />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem', textTransform: 'uppercase' }}>Shelf No.</label>
+                                        <input type="text" value={newWarehouseProduct.shelf_number} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, shelf_number: e.target.value })} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white' }} placeholder="Shelf 2" />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem', textTransform: 'uppercase' }}>Bin No.</label>
+                                        <input type="text" value={newWarehouseProduct.bin_number} onChange={(e) => setNewWarehouseProduct({ ...newWarehouseProduct, bin_number: e.target.value })} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white' }} placeholder="Bin B1" />
+                                    </div>
                                 </div>
                             </div>
 

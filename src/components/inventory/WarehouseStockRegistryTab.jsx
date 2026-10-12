@@ -44,12 +44,30 @@ export default function WarehouseStockRegistryTab({
                     {item.product_name || item.name || 'Stock Item'}
                   </td>
                   <td className="py-3.5 px-4">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-gray-600">{item.zone || 'Standard Zone'}</span>
-                      <span className="text-[10px] text-gray-400">
-                        {item.rack_number || 'Rack A-1'} {item.shelf_number ? `| ${item.shelf_number}` : ''}
-                      </span>
-                    </div>
+                    {(() => {
+                      const coords = [];
+                      if (item.rack_number && item.rack_number !== 'N/A' && item.rack_number !== 'In Transit') {
+                        coords.push(`Rack ${item.rack_number.replace(/^Rack\s*/i, '')}`);
+                      } else if (item.rack_number === 'In Transit') {
+                        coords.push('In Transit');
+                      }
+                      if (item.shelf_number && item.shelf_number !== 'N/A') {
+                        coords.push(`Shelf ${item.shelf_number.replace(/^Shelf\s*/i, '')}`);
+                      }
+                      if (item.bin_number && item.bin_number !== 'N/A') {
+                        coords.push(`Bin ${item.bin_number.replace(/^Bin\s*/i, '')}`);
+                      }
+                      const displayZone = item.zone && item.zone !== 'N/A' ? item.zone : (coords.length > 0 ? 'Zone A' : 'Standard Zone');
+
+                      return (
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-600">{displayZone}</span>
+                          <span className="text-[10px] text-gray-400">
+                            {coords.length > 0 ? coords.join(' | ') : 'Open Floor / Unassigned'}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="py-3.5 px-4 font-extrabold text-emerald-700">
                     {item.current_stock ?? item.quantity ?? 0} pcs

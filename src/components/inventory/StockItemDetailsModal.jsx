@@ -62,8 +62,12 @@ export default function StockItemDetailsModal({ isOpen, onClose, item, onEditSto
   };
 
   const resolvedName = item.name || item.product_name || 'PlayStation 5';
-  const resolvedSku = item.sku || item.product_id || item.product_code || 'PS5';
-  const resolvedLocation = item.location || (item.warehouse_name ? `${item.warehouse_name} ${item.rack_number ? `(${item.rack_number})` : ''}`.trim() : 'Main Godown (Rack A-1)');
+  const coordsList = [];
+  if (item.rack_number && item.rack_number !== 'N/A') coordsList.push(`Rack ${item.rack_number.replace(/^Rack\s*/i, '')}`);
+  if (item.shelf_number && item.shelf_number !== 'N/A') coordsList.push(`Shelf ${item.shelf_number.replace(/^Shelf\s*/i, '')}`);
+  if (item.bin_number && item.bin_number !== 'N/A') coordsList.push(`Bin ${item.bin_number.replace(/^Bin\s*/i, '')}`);
+  const coordsStr = coordsList.length > 0 ? ` (${coordsList.join(', ')})` : '';
+  const resolvedLocation = item.location || (item.warehouse_name ? `${item.warehouse_name}${coordsStr}` : (item.warehouse ? `${item.warehouse}${coordsStr}` : (coordsList.length > 0 ? coordsList.join(' | ') : 'Main Facility')));
   const resolvedQty = item.current_qty ?? item.current_stock ?? item.quantity ?? 25;
   const resolvedPrice = item.unit_price ?? item.average_cost ?? item.price ?? 45000;
 

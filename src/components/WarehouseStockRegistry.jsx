@@ -49,16 +49,30 @@ export default function WarehouseStockRegistry({
                                     </span>
                                 </td>
                                 <td style={{ padding: '1.5rem 2rem' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ fontWeight: '700', color: '#475569' }}>{st.zone !== 'N/A' ? st.zone : ''}</span>
-                                        {(st.rack_number && st.rack_number !== 'N/A') || (st.shelf_number && st.shelf_number !== 'N/A') ? (
-                                             <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>
-                                                {st.rack_number && st.rack_number !== 'N/A' ? `Rack ${st.rack_number}` : ''}
-                                                {st.rack_number && st.rack_number !== 'N/A' && st.shelf_number && st.shelf_number !== 'N/A' ? ' | ' : ''}
-                                                {st.shelf_number && st.shelf_number !== 'N/A' ? `Shelf ${st.shelf_number}` : ''}
-                                            </span>
-                                        ) : null}
-                                    </div>
+                                    {(() => {
+                                        const coords = [];
+                                        if (st.rack_number && st.rack_number !== 'N/A' && st.rack_number !== 'In Transit') {
+                                            coords.push(`Rack ${st.rack_number.replace(/^Rack\s*/i, '')}`);
+                                        } else if (st.rack_number === 'In Transit') {
+                                            coords.push('In Transit');
+                                        }
+                                        if (st.shelf_number && st.shelf_number !== 'N/A') {
+                                            coords.push(`Shelf ${st.shelf_number.replace(/^Shelf\s*/i, '')}`);
+                                        }
+                                        if (st.bin_number && st.bin_number !== 'N/A') {
+                                            coords.push(`Bin ${st.bin_number.replace(/^Bin\s*/i, '')}`);
+                                        }
+                                        const displayZone = st.zone && st.zone !== 'N/A' ? st.zone : (coords.length > 0 ? 'Zone A' : 'Storage Zone');
+
+                                        return (
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <span style={{ fontWeight: '700', color: '#475569' }}>{displayZone}</span>
+                                                <span style={{ fontSize: '0.8rem', color: coords.length > 0 ? '#64748B' : '#94A3B8' }}>
+                                                    {coords.length > 0 ? coords.join(' | ') : 'Open Floor / Unassigned'}
+                                                </span>
+                                            </div>
+                                        );
+                                    })()}
                                 </td>
                                 <td style={{ padding: '1.5rem 2rem', fontWeight: '800', color: '#1B6B3A' }}>{st.current_stock} pcs</td>
                                 <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#EF4444' }}>{st.damaged_stock} pcs</td>

@@ -355,8 +355,10 @@ const BusinessInventory = () => {
         secondary_unit: 'box',
         conversion_rate: 1,
         warehouse: '',
+        zone: '',
         rack_number: '',
         shelf_number: '',
+        bin_number: '',
         has_warranty: 'No',
         warranty_period: '',
         isUnlimited: false
@@ -507,8 +509,10 @@ const BusinessInventory = () => {
             secondary_unit: 'box',
             conversion_rate: 1,
             warehouse: '',
+            zone: '',
             rack_number: '',
             shelf_number: '',
+            bin_number: '',
             has_warranty: 'No',
             warranty_period: '',
             isUnlimited: false
@@ -563,8 +567,10 @@ const BusinessInventory = () => {
             secondary_unit: item.secondary_unit || 'box',
             conversion_rate: item.conversion_rate || 1,
             warehouse: item.warehouse || 'Main Godown',
+            zone: item.zone || '',
             rack_number: item.rack_number || '',
             shelf_number: item.shelf_number || '',
+            bin_number: item.bin_number || '',
             has_warranty: item.has_warranty || 'No',
             warranty_period: item.warranty_period || '',
             isUnlimited: Boolean(item.isUnlimited === true || item.is_unlimited === true || (parseFloat(item.quantity) >= 999999) || (parseFloat(item.opening_stock) >= 999999))
@@ -655,8 +661,10 @@ const BusinessInventory = () => {
             warrantyDetails: isWarrantyActive ? 'Yes' : 'No',
             warranty_period: resolvedWarrantyPeriod,
             warrantyPeriod: resolvedWarrantyPeriod,
+            zone: formData.zone || null,
             rack_number: formData.rack_number || null,
-            shelf_number: formData.shelf_number || null
+            shelf_number: formData.shelf_number || null,
+            bin_number: formData.bin_number || null
         };
 
         if (editingItem) {
@@ -1776,7 +1784,7 @@ const BusinessInventory = () => {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: !isStarterPlan ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: '1rem' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: !isStarterPlan ? '1fr 2fr' : '1fr', gap: '1rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Batch Identifier</label>
                                             <input type="text" value={formData.batch_number} onChange={(e) => setFormData({...formData, batch_number: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="B-8902" />
@@ -1806,13 +1814,31 @@ const BusinessInventory = () => {
                                                 </select>
                                             </div>
                                         )}
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Rack Location</label>
-                                            <input type="text" value={formData.rack_number} onChange={(e) => setFormData({...formData, rack_number: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Rack 4" />
+                                    </div>
+
+                                    {/* Dedicated Storage Zone & Coordinates Component */}
+                                    <div style={{ background: '#F0FDF4', border: '1px solid #DCF2E4', borderRadius: '16px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#166534', fontWeight: '800', fontSize: '0.82rem' }}>
+                                            <span>📍</span>
+                                            <span>Storage Zone & Coordinates (Warehouse Location)</span>
                                         </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Shelf Location</label>
-                                            <input type="text" value={formData.shelf_number} onChange={(e) => setFormData({...formData, shelf_number: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="Shelf 2" />
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.35rem' }}>Storage Zone</label>
+                                                <input type="text" value={formData.zone} onChange={(e) => setFormData({...formData, zone: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontSize: '0.85rem' }} placeholder="Zone A" />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.35rem' }}>Rack Location</label>
+                                                <input type="text" value={formData.rack_number} onChange={(e) => setFormData({...formData, rack_number: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontSize: '0.85rem' }} placeholder="Rack 4" />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.35rem' }}>Shelf Location</label>
+                                                <input type="text" value={formData.shelf_number} onChange={(e) => setFormData({...formData, shelf_number: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontSize: '0.85rem' }} placeholder="Shelf 2" />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.35rem' }}>Bin Location</label>
+                                                <input type="text" value={formData.bin_number} onChange={(e) => setFormData({...formData, bin_number: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontSize: '0.85rem' }} placeholder="Bin B1" />
+                                            </div>
                                         </div>
                                     </div>
 

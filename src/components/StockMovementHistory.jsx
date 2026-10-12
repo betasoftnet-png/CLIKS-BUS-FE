@@ -203,19 +203,19 @@ export default function StockMovementHistory({
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
                         <div>
                             <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', margin: '0 0 2px 0' }}>Zone</p>
-                            <p style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.82rem', margin: 0 }}>{selectedStock.zone || 'Standard Zone'}</p>
+                            <p style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.82rem', margin: 0 }}>{(selectedStock.zone && selectedStock.zone !== 'N/A') ? selectedStock.zone : 'Standard Zone'}</p>
                         </div>
                         <div>
                             <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', margin: '0 0 2px 0' }}>Rack</p>
-                            <p style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.82rem', margin: 0 }}>{selectedStock.rack_number || 'N/A'}</p>
+                            <p style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.82rem', margin: 0 }}>{(selectedStock.rack_number && selectedStock.rack_number !== 'N/A') ? selectedStock.rack_number : '—'}</p>
                         </div>
                         <div>
                             <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', margin: '0 0 2px 0' }}>Shelf</p>
-                            <p style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.82rem', margin: 0 }}>{selectedStock.shelf_number || 'N/A'}</p>
+                            <p style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.82rem', margin: 0 }}>{(selectedStock.shelf_number && selectedStock.shelf_number !== 'N/A') ? selectedStock.shelf_number : '—'}</p>
                         </div>
                         <div>
                             <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', margin: '0 0 2px 0' }}>Bin</p>
-                            <p style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.82rem', margin: 0 }}>{selectedStock.bin_number || 'N/A'}</p>
+                            <p style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.82rem', margin: 0 }}>{(selectedStock.bin_number && selectedStock.bin_number !== 'N/A') ? selectedStock.bin_number : '—'}</p>
                         </div>
                         <div>
                             <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', margin: '0 0 2px 0' }}>Valuation</p>
