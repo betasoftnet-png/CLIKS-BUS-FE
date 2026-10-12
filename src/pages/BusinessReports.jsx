@@ -57,13 +57,11 @@ const BusinessReports = () => {
 
     const [selectedReport, setSelectedReport] = useState(null);
 
-    const { data: rawReportDetails, isLoading: isReportLoading } = useQuery({
-        queryKey: ['reportDetails', selectedReport?.id],
-        queryFn: async () => {
-            if (!selectedReport) return null;
-            const id = selectedReport.id;
+    const fetchReportDetails = async (report) => {
+        if (!report) return null;
+        const id = report.id;
 
-            try {
+        try {
                 // Core Reports
                 if (id === 1) return await reportsService.getSales();
                 if (id === 2) {
@@ -820,13 +818,18 @@ const BusinessReports = () => {
                         return p;
                     }).sort((a, b) => b.tdsVal - a.tdsVal);
                 }
-            } catch (err) {
-                console.error('[Report Linker] Pipeline fetch failed:', err);
-                return [];
-            }
-
             return [];
-        },
+        } catch (err) {
+            console.error('[Report Linker] Pipeline fetch failed:', err);
+            return [];
+        }
+
+        return [];
+    };
+
+    const { data: rawReportDetails, isLoading: isReportLoading } = useQuery({
+        queryKey: ['reportDetails', selectedReport?.id],
+        queryFn: () => fetchReportDetails(selectedReport),
         enabled: !!selectedReport
     });
 
@@ -953,15 +956,35 @@ const BusinessReports = () => {
         { id: 20, title: 'Cash Flow Statement', desc: 'Tracking inward & outward liquidity flow.', category: 'accounting', icon: TrendingUp }
     ];
 
-    const handleExportReport = (targetReport = selectedReport, targetData = reportDetails) => {
-        const reportTitle = targetReport?.title || 'Business_Report';
-        const dataToExport = Array.isArray(targetData) ? targetData : (targetData?.inflow ? [...(targetData.inflow || []), ...(targetData.outflow || [])] : []);
+    const handleExportReport = async (targetReport = selectedReport, targetData = null) => {
+        const report = targetReport || selectedReport;
+        if (!report) return;
+        const reportTitle = report.title || 'Business_Report';
+
+        let dataToExport = targetData;
+        if (!dataToExport && report.id === selectedReport?.id && reportDetails) {
+            dataToExport = reportDetails;
+        }
+
+        if (!dataToExport) {
+            setExportToast(`Preparing ${reportTitle}...`);
+            try {
+                dataToExport = await fetchReportDetails(report);
+            } catch (err) {
+                console.error('[Export] Pipeline fetch error:', err);
+                dataToExport = [];
+            }
+        }
+
+        const items = Array.isArray(dataToExport) 
+            ? dataToExport 
+            : (dataToExport?.inflow ? [...(dataToExport.inflow || []), ...(dataToExport.outflow || [])] : (dataToExport ? [dataToExport] : []));
 
         let csvContent = '';
-        if (dataToExport && dataToExport.length > 0) {
-            const headers = Object.keys(dataToExport[0]);
+        if (items && items.length > 0) {
+            const headers = Object.keys(items[0]).filter(k => typeof items[0][k] !== 'object' || items[0][k] === null);
             csvContent += headers.join(',') + '\n';
-            dataToExport.forEach(row => {
+            items.forEach(row => {
                 const values = headers.map(header => {
                     const val = row[header] !== undefined && row[header] !== null ? String(row[header]) : '';
                     return `"${val.replace(/"/g, '""')}"`;
@@ -1021,7 +1044,7 @@ const BusinessReports = () => {
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
-                        handleExportReport(report, null);
+                        handleExportReport(report);
                     }}
                     title="Export CSV"
                     style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}

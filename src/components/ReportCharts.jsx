@@ -175,6 +175,8 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
     const isTrialBalance = Array.isArray(reportData) && reportData.some(item => item.ledger && (item.debit !== undefined || item.credit !== undefined));
     const isProfitLoss = reportData && !Array.isArray(reportData) && reportData.gross_revenue !== undefined;
     const isBalanceSheet = reportData && !Array.isArray(reportData) && reportData.assets !== undefined && reportData.liabilities !== undefined;
+    const isAging = Array.isArray(reportData) && reportData.some(item => item.aging_current !== undefined || item.aging_30_60 !== undefined);
+    const isScorecard = Array.isArray(reportData) && reportData.some(item => item.scorecard && item.scorecard.total_orders !== undefined);
 
     // Process data into categorical slices
     const processStockData = () => {
@@ -414,7 +416,7 @@ export const StockPieChart = ({ reportData, title = 'Stock & Warehouse Accordanc
                     }}>
                         <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>{isWarehouse ? 'Warehouses' : (isAging ? 'Buckets' : (isScorecard ? 'Suppliers' : (isParty ? 'Parties' : 'Total SKUs')))}</span>
                         <span style={{ fontSize: '1rem', fontWeight: '900', color: '#0F172A' }}>
-                            {hoveredIndex !== null ? slices[hoveredIndex].label.slice(0, 10) : (isAging ? slices.length : reportData.length)}
+                            {hoveredIndex !== null ? slices[hoveredIndex].label.slice(0, 10) : (isAging ? slices.length : (Array.isArray(reportData) ? reportData.length : slices.length))}
                         </span>
                     </div>
                 </div>
