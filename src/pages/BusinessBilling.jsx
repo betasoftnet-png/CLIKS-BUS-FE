@@ -2286,8 +2286,11 @@ const BusinessBilling = () => {
         // This prevents the 500 Internal Server error caused by extra unexpected columns
         const { redeemed_points: _redeemed_points, earned_points: _earned_points, ...filteredFormData } = formData;
 
+        const billedByName = user?.username || user?.name || user?.full_name || user?.business_name || (user?.email ? user.email.split('@')[0] : 'Admin');
+
         const payload = {
             ...filteredFormData,
+            billed_by: formData.billed_by || billedByName,
             sendPurchaseHistoryToCustomer: true,
             sendToCustomerHistory: true,
             status: calculatedStatus,
@@ -3300,6 +3303,9 @@ const BusinessBilling = () => {
                                             <div style={{ minWidth: 0 }}>
                                                 <p style={{ fontWeight: '700', color: '#0F172A', fontSize: '0.85rem', marginBottom: '0.1rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.client_name}</p>
                                                 <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inv.client_email}</span>
+                                                <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: '750', display: 'block', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    Billed by: {inv.billed_by || inv.billedBy || inv.created_by || inv.cashier_name || 'Admin'}
+                                                </span>
                                             </div>
                                         </td>
                                         <td style={{ width: '15%', padding: '0.75rem 1.25rem', overflow: 'hidden' }}>
@@ -4223,6 +4229,7 @@ const BusinessBilling = () => {
                                             type={activeTemplate} 
                                             data={{
                                                 ...formData,
+                                                billed_by: formData.billed_by || user?.name || user?.full_name || user?.email || 'Admin',
                                                 items: typeof formData.items === 'string' ? JSON.parse(formData.items) : (formData.items || [])
                                             }} 
                                             business={businessProfile?.data || businessProfile || {}} 
@@ -4852,7 +4859,10 @@ const BusinessBilling = () => {
                                 <div className="billing-preview-inner-wrapper" style={{ padding: '40px', color: '#000', background: '#fff' }}>
                                     <InvoiceTemplates.Renderer 
                                         type={activeTemplate} 
-                                        data={viewingInvoice} 
+                                        data={{
+                                            ...viewingInvoice,
+                                            billed_by: viewingInvoice?.billed_by || viewingInvoice?.billedBy || viewingInvoice?.created_by || user?.name || user?.full_name || 'Admin'
+                                        }} 
                                         business={businessProfile?.data || businessProfile || {}} 
                                         config={customConfig}
                                     />

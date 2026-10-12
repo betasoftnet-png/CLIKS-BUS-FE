@@ -87,7 +87,7 @@ const POSReceiptModal = ({
                             <span>Date: {lastOrderData?.created_at ? new Date(lastOrderData.created_at).toLocaleDateString() : new Date().toLocaleDateString()}</span>
                             <span>Time: {lastOrderData?.created_at ? new Date(lastOrderData.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
-                        <div style={{ width: '100%', textAlign: 'left', fontSize: '0.75rem', marginBottom: '8px' }}>
+                        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '8px' }}>
                             <span>Customer: {lastOrderData?.client_name || 'Walk-in Customer'}</span>
                         </div>
 

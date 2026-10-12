@@ -9,9 +9,27 @@ import { isFeatureAllowed, getPlanDuration, calculateDaysRemaining } from '../ut
 import { AuthContext } from './auth-context';
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('books_auth_token'));
-    const [loading, setLoading] = useState(!!token);
+    const [user, setUser] = useState(() => {
+        try {
+            const raw = localStorage.getItem('books_auth_token');
+            if (raw && raw.includes('.')) {
+                const payload = JSON.parse(atob(raw.split('.')[1]));
+                const uName = payload.username || (payload.email ? payload.email.split('@')[0] : 'User');
+                return {
+                    id: payload.id,
+                    username: payload.username || uName,
+                    name: uName,
+                    fullName: uName,
+                    email: payload.email,
+                    role: payload.role,
+                    account_type: payload.account_type || payload.accountType || 'business'
+                };
+            }
+        } catch (e) {}
+        return null;
+    });
+    const [loading, setLoading] = useState(!!token && !user);
     const [planDaysRemaining, setPlanDaysRemaining] = useState(342);
     const queryClient = useQueryClient();
 
@@ -35,7 +53,7 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const initAuth = async () => {
-            if (!token || user) {
+            if (!token) {
                 setLoading(false);
                 return;
             }
@@ -45,6 +63,7 @@ export const AuthProvider = ({ children }) => {
                 setUser({
                     id: 'mock-id',
                     name: 'Test User',
+                    username: 'Test User',
                     email: 'test@example.com',
                     role: 'business',
                     tier: 'Free Plan',
@@ -59,7 +78,13 @@ export const AuthProvider = ({ children }) => {
 
             try {
                 const userData = await profileService.getProfile();
-                setUser(userData);
+                const uName = userData.username || userData.name || (userData.email ? userData.email.split('@')[0] : 'User');
+                setUser(prev => ({
+                    ...prev,
+                    ...userData,
+                    username: userData.username || prev?.username || uName,
+                    name: uName
+                }));
             } catch (error) {
                 console.error('[AuthContext] Failed to fetch profile:', error);
                 // Only logout on 401 Unauthorized to prevent loops on other errors

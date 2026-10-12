@@ -722,7 +722,8 @@ const BusinessPOS = () => {
     const checkoutMutation = useMutation({
         mutationFn: posService.checkout,
         onSuccess: (data) => {
-            setLastOrderData(data);
+            const fallbackBilledBy = user?.name || user?.full_name || user?.business_name || user?.email || 'Cashier';
+            setLastOrderData(data ? { ...data, billed_by: data.billed_by || fallbackBilledBy } : data);
             setShowReceiptModal(true);
             setIsCheckingOut(false);
 
@@ -1374,11 +1375,15 @@ const BusinessPOS = () => {
             }).catch(e => console.error('Failed automatic loyalty update in POS:', e));
         }
 
+        const billedByName = user?.username || user?.name || user?.full_name || user?.business_name || (user?.email ? user.email.split('@')[0] : 'Cashier');
+
         const payload = {
             customer_id: selectedCustomerObj?.id || null,
             client_name: customerName || 'Walk-in Customer',
             client_email: customerEmail || selectedCustomerObj?.email || null,
             client_phone: selectedCustomerObj?.phone_number || selectedCustomerObj?.phone || null,
+            billed_by: billedByName,
+            cashier_name: billedByName,
             existing_loyalty_points: existingPts,
             loyalty_points_earned: ptsEarned,
             loyaltyPointsEarned: ptsEarned,
@@ -1633,7 +1638,12 @@ const BusinessPOS = () => {
                             </div>
                             <div>
                                 <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em' }}>Retail POS System</h1>
-                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>Speed Checkout Terminal #1</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>Speed Checkout Terminal #1</p>
+                                    <span style={{ fontSize: '0.7rem', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '4px', fontWeight: '750' }}>
+                                        Cashier: {user?.username || user?.name || user?.full_name || user?.business_name || 'Admin'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -2978,7 +2988,7 @@ const BusinessPOS = () => {
                                     <span>Date: {lastOrderData?.created_at ? new Date(lastOrderData.created_at).toLocaleDateString() : new Date().toLocaleDateString()}</span>
                                     <span>Time: {lastOrderData?.created_at ? new Date(lastOrderData.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                                 </div>
-                                <div style={{ width: '100%', textAlign: 'left', fontSize: '0.75rem', marginBottom: '8px' }}>
+                                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '8px' }}>
                                     <span>Customer: {lastOrderData?.client_name || 'Walk-in Customer'}</span>
                                 </div>
 
@@ -3218,10 +3228,11 @@ const BusinessPOS = () => {
                                                         <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A' }}>{order.invoice_number}</span>
                                                         <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#ECFDF5', color: '#047857', fontSize: '0.65rem', fontWeight: '800' }}>PAID</span>
                                                     </div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.75rem', color: '#64748B' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.75rem', color: '#64748B', flexWrap: 'wrap' }}>
                                                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} /> {new Date(order.created_at).toLocaleString()}</span>
                                                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><User size={12} /> {order.client_name}</span>
                                                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><CreditCard size={12} /> {order.payment_mode}</span>
+                                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#047857', fontWeight: '750' }}>Billed by: {order.billed_by || order.cashier_name || user?.name || 'Cashier'}</span>
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
