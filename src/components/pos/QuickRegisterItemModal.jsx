@@ -1,10 +1,28 @@
 /* eslint-disable react/prop-types */
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Info, Loader2 } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { productsService, inventoryService, hsnService } from '../../services';
 import { CurrencyContext } from '../../context/CurrencyContext';
+
+const DEFAULT_CATEGORIES = [
+    'General',
+    'Electronics',
+    'Groceries & FMCG',
+    'Clothing & Apparel',
+    'Food & Beverages',
+    'Stationery & Office',
+    'Hardware & Tools',
+    'Health & Beauty',
+    'Home & Kitchen',
+    'Footwear',
+    'Pharmacy & Medical',
+    'Automotive & Spares',
+    'Toys & Games',
+    'Books & Media',
+    'Services'
+];
 
 export const QuickRegisterItemModal = ({
     isOpen = true,
@@ -27,10 +45,51 @@ export const QuickRegisterItemModal = ({
     const [openingStock, setOpeningStock] = useState('');
     const [isUnlimited, setIsUnlimited] = useState(false);
     const [category, setCategory] = useState('General');
+    const [isCustomCategory, setIsCustomCategory] = useState(false);
+    const [customCategoriesList, setCustomCategoriesList] = useState([]);
     const [taxRate, setTaxRate] = useState('18% GST');
     const [sku, setSku] = useState('');
     const [barcode, setBarcode] = useState('');
     const [hsnCode, setHsnCode] = useState('');
+
+    // Fetch live categories from database
+    const { data: dbCategories = [] } = useQuery({
+        queryKey: ['product-categories'],
+        queryFn: () => productsService.getCategories().catch(() => []),
+        staleTime: 1000 * 60 * 5,
+        enabled: Boolean(isOpen)
+    });
+
+    // Available categories deduplicated
+    const availableCategories = useMemo(() => {
+        const set = new Set(DEFAULT_CATEGORIES);
+        (existingCategories || []).forEach(c => {
+            const val = typeof c === 'string' ? c.trim() : (c?.name || c?.category_name || c?.category || '');
+            if (val && val !== 'All') set.add(val);
+        });
+        (dbCategories || []).forEach(c => {
+            const val = typeof c === 'string' ? c.trim() : (c?.category_name || c?.name || c?.category || '');
+            if (val && val !== 'All') set.add(val);
+        });
+        customCategoriesList.forEach(c => {
+            if (c && c.trim()) set.add(c.trim());
+        });
+        if (category && category.trim() && !isCustomCategory) {
+            set.add(category.trim());
+        }
+        return Array.from(set);
+    }, [existingCategories, dbCategories, customCategoriesList, category, isCustomCategory]);
+
+    const handleSwitchToList = () => {
+        if (category && category.trim()) {
+            const trimmed = category.trim();
+            setCustomCategoriesList(prev => Array.from(new Set([...prev, trimmed])));
+            setCategory(trimmed);
+        } else {
+            setCategory('General');
+        }
+        setIsCustomCategory(false);
+    };
 
     // HSN Intelligent Search State
     const [hsnSuggestions, setHsnSuggestions] = useState([]);
@@ -57,7 +116,12 @@ export const QuickRegisterItemModal = ({
             const editingUnlimited = Boolean(editingProduct.isUnlimited || editingProduct.is_unlimited || (parseFloat(editingProduct.quantity) >= 999000));
             setIsUnlimited(editingUnlimited);
             setOpeningStock(editingUnlimited ? '999999' : (editingProduct.quantity !== undefined ? String(editingProduct.quantity) : ''));
-            setCategory(editingProduct.category || editingProduct.category_name || 'General');
+            const catVal = (editingProduct.category || editingProduct.category_name || 'General').trim();
+            setCategory(catVal || 'General');
+            setIsCustomCategory(false);
+            if (catVal && !DEFAULT_CATEGORIES.includes(catVal)) {
+                setCustomCategoriesList(prev => Array.from(new Set([...prev, catVal])));
+            }
             const taxVal = editingProduct.tax_percentage ?? editingProduct.tax_rate ?? editingProduct.taxRate ?? 18;
             setTaxRate(`${taxVal}% GST`);
             setSku(editingProduct.sku || '');
@@ -98,6 +162,7 @@ export const QuickRegisterItemModal = ({
             setOpeningStock('');
             setIsUnlimited(false);
             setCategory('General');
+            setIsCustomCategory(false);
             setTaxRate('18% GST');
             setSku(`SKU-${Date.now().toString().slice(-4)}`);
             setBarcode(`SKU-${Date.now().toString().slice(-4)}`);
@@ -252,6 +317,7 @@ export const QuickRegisterItemModal = ({
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['product-categories'] });
 
             if (onSuccess) {
                 onSuccess(formattedProduct);
@@ -296,6 +362,7 @@ export const QuickRegisterItemModal = ({
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['product-categories'] });
             if (onSuccess) {
                 onSuccess(variables?.data);
             }
@@ -542,20 +609,118 @@ export const QuickRegisterItemModal = ({
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Category</label>
-                            <input
-                                type="text"
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                list="quick-register-categories"
-                                style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }}
-                                placeholder="General"
-                            />
-                            <datalist id="quick-register-categories">
-                                {existingCategories.map((cat, idx) => (
-                                    <option key={`cat_${idx}`} value={cat} />
-                                ))}
-                            </datalist>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                <label style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
+                                    Category
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (isCustomCategory) {
+                                            handleSwitchToList();
+                                        } else {
+                                            setIsCustomCategory(true);
+                                            setCategory('');
+                                        }
+                                    }}
+                                    style={{
+                                        border: 'none',
+                                        background: 'none',
+                                        color: '#2563EB',
+                                        fontSize: '0.68rem',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        padding: '0 2px'
+                                    }}
+                                >
+                                    {isCustomCategory ? 'Select from list' : '+ Custom'}
+                                </button>
+                            </div>
+
+                            {isCustomCategory ? (
+                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                    <input
+                                        type="text"
+                                        autoFocus
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Escape') {
+                                                handleSwitchToList();
+                                            } else if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleSwitchToList();
+                                            }
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem 3rem 0.75rem 0.75rem',
+                                            boxSizing: 'border-box',
+                                            borderRadius: '12px',
+                                            border: '1.5px solid #2563EB',
+                                            background: '#F8FAFC',
+                                            outline: 'none',
+                                            fontSize: '0.85rem',
+                                            fontWeight: 700,
+                                            color: '#0F172A'
+                                        }}
+                                        placeholder="Enter category name"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleSwitchToList}
+                                        title="Switch back to list"
+                                        style={{
+                                            position: 'absolute',
+                                            right: '6px',
+                                            background: '#E2E8F0',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            padding: '0.25rem 0.45rem',
+                                            fontSize: '0.68rem',
+                                            fontWeight: 800,
+                                            color: '#475569',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        List
+                                    </button>
+                                </div>
+                            ) : (
+                                <select
+                                    value={availableCategories.includes(category) ? category : (category || 'General')}
+                                    onChange={(e) => {
+                                        if (e.target.value === '__CUSTOM__') {
+                                            setIsCustomCategory(true);
+                                            setCategory('');
+                                        } else {
+                                            setCategory(e.target.value);
+                                        }
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        boxSizing: 'border-box',
+                                        borderRadius: '12px',
+                                        border: '1px solid #E2E8F0',
+                                        background: 'white',
+                                        outline: 'none',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 700,
+                                        color: '#0F172A',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {availableCategories.map((cat) => (
+                                        <option key={cat} value={cat}>
+                                            {cat}
+                                        </option>
+                                    ))}
+                                    <option value="__CUSTOM__" style={{ fontWeight: 800, color: '#2563EB' }}>
+                                        + Add Custom Category...
+                                    </option>
+                                </select>
+                            )}
                         </div>
                         <div>
                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Tax (GST %)</label>
