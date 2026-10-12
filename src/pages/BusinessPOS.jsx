@@ -3293,14 +3293,14 @@ const BusinessPOS = () => {
                         </div>
 
                         {/* Modal Footer */}
-                        <div style={{ padding: '1.25rem 2rem', borderTop: '1px solid #F1F5F9', background: '#FFF', textAlign: 'right' }}>
+                        {/* <div style={{ padding: '1.25rem 2rem', borderTop: '1px solid #F1F5F9', background: '#FFF', textAlign: 'right' }}>
                             <button 
                                 onClick={() => setShowHistoryModal(false)}
                                 style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', border: 'none', background: '#0F172A', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' }}
                             >
                                 Close History
                             </button>
-                        </div>
+                        </div> */}
                     </motion.div>
                 </div>
             )}

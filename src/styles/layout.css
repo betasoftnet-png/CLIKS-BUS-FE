@@ -30,7 +30,7 @@
 .content-scrollable {
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 2rem;
+    /* padding-bottom: 2rem; */
 }
 
 .content-wrapper {
