@@ -431,6 +431,9 @@ const BusinessPOS = () => {
                         id: i.id,
                         name: i.name,
                         sku: i.sku,
+                        barcode: i.barcode || i.sku || '',
+                        hsn_code: i.hsn_code || i.hsnCode || i.hsn || i.hsn_sac || '',
+                        hsnCode: i.hsn_code || i.hsnCode || i.hsn || i.hsn_sac || '',
                         unit: i.unit || i.primary_unit || 'PCS',
                         price: parseFloat(i.price) || 0,
                         quantity: isItemUnlimited ? 999999 : (parseFloat(i.quantity) || 0),
@@ -439,7 +442,8 @@ const BusinessPOS = () => {
                         location: i.location || i.warehouse_id || 'Main Godown',
                         tax_percentage: i.tax_percentage !== undefined && i.tax_percentage !== null ? parseFloat(i.tax_percentage) : 0,
                         source: 'inventory',
-                        isUnlimited: isItemUnlimited
+                        isUnlimited: isItemUnlimited,
+                        rawProduct: i
                     };
                 });
 
@@ -449,7 +453,10 @@ const BusinessPOS = () => {
                     return {
                         id: p.id,
                         name: p.name || p.product_name,
-                        sku: p.sku || p.hsn_code,
+                        sku: p.sku || p.barcode || p.hsn_code,
+                        barcode: p.barcode || p.sku || '',
+                        hsn_code: p.hsn_code || p.hsnCode || p.hsn || p.hsn_sac || '',
+                        hsnCode: p.hsn_code || p.hsnCode || p.hsn || p.hsn_sac || '',
                         unit: p.unit || p.primary_unit || 'PCS',
                         price: parseFloat(p.selling_price) || parseFloat(p.price) || 0,
                         quantity: isItemUnlimited ? 999999 : (parseFloat(p.quantity) !== undefined && !isNaN(parseFloat(p.quantity)) ? parseFloat(p.quantity) : (parseFloat(p.stock) || 0)),
@@ -458,26 +465,34 @@ const BusinessPOS = () => {
                         location: p.location || p.warehouse_id || 'Main Godown',
                         tax_percentage: p.tax_percentage !== undefined && p.tax_percentage !== null ? parseFloat(p.tax_percentage) : 0,
                         source: 'products',
-                        isUnlimited: isItemUnlimited
+                        isUnlimited: isItemUnlimited,
+                        rawProduct: p
                     };
                 });
 
                 // Format Stock Registry items
                 const stockItems = (stockRes || []).map(s => {
                     const isItemUnlimited = Boolean(s.isUnlimited === true || s.is_unlimited === true || (parseFloat(s.quantity) >= 999000) || (parseFloat(s.stock) >= 999000));
+                    const matchedProd = (prodRes || []).find(p => (p.sku && s.sku && p.sku === s.sku) || (p.name && s.name && p.name.toLowerCase() === s.name.toLowerCase())) || {};
+                    const matchedInv = (invRes || []).find(i => (i.sku && s.sku && i.sku === s.sku) || (i.name && s.name && i.name.toLowerCase() === s.name.toLowerCase())) || {};
+                    const derivedHsn = s.hsn_code || s.hsnCode || s.hsn || matchedProd.hsn_code || matchedInv.hsn_code || '';
                     return {
                         id: s.id,
                         name: s.name,
                         sku: s.sku,
-                        unit: s.unit || 'PCS',
-                        price: parseFloat(s.unit_price) || parseFloat(s.price) || 0,
+                        barcode: s.barcode || matchedProd.barcode || s.sku || '',
+                        hsn_code: derivedHsn,
+                        hsnCode: derivedHsn,
+                        unit: s.unit || matchedProd.unit || 'PCS',
+                        price: parseFloat(s.unit_price) || parseFloat(s.price) || parseFloat(matchedProd.selling_price) || 0,
                         quantity: isItemUnlimited ? 999999 : (parseFloat(s.quantity) || 0),
-                        category: s.category || 'General',
+                        category: s.category || matchedProd.category || 'General',
                         warehouse_id: s.warehouse || s.location || 'Main Godown',
                         location: s.location || s.warehouse || 'Main Godown',
-                        tax_percentage: s.tax_percentage !== undefined && s.tax_percentage !== null ? parseFloat(s.tax_percentage) : 0,
+                        tax_percentage: s.tax_percentage !== undefined && s.tax_percentage !== null ? parseFloat(s.tax_percentage) : (matchedProd.tax_percentage || 0),
                         source: 'stock',
-                        isUnlimited: isItemUnlimited
+                        isUnlimited: isItemUnlimited,
+                        rawProduct: s
                     };
                 });
 
@@ -499,9 +514,14 @@ const BusinessPOS = () => {
                         uniqueMap.set(key, item);
                     } else {
                         const existing = uniqueMap.get(key);
-                        if (item.isUnlimited) {
-                            uniqueMap.set(key, { ...existing, isUnlimited: true, quantity: 999999 });
-                        }
+                        uniqueMap.set(key, {
+                            ...existing,
+                            hsn_code: existing.hsn_code || item.hsn_code || '',
+                            hsnCode: existing.hsnCode || item.hsnCode || '',
+                            barcode: existing.barcode || item.barcode || '',
+                            isUnlimited: Boolean(item.isUnlimited || existing.isUnlimited),
+                            quantity: item.isUnlimited ? 999999 : (existing.quantity || item.quantity)
+                        });
                     }
                 });
                 return Array.from(uniqueMap.values());
@@ -930,7 +950,26 @@ const BusinessPOS = () => {
     });
 
     const handleOpenEditProduct = (prod) => {
-        setEditingProduct(prod);
+        let resolvedHsn = prod.hsn_code || prod.hsnCode || prod.hsn || prod.hsn_sac || '';
+        if (!resolvedHsn) {
+            const cachedProducts = queryClient.getQueryData(['products']) || [];
+            const cachedInv = queryClient.getQueryData(['inventory']) || [];
+            const cachedStocks = queryClient.getQueryData(['stocks']) || [];
+            const match = cachedProducts.find(p => (prod.id && p.id === prod.id) || (prod.sku && p.sku === prod.sku) || (prod.name && p.name && p.name.toLowerCase() === prod.name.toLowerCase()))
+                || cachedInv.find(i => (prod.id && i.id === prod.id) || (prod.sku && i.sku === prod.sku) || (prod.name && i.name && i.name.toLowerCase() === prod.name.toLowerCase()))
+                || cachedStocks.find(s => (prod.id && s.id === prod.id) || (prod.sku && s.sku === prod.sku) || (prod.name && s.name && s.name.toLowerCase() === prod.name.toLowerCase()));
+            if (match && (match.hsn_code || match.hsnCode || match.hsn)) {
+                resolvedHsn = match.hsn_code || match.hsnCode || match.hsn;
+            }
+        }
+
+        const enrichedProd = {
+            ...prod,
+            hsn_code: resolvedHsn,
+            hsnCode: resolvedHsn
+        };
+
+        setEditingProduct(enrichedProd);
         setNewProductData({
             name: prod.name || '',
             sku: prod.sku || '',
@@ -939,9 +978,9 @@ const BusinessPOS = () => {
             selling_price: prod.price ? String(prod.price) : '',
             quantity: prod.quantity ? String(prod.quantity) : '',
             tax_percentage: prod.tax_percentage || 18,
-            hsn_code: prod.hsn_code || ''
+            hsn_code: resolvedHsn
         });
-        setHsnQueryOverride(prod.hsn_code || '');
+        setHsnQueryOverride('');
         setIsAddProductModalOpen(true);
     };
 

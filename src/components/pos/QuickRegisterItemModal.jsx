@@ -38,6 +38,7 @@ export const QuickRegisterItemModal = ({
     const [showHsnDropdown, setShowHsnDropdown] = useState(false);
     const [hasSearchedHsn, setHasSearchedHsn] = useState(false);
     const [hsnQueryOverride, setHsnQueryOverride] = useState('');
+    const [userInteractedHsn, setUserInteractedHsn] = useState(false);
 
     // HSN Info Description Popover State & Ref
     const [showHsnInfoPopover, setShowHsnInfoPopover] = useState(false);
@@ -61,8 +62,34 @@ export const QuickRegisterItemModal = ({
             setTaxRate(`${taxVal}% GST`);
             setSku(editingProduct.sku || '');
             setBarcode(editingProduct.barcode || editingProduct.sku || '');
-            setHsnCode(editingProduct.hsn_code || editingProduct.hsnCode || '');
-            setHsnQueryOverride(editingProduct.hsn_code || editingProduct.hsnCode || '');
+
+            // Fallback lookup in query cache if editingProduct doesn't have hsn_code
+            let resolvedHsn = editingProduct.hsn_code || editingProduct.hsnCode || editingProduct.hsn || editingProduct.hsn_sac || '';
+            if (!resolvedHsn) {
+                const cachedProducts = queryClient.getQueryData(['products']) || [];
+                const cachedInv = queryClient.getQueryData(['inventory']) || [];
+                const cachedStocks = queryClient.getQueryData(['stocks']) || [];
+                const match = cachedProducts.find(p => (editingProduct.id && p.id === editingProduct.id) || (editingProduct.sku && p.sku === editingProduct.sku) || (editingProduct.name && p.name && p.name.toLowerCase() === editingProduct.name.toLowerCase()))
+                    || cachedInv.find(i => (editingProduct.id && i.id === editingProduct.id) || (editingProduct.sku && i.sku === editingProduct.sku) || (editingProduct.name && i.name && i.name.toLowerCase() === editingProduct.name.toLowerCase()))
+                    || cachedStocks.find(s => (editingProduct.id && s.id === editingProduct.id) || (editingProduct.sku && s.sku === editingProduct.sku) || (editingProduct.name && s.name && s.name.toLowerCase() === editingProduct.name.toLowerCase()));
+                if (match && (match.hsn_code || match.hsnCode || match.hsn)) {
+                    resolvedHsn = match.hsn_code || match.hsnCode || match.hsn;
+                }
+            }
+
+            setHsnCode(resolvedHsn);
+            setHsnQueryOverride('');
+            setUserInteractedHsn(false);
+
+            // Fetch live product from API if hsnCode is still empty
+            if (!resolvedHsn && editingProduct.id) {
+                productsService.getProducts().then(allProds => {
+                    const match = (allProds || []).find(p => String(p.id) === String(editingProduct.id) || (p.sku && p.sku === editingProduct.sku));
+                    if (match && (match.hsn_code || match.hsnCode || match.hsn)) {
+                        setHsnCode(match.hsn_code || match.hsnCode || match.hsn);
+                    }
+                }).catch(() => {});
+            }
         } else {
             setName('');
             setSellingPrice('');
@@ -76,6 +103,7 @@ export const QuickRegisterItemModal = ({
             setBarcode(`SKU-${Date.now().toString().slice(-4)}`);
             setHsnCode('');
             setHsnQueryOverride('');
+            setUserInteractedHsn(false);
         }
         setHsnSuggestions([]);
         setShowHsnDropdown(false);
@@ -140,7 +168,13 @@ export const QuickRegisterItemModal = ({
             return;
         }
 
-        const query = (hsnQueryOverride || name || '').trim();
+        // Only search/suggest when the user has actively interacted with the HSN input!
+        // Never auto-pop suggestions on opening the edit modal!
+        if (!userInteractedHsn) {
+            return;
+        }
+
+        const query = (hsnQueryOverride || hsnCode || '').trim();
         if (query.length < 2) {
             setHsnSuggestions([]);
             setShowHsnDropdown(false);
@@ -165,7 +199,7 @@ export const QuickRegisterItemModal = ({
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [isOpen, name, hsnQueryOverride]);
+    }, [isOpen, userInteractedHsn, hsnQueryOverride, hsnCode]);
 
     // Mutation: Create product with instant catalog cache injection
     const createProductMutation = useMutation({
@@ -251,9 +285,17 @@ export const QuickRegisterItemModal = ({
             }
         },
         onSuccess: (resData, variables) => {
+            const updated = variables?.data;
+            if (updated) {
+                queryClient.setQueryData(['pos-catalog'], (old = []) => {
+                    const list = Array.isArray(old) ? old : [];
+                    return list.map(item => (item.id === variables.id ? { ...item, ...updated } : item));
+                });
+            }
             queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
             if (onSuccess) {
                 onSuccess(variables?.data);
             }
@@ -557,10 +599,12 @@ export const QuickRegisterItemModal = ({
                                         const val = e.target.value;
                                         setHsnCode(val);
                                         setHsnQueryOverride(val);
+                                        setUserInteractedHsn(true);
                                         setShowHsnInfoPopover(false);
                                     }}
                                     onFocus={() => {
-                                        if ((hsnCode || name) && ((hsnCode || '').length >= 2 || (name || '').length >= 2)) {
+                                        if (hsnCode && hsnCode.length >= 2) {
+                                            setUserInteractedHsn(true);
                                             setShowHsnDropdown(true);
                                         }
                                     }}
@@ -670,6 +714,8 @@ export const QuickRegisterItemModal = ({
                                             key={idx}
                                             onClick={() => {
                                                 setHsnCode(item.hsnCode);
+                                                setHsnQueryOverride('');
+                                                setUserInteractedHsn(false);
                                                 setShowHsnDropdown(false);
                                                 setHsnInfoDescription(item.description);
                                             }}
