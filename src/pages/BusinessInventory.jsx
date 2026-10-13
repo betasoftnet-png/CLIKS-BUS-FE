@@ -3,14 +3,14 @@ import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import { productsService, hsnService, warehouseService, stockService } from '../services';
-import { 
-    Package, 
-    Plus, 
-    Search, 
-    Filter, 
-    Edit2, 
-    Trash2, 
-    MoreVertical, 
+import {
+    Package,
+    Plus,
+    Search,
+    Filter,
+    Edit2,
+    Trash2,
+    MoreVertical,
     AlertTriangle,
     CheckCircle2,
     Clock,
@@ -54,7 +54,7 @@ const BusinessInventory = () => {
     const [activeTab, setActiveTab] = useState('list'); // 'list', 'movement', 'reports'
     const [filterCategory, setFilterCategory] = useState('All');
     const [stockStatusFilter, setStockStatusFilter] = useState('All'); // All, Low Stock, In Stock
-    
+
     // Product Bulk Import CSV states
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [importStep, setImportStep] = useState('upload'); // 'upload', 'mapping', 'preview'
@@ -174,7 +174,7 @@ const BusinessInventory = () => {
                 const headerName = columnMap[f.key];
                 const headerIdx = csvHeaders.indexOf(headerName);
                 let val = headerIdx > -1 ? row[headerIdx] : '';
-                
+
                 if (val !== undefined && val !== null) {
                     val = val.trim();
                 } else {
@@ -211,7 +211,7 @@ const BusinessInventory = () => {
         const row1 = ['iPhone 15 Pro', 'IPH15P', 'Electronics', '50', '85000', '99000', '1901985395'];
         const row2 = ['Ergonomic Chair', 'CH-ERG', 'Furniture', '20', '4500', '6000', '582910385'];
         const csvContent = [headers.join(','), row1.join(','), row2.join(',')].join('\n');
-        
+
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -221,7 +221,7 @@ const BusinessInventory = () => {
         link.click();
         document.body.removeChild(link);
     };
-    
+
     // Auto-trigger product modal setup via search params or route state
     const [searchParams, setSearchParams] = useSearchParams();
     const location = useLocation();
@@ -249,7 +249,7 @@ const BusinessInventory = () => {
         staleTime: 5 * 60 * 1000,
         refetchOnWindowFocus: false
     });
-    
+
     const items = React.useMemo(() => {
         return rawItems.map(item => {
             const wId = item.warehouse_id || item.warehouse;
@@ -302,7 +302,7 @@ const BusinessInventory = () => {
     const deleteMutation = useMutation({
         mutationFn: (id) => productsService.deleteProduct(id),
         onSuccess: (_, deletedId) => {
-            queryClient.setQueryData(['products'], (old = []) => 
+            queryClient.setQueryData(['products'], (old = []) =>
                 Array.isArray(old) ? old.filter(item => String(item.id) !== String(deletedId)) : []
             );
             queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -393,8 +393,8 @@ const BusinessInventory = () => {
         }
 
         // Check if description is already available in current hsnSuggestions
-        const matchedSuggestion = hsnSuggestions.find(s => 
-            String(s.hsnCode).trim() === code || 
+        const matchedSuggestion = hsnSuggestions.find(s =>
+            String(s.hsnCode).trim() === code ||
             String(s.hsnCode).trim() === code.replace(/^0+/, '')
         );
         if (matchedSuggestion && matchedSuggestion.description) {
@@ -409,8 +409,8 @@ const BusinessInventory = () => {
         try {
             const results = await hsnService.searchHSN(code);
             if (results && results.length > 0) {
-                const exactMatch = results.find(r => 
-                    String(r.hsnCode).trim() === code || 
+                const exactMatch = results.find(r =>
+                    String(r.hsnCode).trim() === code ||
                     String(r.hsnCode).trim() === code.replace(/^0+/, '')
                 ) || results[0];
                 setHsnInfoDescription(exactMatch.description || 'No HSN/SAC description available for this code.');
@@ -609,7 +609,7 @@ const BusinessInventory = () => {
         if (q) {
             setSearchTerm(q);
             if (items && items.length > 0) {
-                const match = items.find(i => 
+                const match = items.find(i =>
                     String(i.name).toLowerCase() === q.toLowerCase() ||
                     String(i.id) === q
                 );
@@ -752,7 +752,7 @@ const BusinessInventory = () => {
         const isStockIn = adjustType === 'in';
         const isDamaged = adjustType === 'damaged';
         const isExpired = adjustType === 'expired';
-        
+
         let updatedQty = selectedItem.quantity;
         let updatedDamaged = parseFloat(selectedItem.damaged_stock) || 0;
         let updatedExpired = parseFloat(selectedItem.expired_stock) || 0;
@@ -772,15 +772,15 @@ const BusinessInventory = () => {
             return;
         }
 
-        updateMutation.mutate({ 
-            id: selectedItem.id, 
-            data: { 
-                ...selectedItem, 
+        updateMutation.mutate({
+            id: selectedItem.id,
+            data: {
+                ...selectedItem,
                 quantity: updatedQty,
                 damaged_stock: updatedDamaged,
                 expired_stock: updatedExpired,
                 status: updatedQty < selectedItem.min_stock ? 'Low Stock' : 'In Stock'
-            } 
+            }
         });
 
         // Append to running movement history logs
@@ -803,25 +803,25 @@ const BusinessInventory = () => {
 
     const filteredItems = items.filter(i => {
         const matchesSearch = (i.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (i.sku || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (i.brand || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (i.category || '').toLowerCase().includes(searchTerm.toLowerCase());
+            (i.sku || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (i.brand || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (i.category || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = filterCategory === 'All' || i.category === filterCategory;
-        
+
         const isDamaged = String(i.warehouse || '').toLowerCase().includes('damaged');
         const qty = isDamaged ? 0 : (parseFloat(i.quantity ?? i.current_stock ?? i.stock ?? i.opening_stock ?? 0) || 0);
         const minStock = parseFloat(i.min_stock ?? i.low_stock_threshold ?? 0) || 0;
         const reorderLvl = parseFloat(i.reorder_level ?? 0) || 0;
-        
+
         const isOutOfStock = i.product_type === 'product' && qty <= 0;
         const isLowStock = i.product_type === 'product' && !isOutOfStock && ((minStock > 0 && qty < minStock) || (reorderLvl > 0 && qty <= reorderLvl));
         const isInStock = i.product_type === 'product' && !isOutOfStock && !isLowStock;
 
-        const matchesStockStatus = stockStatusFilter === 'All' || 
-                                 (stockStatusFilter === 'Out of Stock' && isOutOfStock) ||
-                                 (stockStatusFilter === 'Low Stock' && isLowStock) || 
-                                 (stockStatusFilter === 'In Stock' && isInStock);
-        
+        const matchesStockStatus = stockStatusFilter === 'All' ||
+            (stockStatusFilter === 'Out of Stock' && isOutOfStock) ||
+            (stockStatusFilter === 'Low Stock' && isLowStock) ||
+            (stockStatusFilter === 'In Stock' && isInStock);
+
         return matchesSearch && matchesCategory && matchesStockStatus;
     }).sort((a, b) => (b.id || 0) - (a.id || 0)); // Recently added products shown on the very top!
 
@@ -885,12 +885,12 @@ const BusinessInventory = () => {
                         <Download size={16} style={{ transform: 'rotate(180deg)' }} />
                         Bulk Import (CSV)
                     </button>
-                    <button 
+                    <button
                         onClick={() => { closeModal(); setIsModalOpen(true); }}
-                        style={{ 
-                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                            padding: '0.65rem 1.25rem', borderRadius: '10px', 
-                            background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', 
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            padding: '0.65rem 1.25rem', borderRadius: '10px',
+                            background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none',
                             fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
                             boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)'
                         }}
@@ -915,14 +915,14 @@ const BusinessInventory = () => {
                         <div style={{ position: 'absolute', right: '-10px', bottom: '-10px', opacity: 0.06, color: stat.color, transform: 'rotate(-15deg)' }}>
                             <stat.icon size={70} />
                         </div>
-                        
+
                         <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1rem', position: 'relative', zIndex: 1 }}>
                             <stat.icon size={20} />
                         </div>
-                        
+
                         <h3 style={{ fontSize: '1.65rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.03em', margin: '0 0 0.25rem 0', position: 'relative', zIndex: 1 }}>{stat.value}</h3>
                         <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em', position: 'relative', zIndex: 1 }}>{stat.label}</p>
-                        
+
                         {/* Colored bottom border accent */}
                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px', background: stat.color, opacity: 0.7 }} />
                     </div>
@@ -937,18 +937,18 @@ const BusinessInventory = () => {
                     <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
                         <div style={{ position: 'relative', width: '400px' }}>
                             <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                            <input 
-                                type="text" 
-                                placeholder="Search by name, SKU or barcode..." 
+                            <input
+                                type="text"
+                                placeholder="Search by name, SKU or barcode..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                             />
                         </div>
                         <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <select 
-                                value={stockStatusFilter} 
-                                onChange={(e) => setStockStatusFilter(e.target.value)} 
+                            <select
+                                value={stockStatusFilter}
+                                onChange={(e) => setStockStatusFilter(e.target.value)}
                                 style={{ padding: '0.65rem 1.25rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569' }}
                             >
                                 <option value="All">All Stock Status</option>
@@ -956,9 +956,9 @@ const BusinessInventory = () => {
                                 <option value="Low Stock">Low Stock Alerts</option>
                                 <option value="Out of Stock">Out of Stock</option>
                             </select>
-                            <select 
-                                value={filterCategory} 
-                                onChange={(e) => setFilterCategory(e.target.value)} 
+                            <select
+                                value={filterCategory}
+                                onChange={(e) => setFilterCategory(e.target.value)}
                                 style={{ padding: '0.65rem 1.25rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569' }}
                             >
                                 <option value="All">All Categories</option>
@@ -972,14 +972,14 @@ const BusinessInventory = () => {
                     <div style={{ overflowX: 'auto', padding: '1rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-        { key: 'product_name', label: 'Product Details', placeholder: 'Product name' },
-        { key: 'category', label: 'Classification', placeholder: 'Category' },
-        { key: 'stock', label: 'Stock Level', placeholder: 'e.g. 50' },
-        { key: 'price', label: 'Price', placeholder: 'e.g. 500' },
-        { key: 'hsn', label: 'GST & HSN', placeholder: 'HSN code' },
-        { key: 'status', label: 'Status', placeholder: 'e.g. Active' },
-        { key: '_actions', label: 'Stock Actions', noFilter: true }
-    ]} onFilterChange={setColFilters} />
+                                { key: 'product_name', label: 'Product Details', placeholder: 'Product name' },
+                                { key: 'category', label: 'Classification', placeholder: 'Category' },
+                                { key: 'stock', label: 'Stock Level', placeholder: 'e.g. 50' },
+                                { key: 'price', label: 'Price', placeholder: 'e.g. 500' },
+                                { key: 'hsn', label: 'GST & HSN', placeholder: 'HSN code' },
+                                { key: 'status', label: 'Status', placeholder: 'e.g. Active' },
+                                { key: '_actions', label: 'Stock Actions', noFilter: true }
+                            ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredItems.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((row) => (
                                     <tr key={row.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
@@ -1033,10 +1033,10 @@ const BusinessInventory = () => {
                                                 const minStock = parseFloat(row.min_stock ?? row.low_stock_threshold ?? 0) || 0;
                                                 const reorderLevel = parseFloat(row.reorder_level ?? 0) || 0;
                                                 const displayStock = row.stock ?? row.quantity ?? row.sellable ?? sellableQty;
-                                                
+
                                                 const displayMinStock = minStock > 0 ? minStock : 'Not Set';
                                                 const displayReorderLevel = reorderLevel > 0 ? reorderLevel : 'Not Set';
-                                                
+
                                                 return (
                                                     <div>
                                                         <p style={{ fontWeight: '850', color: isDamagedGodown ? '#DC2626' : (displayStock < minStock ? '#EF4444' : '#1E293B'), fontSize: '1.05rem', margin: 0 }}>
@@ -1095,8 +1095,8 @@ const BusinessInventory = () => {
                                                 const isUnlimited = Boolean(row.isUnlimited === true || row.is_unlimited === true || (parseFloat(row.quantity) >= 999999) || (parseFloat(row.opening_stock) >= 999999));
                                                 if (isUnlimited) {
                                                     return (
-                                                        <div style={{ 
-                                                            display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
+                                                        <div style={{
+                                                            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                                                             padding: '0.4rem 0.8rem', borderRadius: '10px',
                                                             background: '#EFF6FF',
                                                             color: '#1D4ED8',
@@ -1110,15 +1110,15 @@ const BusinessInventory = () => {
                                                 const isDamagedGodown = String(row.warehouse || '').toLowerCase().includes('damaged');
                                                 const rawQty = parseFloat(row.quantity ?? row.opening_stock ?? 0) || 0;
                                                 const sellableQty = isDamagedGodown ? 0 : rawQty;
-                                                
+
                                                 const activeMinStock = parseFloat(row.min_stock ?? row.low_stock_threshold ?? 0) || 0;
                                                 const activeReorderLevel = parseFloat(row.reorder_level ?? 0) || 0;
-                                                
+
                                                 let statusText = 'IN STOCK';
                                                 let statusColor = '#15803D';
                                                 let statusBg = '#F0FDF4';
                                                 let StatusIcon = CheckCircle2;
-                                                
+
                                                 if (isDamagedGodown) {
                                                     statusText = 'DAMAGED / NON-SELLABLE';
                                                     statusColor = '#DC2626';
@@ -1142,8 +1142,8 @@ const BusinessInventory = () => {
                                                 }
 
                                                 return (
-                                                    <div style={{ 
-                                                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
+                                                    <div style={{
+                                                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                                                         padding: '0.4rem 0.8rem', borderRadius: '10px',
                                                         background: statusBg,
                                                         color: statusColor,
@@ -1178,109 +1178,109 @@ const BusinessInventory = () => {
 
 
 
-            {/* Tab 3: Expiry & Profitability Valuation Reports */}
-            {activeTab === 'reports' && (
-                <div className="tailwind-grid-split-3-2">
-                    
-                    {/* Left Column - Expiries & Valuation metrics */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                        
-                        {/* Expiry Alerts Analysis */}
-                        <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
-                                <AlertCircle size={20} color="#B91C1C" />
-                                <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B' }}>Batch Expiry & Dead Stock Trackers</h3>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                {items.filter(i => i.product_type === 'product' && i.expiry_date).length === 0 ? (
-                                    <p style={{ color: '#64748B', fontSize: '0.9rem', fontWeight: '600' }}>No active product expiries logged.</p>
-                                ) : (
-                                    items.filter(i => i.expiry_date).map(i => (
-                                        <div key={i.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFBEB', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #FEF3C7' }}>
-                                            <div>
-                                                <p style={{ fontWeight: '750', color: '#B45309', fontSize: '0.95rem' }}>{i.name}</p>
-                                                <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Batch: {i.batch_number} | Warehouse: {i.warehouse}</span>
-                                            </div>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <p style={{ fontWeight: '850', color: '#B45309', fontSize: '0.95rem' }}>Expiry: {i.expiry_date}</p>
-                                                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#EF4444' }}>MONITOR REQUIRED</span>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
+                {/* Tab 3: Expiry & Profitability Valuation Reports */}
+                {activeTab === 'reports' && (
+                    <div className="tailwind-grid-split-3-2">
 
-                        {/* Product-wise Profit Margins Analysis */}
-                        <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
-                                <TrendingUp size={20} color="#1B6B3A" />
-                                <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B' }}>Product-wise Profitability Margins</h3>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                {items.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((prod, idx) => {
-                                    const profit = prod.selling_price - prod.purchase_price;
-                                    const margin = prod.selling_price > 0 ? Math.round((profit / prod.selling_price) * 100) : 100;
-                                    return (
-                                        <div key={idx}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.4rem', fontWeight: '700' }}>
-                                                <span style={{ color: '#1E293B' }}>{prod.name} ({prod.product_type})</span>
-                                                <span style={{ color: '#15803D' }}>Margin: {margin}% (Profit: {formatCurrency(profit)})</span>
-                                            </div>
-                                            <div style={{ height: '6px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
-                                                <div style={{ height: '100%', background: 'linear-gradient(90deg, #1B6B3A 0%, #10B981 100%)', width: `${margin}%` }}></div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                        {/* Left Column - Expiries & Valuation metrics */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
-                    </div>
-
-                    {/* Right Column - Stock Valuation Summaries */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                        
-                        {/* Interactive Stock Valuation Summary Box */}
-                        <div style={{ background: '#064E3B', color: 'white', padding: '2rem', borderRadius: '28px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' }}>
-                            <h3 style={{ fontSize: '1.1rem', fontWeight: '800', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem', marginBottom: '1.5rem' }}>Stock Valuation Summary</h3>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>Asset Valuation (At Cost):</span>
-                                    <span style={{ fontWeight: '800', fontSize: '1.1rem' }}>{formatCurrency(totalInventoryValue)}</span>
+                            {/* Expiry Alerts Analysis */}
+                            <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                                    <AlertCircle size={20} color="#B91C1C" />
+                                    <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B' }}>Batch Expiry & Dead Stock Trackers</h3>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>Potential Revenue (At Sale):</span>
-                                    <span style={{ fontWeight: '800', fontSize: '1.1rem' }}>{formatCurrency(potentialRevenue)}</span>
-                                </div>
-                                <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '0.5rem 0' }}></div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#34D399' }}>
-                                    <span style={{ fontSize: '1rem', fontWeight: '900' }}>Unrealized Profit Pool:</span>
-                                    <span style={{ fontWeight: '950', fontSize: '1.35rem' }}>{formatCurrency(potentialRevenue - totalInventoryValue)}</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {items.filter(i => i.product_type === 'product' && i.expiry_date).length === 0 ? (
+                                        <p style={{ color: '#64748B', fontSize: '0.9rem', fontWeight: '600' }}>No active product expiries logged.</p>
+                                    ) : (
+                                        items.filter(i => i.expiry_date).map(i => (
+                                            <div key={i.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFBEB', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #FEF3C7' }}>
+                                                <div>
+                                                    <p style={{ fontWeight: '750', color: '#B45309', fontSize: '0.95rem' }}>{i.name}</p>
+                                                    <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Batch: {i.batch_number} | Warehouse: {i.warehouse}</span>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <p style={{ fontWeight: '850', color: '#B45309', fontSize: '0.95rem' }}>Expiry: {i.expiry_date}</p>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#EF4444' }}>MONITOR REQUIRED</span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             </div>
+
+                            {/* Product-wise Profit Margins Analysis */}
+                            <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                                    <TrendingUp size={20} color="#1B6B3A" />
+                                    <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#1E293B' }}>Product-wise Profitability Margins</h3>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                    {items.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((prod, idx) => {
+                                        const profit = prod.selling_price - prod.purchase_price;
+                                        const margin = prod.selling_price > 0 ? Math.round((profit / prod.selling_price) * 100) : 100;
+                                        return (
+                                            <div key={idx}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.4rem', fontWeight: '700' }}>
+                                                    <span style={{ color: '#1E293B' }}>{prod.name} ({prod.product_type})</span>
+                                                    <span style={{ color: '#15803D' }}>Margin: {margin}% (Profit: {formatCurrency(profit)})</span>
+                                                </div>
+                                                <div style={{ height: '6px', width: '100%', background: '#F1F5F9', borderRadius: '10px', overflow: 'hidden' }}>
+                                                    <div style={{ height: '100%', background: 'linear-gradient(90deg, #1B6B3A 0%, #10B981 100%)', width: `${margin}%` }}></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
                         </div>
 
-                        {/* Top Performing Fast Moving Products */}
-                        <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
-                                <Layers size={18} color="#1B6B3A" />
-                                <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#1E293B' }}>Fast Moving Products</h3>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                {items.sort((a,b) => b.total_sold - a.total_sold).map((prod, idx) => (
-                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', fontWeight: '700' }}>
-                                        <span style={{ color: '#475569' }}>{prod.name}</span>
-                                        <span style={{ background: '#F0FDF4', color: '#15803D', padding: '0.25rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem' }}>{prod.total_sold} Units Sold</span>
+                        {/* Right Column - Stock Valuation Summaries */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+
+                            {/* Interactive Stock Valuation Summary Box */}
+                            <div style={{ background: '#064E3B', color: 'white', padding: '2rem', borderRadius: '28px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column' }}>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: '800', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem', marginBottom: '1.5rem' }}>Stock Valuation Summary</h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>Asset Valuation (At Cost):</span>
+                                        <span style={{ fontWeight: '800', fontSize: '1.1rem' }}>{formatCurrency(totalInventoryValue)}</span>
                                     </div>
-                                ))}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>Potential Revenue (At Sale):</span>
+                                        <span style={{ fontWeight: '800', fontSize: '1.1rem' }}>{formatCurrency(potentialRevenue)}</span>
+                                    </div>
+                                    <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '0.5rem 0' }}></div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#34D399' }}>
+                                        <span style={{ fontSize: '1rem', fontWeight: '900' }}>Unrealized Profit Pool:</span>
+                                        <span style={{ fontWeight: '950', fontSize: '1.35rem' }}>{formatCurrency(potentialRevenue - totalInventoryValue)}</span>
+                                    </div>
+                                </div>
                             </div>
+
+                            {/* Top Performing Fast Moving Products */}
+                            <div style={{ background: 'white', padding: '2rem', borderRadius: '28px', border: '1px solid #E2E8F0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                                    <Layers size={18} color="#1B6B3A" />
+                                    <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#1E293B' }}>Fast Moving Products</h3>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {items.sort((a, b) => b.total_sold - a.total_sold).map((prod, idx) => (
+                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', fontWeight: '700' }}>
+                                            <span style={{ color: '#475569' }}>{prod.name}</span>
+                                            <span style={{ background: '#F0FDF4', color: '#15803D', padding: '0.25rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem' }}>{prod.total_sold} Units Sold</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
                         </div>
 
                     </div>
-
-                </div>
-            )}
+                )}
             </div>
             {/* Product Creation & Editing Modal */}
             {isModalOpen && (
@@ -1297,18 +1297,18 @@ const BusinessInventory = () => {
                         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                             {/* Product vs Service Select */}
                             <div style={{ display: 'flex', background: '#F1F5F9', padding: '4px', borderRadius: '14px', maxWidth: '300px' }}>
-                                <button type="button" onClick={() => setFormData({...formData, product_type: 'product'})} style={{ flex: 1, padding: '0.65rem 1rem', borderRadius: '10px', border: 'none', background: formData.product_type === 'product' ? '#064E3B' : 'transparent', color: formData.product_type === 'product' ? 'white' : '#64748B', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}>Physical Product</button>
-                                <button type="button" onClick={() => setFormData({...formData, product_type: 'service'})} style={{ flex: 1, padding: '0.65rem 1rem', borderRadius: '10px', border: 'none', background: formData.product_type === 'service' ? '#064E3B' : 'transparent', color: formData.product_type === 'service' ? 'white' : '#64748B', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}>Service Offering</button>
+                                <button type="button" onClick={() => setFormData({ ...formData, product_type: 'product' })} style={{ flex: 1, padding: '0.65rem 1rem', borderRadius: '10px', border: 'none', background: formData.product_type === 'product' ? '#064E3B' : 'transparent', color: formData.product_type === 'product' ? 'white' : '#64748B', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}>Physical Product</button>
+                                <button type="button" onClick={() => setFormData({ ...formData, product_type: 'service' })} style={{ flex: 1, padding: '0.65rem 1rem', borderRadius: '10px', border: 'none', background: formData.product_type === 'service' ? '#064E3B' : 'transparent', color: formData.product_type === 'service' ? 'white' : '#64748B', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}>Service Offering</button>
                             </div>
 
                             {/* Basic Product Info */}
                             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1.25rem', background: '#F8FAFC', padding: '1.5rem', borderRadius: '20px' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Item Name</label>
-                                    <input 
-                                        required 
-                                        type="text" 
-                                        value={formData.name} 
+                                    <input
+                                        required
+                                        type="text"
+                                        value={formData.name}
                                         onChange={(e) => {
                                             const newName = e.target.value;
                                             setFormData(prev => ({
@@ -1320,18 +1320,18 @@ const BusinessInventory = () => {
                                             setHsnSuggestions([]);
                                             setShowHsnDropdown(false);
                                             setHasSearchedHsn(false);
-                                        }} 
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
-                                        placeholder="e.g. MacBook Pro M3" 
+                                        }}
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                        placeholder="e.g. MacBook Pro M3"
                                     />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Short Display Name</label>
-                                    <input type="text" value={formData.short_name} onChange={(e) => setFormData({...formData, short_name: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="MacBook" />
+                                    <input type="text" value={formData.short_name} onChange={(e) => setFormData({ ...formData, short_name: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="MacBook" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>SKU Code</label>
-                                    <input required type="text" value={formData.sku} onChange={(e) => setFormData({...formData, sku: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="MAC-M3-8" />
+                                    <input required type="text" value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="MAC-M3-8" />
                                 </div>
                             </div>
 
@@ -1339,8 +1339,8 @@ const BusinessInventory = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Category</label>
-                                    <select 
-                                        value={['Electronics', 'Clothes', 'Food', 'Footwear'].includes(formData.category) ? formData.category : (formData.category ? formData.category : 'Electronics')} 
+                                    <select
+                                        value={['Electronics', 'Clothes', 'Food', 'Footwear'].includes(formData.category) ? formData.category : (formData.category ? formData.category : 'Electronics')}
                                         onChange={(e) => {
                                             if (e.target.value === '+ Custom') {
                                                 const customVal = prompt("Enter custom category:");
@@ -1350,7 +1350,7 @@ const BusinessInventory = () => {
                                             } else {
                                                 setFormData(prev => ({ ...prev, category: e.target.value }));
                                             }
-                                        }} 
+                                        }}
                                         style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}
                                     >
                                         <option value="Electronics">Electronics</option>
@@ -1365,11 +1365,11 @@ const BusinessInventory = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Brand</label>
-                                    <input type="text" value={formData.brand} onChange={(e) => setFormData({...formData, brand: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Apple" />
+                                    <input type="text" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Apple" />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Barcode Number</label>
-                                    <input type="text" value={formData.barcode} onChange={(e) => setFormData({...formData, barcode: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Scan/Enter" />
+                                    <input type="text" value={formData.barcode} onChange={(e) => setFormData({ ...formData, barcode: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Scan/Enter" />
                                 </div>
                                 <div style={{ position: 'relative' }} ref={hsnInfoRef}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -1377,24 +1377,24 @@ const BusinessInventory = () => {
                                         {isHsnLoading && <span style={{ fontSize: '0.7rem', color: '#064E3B', fontWeight: '600' }}>Searching...</span>}
                                     </div>
                                     <div style={{ position: 'relative' }}>
-                                        <input 
-                                            type="text" 
-                                            value={formData.hsn_code} 
+                                        <input
+                                            type="text"
+                                            value={formData.hsn_code}
                                             onChange={(e) => {
                                                 const val = e.target.value.replace(/\D/g, '').slice(0, 8);
-                                                setFormData({...formData, hsn_code: val});
+                                                setFormData({ ...formData, hsn_code: val });
                                                 setHsnQueryOverride(val);
                                                 setShowHsnInfoPopover(false);
-                                            }} 
+                                            }}
                                             onFocus={() => {
                                                 if ((formData.hsn_code || formData.name) && ((formData.hsn_code || '').length >= 2 || (formData.name || '').length >= 2)) {
                                                     setShowHsnDropdown(true);
                                                 }
                                             }}
-                                            style={{ width: '100%', padding: '0.85rem', paddingRight: '2.5rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
-                                            placeholder="9503" 
+                                            style={{ width: '100%', padding: '0.85rem', paddingRight: '2.5rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                            placeholder="9503"
                                         />
-                                        
+
                                         {/* Info ⓘ Icon inside input aligned to far right */}
                                         <button
                                             type="button"
@@ -1464,18 +1464,18 @@ const BusinessInventory = () => {
 
                                     {/* HSN Suggestions Dropdown */}
                                     {showHsnDropdown && (
-                                        <div style={{ 
-                                            position: 'absolute', 
-                                            top: '100%', 
-                                            left: 0, 
-                                            right: 0, 
-                                            zIndex: 1100, 
-                                            marginTop: '6px', 
-                                            background: 'white', 
-                                            borderRadius: '16px', 
-                                            border: '1px solid #E2E8F0', 
-                                            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)', 
-                                            maxHeight: '220px', 
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '100%',
+                                            left: 0,
+                                            right: 0,
+                                            zIndex: 1100,
+                                            marginTop: '6px',
+                                            background: 'white',
+                                            borderRadius: '16px',
+                                            border: '1px solid #E2E8F0',
+                                            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                                            maxHeight: '220px',
                                             overflowY: 'auto',
                                             padding: '0.5rem'
                                         }}>
@@ -1493,19 +1493,19 @@ const BusinessInventory = () => {
                                             )}
 
                                             {!isHsnLoading && hsnSuggestions.map((item, idx) => (
-                                                <div 
+                                                <div
                                                     key={idx}
                                                     onClick={() => {
                                                         setFormData({ ...formData, hsn_code: item.hsnCode });
                                                         setShowHsnDropdown(false);
                                                         setHsnInfoDescription(item.description);
                                                     }}
-                                                    style={{ 
-                                                        padding: '0.6rem 0.75rem', 
-                                                        borderRadius: '10px', 
-                                                        cursor: 'pointer', 
-                                                        display: 'flex', 
-                                                        justify: 'space-between', 
+                                                    style={{
+                                                        padding: '0.6rem 0.75rem',
+                                                        borderRadius: '10px',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        justify: 'space-between',
                                                         alignItems: 'center',
                                                         transition: 'background 0.15s ease',
                                                         borderBottom: idx < hsnSuggestions.length - 1 ? '1px solid #F8FAFC' : 'none'
@@ -1517,16 +1517,16 @@ const BusinessInventory = () => {
                                                         <div style={{ fontWeight: '800', fontSize: '0.85rem', color: '#064E3B' }}>{item.hsnCode}</div>
                                                         <div style={{ fontSize: '0.75rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.description}</div>
                                                     </div>
-                                                    <button 
-                                                        type="button" 
-                                                        style={{ 
-                                                            border: 'none', 
-                                                            background: '#DCFCE7', 
-                                                            color: '#15803D', 
-                                                            fontWeight: '700', 
-                                                            fontSize: '0.75rem', 
-                                                            padding: '0.35rem 0.65rem', 
-                                                            borderRadius: '8px', 
+                                                    <button
+                                                        type="button"
+                                                        style={{
+                                                            border: 'none',
+                                                            background: '#DCFCE7',
+                                                            color: '#15803D',
+                                                            fontWeight: '700',
+                                                            fontSize: '0.75rem',
+                                                            padding: '0.35rem 0.65rem',
+                                                            borderRadius: '8px',
                                                             cursor: 'pointer',
                                                             flexShrink: 0
                                                         }}
@@ -1544,50 +1544,50 @@ const BusinessInventory = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Purchase Cost ({currency.symbol})</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         inputMode="decimal"
                                         maxLength={14}
-                                        value={formData.purchase_price === 0 || formData.purchase_price === '0' || formData.purchase_price === '' ? '' : formData.purchase_price} 
+                                        value={formData.purchase_price === 0 || formData.purchase_price === '0' || formData.purchase_price === '' ? '' : formData.purchase_price}
                                         placeholder="0"
-                                        onChange={(e) => handleNumFieldChange('purchase_price', e.target.value)} 
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        onChange={(e) => handleNumFieldChange('purchase_price', e.target.value)}
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                     />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Retail Selling ({currency.symbol})</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         inputMode="decimal"
                                         maxLength={14}
-                                        value={formData.selling_price === 0 || formData.selling_price === '0' || formData.selling_price === '' ? '' : formData.selling_price} 
+                                        value={formData.selling_price === 0 || formData.selling_price === '0' || formData.selling_price === '' ? '' : formData.selling_price}
                                         placeholder="0"
-                                        onChange={(e) => handleNumFieldChange('selling_price', e.target.value)} 
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        onChange={(e) => handleNumFieldChange('selling_price', e.target.value)}
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                     />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Wholesale Price ({currency.symbol})</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         inputMode="decimal"
                                         maxLength={14}
-                                        value={formData.wholesale_price === 0 || formData.wholesale_price === '0' || formData.wholesale_price === '' ? '' : formData.wholesale_price} 
+                                        value={formData.wholesale_price === 0 || formData.wholesale_price === '0' || formData.wholesale_price === '' ? '' : formData.wholesale_price}
                                         placeholder="0"
-                                        onChange={(e) => handleNumFieldChange('wholesale_price', e.target.value)} 
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        onChange={(e) => handleNumFieldChange('wholesale_price', e.target.value)}
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                     />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Dealer Price ({currency.symbol})</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         inputMode="decimal"
                                         maxLength={14}
-                                        value={formData.dealer_price === 0 || formData.dealer_price === '0' || formData.dealer_price === '' ? '' : formData.dealer_price} 
+                                        value={formData.dealer_price === 0 || formData.dealer_price === '0' || formData.dealer_price === '' ? '' : formData.dealer_price}
                                         placeholder="0"
-                                        onChange={(e) => handleNumFieldChange('dealer_price', e.target.value)} 
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        onChange={(e) => handleNumFieldChange('dealer_price', e.target.value)}
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                     />
                                 </div>
                             </div>
@@ -1596,31 +1596,31 @@ const BusinessInventory = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Max Retail Price (MRP)</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         inputMode="decimal"
                                         maxLength={14}
-                                        value={formData.mrp === 0 || formData.mrp === '0' || formData.mrp === '' ? '' : formData.mrp} 
+                                        value={formData.mrp === 0 || formData.mrp === '0' || formData.mrp === '' ? '' : formData.mrp}
                                         placeholder="0"
-                                        onChange={(e) => handleNumFieldChange('mrp', e.target.value)} 
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        onChange={(e) => handleNumFieldChange('mrp', e.target.value)}
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                     />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Discount %</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         inputMode="decimal"
                                         maxLength={14}
-                                        value={formData.discount_percentage === 0 || formData.discount_percentage === '0' || formData.discount_percentage === '' ? '' : formData.discount_percentage} 
+                                        value={formData.discount_percentage === 0 || formData.discount_percentage === '0' || formData.discount_percentage === '' ? '' : formData.discount_percentage}
                                         placeholder="0"
-                                        onChange={(e) => handleNumFieldChange('discount_percentage', e.target.value)} 
-                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} 
+                                        onChange={(e) => handleNumFieldChange('discount_percentage', e.target.value)}
+                                        style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
                                     />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>GST Rate (%)</label>
-                                    <select value={formData.gst_percentage} onChange={(e) => setFormData({...formData, gst_percentage: parseInt(e.target.value)})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                    <select value={formData.gst_percentage} onChange={(e) => setFormData({ ...formData, gst_percentage: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
                                         <option value={0}>0% GST</option>
                                         <option value={5}>5% GST</option>
                                         <option value={12}>12% GST</option>
@@ -1630,7 +1630,7 @@ const BusinessInventory = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Tax Type</label>
-                                    <select value={formData.tax_type} onChange={(e) => setFormData({...formData, tax_type: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                    <select value={formData.tax_type} onChange={(e) => setFormData({ ...formData, tax_type: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
                                         <option value="inclusive">Tax Inclusive</option>
                                         <option value="exclusive">Tax Exclusive</option>
                                     </select>
@@ -1693,11 +1693,11 @@ const BusinessInventory = () => {
                                                 Opening Qty {formData.isUnlimited && <span style={{ color: '#2563EB', fontWeight: '800' }}>(Unlimited)</span>}
                                             </label>
                                             {formData.isUnlimited ? (
-                                                <div 
+                                                <div
                                                     className="w-full bg-purple-50 text-purple-700 font-black rounded-xl flex items-center justify-center"
-                                                    style={{ 
+                                                    style={{
                                                         boxSizing: 'border-box',
-                                                        padding: '0.85rem', 
+                                                        padding: '0.85rem',
                                                         fontSize: '0.85rem',
                                                         cursor: 'default'
                                                     }}
@@ -1705,112 +1705,112 @@ const BusinessInventory = () => {
                                                     ♾ UNLIMITED
                                                 </div>
                                             ) : (
-                                                <input 
-                                                    type="text" 
+                                                <input
+                                                    type="text"
                                                     inputMode="decimal"
                                                     maxLength={14}
-                                                    value={formData.opening_stock === 0 || formData.opening_stock === '0' || formData.opening_stock === '' ? '' : formData.opening_stock} 
+                                                    value={formData.opening_stock === 0 || formData.opening_stock === '0' || formData.opening_stock === '' ? '' : formData.opening_stock}
                                                     placeholder="0"
-                                                    onChange={(e) => handleNumFieldChange('opening_stock', e.target.value)} 
-                                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} 
+                                                    onChange={(e) => handleNumFieldChange('opening_stock', e.target.value)}
+                                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }}
                                                 />
                                             )}
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: formData.isUnlimited ? '#94A3B8' : '#1B6B3A', marginBottom: '0.5rem' }}>Minimum Qty Alert</label>
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 inputMode="decimal"
                                                 maxLength={14}
                                                 disabled={formData.isUnlimited}
-                                                value={formData.isUnlimited ? 'N/A (Unlimited)' : (formData.min_stock === 0 || formData.min_stock === '0' || formData.min_stock === '' ? '' : formData.min_stock)} 
+                                                value={formData.isUnlimited ? 'N/A (Unlimited)' : (formData.min_stock === 0 || formData.min_stock === '0' || formData.min_stock === '' ? '' : formData.min_stock)}
                                                 placeholder="5"
-                                                onChange={(e) => handleNumFieldChange('min_stock', e.target.value)} 
-                                                style={{ 
-                                                    width: '100%', 
-                                                    padding: '0.85rem', 
-                                                    borderRadius: '14px', 
-                                                    border: '1px solid #DCF2E4', 
-                                                    outline: 'none', 
+                                                onChange={(e) => handleNumFieldChange('min_stock', e.target.value)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.85rem',
+                                                    borderRadius: '14px',
+                                                    border: '1px solid #DCF2E4',
+                                                    outline: 'none',
                                                     background: formData.isUnlimited ? '#F1F5F9' : 'white',
                                                     color: formData.isUnlimited ? '#94A3B8' : 'inherit',
                                                     cursor: formData.isUnlimited ? 'not-allowed' : 'text',
                                                     opacity: formData.isUnlimited ? 0.75 : 1
-                                                }} 
+                                                }}
                                             />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: formData.isUnlimited ? '#94A3B8' : '#1B6B3A', marginBottom: '0.5rem' }}>Reorder Level</label>
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 inputMode="decimal"
                                                 maxLength={14}
                                                 disabled={formData.isUnlimited}
-                                                value={formData.isUnlimited ? 'N/A (Unlimited)' : (formData.reorder_level === 0 || formData.reorder_level === '0' || formData.reorder_level === '' ? '' : formData.reorder_level)} 
+                                                value={formData.isUnlimited ? 'N/A (Unlimited)' : (formData.reorder_level === 0 || formData.reorder_level === '0' || formData.reorder_level === '' ? '' : formData.reorder_level)}
                                                 placeholder="8"
-                                                onChange={(e) => handleNumFieldChange('reorder_level', e.target.value)} 
-                                                style={{ 
-                                                    width: '100%', 
-                                                    padding: '0.85rem', 
-                                                    borderRadius: '14px', 
-                                                    border: '1px solid #DCF2E4', 
-                                                    outline: 'none', 
+                                                onChange={(e) => handleNumFieldChange('reorder_level', e.target.value)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.85rem',
+                                                    borderRadius: '14px',
+                                                    border: '1px solid #DCF2E4',
+                                                    outline: 'none',
                                                     background: formData.isUnlimited ? '#F1F5F9' : 'white',
                                                     color: formData.isUnlimited ? '#94A3B8' : 'inherit',
                                                     cursor: formData.isUnlimited ? 'not-allowed' : 'text',
                                                     opacity: formData.isUnlimited ? 0.75 : 1
-                                                }} 
+                                                }}
                                             />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: formData.isUnlimited ? '#94A3B8' : '#DC2626', marginBottom: '0.5rem' }}>Damaged Qty</label>
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 inputMode="decimal"
                                                 maxLength={14}
                                                 disabled={formData.isUnlimited}
-                                                value={formData.isUnlimited ? 'N/A (Unlimited)' : (formData.damaged_stock === 0 || formData.damaged_stock === '0' || formData.damaged_stock === '' ? '' : formData.damaged_stock)} 
+                                                value={formData.isUnlimited ? 'N/A (Unlimited)' : (formData.damaged_stock === 0 || formData.damaged_stock === '0' || formData.damaged_stock === '' ? '' : formData.damaged_stock)}
                                                 placeholder="0"
-                                                onChange={(e) => handleNumFieldChange('damaged_stock', e.target.value)} 
-                                                style={{ 
-                                                    width: '100%', 
-                                                    padding: '0.85rem', 
-                                                    borderRadius: '14px', 
-                                                    border: '1px solid #DCF2E4', 
-                                                    outline: 'none', 
+                                                onChange={(e) => handleNumFieldChange('damaged_stock', e.target.value)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.85rem',
+                                                    borderRadius: '14px',
+                                                    border: '1px solid #DCF2E4',
+                                                    outline: 'none',
                                                     background: formData.isUnlimited ? '#F1F5F9' : 'white',
                                                     color: formData.isUnlimited ? '#94A3B8' : 'inherit',
                                                     cursor: formData.isUnlimited ? 'not-allowed' : 'text',
                                                     opacity: formData.isUnlimited ? 0.75 : 1
-                                                }} 
+                                                }}
                                             />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: formData.isUnlimited ? '#94A3B8' : '#B45309', marginBottom: '0.5rem' }}>Expired Qty</label>
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 inputMode="decimal"
                                                 maxLength={14}
                                                 disabled={formData.isUnlimited}
-                                                value={formData.isUnlimited ? 'N/A (Unlimited)' : (formData.expired_stock === 0 || formData.expired_stock === '0' || formData.expired_stock === '' ? '' : formData.expired_stock)} 
+                                                value={formData.isUnlimited ? 'N/A (Unlimited)' : (formData.expired_stock === 0 || formData.expired_stock === '0' || formData.expired_stock === '' ? '' : formData.expired_stock)}
                                                 placeholder="0"
-                                                onChange={(e) => handleNumFieldChange('expired_stock', e.target.value)} 
-                                                style={{ 
-                                                    width: '100%', 
-                                                    padding: '0.85rem', 
-                                                    borderRadius: '14px', 
-                                                    border: '1px solid #DCF2E4', 
-                                                    outline: 'none', 
+                                                onChange={(e) => handleNumFieldChange('expired_stock', e.target.value)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.85rem',
+                                                    borderRadius: '14px',
+                                                    border: '1px solid #DCF2E4',
+                                                    outline: 'none',
                                                     background: formData.isUnlimited ? '#F1F5F9' : 'white',
                                                     color: formData.isUnlimited ? '#94A3B8' : 'inherit',
                                                     cursor: formData.isUnlimited ? 'not-allowed' : 'text',
                                                     opacity: formData.isUnlimited ? 0.75 : 1
-                                                }} 
+                                                }}
                                             />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Primary Unit</label>
-                                            <select value={formData.primary_unit} onChange={(e) => setFormData({...formData, primary_unit: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }}>
+                                            <select value={formData.primary_unit} onChange={(e) => setFormData({ ...formData, primary_unit: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }}>
                                                 <option value="pcs">Pcs (Pieces)</option>
                                                 <option value="kg">Kg (Kilograms)</option>
                                                 <option value="box">Box</option>
@@ -1822,15 +1822,15 @@ const BusinessInventory = () => {
                                     <div style={{ display: 'grid', gridTemplateColumns: !isStarterPlan ? '1fr 2fr' : '1fr', gap: '1rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Batch Identifier</label>
-                                            <input type="text" value={formData.batch_number} onChange={(e) => setFormData({...formData, batch_number: e.target.value})} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="B-8902" />
+                                            <input type="text" value={formData.batch_number} onChange={(e) => setFormData({ ...formData, batch_number: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }} placeholder="B-8902" />
                                         </div>
                                         {!isStarterPlan && (
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warehouse Storage Facility</label>
-                                                <select 
+                                                <select
                                                     required
-                                                    value={formData.warehouse} 
-                                                    onChange={(e) => setFormData({...formData, warehouse: e.target.value})} 
+                                                    value={formData.warehouse}
+                                                    onChange={(e) => setFormData({ ...formData, warehouse: e.target.value })}
                                                     style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: formData.warehouse ? '#0F172A' : '#94A3B8' }}
                                                 >
                                                     <option value="" disabled hidden>Select your warehouse</option>
@@ -1860,19 +1860,19 @@ const BusinessInventory = () => {
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.35rem' }}>Storage Zone</label>
-                                                <input type="text" value={formData.zone} onChange={(e) => setFormData({...formData, zone: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontSize: '0.85rem' }} placeholder="Zone A" />
+                                                <input type="text" value={formData.zone} onChange={(e) => setFormData({ ...formData, zone: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontSize: '0.85rem' }} placeholder="Zone A" />
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.35rem' }}>Rack Location</label>
-                                                <input type="text" value={formData.rack_number} onChange={(e) => setFormData({...formData, rack_number: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontSize: '0.85rem' }} placeholder="Rack 4" />
+                                                <input type="text" value={formData.rack_number} onChange={(e) => setFormData({ ...formData, rack_number: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontSize: '0.85rem' }} placeholder="Rack 4" />
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.35rem' }}>Shelf Location</label>
-                                                <input type="text" value={formData.shelf_number} onChange={(e) => setFormData({...formData, shelf_number: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontSize: '0.85rem' }} placeholder="Shelf 2" />
+                                                <input type="text" value={formData.shelf_number} onChange={(e) => setFormData({ ...formData, shelf_number: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontSize: '0.85rem' }} placeholder="Shelf 2" />
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.35rem' }}>Bin Location</label>
-                                                <input type="text" value={formData.bin_number} onChange={(e) => setFormData({...formData, bin_number: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontSize: '0.85rem' }} placeholder="Bin B1" />
+                                                <input type="text" value={formData.bin_number} onChange={(e) => setFormData({ ...formData, bin_number: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontSize: '0.85rem' }} placeholder="Bin B1" />
                                             </div>
                                         </div>
                                     </div>
@@ -1947,26 +1947,26 @@ const BusinessInventory = () => {
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warranty Details</label>
                                             <div style={{ display: 'flex', gap: '0.35rem', background: 'white', padding: '4px', borderRadius: '12px', border: '1px solid #DCF2E4' }}>
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => setFormData({ ...formData, has_warranty: 'Yes', warranty_period: formData.warranty_period || '1 Year' })} 
-                                                    style={{ 
-                                                        flex: 1, padding: '0.55rem', borderRadius: '9px', border: 'none', 
-                                                        background: formData.has_warranty === 'Yes' ? '#1B6B3A' : 'transparent', 
-                                                        color: formData.has_warranty === 'Yes' ? 'white' : '#64748B', 
-                                                        fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer' 
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, has_warranty: 'Yes', warranty_period: formData.warranty_period || '1 Year' })}
+                                                    style={{
+                                                        flex: 1, padding: '0.55rem', borderRadius: '9px', border: 'none',
+                                                        background: formData.has_warranty === 'Yes' ? '#1B6B3A' : 'transparent',
+                                                        color: formData.has_warranty === 'Yes' ? 'white' : '#64748B',
+                                                        fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer'
                                                     }}
                                                 >
                                                     Yes
                                                 </button>
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => setFormData({ ...formData, has_warranty: 'No', warranty_period: '' })} 
-                                                    style={{ 
-                                                        flex: 1, padding: '0.55rem', borderRadius: '9px', border: 'none', 
-                                                        background: formData.has_warranty !== 'Yes' ? '#64748B' : 'transparent', 
-                                                        color: formData.has_warranty !== 'Yes' ? 'white' : '#64748B', 
-                                                        fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer' 
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, has_warranty: 'No', warranty_period: '' })}
+                                                    style={{
+                                                        flex: 1, padding: '0.55rem', borderRadius: '9px', border: 'none',
+                                                        background: formData.has_warranty !== 'Yes' ? '#64748B' : 'transparent',
+                                                        color: formData.has_warranty !== 'Yes' ? 'white' : '#64748B',
+                                                        fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer'
                                                     }}
                                                 >
                                                     No
@@ -1982,8 +1982,8 @@ const BusinessInventory = () => {
                                                 <>
                                                     <div>
                                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warranty Period *</label>
-                                                        <select 
-                                                            value={selectedOption} 
+                                                        <select
+                                                            value={selectedOption}
                                                             onChange={(e) => {
                                                                 const val = e.target.value;
                                                                 if (val === 'Custom') {
@@ -1991,7 +1991,7 @@ const BusinessInventory = () => {
                                                                 } else {
                                                                     setFormData({ ...formData, warranty_period: val, custom_warranty_text: '' });
                                                                 }
-                                                            }} 
+                                                            }}
                                                             style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A', cursor: 'pointer' }}
                                                         >
                                                             <option value="6 Months">6 Months</option>
@@ -2005,7 +2005,7 @@ const BusinessInventory = () => {
                                                     {selectedOption === 'Custom' && (
                                                         <div>
                                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Custom Warranty *</label>
-                                                            <input 
+                                                            <input
                                                                 type="text"
                                                                 required
                                                                 value={formData.custom_warranty_text !== undefined ? formData.custom_warranty_text : (isStandard ? '' : (formData.warranty_period === 'Custom' ? '' : formData.warranty_period))}
@@ -2356,7 +2356,7 @@ const BusinessInventory = () => {
             {isImportModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
                     <div style={{ background: 'white', width: '100%', maxWidth: importStep === 'preview' ? '920px' : '580px', borderRadius: '28px', padding: '2.25rem', boxShadow: '0 25px 50px -12px rgba(6, 78, 59, 0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '1.5rem', transition: 'max-width 0.3s ease' }}>
-                        
+
                         {/* Modal Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

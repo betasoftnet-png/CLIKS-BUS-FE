@@ -2,18 +2,18 @@ import React, { useState, useRef } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCurrency, useAuth } from '../context';
-import { 
-    Search, 
-    Plus, 
-    Minus, 
-    Trash2, 
-    User, 
-    ShoppingBag, 
-    CreditCard, 
-    Smartphone, 
-    DollarSign, 
-    Filter, 
-    Receipt, 
+import {
+    Search,
+    Plus,
+    Minus,
+    Trash2,
+    User,
+    ShoppingBag,
+    CreditCard,
+    Smartphone,
+    DollarSign,
+    Filter,
+    Receipt,
     ChevronRight,
     ChevronUp,
     ChevronDown,
@@ -92,27 +92,27 @@ const BusinessPOS = () => {
 
     const toggleWarehouseSelection = (whId) => {
         const idStr = String(whId);
-        setSelectedWarehouseIds(prev => 
-            prev.includes(idStr) 
+        setSelectedWarehouseIds(prev =>
+            prev.includes(idStr)
                 ? prev.filter(id => id !== idStr)
                 : [...prev, idStr]
         );
     };
-    
+
     const [customerName, setCustomerName] = useState(() => initialPosSession?.customerName || '');
     const [customerEmail, setCustomerEmail] = useState(() => initialPosSession?.customerEmail || '');
     const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
     const [selectedCustomerObj, setSelectedCustomerObj] = useState(() => initialPosSession?.selectedCustomerObj || null);
-    
+
     // Panel Expand/Collapse State
     const [isCustomerSectionExpanded, setIsCustomerSectionExpanded] = useState(true);
     const [isTotalsSectionExpanded, setIsTotalsSectionExpanded] = useState(true);
-    
+
     // Hold Cart State
     const [heldCarts, setHeldCarts] = useState(() => initialPosSession?.heldCarts || []);
     const [holdCounter, setHoldCounter] = useState(() => initialPosSession?.holdCounter || 1);
     const [activeHeldCartInfo, setActiveHeldCartInfo] = useState(() => initialPosSession?.activeHeldCartInfo || null);
-    
+
     const [discountType, setDiscountType] = useState(() => initialPosSession?.discountType || 'percentage'); // 'percentage' | 'flat'
     const [discountVal, setDiscountVal] = useState(() => initialPosSession?.discountVal !== undefined ? initialPosSession.discountVal : 0);
     const [taxRate, setTaxRate] = useState(() => initialPosSession?.taxRate !== undefined ? initialPosSession.taxRate : 18); // Default GST
@@ -124,14 +124,14 @@ const BusinessPOS = () => {
     // Auto-save in-progress POS billing session to sessionStorage when navigating between modules
     React.useEffect(() => {
         try {
-            const hasData = (cart && cart.length > 0) || 
-                            Boolean(customerName) || 
-                            Boolean(customerEmail) || 
-                            Boolean(selectedCustomerObj) || 
-                            (heldCarts && heldCarts.length > 0) || 
-                            discountVal > 0 || 
-                            loyaltyPointsEarned > 0 || 
-                            loyaltyPointsRedeemed > 0;
+            const hasData = (cart && cart.length > 0) ||
+                Boolean(customerName) ||
+                Boolean(customerEmail) ||
+                Boolean(selectedCustomerObj) ||
+                (heldCarts && heldCarts.length > 0) ||
+                discountVal > 0 ||
+                loyaltyPointsEarned > 0 ||
+                loyaltyPointsRedeemed > 0;
 
             if (hasData) {
                 const sessionData = {
@@ -175,11 +175,11 @@ const BusinessPOS = () => {
         selectedCategory,
         selectedWarehouseIds
     ]);
-    
+
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [lastOrderData, setLastOrderData] = useState(null);
-    
+
     const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [activeProductMenuId, setActiveProductMenuId] = useState(null);
@@ -232,8 +232,8 @@ const BusinessPOS = () => {
             return;
         }
 
-        const matchedSuggestion = hsnSuggestions.find(s => 
-            String(s.hsnCode).trim() === code || 
+        const matchedSuggestion = hsnSuggestions.find(s =>
+            String(s.hsnCode).trim() === code ||
             String(s.hsnCode).trim() === code.replace(/^0+/, '')
         );
         if (matchedSuggestion && matchedSuggestion.description) {
@@ -247,8 +247,8 @@ const BusinessPOS = () => {
         try {
             const results = await hsnService.searchHSN(code);
             if (results && results.length > 0) {
-                const exactMatch = results.find(r => 
-                    String(r.hsnCode).trim() === code || 
+                const exactMatch = results.find(r =>
+                    String(r.hsnCode).trim() === code ||
                     String(r.hsnCode).trim() === code.replace(/^0+/, '')
                 ) || results[0];
                 setHsnInfoDescription(exactMatch.description || 'No HSN/SAC description available for this code.');
@@ -308,7 +308,7 @@ const BusinessPOS = () => {
 
         return () => clearTimeout(timer);
     }, [isAddProductModalOpen, newProductData.name, hsnQueryOverride]);
-    
+
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [historySearch, setHistorySearch] = useState('');
     const [historyDate, setHistoryDate] = useState('');
@@ -411,7 +411,7 @@ const BusinessPOS = () => {
             });
 
             const createdCust = res?.data?.data || res?.data?.customer || res?.data || { name: newCustomerData.name, email: newCustomerData.email };
-            
+
             // Refresh customer list
             await queryClient.invalidateQueries({ queryKey: ['business-customers'] });
 
@@ -459,11 +459,11 @@ const BusinessPOS = () => {
         let local = {};
         try {
             local = JSON.parse(localStorage.getItem('cliks_pos_shop_profile') || 'null') ||
-                    JSON.parse(localStorage.getItem('cliks_org_profile') || 'null') ||
-                    JSON.parse(localStorage.getItem('cliks_business_config') || 'null') || {};
-        } catch (e) {}
+                JSON.parse(localStorage.getItem('cliks_org_profile') || 'null') ||
+                JSON.parse(localStorage.getItem('cliks_business_config') || 'null') || {};
+        } catch (e) { }
 
-        const shopName = 
+        const shopName =
             activeConfig.pos_shop_name ||
             local.pos_shop_name ||
             local.shop_name ||
@@ -475,7 +475,7 @@ const BusinessPOS = () => {
             user?.name ||
             'Local Retail Store';
 
-        const address = 
+        const address =
             activeConfig.pos_shop_address ||
             local.pos_shop_address ||
             local.shop_address ||
@@ -486,7 +486,7 @@ const BusinessPOS = () => {
             (local.city ? `${local.city}${local.pincode ? ` - ${local.pincode}` : ''}` : '') ||
             '';
 
-        const phone = 
+        const phone =
             activeConfig.pos_shop_phone ||
             local.pos_shop_phone ||
             local.shop_phone ||
@@ -496,7 +496,7 @@ const BusinessPOS = () => {
             user?.phone ||
             '';
 
-        const email = 
+        const email =
             activeConfig.pos_shop_email ||
             local.pos_shop_email ||
             local.shop_email ||
@@ -506,7 +506,7 @@ const BusinessPOS = () => {
             user?.email ||
             '';
 
-        const gstin = 
+        const gstin =
             activeConfig.pos_shop_gstin ||
             local.pos_shop_gstin ||
             local.shop_gstin ||
@@ -516,7 +516,7 @@ const BusinessPOS = () => {
             local.gstinRef ||
             '';
 
-        const tagline = 
+        const tagline =
             activeConfig.pos_shop_tagline ||
             local.pos_shop_tagline ||
             local.tagline ||
@@ -652,20 +652,20 @@ const BusinessPOS = () => {
                     const matchedProd = (prodRes || []).find(p => {
                         const pSkuLower = (p.sku || '').trim().toLowerCase();
                         const pNameLower = (p.name || p.product_name || '').trim().toLowerCase();
-                        return (sSkuLower && pSkuLower && sSkuLower === pSkuLower) || 
-                               (sNameLower && pNameLower && sNameLower === pNameLower);
+                        return (sSkuLower && pSkuLower && sSkuLower === pSkuLower) ||
+                            (sNameLower && pNameLower && sNameLower === pNameLower);
                     }) || {};
 
                     const matchedInv = (invRes || []).find(i => {
                         const iSkuLower = (i.sku || '').trim().toLowerCase();
                         const iNameLower = (i.name || '').trim().toLowerCase();
-                        return (sSkuLower && iSkuLower && sSkuLower === iSkuLower) || 
-                               (sNameLower && iNameLower && sNameLower === iNameLower);
+                        return (sSkuLower && iSkuLower && sSkuLower === iSkuLower) ||
+                            (sNameLower && iNameLower && sNameLower === iNameLower);
                     }) || {};
 
-                    const derivedHsn = s.hsn_code || s.hsnCode || s.hsn || 
-                                       matchedProd.hsn_code || matchedProd.hsnCode || matchedProd.hsn || matchedProd.hsn_sac || 
-                                       matchedInv.hsn_code || matchedInv.hsnCode || matchedInv.hsn || matchedInv.hsn_sac || '';
+                    const derivedHsn = s.hsn_code || s.hsnCode || s.hsn ||
+                        matchedProd.hsn_code || matchedProd.hsnCode || matchedProd.hsn || matchedProd.hsn_sac ||
+                        matchedInv.hsn_code || matchedInv.hsnCode || matchedInv.hsn || matchedInv.hsn_sac || '';
 
                     return {
                         id: s.id,
@@ -719,9 +719,9 @@ const BusinessPOS = () => {
                     const namePart = (item.name || '').toLowerCase().trim();
                     const whPart = (item.warehouse_id || item.location || '').toLowerCase().trim();
                     const idPart = item.id !== undefined && item.id !== null ? String(item.id) : '';
-                    
-                    const key = skuPart 
-                        ? `${skuPart}_${whPart}` 
+
+                    const key = skuPart
+                        ? `${skuPart}_${whPart}`
                         : (idPart ? `${item.source}_${idPart}_${whPart}` : `${namePart}_${whPart}`);
 
                     if (!uniqueMap.has(key)) {
@@ -754,7 +754,7 @@ const BusinessPOS = () => {
         refetchOnWindowFocus: true
     });
 
-    
+
     // 4. Fetch Order History
     const { data: orderHistory = [], isLoading: isHistoryLoading } = useQuery({
         queryKey: ['pos-order-history'],
@@ -776,7 +776,7 @@ const BusinessPOS = () => {
             const targetId = customerHistoryModalCustomer.id || customerHistoryModalCustomer.customer_id || null;
             const targetEmail = (customerHistoryModalCustomer.email || '').toLowerCase().trim();
             const targetName = (customerHistoryModalCustomer.name || customerName || 'Walk-in Customer').toLowerCase().trim();
-            
+
             const isWalkIn = targetName === 'walk-in customer' || targetName === 'walk-in' || targetName === 'walkin' || (!targetId && !targetEmail && (targetName.includes('walk') || targetName === ''));
 
             // Build request parameters for POS orders API
@@ -859,15 +859,15 @@ const BusinessPOS = () => {
         mutationFn: posService.checkout,
         onSuccess: (data) => {
             const fallbackBilledBy = user?.name || user?.full_name || user?.business_name || user?.email || 'Cashier';
-            setLastOrderData(data ? { 
+            setLastOrderData(data ? {
                 shop_name: resolvedShopDetails.shopName,
                 shop_address: resolvedShopDetails.address,
                 shop_phone: resolvedShopDetails.phone,
                 shop_email: resolvedShopDetails.email,
                 shop_gstin: resolvedShopDetails.gstin,
                 shop_tagline: resolvedShopDetails.tagline,
-                ...data, 
-                billed_by: data.billed_by || fallbackBilledBy 
+                ...data,
+                billed_by: data.billed_by || fallbackBilledBy
             } : data);
             setShowReceiptModal(true);
             setIsCheckingOut(false);
@@ -878,10 +878,10 @@ const BusinessPOS = () => {
             }
 
             // Extract exact updated loyalty balance returned from backend database
-            const freshLtp = data?.updated_customer_loyalty_points !== undefined 
-                ? parseFloat(data.updated_customer_loyalty_points) 
-                : (data?.remaining_loyalty_points !== undefined 
-                    ? parseFloat(data.remaining_loyalty_points) 
+            const freshLtp = data?.updated_customer_loyalty_points !== undefined
+                ? parseFloat(data.updated_customer_loyalty_points)
+                : (data?.remaining_loyalty_points !== undefined
+                    ? parseFloat(data.remaining_loyalty_points)
                     : (data?.final_loyalty_points !== undefined ? parseFloat(data.final_loyalty_points) : null));
 
             if (freshLtp !== null && !isNaN(freshLtp)) {
@@ -917,7 +917,7 @@ const BusinessPOS = () => {
             // Reset Cart
             try {
                 sessionStorage.removeItem(POS_SESSION_STORAGE_KEY);
-            } catch (e) {}
+            } catch (e) { }
             setCart([]);
             setCustomerName('');
             setCustomerEmail('');
@@ -927,7 +927,7 @@ const BusinessPOS = () => {
             setIsPtsEarnedManuallyEdited(false);
             setDiscountVal(0);
             setActiveHeldCartInfo(null);
-            
+
             // Refetch to reflect updated inventory, customers & stats
             queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -1186,8 +1186,8 @@ const BusinessPOS = () => {
                 const pName = (p.name || p.product_name || '').trim().toLowerCase();
                 const pId = p.id ? String(p.id) : null;
                 return (targetSku && pSku && targetSku === pSku) ||
-                       (targetName && pName && targetName === pName) ||
-                       (targetId && pId && targetId === pId);
+                    (targetName && pName && targetName === pName) ||
+                    (targetId && pId && targetId === pId);
             });
             if (match) {
                 resolvedHsn = match.hsn_code || match.hsnCode || match.hsn || match.hsn_sac || match.rawProduct?.hsn_code || '';
@@ -1270,12 +1270,12 @@ const BusinessPOS = () => {
             return matchesCategory && matchesWarehouse;
         }
 
-        const matchesSearch = 
+        const matchesSearch =
             (prod.name || '').toLowerCase().includes(lowerSearch) ||
             (prod.sku || '').toLowerCase().includes(lowerSearch) ||
             (prod.category || '').toLowerCase().includes(lowerSearch) ||
             (prod.price || 0).toString().includes(lowerSearch);
-        
+
         return matchesSearch && matchesCategory && matchesWarehouse;
     });
 
@@ -1303,7 +1303,7 @@ const BusinessPOS = () => {
             const existing = prevCart.find(item => item.id === prod.id || (item.sku && prod.sku && item.sku === prod.sku));
             if (existing) {
                 const addStep = isDec ? 0.25 : 1;
-                const newQty = isDec 
+                const newQty = isDec
                     ? Math.round((existing.quantity + addStep) * 1000) / 1000
                     : existing.quantity + 1;
 
@@ -1419,8 +1419,8 @@ const BusinessPOS = () => {
 
     const getCustomerLtp = (cust) => {
         if (!cust) return 0;
-        const raw = cust.loyalty_points !== undefined && cust.loyalty_points !== null 
-            ? cust.loyalty_points 
+        const raw = cust.loyalty_points !== undefined && cust.loyalty_points !== null
+            ? cust.loyalty_points
             : (cust.points !== undefined && cust.points !== null ? cust.points : 0);
         const val = parseFloat(raw);
         if (isNaN(val) || val <= 0) return 0;
@@ -1442,21 +1442,21 @@ const BusinessPOS = () => {
 
     // Calculations
     const subtotal = cart.reduce((acc, item) => acc + item.total, 0);
-    
-    const discountAmount = discountType === 'percentage' 
+
+    const discountAmount = discountType === 'percentage'
         ? (subtotal * (parseFloat(discountVal) || 0) / 100)
         : (parseFloat(discountVal) || 0);
-    
+
     const discountedTotal = Math.max(0, subtotal - discountAmount);
     const discountPercent = subtotal > 0 ? (discountAmount / subtotal) : 0;
-    
+
     const calculatedTax = cart.reduce((acc, item) => {
         const catItem = inventory.find(p => p.id === item.id || (p.sku && item.sku && p.sku === item.sku));
         const discountedItemTotal = item.total * (1 - discountPercent);
         const itemTaxRate = parseFloat(item.tax_rate !== undefined && item.tax_rate !== null && !isNaN(parseFloat(item.tax_rate)) ? item.tax_rate : (catItem?.tax_percentage || 0)) || 0;
         return acc + (discountedItemTotal * (itemTaxRate / 100));
     }, 0);
-    
+
     // Master Config for Loyalty
     const loyaltyEnabled = activeConfig.loyaltyEnabled !== false;
     const ptsFor1Rs = activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100;
@@ -1507,7 +1507,7 @@ const BusinessPOS = () => {
         }
 
         setIsCheckingOut(true);
-        
+
         const ptsEarned = effectivePointsEarned;
         const ptsRedeemed = effectivePointsRedeemed;
         const existingPts = availableCustomerPoints;
@@ -1622,7 +1622,7 @@ const BusinessPOS = () => {
             }
             try {
                 sessionStorage.removeItem(POS_SESSION_STORAGE_KEY);
-            } catch (e) {}
+            } catch (e) { }
             setCart([]);
             setCustomerName('');
             setCustomerEmail('');
@@ -1637,17 +1637,17 @@ const BusinessPOS = () => {
 
     const holdCart = async () => {
         if (cart.length === 0) return;
-        
+
         const isEditingHeld = Boolean(activeHeldCartInfo);
         const defaultDisplayId = isEditingHeld ? activeHeldCartInfo.displayId : holdCounter;
         const defaultId = isEditingHeld ? activeHeldCartInfo.id : Date.now();
 
-        const suggestedName = customerName 
-            ? `Cart - ${customerName}` 
-            : (isEditingHeld && activeHeldCartInfo.customName 
-                ? activeHeldCartInfo.customName 
+        const suggestedName = customerName
+            ? `Cart - ${customerName}`
+            : (isEditingHeld && activeHeldCartInfo.customName
+                ? activeHeldCartInfo.customName
                 : `Cart #${defaultDisplayId}`);
-        
+
         const customName = await customPrompt('Assign a name/label to identify this held cart:', suggestedName);
         if (customName === null) return;
 
@@ -1725,7 +1725,7 @@ const BusinessPOS = () => {
             const defaultDisplayId = holdCounter;
             const defaultId = Date.now();
             const autoName = customerName ? `Cart - ${customerName}` : `Cart #${defaultDisplayId}`;
-            
+
             const newHeldEntry = {
                 id: defaultId,
                 displayId: defaultDisplayId,
@@ -1776,10 +1776,10 @@ const BusinessPOS = () => {
 
     return (
         <div style={{ display: 'flex', height: '100%', gap: '1rem', padding: '1rem', background: '#F1F5F9', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
-            
+
             {/* Left Side: Product Catalog */}
             <div style={{ flex: '0 0 calc(60% - 0.5rem)', width: 'calc(60% - 0.5rem)', minWidth: 0, background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                
+
                 {/* Header: Search & Summary Widget */}
                 <div style={{ padding: '1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: '1rem', flexShrink: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1987,7 +1987,7 @@ const BusinessPOS = () => {
                                                         <input
                                                             type="checkbox"
                                                             checked={isChecked}
-                                                            onChange={() => {}} // Handled by container div click
+                                                            onChange={() => { }} // Handled by container div click
                                                             style={{ width: '13px', height: '13px', accentColor: '#10B981', cursor: 'pointer', margin: 0 }}
                                                         />
                                                         <span style={{ fontSize: '0.8rem', fontWeight: isChecked ? '800' : '600', color: isChecked ? '#047857' : '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -2007,9 +2007,9 @@ const BusinessPOS = () => {
                         )}
                         <div style={{ position: 'relative', flex: 1 }}>
                             <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                            <input 
-                                type="text" 
-                                placeholder="Search item name, category or barcode SKU..." 
+                            <input
+                                type="text"
+                                placeholder="Search item name, category or barcode SKU..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F8FAFC', fontSize: '0.9rem', fontWeight: 500, transition: 'border-color 0.2s', height: '100%' }}
@@ -2017,7 +2017,7 @@ const BusinessPOS = () => {
                                 onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
                             />
                         </div>
-                        
+
                         {/* Category Chips Container */}
                         <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px', maxWidth: '50%', alignItems: 'center' }}>
                             {categories.slice(0, 5).map(cat => (
@@ -2068,15 +2068,15 @@ const BusinessPOS = () => {
                                     const isUnlimited = Boolean(prod.isUnlimited === true || prod.is_unlimited === true || (parseFloat(prod.quantity) >= 999000) || (parseFloat(prod.stock) >= 999000));
                                     const rawStock = parseFloat(prod.quantity) || 0;
                                     const isDec = isDecimalUnit(prod.unit);
-                                    const displayStock = isUnlimited 
-                                        ? '∞' 
-                                        : (isDec 
+                                    const displayStock = isUnlimited
+                                        ? '∞'
+                                        : (isDec
                                             ? Math.max(0, Math.round((rawStock - cartQty) * 1000) / 1000)
                                             : Math.max(0, Math.round(rawStock - cartQty)));
 
                                     const isOutOfStock = !isUnlimited && displayStock <= 0;
                                     const isLowStock = !isUnlimited && displayStock > 0 && displayStock < 10;
-                                    
+
                                     return (
                                         <motion.div
                                             layout
@@ -2275,7 +2275,7 @@ const BusinessPOS = () => {
                                                     )}
                                                 </div>
                                             </div>
-                                            
+
                                             {/* Middle Row: Product Name + SKU on Left, "In Cart" Badge on Right */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minHeight: '40px' }}>
                                                 <div style={{ flex: 1, minWidth: 0, paddingRight: '0.4rem' }}>
@@ -2283,12 +2283,12 @@ const BusinessPOS = () => {
                                                     {prod.sku && <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: '2px', fontWeight: '500' }}>SKU: {prod.sku}</div>}
                                                 </div>
                                                 {cartQty > 0 && (
-                                                    <span style={{ 
-                                                        fontSize: '0.65rem', 
-                                                        fontWeight: '800', 
-                                                        color: '#FFFFFF', 
-                                                        background: '#FF5722', 
-                                                        padding: '0.35rem 0.65rem', 
+                                                    <span style={{
+                                                        fontSize: '0.65rem',
+                                                        fontWeight: '800',
+                                                        color: '#FFFFFF',
+                                                        background: '#FF5722',
+                                                        padding: '0.35rem 0.65rem',
                                                         borderRadius: '10px',
                                                         whiteSpace: 'nowrap',
                                                         display: 'inline-block'
@@ -2346,7 +2346,7 @@ const BusinessPOS = () => {
 
             {/* Right Side: Live Cart Workspace / Billing Box */}
             <div style={{ flex: '0 0 calc(40% - 0.5rem)', width: 'calc(40% - 0.5rem)', minWidth: 0, background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                
+
                 {/* Customer Attachment Row */}
                 <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid #F1F5F9', background: '#FFF', flexShrink: 0 }}>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -2358,10 +2358,10 @@ const BusinessPOS = () => {
                         {/* Search & Actions Bar in Same Line */}
                         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0.35rem 0.55rem' }}>
                             <User size={15} color="#64748B" style={{ flexShrink: 0 }} />
-                            <input 
+                            <input
                                 ref={customerInputRef}
-                                type="text" 
-                                placeholder="Search customer (name, phone, email...)" 
+                                type="text"
+                                placeholder="Search customer (name, phone, email...)"
                                 value={customerName}
                                 onChange={(e) => {
                                     setCustomerName(e.target.value);
@@ -2371,7 +2371,7 @@ const BusinessPOS = () => {
                                 style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '0.82rem', fontWeight: '650', color: '#1E293B', minWidth: '60px' }}
                             />
                             {customerName && (
-                                <button 
+                                <button
                                     type="button"
                                     onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
                                     title="Clear customer"
@@ -2438,9 +2438,9 @@ const BusinessPOS = () => {
                             <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', marginTop: '6px', zIndex: 30, boxShadow: '0 12px 28px -4px rgba(0,0,0,0.15)', maxHeight: '250px', overflowY: 'auto', padding: '0.25rem 0' }}>
                                 <div style={{ padding: '0.4rem 0.85rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', fontWeight: '800', color: '#64748B' }}>
                                     <span>{customerName.trim() ? 'Matching Customers' : `Registered Customers (${customers.length})`}</span>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setIsCustomerDropdownOpen(false)} 
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCustomerDropdownOpen(false)}
                                         style={{ border: 'none', background: 'transparent', color: '#64748B', cursor: 'pointer', fontWeight: '700', fontSize: '0.72rem' }}
                                     >
                                         Close
@@ -2497,7 +2497,7 @@ const BusinessPOS = () => {
                                         </div>
                                     ));
                                 })()}
-                                <div 
+                                <div
                                     onClick={() => setIsCustomerDropdownOpen(false)}
                                     style={{ padding: '0.4rem', textAlign: 'center', background: '#F8FAFC', fontSize: '0.75rem', color: '#64748B', borderTop: '1px solid #F1F5F9', cursor: 'pointer', fontWeight: '700' }}>
                                     Close List
@@ -2508,68 +2508,68 @@ const BusinessPOS = () => {
 
                     {/* Selected Customer Details Banner */}
                     {selectedCustomerObj && (
-                                <div style={{ marginTop: '0.6rem', padding: '0.65rem 0.85rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.8rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'nowrap', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                        <span style={{ fontWeight: '850', color: '#065F46', fontSize: '0.85rem' }}>
-                                            Name: <strong>{selectedCustomerObj.name}</strong>
-                                        </span>
-                                        <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
-                                        <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '220px' }} title={selectedCustomerObj.email}>
-                                            {selectedCustomerObj.email || 'N/A'}
-                                        </span>
-                                        <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
-                                        <span style={{ fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.1rem 0.45rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                                            LTP: <strong>{getCustomerLtp(selectedCustomerObj)}</strong>
-                                        </span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
-                                        {/* 1. Edit / Change Customer Icon Button */}
-                                        <button 
-                                            type="button"
-                                            onClick={() => {
-                                                if (customerInputRef.current) {
-                                                    customerInputRef.current.focus();
-                                                    setIsCustomerDropdownOpen(true);
-                                                }
-                                            }}
-                                            style={{ border: 'none', background: '#DCFCE7', color: '#15803D', padding: '0.35rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease' }}
-                                            title="Edit / Change Customer"
-                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#BBF7D0'}
-                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#DCFCE7'}
-                                        >
-                                            <Edit2 size={14} />
-                                        </button>
+                        <div style={{ marginTop: '0.6rem', padding: '0.65rem 0.85rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.8rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'nowrap', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                <span style={{ fontWeight: '850', color: '#065F46', fontSize: '0.85rem' }}>
+                                    Name: <strong>{selectedCustomerObj.name}</strong>
+                                </span>
+                                <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
+                                <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '220px' }} title={selectedCustomerObj.email}>
+                                    {selectedCustomerObj.email || 'N/A'}
+                                </span>
+                                <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
+                                <span style={{ fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.1rem 0.45rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                                    LTP: <strong>{getCustomerLtp(selectedCustomerObj)}</strong>
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                                {/* 1. Edit / Change Customer Icon Button */}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (customerInputRef.current) {
+                                            customerInputRef.current.focus();
+                                            setIsCustomerDropdownOpen(true);
+                                        }
+                                    }}
+                                    style={{ border: 'none', background: '#DCFCE7', color: '#15803D', padding: '0.35rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease' }}
+                                    title="Edit / Change Customer"
+                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#BBF7D0'}
+                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#DCFCE7'}
+                                >
+                                    <Edit2 size={14} />
+                                </button>
 
-                                        {/* 2. Remove Customer Icon Button */}
-                                        <button 
-                                            type="button"
-                                            onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
-                                            style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', padding: '0.35rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease' }}
-                                            title="Remove Customer"
-                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#FCA5A5'}
-                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#FEE2E2'}
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+                                {/* 2. Remove Customer Icon Button */}
+                                <button
+                                    type="button"
+                                    onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
+                                    style={{ border: 'none', background: '#FEE2E2', color: '#EF4444', padding: '0.35rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease' }}
+                                    title="Remove Customer"
+                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#FCA5A5'}
+                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#FEE2E2'}
+                                >
+                                    <Trash2 size={14} />
+                                </button>
 
-                                        {/* 3. Order History Icon Button */}
-                                        <button 
-                                            type="button"
-                                            onClick={() => {
-                                                setCustomerHistoryModalCustomer(selectedCustomerObj || { name: customerName || 'Walk-in Customer', email: customerEmail || '' });
-                                                setIsCustomerHistoryModalOpen(true);
-                                            }}
-                                            style={{ border: 'none', background: '#EFF6FF', color: '#2563EB', padding: '0.35rem 0.55rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: '750', transition: 'all 0.15s ease' }}
-                                            title="View Customer Order History"
-                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#DBEAFE'}
-                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#EFF6FF'}
-                                        >
-                                            <History size={14} />
-                                            <span>History</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
+                                {/* 3. Order History Icon Button */}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setCustomerHistoryModalCustomer(selectedCustomerObj || { name: customerName || 'Walk-in Customer', email: customerEmail || '' });
+                                        setIsCustomerHistoryModalOpen(true);
+                                    }}
+                                    style={{ border: 'none', background: '#EFF6FF', color: '#2563EB', padding: '0.35rem 0.55rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: '750', transition: 'all 0.15s ease' }}
+                                    title="View Customer Order History"
+                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#DBEAFE'}
+                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#EFF6FF'}
+                                >
+                                    <History size={14} />
+                                    <span>History</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Held Carts Row */}
@@ -2581,23 +2581,23 @@ const BusinessPOS = () => {
                             return (
                                 <div
                                     key={hc.id}
-                                    style={{ 
-                                        background: isActive ? '#DCFCE7' : '#FFFFFF', 
-                                        border: isActive ? '1px solid #86EFAC' : '1px solid #FCD34D', 
-                                        padding: '0.3rem 0.65rem', 
-                                        borderRadius: '8px', 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
+                                    style={{
+                                        background: isActive ? '#DCFCE7' : '#FFFFFF',
+                                        border: isActive ? '1px solid #86EFAC' : '1px solid #FCD34D',
+                                        padding: '0.3rem 0.65rem',
+                                        borderRadius: '8px',
+                                        display: 'flex',
+                                        alignItems: 'center',
                                         gap: '0.5rem',
-                                        fontSize: '0.75rem', 
-                                        fontWeight: '800', 
-                                        color: isActive ? '#15803D' : '#92400E', 
+                                        fontSize: '0.75rem',
+                                        fontWeight: '800',
+                                        color: isActive ? '#15803D' : '#92400E',
                                         whiteSpace: 'nowrap',
                                         boxShadow: isActive ? '0 2px 6px rgba(22, 163, 74, 0.15)' : 'none',
                                         transition: 'all 0.15s ease'
                                     }}
                                 >
-                                    <span 
+                                    <span
                                         onClick={() => restoreCart(hc.id)}
                                         style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                                         title="Click to view/edit this held cart"
@@ -2606,16 +2606,16 @@ const BusinessPOS = () => {
                                         {hc.customName || hc.customerName || `Cart #${hc.displayId}`} ({hc.cart.length} items)
                                     </span>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px', borderLeft: isActive ? '1px solid #BBF7D0' : '1px solid #FEF3C7', paddingLeft: '6px' }}>
-                                        <Edit 
-                                            size={12} 
-                                            style={{ cursor: 'pointer', color: isActive ? '#16A34A' : '#D97706' }} 
-                                            onClick={() => renameHeldCart(hc.id)} 
+                                        <Edit
+                                            size={12}
+                                            style={{ cursor: 'pointer', color: isActive ? '#16A34A' : '#D97706' }}
+                                            onClick={() => renameHeldCart(hc.id)}
                                             title="Rename Cart"
                                         />
-                                        <Trash2 
-                                            size={12} 
-                                            style={{ cursor: 'pointer', color: '#EF4444' }} 
-                                            onClick={() => deleteHeldCart(hc.id)} 
+                                        <Trash2
+                                            size={12}
+                                            style={{ cursor: 'pointer', color: '#EF4444' }}
+                                            onClick={() => deleteHeldCart(hc.id)}
                                             title="Discard Cart"
                                         />
                                     </div>
@@ -2631,18 +2631,18 @@ const BusinessPOS = () => {
                         CART {cart.length > 0 ? `(${cart.length})` : ''}
                     </span>
                     <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                        <button 
+                        <button
                             type="button"
-                            onClick={holdCart} 
+                            onClick={holdCart}
                             disabled={cart.length === 0}
-                            style={{ 
-                                background: '#F8FAFC', 
-                                border: '1px solid #E2E8F0', 
-                                padding: '0.25rem 0.65rem', 
-                                borderRadius: '6px', 
-                                color: '#334155', 
-                                fontSize: '0.75rem', 
-                                fontWeight: '800', 
+                            style={{
+                                background: '#F8FAFC',
+                                border: '1px solid #E2E8F0',
+                                padding: '0.25rem 0.65rem',
+                                borderRadius: '6px',
+                                color: '#334155',
+                                fontSize: '0.75rem',
+                                fontWeight: '800',
                                 cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
                                 opacity: cart.length === 0 ? 0.5 : 1
                             }}
@@ -2650,16 +2650,16 @@ const BusinessPOS = () => {
                             Hold Cart
                         </button>
 
-                        <button 
+                        <button
                             type="button"
-                            onClick={clearCart} 
+                            onClick={clearCart}
                             disabled={cart.length === 0}
-                            style={{ 
-                                background: 'transparent', 
-                                border: 'none', 
-                                color: '#EF4444', 
-                                fontSize: '0.75rem', 
-                                fontWeight: '800', 
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#EF4444',
+                                fontSize: '0.75rem',
+                                fontWeight: '800',
                                 cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
                                 opacity: cart.length === 0 ? 0.4 : 1,
                                 padding: '0.25rem 0.5rem'
@@ -2711,16 +2711,16 @@ const BusinessPOS = () => {
                                                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem', fontSize: cartPriceFontSz, color: '#64748B', marginTop: '2px', wordBreak: 'break-word' }}>
                                                         <span>{cartPriceStr}</span>
                                                         <span style={{ color: '#94A3B8' }}>•</span>
-                                                        <span style={{ 
-                                                            display: 'inline-flex', 
-                                                            alignItems: 'center', 
-                                                            background: '#F0FDFA', 
-                                                            color: '#0F766E', 
-                                                            border: '1px solid #CCFBF1', 
-                                                            padding: '0.5px 5px', 
-                                                            borderRadius: '4px', 
-                                                            fontSize: '0.68rem', 
-                                                            fontWeight: '800' 
+                                                        <span style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            background: '#F0FDFA',
+                                                            color: '#0F766E',
+                                                            border: '1px solid #CCFBF1',
+                                                            padding: '0.5px 5px',
+                                                            borderRadius: '4px',
+                                                            fontSize: '0.68rem',
+                                                            fontWeight: '800'
                                                         }}>
                                                             {itemTaxRate}% GST
                                                         </span>
@@ -2731,15 +2731,15 @@ const BusinessPOS = () => {
 
                                         {/* Quantity Selectors */}
                                         <div style={{ display: 'flex', alignItems: 'center', background: '#F1F5F9', borderRadius: '8px', padding: '2px', flexShrink: 0 }}>
-                                            <button 
+                                            <button
                                                 type="button"
-                                                onClick={() => updateCartQty(item.id, isDecimalUnit(item.unit) ? -0.25 : -1)} 
+                                                onClick={() => updateCartQty(item.id, isDecimalUnit(item.unit) ? -0.25 : -1)}
                                                 style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
                                             >
                                                 <Minus size={13} />
                                             </button>
-                                            
-                                            <input 
+
+                                            <input
                                                 type="number"
                                                 step={isDecimalUnit(item.unit) ? "any" : "1"}
                                                 min="0.001"
@@ -2760,9 +2760,9 @@ const BusinessPOS = () => {
                                                 {item.unit || 'PCS'}
                                             </span>
 
-                                            <button 
+                                            <button
                                                 type="button"
-                                                onClick={() => updateCartQty(item.id, isDecimalUnit(item.unit) ? 0.25 : 1)} 
+                                                onClick={() => updateCartQty(item.id, isDecimalUnit(item.unit) ? 0.25 : 1)}
                                                 style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
                                             >
                                                 <Plus size={13} />
@@ -2816,34 +2816,34 @@ const BusinessPOS = () => {
                         <>
                             {/* Two-Half Side-by-Side Compact Layout */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: '0.55rem', alignItems: 'stretch' }}>
-                                
+
                                 {/* FIRST HALF: Discount, Points Redeemed, Points Earned */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', justifyContent: 'space-between' }}>
-                                    
+
                                     {/* Discount Row */}
                                     <div style={{ background: '#FFFFFF', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
                                             <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Discount</span>
                                             <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                                <button 
+                                                <button
                                                     type="button"
-                                                    onClick={() => setDiscountType('percentage')} 
+                                                    onClick={() => setDiscountType('percentage')}
                                                     style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.62rem', fontWeight: discountType === 'percentage' ? '800' : '500', color: discountType === 'percentage' ? '#10B981' : '#94A3B8', cursor: 'pointer' }}
                                                 >
                                                     %
                                                 </button>
                                                 <span style={{ fontSize: '0.6rem', color: '#CBD5E1' }}>|</span>
-                                                <button 
+                                                <button
                                                     type="button"
-                                                    onClick={() => setDiscountType('flat')} 
+                                                    onClick={() => setDiscountType('flat')}
                                                     style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.62rem', fontWeight: discountType === 'flat' ? '800' : '500', color: discountType === 'flat' ? '#10B981' : '#94A3B8', cursor: 'pointer' }}
                                                 >
                                                     Flat
                                                 </button>
                                             </div>
                                         </div>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             placeholder="0"
                                             min="0"
                                             value={discountVal || ''}
@@ -2870,7 +2870,7 @@ const BusinessPOS = () => {
 
                                             {/* Points Redeemed Input + Max Button */}
                                             <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
-                                                <input 
+                                                <input
                                                     type="number"
                                                     step="any"
                                                     min="0"
@@ -2890,37 +2890,37 @@ const BusinessPOS = () => {
                                                         if (val < 0) val = 0;
                                                         setLoyaltyPointsRedeemed(val);
                                                     }}
-                                                    style={{ 
-                                                        flex: 1, 
+                                                    style={{
+                                                        flex: 1,
                                                         minWidth: 0,
-                                                        padding: '0.25rem 0.45rem', 
-                                                        boxSizing: 'border-box', 
-                                                        borderRadius: '6px', 
-                                                        border: '1px solid #BBF7D0', 
-                                                        background: !selectedCustomerObj ? '#F8FAFC' : 'white', 
-                                                        fontSize: '0.78rem', 
-                                                        fontWeight: '750', 
+                                                        padding: '0.25rem 0.45rem',
+                                                        boxSizing: 'border-box',
+                                                        borderRadius: '6px',
+                                                        border: '1px solid #BBF7D0',
+                                                        background: !selectedCustomerObj ? '#F8FAFC' : 'white',
+                                                        fontSize: '0.78rem',
+                                                        fontWeight: '750',
                                                         color: '#15803D',
                                                         outline: 'none',
                                                         opacity: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 0.6 : 1
-                                                    }} 
+                                                    }}
                                                 />
-                                                <button 
-                                                    type="button" 
+                                                <button
+                                                    type="button"
                                                     onClick={() => {
                                                         if (!selectedCustomerObj || maxRedeemablePoints <= 0) return;
                                                         setLoyaltyPointsRedeemed(maxRedeemablePoints);
                                                     }}
                                                     disabled={!selectedCustomerObj || maxRedeemablePoints <= 0}
-                                                    style={{ 
-                                                        padding: '0.25rem 0.45rem', 
-                                                        borderRadius: '6px', 
-                                                        background: '#16A34A', 
-                                                        color: 'white', 
-                                                        border: 'none', 
-                                                        fontSize: '0.65rem', 
-                                                        fontWeight: '800', 
-                                                        cursor: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 'not-allowed' : 'pointer', 
+                                                    style={{
+                                                        padding: '0.25rem 0.45rem',
+                                                        borderRadius: '6px',
+                                                        background: '#16A34A',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        fontSize: '0.65rem',
+                                                        fontWeight: '800',
+                                                        cursor: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 'not-allowed' : 'pointer',
                                                         opacity: (!selectedCustomerObj || maxRedeemablePoints <= 0) ? 0.5 : 1,
                                                         whiteSpace: 'nowrap'
                                                     }}
@@ -3099,7 +3099,7 @@ const BusinessPOS = () => {
             {/* SUCCESS RECEIPT POPUP MODAL */}
             {showReceiptModal && lastOrderData && (
                 <div className="pos-receipt-modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, backdropFilter: 'blur(8px)', padding: '1rem' }}>
-                    <motion.div 
+                    <motion.div
                         className="pos-receipt-modal-content"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -3227,12 +3227,12 @@ const BusinessPOS = () => {
                                 )}
 
                                 <p style={{ margin: '2px 0 8px', fontSize: '0.75rem' }}>Receipt No: {lastOrderData?.invoice_number || 'N/A'}</p>
-                                
+
                                 <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0' }} />
-                                
+
                                 <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px' }}>
                                     <span>Date: {lastOrderData?.created_at ? new Date(lastOrderData.created_at).toLocaleDateString() : new Date().toLocaleDateString()}</span>
-                                    <span>Time: {lastOrderData?.created_at ? new Date(lastOrderData.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                    <span>Time: {lastOrderData?.created_at ? new Date(lastOrderData.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
                                 <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '8px' }}>
                                     <span>Customer: {lastOrderData?.client_name || 'Walk-in Customer'}</span>
@@ -3299,7 +3299,7 @@ const BusinessPOS = () => {
                                 </div>
 
                                 <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '12px 0' }} />
-                                
+
                                 {/* Loyalty Points Summary on Receipt */}
                                 {(lastOrderData?.existing_loyalty_points !== undefined || lastOrderData?.loyalty_points_earned > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
                                     <div style={{ width: '100%', fontSize: '0.75rem', textAlign: 'left', marginBottom: '6px' }}>
@@ -3333,23 +3333,23 @@ const BusinessPOS = () => {
 
                         {/* Action Footer */}
                         <div className="no-print" style={{ padding: '1.25rem', borderTop: '1px solid #F1F5F9', display: 'flex', gap: '0.75rem', borderRadius: '0 0 20px 20px' }}>
-                            <button 
+                            <button
                                 onClick={printReceipt}
                                 className="no-print"
-                                style={{ 
-                                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', 
-                                    padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', 
-                                    background: 'white', color: '#1E293B', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' 
+                                style={{
+                                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                                    padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0',
+                                    background: 'white', color: '#1E293B', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer'
                                 }}
                             >
                                 <Printer size={16} /> Print
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setShowReceiptModal(false)}
                                 className="no-print"
-                                style={{ 
-                                    flex: 1, padding: '0.75rem', borderRadius: '12px', border: 'none', 
-                                    background: '#0F172A', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' 
+                                style={{
+                                    flex: 1, padding: '0.75rem', borderRadius: '12px', border: 'none',
+                                    background: '#0F172A', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer'
                                 }}
                             >
                                 New Order
@@ -3602,7 +3602,7 @@ const BusinessPOS = () => {
                                         )}
 
                                         <div style={{ width: '100%', borderBottom: '1px dashed #64748B', margin: '8px 0' }} />
-                                        
+
                                         <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#475569', marginBottom: '2px' }}>
                                             <span>Date: {new Date().toLocaleDateString()}</span>
                                             <span>Receipt: POS-2026-0001</span>
@@ -3704,8 +3704,8 @@ const BusinessPOS = () => {
                                     <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>Recent transactions and scanned items</p>
                                 </div>
                             </div>
-                            <button 
-                                onClick={() => setShowHistoryModal(false)} 
+                            <button
+                                onClick={() => setShowHistoryModal(false)}
                                 style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', color: '#64748B' }}
                             >
                                 <X size={18} />
@@ -3716,21 +3716,21 @@ const BusinessPOS = () => {
                         <div style={{ padding: '0.75rem 2rem', background: '#FFF', borderBottom: '1px solid #F1F5F9', display: 'flex', gap: '1rem', alignItems: 'center' }}>
                             <div style={{ position: 'relative', flex: 1 }}>
                                 <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                                <input 
-                                    type="text" 
-                                    placeholder="Search Invoice or Client..." 
+                                <input
+                                    type="text"
+                                    placeholder="Search Invoice or Client..."
                                     value={historySearch}
                                     onChange={(e) => setHistorySearch(e.target.value)}
                                     style={{ width: '100%', padding: '0.5rem 0.5rem 0.5rem 2rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }}
                                 />
                             </div>
-                            <input 
-                                type="date" 
+                            <input
+                                type="date"
                                 value={historyDate}
                                 onChange={(e) => setHistoryDate(e.target.value)}
                                 style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem', color: '#64748B' }}
                             />
-                            <select 
+                            <select
                                 value={historyPaymentMode}
                                 onChange={(e) => setHistoryPaymentMode(e.target.value)}
                                 style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem', color: '#64748B' }}
@@ -3750,13 +3750,13 @@ const BusinessPOS = () => {
                                     <span>Loading archive...</span>
                                 </div>
                             ) : orderHistory.filter(order => {
-                                const matchesSearch = 
+                                const matchesSearch =
                                     (order.invoice_number || '').toLowerCase().includes(historySearch.toLowerCase()) ||
                                     (order.client_name || '').toLowerCase().includes(historySearch.toLowerCase());
-                                
+
                                 const matchesDate = !historyDate || order.created_at.startsWith(historyDate);
                                 const matchesMode = historyPaymentMode === 'All' || order.payment_mode === historyPaymentMode;
-                                
+
                                 return matchesSearch && matchesDate && matchesMode;
                             }).length === 0 ? (
                                 <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#94A3B8', gap: '1rem' }}>
@@ -3767,105 +3767,105 @@ const BusinessPOS = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                     {orderHistory
                                         .filter(order => {
-                                            const matchesSearch = 
+                                            const matchesSearch =
                                                 (order.invoice_number || '').toLowerCase().includes(historySearch.toLowerCase()) ||
                                                 (order.client_name || '').toLowerCase().includes(historySearch.toLowerCase());
-                                            
+
                                             const matchesDate = !historyDate || order.created_at.startsWith(historyDate);
                                             const matchesMode = historyPaymentMode === 'All' || order.payment_mode === historyPaymentMode;
-                                            
+
                                             return matchesSearch && matchesDate && matchesMode;
                                         })
                                         .map(order => (
-                                        <div 
-                                            key={order.id}
-                                            style={{ background: '#FFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
-                                        >
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                <div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                                        <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A' }}>{order.invoice_number}</span>
-                                                        <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#ECFDF5', color: '#047857', fontSize: '0.65rem', fontWeight: '800' }}>PAID</span>
+                                            <div
+                                                key={order.id}
+                                                style={{ background: '#FFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
+                                            >
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                    <div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A' }}>{order.invoice_number}</span>
+                                                            <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#ECFDF5', color: '#047857', fontSize: '0.65rem', fontWeight: '800' }}>PAID</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.75rem', color: '#64748B', flexWrap: 'wrap' }}>
+                                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} /> {new Date(order.created_at).toLocaleString()}</span>
+                                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><User size={12} /> {order.client_name}</span>
+                                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><CreditCard size={12} /> {order.payment_mode}</span>
+                                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#047857', fontWeight: '750' }}>Billed by: {order.billed_by || order.cashier_name || user?.name || 'Cashier'}</span>
+                                                        </div>
                                                     </div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.75rem', color: '#64748B', flexWrap: 'wrap' }}>
-                                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} /> {new Date(order.created_at).toLocaleString()}</span>
-                                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><User size={12} /> {order.client_name}</span>
-                                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><CreditCard size={12} /> {order.payment_mode}</span>
-                                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#047857', fontWeight: '750' }}>Billed by: {order.billed_by || order.cashier_name || user?.name || 'Cashier'}</span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                        <div style={{ textAlign: 'right' }}>
+                                                            <span style={{ display: 'block', fontSize: '1.1rem', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(order.total_amount || 0)}</span>
+                                                            <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{order.items?.length || 0} items</span>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                setLastOrderData({
+                                                                    shop_name: order.shop_name || resolvedShopDetails.shopName,
+                                                                    shop_address: order.shop_address || resolvedShopDetails.address,
+                                                                    shop_phone: order.shop_phone || resolvedShopDetails.phone,
+                                                                    shop_email: order.shop_email || resolvedShopDetails.email,
+                                                                    shop_gstin: order.shop_gstin || resolvedShopDetails.gstin,
+                                                                    shop_tagline: order.shop_tagline || resolvedShopDetails.tagline,
+                                                                    ...order
+                                                                });
+                                                                setShowReceiptModal(true);
+                                                            }}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px',
+                                                                padding: '0.45rem 0.85rem',
+                                                                borderRadius: '8px',
+                                                                border: '1px solid #10B981',
+                                                                background: '#ECFDF5',
+                                                                color: '#047857',
+                                                                fontWeight: '750',
+                                                                fontSize: '0.75rem',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.2s ease',
+                                                                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.background = '#10B981';
+                                                                e.currentTarget.style.color = '#FFFFFF';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.background = '#ECFDF5';
+                                                                e.currentTarget.style.color = '#047857';
+                                                            }}
+                                                        >
+                                                            <Receipt size={14} /> Show Bill
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                    <div style={{ textAlign: 'right' }}>
-                                                        <span style={{ display: 'block', fontSize: '1.1rem', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(order.total_amount || 0)}</span>
-                                                        <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{order.items?.length || 0} items</span>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => {
-                                                            setLastOrderData({
-                                                                shop_name: order.shop_name || resolvedShopDetails.shopName,
-                                                                shop_address: order.shop_address || resolvedShopDetails.address,
-                                                                shop_phone: order.shop_phone || resolvedShopDetails.phone,
-                                                                shop_email: order.shop_email || resolvedShopDetails.email,
-                                                                shop_gstin: order.shop_gstin || resolvedShopDetails.gstin,
-                                                                shop_tagline: order.shop_tagline || resolvedShopDetails.tagline,
-                                                                ...order
-                                                            });
-                                                            setShowReceiptModal(true);
-                                                        }}
-                                                        style={{
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '6px',
-                                                            padding: '0.45rem 0.85rem',
-                                                            borderRadius: '8px',
-                                                            border: '1px solid #10B981',
-                                                            background: '#ECFDF5',
-                                                            color: '#047857',
-                                                            fontWeight: '750',
-                                                            fontSize: '0.75rem',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.2s ease',
-                                                            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            e.currentTarget.style.background = '#10B981';
-                                                            e.currentTarget.style.color = '#FFFFFF';
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.currentTarget.style.background = '#ECFDF5';
-                                                            e.currentTarget.style.color = '#047857';
-                                                        }}
-                                                    >
-                                                        <Receipt size={14} /> Show Bill
-                                                    </button>
-                                                </div>
-                                            </div>
 
-                                            {/* Item list in history */}
-                                            <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem' }}>
-                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-                                                    <FilterableTableHead columns={[
-        { key: 'item', label: 'Item', placeholder: 'Name/SKU' },
-        { key: 'qty', label: 'Qty', placeholder: 'e.g. 2' },
-        { key: 'amount', label: 'Amount', placeholder: 'e.g. 500' }
-    ]} onFilterChange={setColFilters} />
-                                                    <tbody>
-                                                        {order.items?.map((item, idx) => (
-                                                            <tr key={idx} style={{ color: '#1E293B' }}>
-                                                                <td style={{ padding: '6px 0', fontWeight: '650' }}>
-                                                                    {item.description}
-                                                                    {item.sku && <span style={{ display: 'block', fontSize: '0.65rem', color: '#94A3B8', fontFamily: 'monospace' }}>[{item.sku}]</span>}
-                                                                </td>
-                                                                <td style={{ padding: '6px 0', textAlign: 'center', fontWeight: '700' }}>{item.quantity}</td>
-                                                                <td style={{ padding: '6px 0', textAlign: 'right' }}>{formatCurrency(item.price || 0)}</td>
-                                                                <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: '700' }}>{formatCurrency(item.total || 0)}</td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
+                                                {/* Item list in history */}
+                                                <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem' }}>
+                                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                                                        <FilterableTableHead columns={[
+                                                            { key: 'item', label: 'Item', placeholder: 'Name/SKU' },
+                                                            { key: 'qty', label: 'Qty', placeholder: 'e.g. 2' },
+                                                            { key: 'amount', label: 'Amount', placeholder: 'e.g. 500' }
+                                                        ]} onFilterChange={setColFilters} />
+                                                        <tbody>
+                                                            {order.items?.map((item, idx) => (
+                                                                <tr key={idx} style={{ color: '#1E293B' }}>
+                                                                    <td style={{ padding: '6px 0', fontWeight: '650' }}>
+                                                                        {item.description}
+                                                                        {item.sku && <span style={{ display: 'block', fontSize: '0.65rem', color: '#94A3B8', fontFamily: 'monospace' }}>[{item.sku}]</span>}
+                                                                    </td>
+                                                                    <td style={{ padding: '6px 0', textAlign: 'center', fontWeight: '700' }}>{item.quantity}</td>
+                                                                    <td style={{ padding: '6px 0', textAlign: 'right' }}>{formatCurrency(item.price || 0)}</td>
+                                                                    <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: '700' }}>{formatCurrency(item.total || 0)}</td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
                                 </div>
                             )}
                         </div>
@@ -3935,35 +3935,35 @@ const BusinessPOS = () => {
                         <form onSubmit={handleCreateCustomer} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Customer Name *</label>
-                                <input 
-                                    required 
-                                    type="text" 
-                                    value={newCustomerData.name} 
-                                    onChange={(e) => setNewCustomerData({ ...newCustomerData, name: e.target.value })} 
-                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 650 }} 
-                                    placeholder="e.g. John Doe / Acme Corp" 
+                                <input
+                                    required
+                                    type="text"
+                                    value={newCustomerData.name}
+                                    onChange={(e) => setNewCustomerData({ ...newCustomerData, name: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 650 }}
+                                    placeholder="e.g. John Doe / Acme Corp"
                                 />
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Phone Number</label>
-                                    <input 
-                                        type="text" 
-                                        value={newCustomerData.phone_number} 
+                                    <input
+                                        type="text"
+                                        value={newCustomerData.phone_number}
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             setNewCustomerData({ ...newCustomerData, phone_number: val });
                                             const err = validateCustomerPhone(val);
                                             setCustomerErrors(prev => ({ ...prev, phone: err }));
                                             setTouchedCustomerFields(prev => ({ ...prev, phone: true }));
-                                        }} 
+                                        }}
                                         onBlur={() => {
                                             setTouchedCustomerFields(prev => ({ ...prev, phone: true }));
                                             setCustomerErrors(prev => ({ ...prev, phone: validateCustomerPhone(newCustomerData.phone_number) }));
                                         }}
-                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: customerErrors.phone ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
-                                        placeholder="9876543210" 
+                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: customerErrors.phone ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }}
+                                        placeholder="9876543210"
                                     />
                                     {customerErrors.phone && (
                                         <div style={{ marginTop: '4px' }}>
@@ -3994,22 +3994,22 @@ const BusinessPOS = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Email Address (@bnxmail.com)</label>
-                                    <input 
-                                        type="text" 
-                                        value={newCustomerData.email} 
+                                    <input
+                                        type="text"
+                                        value={newCustomerData.email}
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             setNewCustomerData({ ...newCustomerData, email: val });
                                             const err = validateCustomerEmail(val);
                                             setCustomerErrors(prev => ({ ...prev, email: err }));
                                             setTouchedCustomerFields(prev => ({ ...prev, email: true }));
-                                        }} 
+                                        }}
                                         onBlur={() => {
                                             setTouchedCustomerFields(prev => ({ ...prev, email: true }));
                                             setCustomerErrors(prev => ({ ...prev, email: validateCustomerEmail(newCustomerData.email) }));
                                         }}
-                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: customerErrors.email ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }} 
-                                        placeholder="customer@bnxmail.com" 
+                                        style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: customerErrors.email ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }}
+                                        placeholder="customer@bnxmail.com"
                                     />
                                     {customerErrors.email && (
                                         <div style={{ marginTop: '4px' }}>
@@ -4042,22 +4042,22 @@ const BusinessPOS = () => {
 
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>GSTIN (Optional)</label>
-                                <input 
-                                    type="text" 
-                                    value={newCustomerData.gstin} 
+                                <input
+                                    type="text"
+                                    value={newCustomerData.gstin}
                                     onChange={(e) => {
                                         const val = e.target.value.toUpperCase();
                                         setNewCustomerData({ ...newCustomerData, gstin: val });
                                         if (touchedCustomerFields.gstin) {
                                             setCustomerErrors(prev => ({ ...prev, gstin: validateCustomerGstin(val) }));
                                         }
-                                    }} 
+                                    }}
                                     onBlur={() => {
                                         setTouchedCustomerFields(prev => ({ ...prev, gstin: true }));
                                         setCustomerErrors(prev => ({ ...prev, gstin: validateCustomerGstin(newCustomerData.gstin) }));
                                     }}
-                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: customerErrors.gstin ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }} 
-                                    placeholder="27AAAAA0000A1Z5" 
+                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: customerErrors.gstin ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }}
+                                    placeholder="27AAAAA0000A1Z5"
                                 />
                                 {customerErrors.gstin && (
                                     <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#EF4444', fontWeight: '700' }}>
@@ -4068,12 +4068,12 @@ const BusinessPOS = () => {
 
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Billing Address</label>
-                                <textarea 
+                                <textarea
                                     rows={2}
-                                    value={newCustomerData.billing_address} 
-                                    onChange={(e) => setNewCustomerData({ ...newCustomerData, billing_address: e.target.value })} 
-                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, resize: 'none' }} 
-                                    placeholder="Street address, City, Pincode" 
+                                    value={newCustomerData.billing_address}
+                                    onChange={(e) => setNewCustomerData({ ...newCustomerData, billing_address: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, resize: 'none' }}
+                                    placeholder="Street address, City, Pincode"
                                 />
                             </div>
 
@@ -4134,8 +4134,8 @@ const BusinessPOS = () => {
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
                             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#0F172A' }}>Increase Stock</h3>
-                            <button 
-                                type="button" 
+                            <button
+                                type="button"
                                 onClick={() => { setIsIncreaseStockModalOpen(false); setStockTargetProduct(null); }}
                                 style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8' }}
                             >
@@ -4155,7 +4155,7 @@ const BusinessPOS = () => {
                             <label style={{ fontWeight: '750', color: '#334155', marginTop: '0.25rem', fontSize: '0.8rem' }}>
                                 Quantity to Add *
                             </label>
-                            <input 
+                            <input
                                 type="number"
                                 min="1"
                                 placeholder="e.g. 20"
@@ -4214,8 +4214,8 @@ const BusinessPOS = () => {
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
                             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '800', color: '#0F172A' }}>Decrease Stock</h3>
-                            <button 
-                                type="button" 
+                            <button
+                                type="button"
                                 onClick={() => { setIsDecreaseStockModalOpen(false); setStockTargetProduct(null); }}
                                 style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8' }}
                             >
@@ -4235,7 +4235,7 @@ const BusinessPOS = () => {
                             <label style={{ fontWeight: '750', color: '#334155', marginTop: '0.25rem', fontSize: '0.8rem' }}>
                                 Quantity to Decrease *
                             </label>
-                            <input 
+                            <input
                                 type="number"
                                 min="0.001"
                                 step="any"
@@ -4314,8 +4314,8 @@ const BusinessPOS = () => {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 {/* Product Filter Dropdown */}
-                                <select 
-                                    value={historyProductFilter} 
+                                <select
+                                    value={historyProductFilter}
                                     onChange={(e) => setHistoryProductFilter(e.target.value)}
                                     style={{
                                         padding: '0.4rem 0.6rem',
@@ -4337,10 +4337,10 @@ const BusinessPOS = () => {
 
                                 {/* POS Billing Number Search Input */}
                                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Search POS Number..." 
-                                        value={historyPosSearch} 
+                                    <input
+                                        type="text"
+                                        placeholder="Search POS Number..."
+                                        value={historyPosSearch}
                                         onChange={(e) => setHistoryPosSearch(e.target.value)}
                                         style={{
                                             padding: '0.4rem 0.6rem 0.4rem 1.8rem',
@@ -4356,8 +4356,8 @@ const BusinessPOS = () => {
                                     />
                                     <Search size={13} style={{ position: 'absolute', left: '0.5rem', color: '#94A3B8', pointerEvents: 'none' }} />
                                     {historyPosSearch && (
-                                        <button 
-                                            type="button" 
+                                        <button
+                                            type="button"
                                             onClick={() => setHistoryPosSearch('')}
                                             style={{ position: 'absolute', right: '0.4rem', border: 'none', background: 'transparent', color: '#94A3B8', cursor: 'pointer', display: 'flex', padding: 0 }}
                                         >
@@ -4366,8 +4366,8 @@ const BusinessPOS = () => {
                                     )}
                                 </div>
 
-                                <button 
-                                    type="button" 
+                                <button
+                                    type="button"
                                     onClick={() => { setIsCustomerHistoryModalOpen(false); setCustomerHistoryModalCustomer(null); setHistoryProductFilter(''); setHistoryPosSearch(''); }}
                                     style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                 >
@@ -4392,8 +4392,8 @@ const BusinessPOS = () => {
                                 <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#94A3B8' }}>
                                     <ShoppingBag size={36} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
                                     <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: '#64748B' }}>No orders found matching the selected filter(s).</p>
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => { setHistoryProductFilter(''); setHistoryPosSearch(''); }}
                                         style={{ marginTop: '0.75rem', padding: '0.35rem 0.85rem', borderRadius: '8px', border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#2563EB', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer' }}
                                     >

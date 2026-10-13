@@ -6,6 +6,7 @@ import { useCurrency, useAuth } from '../context';
 import { 
     FileText, 
     Plus, 
+    ArrowLeft,
     Search, 
     Filter, 
     Edit2, 
@@ -2397,6 +2398,683 @@ const BusinessBilling = () => {
         }
     };
 
+    const renderInvoiceWorkspace = () => (
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.75rem', borderBottom: '1px solid #F1F5F9', background: 'white', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <button 
+                        type="button" 
+                        onClick={closeModal}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                            padding: '0.45rem 0.8rem', borderRadius: '8px', 
+                            background: '#F1F5F9', color: '#475569', 
+                            border: '1px solid #E2E8F0', fontWeight: '750', 
+                            fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                    >
+                        <ArrowLeft size={14} /> Back to Invoices
+                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{editingInvoice ? 'Edit Invoice' : 'New Invoice'}</h2>
+                        <span style={{ fontSize: '0.75rem', color: '#BE185D', background: '#FCE7F3', fontWeight: '800', padding: '2px 8px', borderRadius: '6px' }}>
+                            {formData.invoice_number}
+                        </span>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button 
+                        type="button"
+                        onClick={() => setIsSettingsModalOpen(true)}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '6px', 
+                            padding: '0.45rem 0.85rem', borderRadius: '8px', 
+                            background: '#F1F5F9', 
+                            color: '#64748B', 
+                            border: '1px solid transparent',
+                            fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer'
+                        }}
+                    >
+                        <Settings size={15} /> Settings
+                    </button>
+                    <button 
+                        type="button"
+                        onClick={() => setShowLivePreview(!showLivePreview)} 
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '6px', 
+                            padding: '0.45rem 0.85rem', borderRadius: '8px', 
+                            background: showLivePreview ? '#FCE7F3' : '#F1F5F9', 
+                            color: showLivePreview ? '#BE185D' : '#64748B', 
+                            border: showLivePreview ? '1px solid #FBCFE8' : '1px solid transparent',
+                            fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer'
+                        }}
+                    >
+                        <Eye size={15} /> {showLivePreview ? 'Hide Real-time Preview' : 'Live Preview Mode'}
+                    </button>
+                    <button onClick={closeModal} title="Close" style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#64748B' }}><X size={18} /></button>
+                </div>
+            </div>
+            <div className="billing-modal-body" style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+                            {/* Left: Dynamic Interaction Pane */}
+                            <div className="billing-modal-form-pane" style={{ 
+                                flex: showLivePreview ? '1 1 55%' : '1 1 100%', 
+                                overflowY: 'scroll', 
+                                padding: '1.5rem 2rem 2rem', 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                transition: 'all 0.3s ease'
+                            }}>
+                                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: activeConfig.invoiceBillNo !== false ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: '1rem' }}>
+                                {activeConfig.invoiceBillNo !== false && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Invoice #</label>
+                                        <input readOnly type="text" value={formData.invoice_number} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', fontSize: '0.85rem' }} />
+                                    </div>
+                                )}
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Type</label>
+                                    <select value={formData.invoice_type} onChange={(e) => {
+                                        const nextType = e.target.value;
+                                        const nextPrefix = getPrefixForType(nextType);
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            invoice_type: nextType,
+                                            invoice_number: `${nextPrefix}${prev.invoice_number.replace(/^[^-]+-/, '')}`
+                                        }));
+                                    }} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
+                                        {(dropdownOptions.invoiceTypes || DEFAULT_DROPDOWNS.invoiceTypes).map((type, idx) => (
+                                            <option key={idx}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Status</label>
+                                    <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
+                                        {(dropdownOptions.invoiceStatuses || DEFAULT_DROPDOWNS.invoiceStatuses).map((status, idx) => (
+                                            <option key={idx}>{status}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${3 + (activeConfig.placeSupply ? 1 : 0) + (activeConfig.customerPo ? 1 : 0) + (activeConfig.ewayBill ? 1 : 0)}, 1fr)`, gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client Name</label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        list="customer-suggestions"
+                                        value={formData.client_name} 
+                                        onChange={(e) => handleClientChange(e.target.value)} 
+                                        style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} 
+                                    />
+                                    <datalist id="customer-suggestions">
+                                        {(() => {
+                                            const safeCust = Array.isArray(customers) ? customers : [];
+                                            return safeCust.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(c => (
+                                            <option key={c.id} value={c.name}>{c.company || 'Personal'}</option>
+                                        ));
+                                        })()}
+                                    </datalist>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client Email</label>
+                                    <input required={activeConfig.billingType !== 'lite'} type="email" value={formData.client_email} onChange={(e) => setFormData({...formData, client_email: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client GSTIN</label>
+                                    <input type="text" value={formData.client_gstin} onChange={(e) => setFormData({...formData, client_gstin: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="Optional" />
+                                </div>
+                                {activeConfig.placeSupply && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Place of Supply</label>
+                                        <input type="text" value={formData.place_of_supply || ''} onChange={(e) => setFormData({...formData, place_of_supply: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="e.g. Maharashtra" />
+                                    </div>
+                                )}
+                                {activeConfig.customerPo && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Customer P.O. No.</label>
+                                        <input type="text" value={formData.customer_po_number || ''} onChange={(e) => setFormData({...formData, customer_po_number: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="PO-12345" />
+                                    </div>
+                                )}
+                                {activeConfig.ewayBill && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>E-way Bill No.</label>
+                                        <input type="text" value={formData.eway_bill_number || ''} onChange={(e) => setFormData({...formData, eway_bill_number: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="12-digit number" />
+                                    </div>
+                                )}
+                            </div>
+
+                            {activeConfig.billingType !== 'lite' && (
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Shipping Address</label>
+                                    <textarea value={formData.shipping_address} onChange={(e) => setFormData({...formData, shipping_address: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '60px', fontSize: '0.85rem' }} />
+                                </div>
+                            )}
+
+                            <div style={{ marginTop: '0.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0F172A', margin: 0 }}>Invoice Items</h3>
+                                        <div style={{ position: 'relative' }}>
+                                            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                            <input 
+                                                ref={barcodeInputRef}
+                                                placeholder="Quick Scan / Barcode" 
+                                                style={{ padding: '0.4rem 0.75rem 0.4rem 2rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.75rem', width: '160px' }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        const barcode = e.target.value;
+                                                        // Search catalog products first
+                                                        const prod = catalogProducts.find(p => p.barcode === barcode || p.sku === barcode);
+                                                        if (prod) {
+                                                            const newItem = {
+                                                                description: prod.name || prod.product_name,
+                                                                product_id: prod.id,
+                                                                inventory_id: null,
+                                                                quantity: 1,
+                                                                price: parseFloat(prod.selling_price || 0),
+                                                                tax_rate: parseInt(prod.gst_percentage || 18),
+                                                                unit: prod.primary_unit || 'Pcs',
+                                                                hsn_code: prod.hsn_code || prod.sku || '',
+                                                                discount_percent: 0,
+                                                                discount_amount: 0,
+                                                                total: parseFloat(prod.selling_price || 0)
+                                                            };
+                                                            const newItems = [...formData.items, newItem].filter(it => it.description !== '');
+                                                            const totals = calculateTotals(newItems, formData.tax_type, formData);
+                                                            setFormData({ ...formData, items: newItems, ...totals });
+                                                            e.target.value = '';
+                                                            return;
+                                                        }
+
+                                                        const item = inventoryItems.find(i => i.barcode === barcode || i.sku === barcode);
+                                                        if (item) {
+                                                            const newItem = {
+                                                                description: item.name,
+                                                                inventory_id: item.id,
+                                                                product_id: null,
+                                                                quantity: 1,
+                                                                price: item.price || 0,
+                                                                tax_rate: item.gst_rate || 18,
+                                                                unit: item.unit || 'Pcs',
+                                                                hsn_code: item.hsn_sac || '',
+                                                                discount_percent: 0,
+                                                                discount_amount: 0,
+                                                                total: item.price || 0
+                                                            };
+                                                            const newItems = [...formData.items, newItem].filter(it => it.description !== '');
+                                                            const totals = calculateTotals(newItems, formData.tax_type, formData);
+                                                            setFormData({ ...formData, items: newItems, ...totals });
+                                                            e.target.value = '';
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <button type="button" onClick={addItem} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#BE185D', background: '#FCE7F3', border: 'none', padding: '0.4rem 0.85rem', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
+                                        <Plus size={14} /> Add Item
+                                    </button>
+                                </div>
+                                
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '380px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                                    {formData.items.map((item, idx) => {
+                                        let gridCols = '1.5fr';
+                                        if (activeConfig.enableGst !== false) gridCols += ' 70px';
+                                        gridCols += ' 60px';
+                                        if (activeConfig.freeQty === true) gridCols += ' 60px';
+                                        gridCols += ' 65px';
+                                        gridCols += ' 75px';
+                                        if (activeConfig.txnDiscount !== false) gridCols += ' 60px';
+                                        if (activeConfig.txnTax !== false) gridCols += ' 65px';
+                                        gridCols += ' 30px';
+
+                                        return (
+                                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0.5rem', alignItems: 'end', padding: '0.6rem 0.75rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>DESCRIPTION</label>
+                                                <input 
+                                                    required 
+                                                    type="text" 
+                                                    list="inventory-suggestions"
+                                                    value={item.description} 
+                                                    onChange={(e) => handleItemChange(idx, 'description', e.target.value)} 
+                                                    style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
+                                                />
+                                                <datalist id="inventory-suggestions">
+                                                    {(() => {
+                                                        const safeProds = Array.isArray(catalogProducts) ? catalogProducts : [];
+                                                        return safeProds.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(prod => (
+                                                        <option key={`prod-${prod.id}`} value={prod.name || prod.product_name}>
+                                                            📦 Catalog: {prod.sku || 'N/A'} - Stock: {prod.quantity || 0} 
+                                                            {activeConfig.displayPurchase && ` - Purchase Price: ${formatCurrency(prod.purchase_price || 0)}`}
+                                                            {activeConfig.showLast5Sale && ` - Last Sale: ${formatCurrency(prod.price || prod.sale_price || 0)}`}
+                                                            {activeConfig.showLast5Purchase && ` - Last Purchase: ${formatCurrency(prod.purchase_price || 0)}`}
+                                                        </option>
+                                                    ));
+                                                    })()}
+                                                    {(() => {
+                                                        const safeInv = Array.isArray(inventoryItems) ? inventoryItems : [];
+                                                        return safeInv.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(inv => (
+                                                        <option key={`inv-${inv.id}`} value={inv.name}>📋 Legacy Inv: {inv.sku || 'N/A'} - Stock: {inv.quantity || 0}</option>
+                                                    ));
+                                                    })()}
+                                                </datalist>
+                                            </div>
+                                            {activeConfig.enableGst !== false && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>HSN</label>
+                                                    <input type="text" value={item.hsn_code || ''} onChange={(e) => handleItemChange(idx, 'hsn_code', e.target.value)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                                </div>
+                                            )}
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>QTY</label>
+                                                <input 
+                                                    required 
+                                                    type="number" 
+                                                    min="0"
+                                                    value={item.quantity} 
+                                                    onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'quantity', Math.max(0, parseFloat(raw) || 0)); }} 
+                                                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
+                                                    style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
+                                                />
+                                            </div>
+                                            {activeConfig.freeQty === true && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>FREE</label>
+                                                    <input 
+                                                        type="number" 
+                                                        min="0"
+                                                        placeholder="0" 
+                                                        value={item.free_quantity || ''} 
+                                                        onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'free_quantity', Math.max(0, parseFloat(raw) || 0)); }} 
+                                                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
+                                                        style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
+                                                    />
+                                                </div>
+                                            )}
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>UNIT</label>
+                                                <select value={item.unit} onChange={(e) => handleItemChange(idx, 'unit', e.target.value)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.8rem' }}>
+                                                    {(dropdownOptions.units || DEFAULT_DROPDOWNS.units).map((unit, uIdx) => (
+                                                        <option key={uIdx}>{unit}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>PRICE ({currency.symbol})</label>
+                                                <input 
+                                                    required 
+                                                    type="number" 
+                                                    min="0"
+                                                    step="any"
+                                                    value={item.price} 
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                            e.preventDefault();
+                                                        }
+                                                    }}
+                                                    onPaste={(e) => {
+                                                        const pasted = e.clipboardData.getData('text');
+                                                        if (pasted.includes('-') || parseFloat(pasted) < 0) {
+                                                            e.preventDefault();
+                                                            const sanitized = Math.max(0, parseFloat(pasted) || 0);
+                                                            handleItemChange(idx, 'price', sanitized);
+                                                        }
+                                                    }}
+                                                    onChange={(e) => {
+                                                        const raw = e.target.value.slice(0, 14);
+                                                        const parsed = parseFloat(raw);
+                                                        const sanitized = isNaN(parsed) ? '' : Math.max(0, parsed);
+                                                        handleItemChange(idx, 'price', sanitized);
+                                                    }} 
+                                                    style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
+                                                />
+                                            </div>
+                                            {activeConfig.txnDiscount !== false && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>DISC %</label>
+                                                    <input type="number" value={item.discount_percent} onChange={(e) => handleItemChange(idx, 'discount_percent', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                                </div>
+                                            )}
+                                            {activeConfig.txnTax !== false && (
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>GST %</label>
+                                                    <select value={item.tax_rate} onChange={(e) => handleItemChange(idx, 'tax_rate', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.8rem' }}>
+                                                        {(dropdownOptions.gstRates || DEFAULT_DROPDOWNS.gstRates).map((gRate, gIdx) => {
+                                                            const rateVal = parseFloat(gRate.replace(/[^0-9.]/g, '')) || 0;
+                                                            return <option key={gIdx} value={rateVal}>{gRate}</option>;
+                                                        })}
+                                                    </select>
+                                                </div>
+                                            )}
+                                            <button type="button" onClick={() => removeItem(idx)} style={{ color: '#EF4444', border: 'none', background: 'transparent', cursor: 'pointer', paddingBottom: '0.4rem' }}><Trash2 size={16} /></button>
+                                        </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem', padding: '1rem', background: '#EFF6FF', borderRadius: '12px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Payment Mode</label>
+                                        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+                                            {(dropdownOptions.paymentModes || DEFAULT_DROPDOWNS.paymentModes).map(mode => (
+                                                <button 
+                                                    key={mode}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const paid = mode === 'Credit' ? 0 : formData.total_amount;
+                                                        setFormData({
+                                                            ...formData, 
+                                                            payment_mode: mode,
+                                                            paid_amount: paid,
+                                                            due_amount: formData.total_amount - paid
+                                                        });
+                                                    }}
+                                                    style={{ 
+                                                        flex: 1, padding: '0.5rem', borderRadius: '6px', 
+                                                        border: 'none',
+                                                        background: formData.payment_mode === mode ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)' : 'white',
+                                                        color: formData.payment_mode === mode ? 'white' : '#64748B',
+                                                        fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer',
+                                                        boxShadow: formData.payment_mode === mode ? '0 4px 6px -1px rgba(0,0,0,0.05)' : 'none'
+                                                    }}
+                                                >
+                                                    {mode}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {formData.payment_mode === 'Bank' && (
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Select Bank Account</label>
+                                            <select 
+                                                required
+                                                value={formData.bank_account_id}
+                                                onChange={(e) => setFormData({...formData, bank_account_id: e.target.value})}
+                                                style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: 'white', fontSize: '0.8rem' }}
+                                            >
+                                                <option value="">-- Select Bank Account --</option>
+                                                {(() => {
+                                                     const safeBanks = Array.isArray(bankAccounts) ? bankAccounts : [];
+                                                     return safeBanks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => (
+                                                     <option key={acc.id} value={acc.id}>{acc.bank_name} - {formatCurrency(acc.current_balance)}</option>
+                                                 ));
+                                                 })()}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {formData.payment_mode === 'UPI' && (
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>UPI ID</label>
+                                            <input 
+                                                type="text"
+                                                value={formData.upi_id || ''}
+                                                onChange={(e) => setFormData({...formData, upi_id: e.target.value})}
+                                                placeholder="Enter your UPI ID"
+                                                style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: 'white', fontSize: '0.8rem' }}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Paid Amount ({currency.symbol})</label>
+                                            <input 
+                                                type="number" 
+                                                value={formData.paid_amount || 0} 
+                                                onChange={(e) => {
+                                                    const raw = e.target.value.slice(0, 14);
+                                                    const paid = parseFloat(raw) || 0;
+                                                    setFormData({
+                                                        ...formData,
+                                                        paid_amount: paid,
+                                                        due_amount: (parseFloat(formData.total_amount) || 0) - paid
+                                                    });
+                                                }}
+                                                style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem' }} 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Amount ({currency.symbol})</label>
+                                            <input 
+                                                readOnly
+                                                type="number" 
+                                                value={(parseFloat(formData.total_amount) || 0) - (parseFloat(formData.paid_amount) || 0)} 
+                                                style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: '#F8FAFC', color: '#64748B', fontSize: '0.8rem' }} 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {activeConfig.loyaltyEnabled !== false && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.75rem', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #DCFCE7' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase' }}>
+                                                    <Tag size={12} /> Loyalty Points
+                                                </label>
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.2rem', margin: '0.1rem 0' }}>
+                                                ⭐ Available Points: {activeSelectedCustomer ? (activeSelectedCustomer.loyalty_points || 0) : 0} 
+                                                <span style={{color: '#86EFAC'}}>({activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50}% Claimable)</span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                <input 
+                                                    type="number" 
+                                                    disabled={!activeSelectedCustomer || (activeSelectedCustomer.loyalty_points || 0) === 0}
+                                                    placeholder="Redeem Points"
+                                                    value={formData.redeemed_points || ''}
+                                                    onChange={(e) => {
+                                                        const rawVal = e.target.value;
+                                                        let val = parseInt(rawVal, 10);
+                                                        if (isNaN(val) || rawVal === '') {
+                                                            val = 0;
+                                                        }
+                                                        const maxClaimPct = activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50;
+                                                        const maxAvail = activeSelectedCustomer ? Math.floor((activeSelectedCustomer.loyalty_points || 0) * (maxClaimPct / 100)) : 0;
+                                                        if (val > maxAvail) val = maxAvail;
+                                                        if (val < 0) val = 0;
+                                                        
+                                                        const tmp = { ...formData, redeemed_points: val };
+                                                        const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
+                                                        setFormData({ ...tmp, ...newTotals });
+                                                    }}
+                                                    style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #BBF7D0', background: 'white', fontSize: '0.8rem', outline: 'none' }} 
+                                                />
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => {
+                                                        if (!activeSelectedCustomer) return;
+                                                        const maxClaimPct = activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50;
+                                                        const maxAvail = Math.floor((activeSelectedCustomer.loyalty_points || 0) * (maxClaimPct / 100));
+                                                        const tmp = { ...formData, redeemed_points: maxAvail };
+                                                        const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
+                                                        setFormData({ ...tmp, ...newTotals });
+                                                    }}
+                                                    disabled={!activeSelectedCustomer || (activeSelectedCustomer.loyalty_points || 0) === 0}
+                                                    style={{ padding: '0.5rem 0.75rem', borderRadius: '6px', background: '#16A34A', color: 'white', border: 'none', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', opacity: (!activeSelectedCustomer || (activeSelectedCustomer.loyalty_points || 0) === 0) ? 0.5 : 1 }}
+                                                >Use Max</button>
+                                            </div>
+                                            {(formData.redeemed_points > 0) && (
+                                                <div style={{fontSize: '0.7rem', color: '#166534', fontWeight: 600, marginTop: '0.2rem'}}>
+                                                    Discount Value: {formatCurrency(formData.redeemed_points / (activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {activeConfig.dueDates !== false && (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '0.5rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Terms</label>
+                                                <select 
+                                                    onChange={(e) => {
+                                                        const days = parseInt(e.target.value);
+                                                        if (!isNaN(days)) {
+                                                            const d = new Date();
+                                                            d.setDate(d.getDate() + days);
+                                                            setFormData({ ...formData, due_date: d.toISOString().split('T')[0] });
+                                                        }
+                                                    }} 
+                                                    style={{ width: '100%', padding: '0.5rem 0.5rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem', height: '35px', background: 'white', outline: 'none' }}
+                                                >
+                                                    {(dropdownOptions.terms || DEFAULT_DROPDOWNS.terms).map((t, idx) => (
+                                                        <option key={idx} value={getDaysFromTerms(t)}>{t}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Date</label>
+                                                <input required type="date" value={formData.due_date || new Date().toISOString().split('T')[0]} onChange={(e) => setFormData({...formData, due_date: e.target.value})} style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem', height: '35px' }} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', justifyContent: 'center' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem', gap: '0.5rem' }}>
+                                        <span>Subtotal:</span>
+                                        <span style={{ maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(formData.amount)}</span>
+                                    </div>
+                                    {activeConfig.countItems === true && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
+                                            <span>Items Count:</span>
+                                            <span>{formData.items.length} items ({formData.items.reduce((sum, i) => sum + (parseInt(i.quantity) || 0), 0)} Qty)</span>
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem', gap: '0.5rem' }}>
+                                        <span>Total Discount:</span>
+                                        <span style={{ color: '#EF4444', maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>- {formatCurrency(formData.discount_amount)}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem', gap: '0.5rem' }}>
+                                        <span>GST Amount:</span>
+                                        <span style={{ maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(formData.tax_amount)}</span>
+                                    </div>
+                                    {formData.redeemed_points > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '700', fontSize: '0.8rem' }}>
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><Tag size={10} /> Loyalty Discount:</span>
+                                            <span>- {formatCurrency(formData.redeemed_points / (activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100))}</span>
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
+                                        <span>Round Off:</span>
+                                        <span>{currency.symbol} {(parseFloat(formData.round_off) || 0).toFixed(2)}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E3A8A', fontWeight: '900', fontSize: String(formData.total_amount || '').length > 10 ? '0.95rem' : '1.25rem', marginTop: '0.3rem', borderTop: '1px dashed #DBEAFE', paddingTop: '0.4rem', gap: '0.5rem', alignItems: 'center' }}>
+                                        <span>Total:</span>
+                                        <span style={{ maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(formData.total_amount)}</span>
+                                    </div>
+                                    {activeConfig.showProfitSale === true && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '700', fontSize: '0.8rem', background: '#F0FDF4', border: '1px dashed #BBF7D0', padding: '0.35rem 0.5rem', borderRadius: '6px', marginTop: '0.2rem' }}>
+                                            <span>Est. Gross Profit:</span>
+                                            <span>{formatCurrency(calculateEstimatedProfit())}</span>
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', justifyContent: 'center', background: '#F0FDF4', border: '1px dashed #BBF7D0', padding: '0.3rem', borderRadius: '6px', marginTop: '0.2rem' }}>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            🎉 Points to earn this bill: {formData.earned_points || 0} pts
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <button 
+                                    type="button" 
+                                    onClick={closeModal} 
+                                    style={{ 
+                                        padding: '0.75rem 1.5rem', 
+                                        borderRadius: '8px', 
+                                        border: '1px solid #CBD5E1', 
+                                        background: 'white', 
+                                        color: '#64748B', 
+                                        fontWeight: '800', 
+                                        fontSize: '0.9rem', 
+                                        cursor: 'pointer' 
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={createMutation.isLoading || updateMutation.isLoading} 
+                                    style={{ 
+                                        flex: 1, 
+                                        padding: '0.75rem', 
+                                        borderRadius: '8px', 
+                                        background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', 
+                                        color: 'white', 
+                                        border: 'none', 
+                                        fontWeight: '800', 
+                                        fontSize: '1rem', 
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                >
+                                    {createMutation.isLoading || updateMutation.isLoading ? <Loader2 className="animate-spin" size={18} /> : (editingInvoice ? 'Update Invoice' : 'Generate & Save Invoice')}
+                                </button>
+                            </div>
+                                </form>
+                            </div>
+
+                            {/* Right: The Live In-Situ Renderer Instance */}
+                            {showLivePreview && (
+                                <div className="billing-modal-preview-pane" style={{ 
+                                    flex: '1 1 45%', 
+                                    background: '#F8FAFC', 
+                                    borderLeft: '1px solid #E2E8F0', 
+                                    overflowY: 'scroll', 
+                                    padding: '2rem', 
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    alignItems: 'center',
+                                    animation: 'fadeIn 0.3s ease' 
+                                }}>
+                                    <div style={{ 
+                                        alignSelf: 'flex-start', 
+                                        marginBottom: '1.5rem', 
+                                        borderBottom: '1px solid #E2E8F0', 
+                                        width: '100%', 
+                                        paddingBottom: '0.5rem' 
+                                    }}>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '900', textTransform: 'uppercase', color: '#94A3B8', letterSpacing: '0.05em' }}>Real-Time Generation Display</span>
+                                    </div>
+                                    
+                                    <div style={{ 
+                                        width: '100%', 
+                                        background: 'white', 
+                                        boxShadow: '0 10px 30px rgba(0,0,0,0.05)', 
+                                        borderRadius: '4px', 
+                                        minHeight: '600px', 
+                                        padding: '30px', 
+                                        marginBottom: '3rem',
+                                        flexShrink: 0
+                                    }}>
+                                        <InvoiceTemplates.Renderer 
+                                            type={activeTemplate} 
+                                            data={{
+                                                ...formData,
+                                                billed_by: formData.billed_by || user?.name || user?.full_name || user?.email || 'Admin',
+                                                items: typeof formData.items === 'string' ? JSON.parse(formData.items) : (formData.items || [])
+                                            }} 
+                                            business={businessProfile?.data || businessProfile || {}} 
+                                            config={customConfig}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+        </div>
+    );
+
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             <style dangerouslySetInnerHTML={{ __html: `
@@ -2496,17 +3174,35 @@ const BusinessBilling = () => {
                         Templates
                     </button>
                     <button 
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={() => {
+                            if (isModalOpen) {
+                                closeModal();
+                            } else {
+                                setIsModalOpen(true);
+                            }
+                        }}
                         style={{ 
                             display: 'flex', alignItems: 'center', gap: '0.5rem', 
                             padding: '0.65rem 1rem', borderRadius: '10px', 
-                            background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', 
+                            background: isModalOpen ? '#F1F5F9' : 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', 
+                            color: isModalOpen ? '#475569' : 'white', 
+                            border: isModalOpen ? '1px solid #CBD5E1' : 'none', 
                             fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
-                            boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)'
+                            boxShadow: isModalOpen ? 'none' : '0 8px 16px rgba(236, 72, 153, 0.2)',
+                            transition: 'all 0.2s'
                         }}
                     >
-                        <Plus size={15} />
-                        Generate Invoice
+                        {isModalOpen ? (
+                            <>
+                                <ArrowLeft size={15} />
+                                Back to Invoices
+                            </>
+                        ) : (
+                            <>
+                                <Plus size={15} />
+                                Generate Invoice
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
@@ -2536,7 +3232,10 @@ const BusinessBilling = () => {
                 {/* 1. Orders List */}
                 <button
                     type="button"
-                    onClick={() => setActiveMainTab('orders')}
+                    onClick={() => {
+                        setActiveMainTab('orders');
+                        if (isModalOpen) closeModal();
+                    }}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -2547,10 +3246,10 @@ const BusinessBilling = () => {
                         fontWeight: '800',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
-                        border: activeMainTab === 'orders' ? 'none' : '1px solid #E2E8F0',
-                        background: activeMainTab === 'orders' ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : '#FFFFFF',
-                        color: activeMainTab === 'orders' ? '#FFFFFF' : '#475569',
-                        boxShadow: activeMainTab === 'orders' ? '0 4px 12px rgba(217, 119, 6, 0.25)' : 'none',
+                        border: (activeMainTab === 'orders' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
+                        background: (activeMainTab === 'orders' && !isModalOpen) ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : '#FFFFFF',
+                        color: (activeMainTab === 'orders' && !isModalOpen) ? '#FFFFFF' : '#475569',
+                        boxShadow: (activeMainTab === 'orders' && !isModalOpen) ? '0 4px 12px rgba(217, 119, 6, 0.25)' : 'none',
                         transition: 'all 0.2s'
                     }}
                 >
@@ -2562,7 +3261,10 @@ const BusinessBilling = () => {
                 {/* 2. Sales Returns (Customers) */}
                 <button
                     type="button"
-                    onClick={() => setActiveMainTab('sales_returns')}
+                    onClick={() => {
+                        setActiveMainTab('sales_returns');
+                        if (isModalOpen) closeModal();
+                    }}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -2573,10 +3275,10 @@ const BusinessBilling = () => {
                         fontWeight: '800',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
-                        border: activeMainTab === 'sales_returns' ? 'none' : '1px solid #E2E8F0',
-                        background: activeMainTab === 'sales_returns' ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : '#FFFFFF',
-                        color: activeMainTab === 'sales_returns' ? '#FFFFFF' : '#475569',
-                        boxShadow: activeMainTab === 'sales_returns' ? '0 4px 12px rgba(236, 72, 153, 0.25)' : 'none',
+                        border: (activeMainTab === 'sales_returns' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
+                        background: (activeMainTab === 'sales_returns' && !isModalOpen) ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : '#FFFFFF',
+                        color: (activeMainTab === 'sales_returns' && !isModalOpen) ? '#FFFFFF' : '#475569',
+                        boxShadow: (activeMainTab === 'sales_returns' && !isModalOpen) ? '0 4px 12px rgba(236, 72, 153, 0.25)' : 'none',
                         transition: 'all 0.2s'
                     }}
                 >
@@ -2588,7 +3290,10 @@ const BusinessBilling = () => {
                 {/* 4. Warranty & Replacement Claims */}
                 <button
                     type="button"
-                    onClick={() => setActiveMainTab('warranty')}
+                    onClick={() => {
+                        setActiveMainTab('warranty');
+                        if (isModalOpen) closeModal();
+                    }}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -2599,10 +3304,10 @@ const BusinessBilling = () => {
                         fontWeight: '800',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
-                        border: activeMainTab === 'warranty' ? 'none' : '1px solid #E2E8F0',
-                        background: activeMainTab === 'warranty' ? 'linear-gradient(135deg, #10B981 0%, #047857 100%)' : '#FFFFFF',
-                        color: activeMainTab === 'warranty' ? '#FFFFFF' : '#475569',
-                        boxShadow: activeMainTab === 'warranty' ? '0 4px 12px rgba(16, 185, 129, 0.25)' : 'none',
+                        border: (activeMainTab === 'warranty' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
+                        background: (activeMainTab === 'warranty' && !isModalOpen) ? 'linear-gradient(135deg, #10B981 0%, #047857 100%)' : '#FFFFFF',
+                        color: (activeMainTab === 'warranty' && !isModalOpen) ? '#FFFFFF' : '#475569',
+                        boxShadow: (activeMainTab === 'warranty' && !isModalOpen) ? '0 4px 12px rgba(16, 185, 129, 0.25)' : 'none',
                         transition: 'all 0.2s'
                     }}
                 >
@@ -2613,7 +3318,10 @@ const BusinessBilling = () => {
                 {/* 5. Delivery Challan */}
                 <button
                     type="button"
-                    onClick={() => setActiveMainTab('delivery_challan')}
+                    onClick={() => {
+                        setActiveMainTab('delivery_challan');
+                        if (isModalOpen) closeModal();
+                    }}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -2624,10 +3332,10 @@ const BusinessBilling = () => {
                         fontWeight: '800',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
-                        border: activeMainTab === 'delivery_challan' ? 'none' : '1px solid #E2E8F0',
-                        background: activeMainTab === 'delivery_challan' ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
-                        color: activeMainTab === 'delivery_challan' ? '#FFFFFF' : '#475569',
-                        boxShadow: activeMainTab === 'delivery_challan' ? '0 4px 12px rgba(3, 105, 161, 0.25)' : 'none',
+                        border: (activeMainTab === 'delivery_challan' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
+                        background: (activeMainTab === 'delivery_challan' && !isModalOpen) ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
+                        color: (activeMainTab === 'delivery_challan' && !isModalOpen) ? '#FFFFFF' : '#475569',
+                        boxShadow: (activeMainTab === 'delivery_challan' && !isModalOpen) ? '0 4px 12px rgba(3, 105, 161, 0.25)' : 'none',
                         transition: 'all 0.2s'
                     }}
                 >
@@ -2635,11 +3343,54 @@ const BusinessBilling = () => {
                     <span>DELIVERY CHALLAN</span>
                 </button>
 
+                {/* Active Invoice Workspace Tab */}
+                {isModalOpen && (
+                    <button
+                        type="button"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.45rem',
+                            padding: '0.5rem 0.95rem',
+                            borderRadius: '10px',
+                            fontSize: '0.82rem',
+                            fontWeight: '800',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            border: 'none',
+                            background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)',
+                            color: '#FFFFFF',
+                            boxShadow: '0 4px 12px rgba(236, 72, 153, 0.25)',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <Receipt size={15} />
+                        <span>{editingInvoice ? `Edit: ${editingInvoice.invoice_number}` : 'Generate Invoice'}</span>
+                        <span 
+                            onClick={(e) => { e.stopPropagation(); closeModal(); }}
+                            title="Close"
+                            style={{ 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                marginLeft: '4px',
+                                padding: '2px',
+                                borderRadius: '50%',
+                                background: 'rgba(255, 255, 255, 0.25)',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <X size={12} />
+                        </span>
+                    </button>
+                )}
 
             </div>
 
-            {/* Invoices List / Delivery Section */}
-            {activeMainTab === 'delivery_challan' ? (
+            {/* Invoices List / Delivery Section / Invoice Generator */}
+            {isModalOpen ? (
+                renderInvoiceWorkspace()
+            ) : activeMainTab === 'delivery_challan' ? (
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto', paddingRight: '0.25rem' }}>
                     {/* 2. KPI SUMMARY CARDS (Top of the Delivery Section) */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
@@ -3602,645 +4353,6 @@ const BusinessBilling = () => {
                     )}
                 </div>
             </div>
-            )}
-
-            {/* Create/Edit Modal */}
-            {isModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', overflowY: 'auto', padding: '1rem' }}>
-                    <div style={{ 
-                        background: 'white', 
-                        width: '100%',
-                        maxWidth: showLivePreview ? '1250px' : '760px', 
-                        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 
-                        borderRadius: '20px', 
-                        padding: 0, 
-                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', 
-                        maxHeight: '90vh', 
-                        overflow: 'hidden', 
-                        display: 'flex', 
-                        flexDirection: 'column' 
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 2rem', borderBottom: '1px solid #F1F5F9' }}>
-                            <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{editingInvoice ? 'Edit Invoice' : 'New Invoice'}</h2>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <button 
-                                    type="button"
-                                    onClick={() => setIsSettingsModalOpen(true)}
-                                    style={{ 
-                                        display: 'flex', alignItems: 'center', gap: '6px', 
-                                        padding: '0.5rem 0.9rem', borderRadius: '8px', 
-                                        background: '#F1F5F9', 
-                                        color: '#64748B', 
-                                        border: '1px solid transparent',
-                                        fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    <Settings size={15} /> Settings
-                                </button>
-                                <button 
-                                    type="button"
-                                    onClick={() => setShowLivePreview(!showLivePreview)} 
-                                    style={{ 
-                                        display: 'flex', alignItems: 'center', gap: '6px', 
-                                        padding: '0.5rem 0.9rem', borderRadius: '8px', 
-                                        background: showLivePreview ? '#FCE7F3' : '#F1F5F9', 
-                                        color: showLivePreview ? '#BE185D' : '#64748B', 
-                                        border: showLivePreview ? '1px solid #FBCFE8' : '1px solid transparent',
-                                        fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    <Eye size={15} /> {showLivePreview ? 'Hide Real-time Preview' : 'Live Preview Mode'}
-                                </button>
-                                <button onClick={closeModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'flex' }}><X size={18} /></button>
-                            </div>
-                        </div>
-                        
-                        <div className="billing-modal-body" style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-                            {/* Left: Dynamic Interaction Pane */}
-                            <div className="billing-modal-form-pane" style={{ 
-                                flex: showLivePreview ? '1 1 55%' : '1 1 100%', 
-                                overflowY: 'scroll', 
-                                padding: '1.5rem 2rem 2rem', 
-                                display: 'flex', 
-                                flexDirection: 'column',
-                                transition: 'all 0.3s ease'
-                            }}>
-                                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: activeConfig.invoiceBillNo !== false ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: '1rem' }}>
-                                {activeConfig.invoiceBillNo !== false && (
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Invoice #</label>
-                                        <input readOnly type="text" value={formData.invoice_number} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', fontSize: '0.85rem' }} />
-                                    </div>
-                                )}
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Type</label>
-                                    <select value={formData.invoice_type} onChange={(e) => {
-                                        const nextType = e.target.value;
-                                        const nextPrefix = getPrefixForType(nextType);
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            invoice_type: nextType,
-                                            invoice_number: `${nextPrefix}${prev.invoice_number.replace(/^[^-]+-/, '')}`
-                                        }));
-                                    }} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
-                                        {(dropdownOptions.invoiceTypes || DEFAULT_DROPDOWNS.invoiceTypes).map((type, idx) => (
-                                            <option key={idx}>{type}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Status</label>
-                                    <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
-                                        {(dropdownOptions.invoiceStatuses || DEFAULT_DROPDOWNS.invoiceStatuses).map((status, idx) => (
-                                            <option key={idx}>{status}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${3 + (activeConfig.placeSupply ? 1 : 0) + (activeConfig.customerPo ? 1 : 0) + (activeConfig.ewayBill ? 1 : 0)}, 1fr)`, gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client Name</label>
-                                    <input 
-                                        required 
-                                        type="text" 
-                                        list="customer-suggestions"
-                                        value={formData.client_name} 
-                                        onChange={(e) => handleClientChange(e.target.value)} 
-                                        style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} 
-                                    />
-                                    <datalist id="customer-suggestions">
-                                        {(() => {
-                                            const safeCust = Array.isArray(customers) ? customers : [];
-                                            return safeCust.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(c => (
-                                            <option key={c.id} value={c.name}>{c.company || 'Personal'}</option>
-                                        ));
-                                        })()}
-                                    </datalist>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client Email</label>
-                                    <input required={activeConfig.billingType !== 'lite'} type="email" value={formData.client_email} onChange={(e) => setFormData({...formData, client_email: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client GSTIN</label>
-                                    <input type="text" value={formData.client_gstin} onChange={(e) => setFormData({...formData, client_gstin: e.target.value.toUpperCase()})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="Optional" />
-                                </div>
-                                {activeConfig.placeSupply && (
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Place of Supply</label>
-                                        <input type="text" value={formData.place_of_supply || ''} onChange={(e) => setFormData({...formData, place_of_supply: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="e.g. Maharashtra" />
-                                    </div>
-                                )}
-                                {activeConfig.customerPo && (
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Customer P.O. No.</label>
-                                        <input type="text" value={formData.customer_po_number || ''} onChange={(e) => setFormData({...formData, customer_po_number: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="PO-12345" />
-                                    </div>
-                                )}
-                                {activeConfig.ewayBill && (
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>E-way Bill No.</label>
-                                        <input type="text" value={formData.eway_bill_number || ''} onChange={(e) => setFormData({...formData, eway_bill_number: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} placeholder="12-digit number" />
-                                    </div>
-                                )}
-                            </div>
-
-                            {activeConfig.billingType !== 'lite' && (
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Shipping Address</label>
-                                    <textarea value={formData.shipping_address} onChange={(e) => setFormData({...formData, shipping_address: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', minHeight: '60px', fontSize: '0.85rem' }} />
-                                </div>
-                            )}
-
-                            <div style={{ marginTop: '0.5rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0F172A', margin: 0 }}>Invoice Items</h3>
-                                        <div style={{ position: 'relative' }}>
-                                            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                                            <input 
-                                                ref={barcodeInputRef}
-                                                placeholder="Quick Scan / Barcode" 
-                                                style={{ padding: '0.4rem 0.75rem 0.4rem 2rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.75rem', width: '160px' }}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        const barcode = e.target.value;
-                                                        // Search catalog products first
-                                                        const prod = catalogProducts.find(p => p.barcode === barcode || p.sku === barcode);
-                                                        if (prod) {
-                                                            const newItem = {
-                                                                description: prod.name || prod.product_name,
-                                                                product_id: prod.id,
-                                                                inventory_id: null,
-                                                                quantity: 1,
-                                                                price: parseFloat(prod.selling_price || 0),
-                                                                tax_rate: parseInt(prod.gst_percentage || 18),
-                                                                unit: prod.primary_unit || 'Pcs',
-                                                                hsn_code: prod.hsn_code || prod.sku || '',
-                                                                discount_percent: 0,
-                                                                discount_amount: 0,
-                                                                total: parseFloat(prod.selling_price || 0)
-                                                            };
-                                                            const newItems = [...formData.items, newItem].filter(it => it.description !== '');
-                                                            const totals = calculateTotals(newItems, formData.tax_type, formData);
-                                                            setFormData({ ...formData, items: newItems, ...totals });
-                                                            e.target.value = '';
-                                                            return;
-                                                        }
-
-                                                        const item = inventoryItems.find(i => i.barcode === barcode || i.sku === barcode);
-                                                        if (item) {
-                                                            const newItem = {
-                                                                description: item.name,
-                                                                inventory_id: item.id,
-                                                                product_id: null,
-                                                                quantity: 1,
-                                                                price: item.price || 0,
-                                                                tax_rate: item.gst_rate || 18,
-                                                                unit: item.unit || 'Pcs',
-                                                                hsn_code: item.hsn_sac || '',
-                                                                discount_percent: 0,
-                                                                discount_amount: 0,
-                                                                total: item.price || 0
-                                                            };
-                                                            const newItems = [...formData.items, newItem].filter(it => it.description !== '');
-                                                            const totals = calculateTotals(newItems, formData.tax_type, formData);
-                                                            setFormData({ ...formData, items: newItems, ...totals });
-                                                            e.target.value = '';
-                                                        }
-                                                    }
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                    <button type="button" onClick={addItem} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#BE185D', background: '#FCE7F3', border: 'none', padding: '0.4rem 0.85rem', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem' }}>
-                                        <Plus size={14} /> Add Item
-                                    </button>
-                                </div>
-                                
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '380px', overflowY: 'auto', paddingRight: '0.25rem' }}>
-                                    {formData.items.map((item, idx) => {
-                                        let gridCols = '1.5fr';
-                                        if (activeConfig.enableGst !== false) gridCols += ' 70px';
-                                        gridCols += ' 60px';
-                                        if (activeConfig.freeQty === true) gridCols += ' 60px';
-                                        gridCols += ' 65px';
-                                        gridCols += ' 75px';
-                                        if (activeConfig.txnDiscount !== false) gridCols += ' 60px';
-                                        if (activeConfig.txnTax !== false) gridCols += ' 65px';
-                                        gridCols += ' 30px';
-
-                                        return (
-                                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0.5rem', alignItems: 'end', padding: '0.6rem 0.75rem', background: '#F8FAFC', borderRadius: '8px' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>DESCRIPTION</label>
-                                                <input 
-                                                    required 
-                                                    type="text" 
-                                                    list="inventory-suggestions"
-                                                    value={item.description} 
-                                                    onChange={(e) => handleItemChange(idx, 'description', e.target.value)} 
-                                                    style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
-                                                />
-                                                <datalist id="inventory-suggestions">
-                                                    {(() => {
-                                                        const safeProds = Array.isArray(catalogProducts) ? catalogProducts : [];
-                                                        return safeProds.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(prod => (
-                                                        <option key={`prod-${prod.id}`} value={prod.name || prod.product_name}>
-                                                            📦 Catalog: {prod.sku || 'N/A'} - Stock: {prod.quantity || 0} 
-                                                            {activeConfig.displayPurchase && ` - Purchase Price: ${formatCurrency(prod.purchase_price || 0)}`}
-                                                            {activeConfig.showLast5Sale && ` - Last Sale: ${formatCurrency(prod.price || prod.sale_price || 0)}`}
-                                                            {activeConfig.showLast5Purchase && ` - Last Purchase: ${formatCurrency(prod.purchase_price || 0)}`}
-                                                        </option>
-                                                    ));
-                                                    })()}
-                                                    {(() => {
-                                                        const safeInv = Array.isArray(inventoryItems) ? inventoryItems : [];
-                                                        return safeInv.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(inv => (
-                                                        <option key={`inv-${inv.id}`} value={inv.name}>📋 Legacy Inv: {inv.sku || 'N/A'} - Stock: {inv.quantity || 0}</option>
-                                                    ));
-                                                    })()}
-                                                </datalist>
-                                            </div>
-                                            {activeConfig.enableGst !== false && (
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>HSN</label>
-                                                    <input type="text" value={item.hsn_code || ''} onChange={(e) => handleItemChange(idx, 'hsn_code', e.target.value)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
-                                                </div>
-                                            )}
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>QTY</label>
-                                                <input 
-                                                    required 
-                                                    type="number" 
-                                                    min="0"
-                                                    value={item.quantity} 
-                                                    onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'quantity', Math.max(0, parseFloat(raw) || 0)); }} 
-                                                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
-                                                    style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
-                                                />
-                                            </div>
-                                            {activeConfig.freeQty === true && (
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>FREE</label>
-                                                    <input 
-                                                        type="number" 
-                                                        min="0"
-                                                        placeholder="0" 
-                                                        value={item.free_quantity || ''} 
-                                                        onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'free_quantity', Math.max(0, parseFloat(raw) || 0)); }} 
-                                                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
-                                                        style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
-                                                    />
-                                                </div>
-                                            )}
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>UNIT</label>
-                                                <select value={item.unit} onChange={(e) => handleItemChange(idx, 'unit', e.target.value)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.8rem' }}>
-                                                    {(dropdownOptions.units || DEFAULT_DROPDOWNS.units).map((unit, uIdx) => (
-                                                        <option key={uIdx}>{unit}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>PRICE ({currency.symbol})</label>
-                                                <input 
-                                                    required 
-                                                    type="number" 
-                                                    min="0"
-                                                    step="any"
-                                                    value={item.price} 
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-                                                            e.preventDefault();
-                                                        }
-                                                    }}
-                                                    onPaste={(e) => {
-                                                        const pasted = e.clipboardData.getData('text');
-                                                        if (pasted.includes('-') || parseFloat(pasted) < 0) {
-                                                            e.preventDefault();
-                                                            const sanitized = Math.max(0, parseFloat(pasted) || 0);
-                                                            handleItemChange(idx, 'price', sanitized);
-                                                        }
-                                                    }}
-                                                    onChange={(e) => {
-                                                        const raw = e.target.value.slice(0, 14);
-                                                        const parsed = parseFloat(raw);
-                                                        const sanitized = isNaN(parsed) ? '' : Math.max(0, parsed);
-                                                        handleItemChange(idx, 'price', sanitized);
-                                                    }} 
-                                                    style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
-                                                />
-                                            </div>
-                                            {activeConfig.txnDiscount !== false && (
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>DISC %</label>
-                                                    <input type="number" value={item.discount_percent} onChange={(e) => handleItemChange(idx, 'discount_percent', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
-                                                </div>
-                                            )}
-                                            {activeConfig.txnTax !== false && (
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>GST %</label>
-                                                    <select value={item.tax_rate} onChange={(e) => handleItemChange(idx, 'tax_rate', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.8rem' }}>
-                                                        {(dropdownOptions.gstRates || DEFAULT_DROPDOWNS.gstRates).map((gRate, gIdx) => {
-                                                            const rateVal = parseFloat(gRate.replace(/[^0-9.]/g, '')) || 0;
-                                                            return <option key={gIdx} value={rateVal}>{gRate}</option>;
-                                                        })}
-                                                    </select>
-                                                </div>
-                                            )}
-                                            <button type="button" onClick={() => removeItem(idx)} style={{ color: '#EF4444', border: 'none', background: 'transparent', cursor: 'pointer', paddingBottom: '0.4rem' }}><Trash2 size={16} /></button>
-                                        </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem', padding: '1rem', background: '#EFF6FF', borderRadius: '12px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                    <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Payment Mode</label>
-                                        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
-                                            {(dropdownOptions.paymentModes || DEFAULT_DROPDOWNS.paymentModes).map(mode => (
-                                                <button 
-                                                    key={mode}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const paid = mode === 'Credit' ? 0 : formData.total_amount;
-                                                        setFormData({
-                                                            ...formData, 
-                                                            payment_mode: mode,
-                                                            paid_amount: paid,
-                                                            due_amount: formData.total_amount - paid
-                                                        });
-                                                    }}
-                                                    style={{ 
-                                                        flex: 1, padding: '0.5rem', borderRadius: '6px', 
-                                                        border: 'none',
-                                                        background: formData.payment_mode === mode ? 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)' : 'white',
-                                                        color: formData.payment_mode === mode ? 'white' : '#64748B',
-                                                        fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer',
-                                                        boxShadow: formData.payment_mode === mode ? '0 4px 6px -1px rgba(0,0,0,0.05)' : 'none'
-                                                    }}
-                                                >
-                                                    {mode}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {formData.payment_mode === 'Bank' && (
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Select Bank Account</label>
-                                            <select 
-                                                required
-                                                value={formData.bank_account_id}
-                                                onChange={(e) => setFormData({...formData, bank_account_id: e.target.value})}
-                                                style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: 'white', fontSize: '0.8rem' }}
-                                            >
-                                                <option value="">-- Select Bank Account --</option>
-                                                {(() => {
-                                                     const safeBanks = Array.isArray(bankAccounts) ? bankAccounts : [];
-                                                     return safeBanks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => (
-                                                     <option key={acc.id} value={acc.id}>{acc.bank_name} - {formatCurrency(acc.current_balance)}</option>
-                                                 ));
-                                                 })()}
-                                            </select>
-                                        </div>
-                                    )}
-
-                                    {formData.payment_mode === 'UPI' && (
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>UPI ID</label>
-                                            <input 
-                                                type="text"
-                                                value={formData.upi_id || ''}
-                                                onChange={(e) => setFormData({...formData, upi_id: e.target.value})}
-                                                placeholder="Enter your UPI ID"
-                                                style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: 'white', fontSize: '0.8rem' }}
-                                            />
-                                        </div>
-                                    )}
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Paid Amount ({currency.symbol})</label>
-                                            <input 
-                                                type="number" 
-                                                value={formData.paid_amount || 0} 
-                                                onChange={(e) => {
-                                                    const raw = e.target.value.slice(0, 14);
-                                                    const paid = parseFloat(raw) || 0;
-                                                    setFormData({
-                                                        ...formData,
-                                                        paid_amount: paid,
-                                                        due_amount: (parseFloat(formData.total_amount) || 0) - paid
-                                                    });
-                                                }}
-                                                style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem' }} 
-                                            />
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Amount ({currency.symbol})</label>
-                                            <input 
-                                                readOnly
-                                                type="number" 
-                                                value={(parseFloat(formData.total_amount) || 0) - (parseFloat(formData.paid_amount) || 0)} 
-                                                style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: '#F8FAFC', color: '#64748B', fontSize: '0.8rem' }} 
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {activeConfig.loyaltyEnabled !== false && (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.75rem', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #DCFCE7' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase' }}>
-                                                    <Tag size={12} /> Loyalty Points
-                                                </label>
-                                            </div>
-                                            <div style={{ fontSize: '0.75rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.2rem', margin: '0.1rem 0' }}>
-                                                ⭐ Available Points: {activeSelectedCustomer ? (activeSelectedCustomer.loyalty_points || 0) : 0} 
-                                                <span style={{color: '#86EFAC'}}>({activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50}% Claimable)</span>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                                <input 
-                                                    type="number" 
-                                                    disabled={!activeSelectedCustomer || (activeSelectedCustomer.loyalty_points || 0) === 0}
-                                                    placeholder="Redeem Points"
-                                                    value={formData.redeemed_points || ''}
-                                                    onChange={(e) => {
-                                                        const rawVal = e.target.value;
-                                                        let val = parseInt(rawVal, 10);
-                                                        if (isNaN(val) || rawVal === '') {
-                                                            val = 0;
-                                                        }
-                                                        const maxClaimPct = activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50;
-                                                        const maxAvail = activeSelectedCustomer ? Math.floor((activeSelectedCustomer.loyalty_points || 0) * (maxClaimPct / 100)) : 0;
-                                                        if (val > maxAvail) val = maxAvail;
-                                                        if (val < 0) val = 0;
-                                                        
-                                                        const tmp = { ...formData, redeemed_points: val };
-                                                        const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
-                                                        setFormData({ ...tmp, ...newTotals });
-                                                    }}
-                                                    style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #BBF7D0', background: 'white', fontSize: '0.8rem', outline: 'none' }} 
-                                                />
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => {
-                                                        if (!activeSelectedCustomer) return;
-                                                        const maxClaimPct = activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50;
-                                                        const maxAvail = Math.floor((activeSelectedCustomer.loyalty_points || 0) * (maxClaimPct / 100));
-                                                        const tmp = { ...formData, redeemed_points: maxAvail };
-                                                        const newTotals = calculateTotals(formData.items, formData.tax_type, tmp);
-                                                        setFormData({ ...tmp, ...newTotals });
-                                                    }}
-                                                    disabled={!activeSelectedCustomer || (activeSelectedCustomer.loyalty_points || 0) === 0}
-                                                    style={{ padding: '0.5rem 0.75rem', borderRadius: '6px', background: '#16A34A', color: 'white', border: 'none', fontSize: '0.75rem', fontWeight: '800', cursor: 'pointer', opacity: (!activeSelectedCustomer || (activeSelectedCustomer.loyalty_points || 0) === 0) ? 0.5 : 1 }}
-                                                >Use Max</button>
-                                            </div>
-                                            {(formData.redeemed_points > 0) && (
-                                                <div style={{fontSize: '0.7rem', color: '#166534', fontWeight: 600, marginTop: '0.2rem'}}>
-                                                    Discount Value: {formatCurrency(formData.redeemed_points / (activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {activeConfig.dueDates !== false && (
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '0.5rem' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Terms</label>
-                                                <select 
-                                                    onChange={(e) => {
-                                                        const days = parseInt(e.target.value);
-                                                        if (!isNaN(days)) {
-                                                            const d = new Date();
-                                                            d.setDate(d.getDate() + days);
-                                                            setFormData({ ...formData, due_date: d.toISOString().split('T')[0] });
-                                                        }
-                                                    }} 
-                                                    style={{ width: '100%', padding: '0.5rem 0.5rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem', height: '35px', background: 'white', outline: 'none' }}
-                                                >
-                                                    {(dropdownOptions.terms || DEFAULT_DROPDOWNS.terms).map((t, idx) => (
-                                                        <option key={idx} value={getDaysFromTerms(t)}>{t}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Date</label>
-                                                <input required type="date" value={formData.due_date || new Date().toISOString().split('T')[0]} onChange={(e) => setFormData({...formData, due_date: e.target.value})} style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem', height: '35px' }} />
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', justifyContent: 'center' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem', gap: '0.5rem' }}>
-                                        <span>Subtotal:</span>
-                                        <span style={{ maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(formData.amount)}</span>
-                                    </div>
-                                    {activeConfig.countItems === true && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
-                                            <span>Items Count:</span>
-                                            <span>{formData.items.length} items ({formData.items.reduce((sum, i) => sum + (parseInt(i.quantity) || 0), 0)} Qty)</span>
-                                        </div>
-                                    )}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem', gap: '0.5rem' }}>
-                                        <span>Total Discount:</span>
-                                        <span style={{ color: '#EF4444', maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>- {formatCurrency(formData.discount_amount)}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem', gap: '0.5rem' }}>
-                                        <span>GST Amount:</span>
-                                        <span style={{ maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(formData.tax_amount)}</span>
-                                    </div>
-                                    {formData.redeemed_points > 0 && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '700', fontSize: '0.8rem' }}>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><Tag size={10} /> Loyalty Discount:</span>
-                                            <span>- {formatCurrency(formData.redeemed_points / (activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100))}</span>
-                                        </div>
-                                    )}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
-                                        <span>Round Off:</span>
-                                        <span>{currency.symbol} {(parseFloat(formData.round_off) || 0).toFixed(2)}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E3A8A', fontWeight: '900', fontSize: String(formData.total_amount || '').length > 10 ? '0.95rem' : '1.25rem', marginTop: '0.3rem', borderTop: '1px dashed #DBEAFE', paddingTop: '0.4rem', gap: '0.5rem', alignItems: 'center' }}>
-                                        <span>Total:</span>
-                                        <span style={{ maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(formData.total_amount)}</span>
-                                    </div>
-                                    {activeConfig.showProfitSale === true && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '700', fontSize: '0.8rem', background: '#F0FDF4', border: '1px dashed #BBF7D0', padding: '0.35rem 0.5rem', borderRadius: '6px', marginTop: '0.2rem' }}>
-                                            <span>Est. Gross Profit:</span>
-                                            <span>{formatCurrency(calculateEstimatedProfit())}</span>
-                                        </div>
-                                    )}
-                                    <div style={{ display: 'flex', justifyContent: 'center', background: '#F0FDF4', border: '1px dashed #BBF7D0', padding: '0.3rem', borderRadius: '6px', marginTop: '0.2rem' }}>
-                                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            🎉 Points to earn this bill: {formData.earned_points || 0} pts
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button type="submit" disabled={createMutation.isLoading || updateMutation.isLoading} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1rem', marginTop: '0.5rem', cursor: 'pointer' }}>
-                                {createMutation.isLoading || updateMutation.isLoading ? <Loader2 className="animate-spin" /> : (editingInvoice ? 'Update Invoice' : 'Generate & Save Invoice')}
-                            </button>
-                                </form>
-                            </div>
-
-                            {/* Right: The Live In-Situ Renderer Instance */}
-                            {showLivePreview && (
-                                <div className="billing-modal-preview-pane" style={{ 
-                                    flex: '1 1 45%', 
-                                    background: '#F8FAFC', 
-                                    borderLeft: '1px solid #E2E8F0', 
-                                    overflowY: 'scroll', 
-                                    padding: '2rem', 
-                                    display: 'flex', 
-                                    flexDirection: 'column', 
-                                    alignItems: 'center',
-                                    animation: 'fadeIn 0.3s ease' 
-                                }}>
-                                    <div style={{ 
-                                        alignSelf: 'flex-start', 
-                                        marginBottom: '1.5rem', 
-                                        borderBottom: '1px solid #E2E8F0', 
-                                        width: '100%', 
-                                        paddingBottom: '0.5rem' 
-                                    }}>
-                                        <span style={{ fontSize: '0.7rem', fontWeight: '900', textTransform: 'uppercase', color: '#94A3B8', letterSpacing: '0.05em' }}>Real-Time Generation Display</span>
-                                    </div>
-                                    
-                                    <div style={{ 
-                                        width: '100%', 
-                                        background: 'white', 
-                                        boxShadow: '0 10px 30px rgba(0,0,0,0.05)', 
-                                        borderRadius: '4px', 
-                                        minHeight: '600px', 
-                                        padding: '30px', 
-                                        marginBottom: '3rem',
-                                        flexShrink: 0
-                                    }}>
-                                        <InvoiceTemplates.Renderer 
-                                            type={activeTemplate} 
-                                            data={{
-                                                ...formData,
-                                                billed_by: formData.billed_by || user?.name || user?.full_name || user?.email || 'Admin',
-                                                items: typeof formData.items === 'string' ? JSON.parse(formData.items) : (formData.items || [])
-                                            }} 
-                                            business={businessProfile?.data || businessProfile || {}} 
-                                            config={customConfig}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
             )}
 
             {/* Invoice Settings Modal */}
