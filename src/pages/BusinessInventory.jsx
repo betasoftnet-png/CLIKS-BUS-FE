@@ -361,8 +361,15 @@ const BusinessInventory = () => {
         bin_number: '',
         has_warranty: 'No',
         warranty_period: '',
-        isUnlimited: false
+        isUnlimited: false,
+        is_group_product: false,
+        raw_materials: []
     }));
+
+    // Group Product / Recipe Builder State
+    const [selectedRmId, setSelectedRmId] = useState('');
+    const [selectedRmQty, setSelectedRmQty] = useState('');
+    const [selectedRmUnit, setSelectedRmUnit] = useState('PCS');
 
     // HSN Intelligent Search State (Placed after formData & isModalOpen declarations)
     const [hsnSuggestions, setHsnSuggestions] = useState([]);
@@ -515,8 +522,13 @@ const BusinessInventory = () => {
             bin_number: '',
             has_warranty: 'No',
             warranty_period: '',
-            isUnlimited: false
+            isUnlimited: false,
+            is_group_product: false,
+            raw_materials: []
         });
+        setSelectedRmId('');
+        setSelectedRmQty('');
+        setSelectedRmUnit('PCS');
     };
 
     const handleEdit = (item) => {
@@ -573,8 +585,22 @@ const BusinessInventory = () => {
             bin_number: item.bin_number || '',
             has_warranty: item.has_warranty || 'No',
             warranty_period: item.warranty_period || '',
-            isUnlimited: Boolean(item.isUnlimited === true || item.is_unlimited === true || (parseFloat(item.quantity) >= 999999) || (parseFloat(item.opening_stock) >= 999999))
+            isUnlimited: Boolean(item.isUnlimited === true || item.is_unlimited === true || (parseFloat(item.quantity) >= 999999) || (parseFloat(item.opening_stock) >= 999999)),
+            is_group_product: Boolean(item.is_group_product === 1 || item.is_group_product === true || String(item.is_group_product) === '1' || String(item.is_group_product) === 'true'),
+            raw_materials: (() => {
+                if (!item.raw_materials) return [];
+                if (Array.isArray(item.raw_materials)) return item.raw_materials;
+                try {
+                    const parsed = JSON.parse(item.raw_materials);
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (e) {
+                    return [];
+                }
+            })()
         });
+        setSelectedRmId('');
+        setSelectedRmQty('');
+        setSelectedRmUnit('PCS');
         setIsModalOpen(true);
     };
 
@@ -664,7 +690,9 @@ const BusinessInventory = () => {
             zone: formData.zone || null,
             rack_number: formData.rack_number || null,
             shelf_number: formData.shelf_number || null,
-            bin_number: formData.bin_number || null
+            bin_number: formData.bin_number || null,
+            is_group_product: formData.is_group_product ? 1 : 0,
+            raw_materials: formData.is_group_product && Array.isArray(formData.raw_materials) && formData.raw_materials.length > 0 ? JSON.stringify(formData.raw_materials) : null
         };
 
         if (editingItem) {
@@ -961,7 +989,14 @@ const BusinessInventory = () => {
                                                     <Package size={20} />
                                                 </div>
                                                 <div>
-                                                    <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.95rem', margin: '0 0 0.25rem 0' }}>{row.name}</p>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '0.25rem' }}>
+                                                        <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.95rem', margin: 0 }}>{row.name}</p>
+                                                        {(row.is_group_product === 1 || row.is_group_product === true || String(row.is_group_product) === '1' || (row.raw_materials && row.raw_materials !== '[]')) && (
+                                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#DCFCE7', color: '#15803D', padding: '2px 6px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                                                <Layers size={11} /> Recipe
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
                                                         {[
                                                             row.sku ? `SKU: ${row.sku}` : null,
@@ -1993,6 +2028,275 @@ const BusinessInventory = () => {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Group Product / Recipe (Bill of Materials) Section */}
+                            <div style={{ background: '#F8FAFC', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '1.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: formData.is_group_product ? '1.25rem' : 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: formData.is_group_product ? '#DCFCE7' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: formData.is_group_product ? '#15803D' : '#64748B' }}>
+                                            <Layers size={22} />
+                                        </div>
+                                        <div>
+                                            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#0F172A' }}>Group Product / Recipe (BOM)</h4>
+                                            <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748B' }}>
+                                                Assemble or produce this item from raw materials. Deducts raw materials stock upon sale.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <label style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(formData.is_group_product)}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, is_group_product: e.target.checked }))}
+                                            style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+                                        />
+                                        <div style={{
+                                            width: '46px',
+                                            height: '26px',
+                                            backgroundColor: formData.is_group_product ? '#15803D' : '#CBD5E1',
+                                            borderRadius: '9999px',
+                                            transition: 'background-color 0.2s',
+                                            position: 'relative'
+                                        }}>
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '3px',
+                                                left: formData.is_group_product ? '23px' : '3px',
+                                                width: '20px',
+                                                height: '20px',
+                                                backgroundColor: 'white',
+                                                borderRadius: '50%',
+                                                transition: 'left 0.2s',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                            }} />
+                                        </div>
+                                    </label>
+                                </div>
+
+                                {formData.is_group_product && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderTop: '1px solid #E2E8F0', paddingTop: '1.25rem' }}>
+                                        {/* Material Selection Controls */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'flex-end', background: 'white', padding: '1rem', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                                                    Select Raw Material / Ingredient
+                                                </label>
+                                                <select
+                                                    value={selectedRmId}
+                                                    onChange={(e) => {
+                                                        const id = e.target.value;
+                                                        setSelectedRmId(id);
+                                                        const found = items.find(i => String(i.id) === String(id));
+                                                        if (found) {
+                                                            setSelectedRmUnit(found.primary_unit || found.unit || 'PCS');
+                                                        }
+                                                    }}
+                                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontSize: '0.85rem' }}
+                                                >
+                                                    <option value="">-- Choose Product / Material --</option>
+                                                    {items
+                                                        .filter(i => !editingItem || String(i.id) !== String(editingItem.id))
+                                                        .map(i => (
+                                                            <option key={i.id} value={i.id}>
+                                                                {i.name} ({i.sku || 'No SKU'}) - Stock: {i.quantity || 0} {i.primary_unit || 'pcs'} (₹{i.purchase_price || 0})
+                                                            </option>
+                                                        ))
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                                                    Required Qty
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    min="0.001"
+                                                    placeholder="e.g. 2"
+                                                    value={selectedRmQty}
+                                                    onChange={(e) => setSelectedRmQty(e.target.value)}
+                                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontSize: '0.85rem' }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                                                    Unit
+                                                </label>
+                                                <select
+                                                    value={selectedRmUnit}
+                                                    onChange={(e) => setSelectedRmUnit(e.target.value)}
+                                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontSize: '0.85rem' }}
+                                                >
+                                                    <option value="PCS">PCS</option>
+                                                    <option value="KG">KG</option>
+                                                    <option value="G">G (Grams)</option>
+                                                    <option value="MG">MG</option>
+                                                    <option value="L">L (Litre)</option>
+                                                    <option value="ML">ML</option>
+                                                    <option value="BOX">BOX</option>
+                                                    <option value="PACKET">PACKET</option>
+                                                    <option value="METER">METER</option>
+                                                    <option value="UNIT">UNIT</option>
+                                                </select>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!selectedRmId) {
+                                                        alert('Please select a raw material.');
+                                                        return;
+                                                    }
+                                                    const qty = parseFloat(selectedRmQty);
+                                                    if (!qty || qty <= 0) {
+                                                        alert('Please enter a valid quantity greater than 0.');
+                                                        return;
+                                                    }
+                                                    const found = items.find(i => String(i.id) === String(selectedRmId));
+                                                    if (!found) return;
+
+                                                    const existing = (formData.raw_materials || []).find(m => String(m.product_id) === String(selectedRmId));
+                                                    if (existing) {
+                                                        alert('This material is already added to the recipe.');
+                                                        return;
+                                                    }
+
+                                                    const newMaterial = {
+                                                        product_id: found.id,
+                                                        product_name: found.name,
+                                                        sku: found.sku || '',
+                                                        quantity: qty,
+                                                        unit: selectedRmUnit || found.primary_unit || 'PCS',
+                                                        purchase_price: parseFloat(found.purchase_price) || 0
+                                                    };
+
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        raw_materials: [...(prev.raw_materials || []), newMaterial]
+                                                    }));
+                                                    setSelectedRmId('');
+                                                    setSelectedRmQty('');
+                                                }}
+                                                style={{
+                                                    padding: '0.75rem 1.25rem',
+                                                    borderRadius: '12px',
+                                                    border: 'none',
+                                                    background: '#15803D',
+                                                    color: 'white',
+                                                    fontWeight: '750',
+                                                    fontSize: '0.85rem',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    whiteSpace: 'nowrap'
+                                                }}
+                                            >
+                                                <Plus size={16} /> Add Material
+                                            </button>
+                                        </div>
+
+                                        {/* Added Raw Materials List */}
+                                        {formData.raw_materials && formData.raw_materials.length > 0 ? (
+                                            <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                                                    <thead>
+                                                        <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                                                            <th style={{ padding: '0.75rem 1rem', color: '#64748B', fontWeight: '800' }}>MATERIAL / INGREDIENT</th>
+                                                            <th style={{ padding: '0.75rem 1rem', color: '#64748B', fontWeight: '800' }}>QTY PER PRODUCT</th>
+                                                            <th style={{ padding: '0.75rem 1rem', color: '#64748B', fontWeight: '800' }}>UNIT COST</th>
+                                                            <th style={{ padding: '0.75rem 1rem', color: '#64748B', fontWeight: '800' }}>EST. COST</th>
+                                                            <th style={{ padding: '0.75rem 1rem', textAlign: 'right', color: '#64748B', fontWeight: '800' }}>ACTION</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {formData.raw_materials.map((mat, idx) => {
+                                                            const itemMatch = items.find(i => String(i.id) === String(mat.product_id));
+                                                            const stock = itemMatch ? (itemMatch.quantity ?? itemMatch.opening_stock ?? 0) : 'N/A';
+                                                            const cost = (parseFloat(mat.purchase_price) || 0) * (parseFloat(mat.quantity) || 0);
+
+                                                            return (
+                                                                <tr key={mat.product_id || idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                    <td style={{ padding: '0.85rem 1rem' }}>
+                                                                        <div style={{ fontWeight: '750', color: '#0F172A' }}>{mat.product_name}</div>
+                                                                        <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                                                                            {mat.sku ? `SKU: ${mat.sku} • ` : ''}Available Stock: {stock}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td style={{ padding: '0.85rem 1rem', fontWeight: '750', color: '#15803D' }}>
+                                                                        {mat.quantity} {mat.unit}
+                                                                    </td>
+                                                                    <td style={{ padding: '0.85rem 1rem', color: '#64748B' }}>
+                                                                        {formatCurrency(mat.purchase_price || 0)}
+                                                                    </td>
+                                                                    <td style={{ padding: '0.85rem 1rem', fontWeight: '750', color: '#0F172A' }}>
+                                                                        {formatCurrency(cost)}
+                                                                    </td>
+                                                                    <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setFormData(prev => ({
+                                                                                    ...prev,
+                                                                                    raw_materials: prev.raw_materials.filter((_, i) => i !== idx)
+                                                                                }));
+                                                                            }}
+                                                                            style={{ background: '#FEE2E2', border: 'none', color: '#DC2626', padding: '6px', borderRadius: '8px', cursor: 'pointer' }}
+                                                                            title="Remove Ingredient"
+                                                                        >
+                                                                            <Trash2 size={15} />
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+
+                                                {/* Recipe Cost Summary */}
+                                                {(() => {
+                                                    const totalRecipeCost = formData.raw_materials.reduce((sum, m) => {
+                                                        return sum + ((parseFloat(m.purchase_price) || 0) * (parseFloat(m.quantity) || 0));
+                                                    }, 0);
+                                                    return (
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem', background: '#F0FDF4', borderTop: '1px solid #DCFCE7' }}>
+                                                            <div>
+                                                                <span style={{ fontSize: '0.85rem', color: '#166534', fontWeight: '700' }}>
+                                                                    Total Estimated Recipe Cost:
+                                                                </span>
+                                                                <strong style={{ marginLeft: '6px', fontSize: '1rem', color: '#15803D' }}>
+                                                                    {formatCurrency(totalRecipeCost)}
+                                                                </strong>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setFormData(prev => ({ ...prev, purchase_price: totalRecipeCost.toFixed(2) }));
+                                                                }}
+                                                                style={{
+                                                                    padding: '4px 10px',
+                                                                    borderRadius: '8px',
+                                                                    border: '1px solid #86EFAC',
+                                                                    background: 'white',
+                                                                    color: '#15803D',
+                                                                    fontSize: '0.75rem',
+                                                                    fontWeight: '750',
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                            >
+                                                                Apply as Purchase Price
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        ) : (
+                                            <div style={{ textAlign: 'center', padding: '1.25rem', background: 'white', borderRadius: '16px', border: '1px dashed #CBD5E1', color: '#64748B', fontSize: '0.85rem' }}>
+                                                No raw materials linked yet. Choose an ingredient above and click <strong>Add Material</strong>.
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.2)' }}>
                                 {editingItem ? 'Update Product Catalog' : 'Register Product'}

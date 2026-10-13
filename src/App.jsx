@@ -78,13 +78,6 @@ import PermissionManager from './components/PermissionManager';
 import Join from './pages/Join';
 import Register from './pages/Register';
 
-// Manufacturing & Production Management Module Suite
-import ManufacturingDashboard from './pages/manufacturing/ManufacturingDashboard';
-import BOMManagement from './pages/manufacturing/BOMManagement';
-import ProductionOrders from './pages/manufacturing/ProductionOrders';
-import MaterialIssueConsumption from './pages/manufacturing/MaterialIssueConsumption';
-import ProductionCompletion from './pages/manufacturing/ProductionCompletion';
-import ManufacturingReports from './pages/manufacturing/ManufacturingReports';
 
 import './App.css';
 
@@ -312,14 +305,9 @@ function AuthenticatedApp() {
                 <Route path="/marketing" element={<BusinessMarketing />} />
                 <Route path="/ca" element={<BusinessCA mode="personal" />} />
                 <Route path="/sales/delivery" element={<BusinessDelivery />} />
-                {/* Manufacturing & Production Management Module Suite */}
-                <Route path="/manufacturing" element={<Navigate to="/manufacturing/dashboard" replace />} />
-                <Route path="/manufacturing/dashboard" element={<ManufacturingDashboard />} />
-                <Route path="/manufacturing/bom" element={<BOMManagement />} />
-                <Route path="/manufacturing/orders" element={<ProductionOrders />} />
-                <Route path="/manufacturing/consumption" element={<MaterialIssueConsumption />} />
-                <Route path="/manufacturing/completion" element={<ProductionCompletion />} />
-                <Route path="/manufacturing/reports" element={<ManufacturingReports />} />
+                {/* Manufacturing redirect to Inventory Products */}
+                <Route path="/manufacturing" element={<Navigate to="/inventory/products" replace />} />
+                <Route path="/manufacturing/*" element={<Navigate to="/inventory/products" replace />} />
 
                 <Route path="/reports" element={<BusinessReports />} />
                 <Route path="/pos" element={<BusinessPOS />} />
