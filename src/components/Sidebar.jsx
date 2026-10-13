@@ -58,7 +58,9 @@ import {
     Wallet,
     LineChart,
     Cloud,
-    X
+    X,
+    ClipboardList,
+    CheckCircle2
 } from 'lucide-react';
 
 import { useLocation, useNavigate } from 'react-router-dom';
