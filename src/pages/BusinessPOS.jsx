@@ -31,7 +31,8 @@ import {
     Info,
     UserPlus,
     MoreVertical,
-    Tag
+    Tag,
+    Store
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -43,6 +44,7 @@ import { stockService } from '../services/stockService';
 import { hsnService } from '../services/hsnService';
 import { warehouseService } from '../services/warehouseService';
 import { settingsService } from '../services/settingsService';
+import { profileService } from '../services/profileService';
 import '../App.css';
 import { customConfirm, customPrompt } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
@@ -442,6 +444,140 @@ const BusinessPOS = () => {
     });
     const activeConfig = React.useMemo(() => userSettings?.data || userSettings || {}, [userSettings]);
 
+    // Profile query for business & shop defaults
+    const { data: profileData } = useQuery({
+        queryKey: ['profile'],
+        queryFn: profileService.getProfile,
+        refetchOnWindowFocus: false
+    });
+    const userProfile = React.useMemo(() => profileData?.data || profileData || {}, [profileData]);
+
+    // Shop Profile / Local Store Details for POS Billing
+    const [isShopModalOpen, setIsShopModalOpen] = useState(false);
+
+    const resolvedShopDetails = React.useMemo(() => {
+        let local = {};
+        try {
+            local = JSON.parse(localStorage.getItem('cliks_pos_shop_profile') || 'null') ||
+                    JSON.parse(localStorage.getItem('cliks_org_profile') || 'null') ||
+                    JSON.parse(localStorage.getItem('cliks_business_config') || 'null') || {};
+        } catch (e) {}
+
+        const shopName = 
+            activeConfig.pos_shop_name ||
+            local.pos_shop_name ||
+            local.shop_name ||
+            activeConfig.companyName ||
+            userProfile.business_name ||
+            local.business_name ||
+            local.companyName ||
+            user?.business_name ||
+            user?.name ||
+            'Local Retail Store';
+
+        const address = 
+            activeConfig.pos_shop_address ||
+            local.pos_shop_address ||
+            local.shop_address ||
+            activeConfig.registeredAddress ||
+            userProfile.address ||
+            local.address ||
+            local.registeredAddress ||
+            (local.city ? `${local.city}${local.pincode ? ` - ${local.pincode}` : ''}` : '') ||
+            '';
+
+        const phone = 
+            activeConfig.pos_shop_phone ||
+            local.pos_shop_phone ||
+            local.shop_phone ||
+            activeConfig.phone ||
+            userProfile.phone ||
+            local.phone ||
+            user?.phone ||
+            '';
+
+        const email = 
+            activeConfig.pos_shop_email ||
+            local.pos_shop_email ||
+            local.shop_email ||
+            activeConfig.email ||
+            userProfile.email ||
+            local.email ||
+            user?.email ||
+            '';
+
+        const gstin = 
+            activeConfig.pos_shop_gstin ||
+            local.pos_shop_gstin ||
+            local.shop_gstin ||
+            activeConfig.gstinRef ||
+            userProfile.gstin ||
+            local.gstin ||
+            local.gstinRef ||
+            '';
+
+        const tagline = 
+            activeConfig.pos_shop_tagline ||
+            local.pos_shop_tagline ||
+            local.tagline ||
+            'Thank you for shopping with us! Visit again!';
+
+        return { shopName, address, phone, email, gstin, tagline };
+    }, [activeConfig, userProfile, user]);
+
+    const [shopForm, setShopForm] = useState({
+        shop_name: '',
+        address: '',
+        phone: '',
+        email: '',
+        gstin: '',
+        tagline: ''
+    });
+
+    React.useEffect(() => {
+        setShopForm({
+            shop_name: resolvedShopDetails.shopName,
+            address: resolvedShopDetails.address,
+            phone: resolvedShopDetails.phone,
+            email: resolvedShopDetails.email,
+            gstin: resolvedShopDetails.gstin,
+            tagline: resolvedShopDetails.tagline
+        });
+    }, [resolvedShopDetails]);
+
+    const handleSaveShopDetails = async (e) => {
+        if (e) e.preventDefault();
+        try {
+            const updatedSettings = {
+                ...activeConfig,
+                pos_shop_name: shopForm.shop_name,
+                pos_shop_address: shopForm.address,
+                pos_shop_phone: shopForm.phone,
+                pos_shop_email: shopForm.email,
+                pos_shop_gstin: shopForm.gstin,
+                pos_shop_tagline: shopForm.tagline,
+            };
+
+            localStorage.setItem('cliks_pos_shop_profile', JSON.stringify({
+                shop_name: shopForm.shop_name,
+                address: shopForm.address,
+                phone: shopForm.phone,
+                email: shopForm.email,
+                gstin: shopForm.gstin,
+                tagline: shopForm.tagline
+            }));
+
+            await settingsService.updateSettings(updatedSettings);
+            queryClient.invalidateQueries({ queryKey: ['settings'] });
+            setIsShopModalOpen(false);
+            alert('✅ Shop details saved successfully! They will now appear on all POS customer receipts.');
+        } catch (err) {
+            console.error('Failed to sync shop settings to server:', err);
+            setIsShopModalOpen(false);
+            alert('✅ Shop details saved locally!');
+        }
+    };
+
     // Live Warehouses database via useQuery
     const { data: dbWarehouses = [] } = useQuery({
         queryKey: ['warehouses'],
@@ -723,7 +859,16 @@ const BusinessPOS = () => {
         mutationFn: posService.checkout,
         onSuccess: (data) => {
             const fallbackBilledBy = user?.name || user?.full_name || user?.business_name || user?.email || 'Cashier';
-            setLastOrderData(data ? { ...data, billed_by: data.billed_by || fallbackBilledBy } : data);
+            setLastOrderData(data ? { 
+                shop_name: resolvedShopDetails.shopName,
+                shop_address: resolvedShopDetails.address,
+                shop_phone: resolvedShopDetails.phone,
+                shop_email: resolvedShopDetails.email,
+                shop_gstin: resolvedShopDetails.gstin,
+                shop_tagline: resolvedShopDetails.tagline,
+                ...data, 
+                billed_by: data.billed_by || fallbackBilledBy 
+            } : data);
             setShowReceiptModal(true);
             setIsCheckingOut(false);
 
@@ -1382,6 +1527,12 @@ const BusinessPOS = () => {
             client_name: customerName || 'Walk-in Customer',
             client_email: customerEmail || selectedCustomerObj?.email || null,
             client_phone: selectedCustomerObj?.phone_number || selectedCustomerObj?.phone || null,
+            shop_name: resolvedShopDetails.shopName,
+            shop_address: resolvedShopDetails.address,
+            shop_phone: resolvedShopDetails.phone,
+            shop_email: resolvedShopDetails.email,
+            shop_gstin: resolvedShopDetails.gstin,
+            shop_tagline: resolvedShopDetails.tagline,
             billed_by: billedByName,
             cashier_name: billedByName,
             existing_loyalty_points: existingPts,
@@ -1705,6 +1856,40 @@ const BusinessPOS = () => {
                                 onMouseLeave={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#64748B'; }}
                             >
                                 <History size={15} strokeWidth={2.5} /> History
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    setShopForm({
+                                        shop_name: resolvedShopDetails.shopName,
+                                        address: resolvedShopDetails.address,
+                                        phone: resolvedShopDetails.phone,
+                                        email: resolvedShopDetails.email,
+                                        gstin: resolvedShopDetails.gstin,
+                                        tagline: resolvedShopDetails.tagline
+                                    });
+                                    setIsShopModalOpen(true);
+                                }}
+                                title="Configure Shop Name, Address & Contact Details on POS Bills"
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    background: '#F8FAFC',
+                                    color: '#0F172A',
+                                    border: '1px solid #CBD5E1',
+                                    padding: '0.5rem 0.85rem',
+                                    borderRadius: '10px',
+                                    fontWeight: '800',
+                                    fontSize: '0.78rem',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = '#ECFDF5'; e.currentTarget.style.borderColor = '#10B981'; e.currentTarget.style.color = '#047857'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.color = '#0F172A'; }}
+                            >
+                                <Store size={15} strokeWidth={2.5} color="#059669" />
+                                <span>Shop Info</span>
                             </button>
                         </div>
                     </div>
@@ -2967,19 +3152,80 @@ const BusinessPOS = () => {
                         </button>
 
                         {/* Modal Header */}
-                        <div className="no-print" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', padding: '1.5rem', color: 'white', textAlign: 'center', position: 'relative', borderRadius: '20px 20px 0 0' }}>
-                            <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
-                                <Check size={24} strokeWidth={3} />
+                        <div className="no-print" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', padding: '1.25rem 1.5rem', color: 'white', textAlign: 'center', position: 'relative', borderRadius: '20px 20px 0 0' }}>
+                            <div style={{ width: '44px', height: '44px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.5rem' }}>
+                                <Check size={22} strokeWidth={3} />
                             </div>
-                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900' }}>Payment Successful!</h3>
-                            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', opacity: 0.9 }}>Order {lastOrderData?.invoice_number || ''} generated</p>
+                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900' }}>Payment Successful!</h3>
+                            <p style={{ margin: '3px 0 0', fontSize: '0.8rem', opacity: 0.9 }}>Order {lastOrderData?.invoice_number || ''} generated</p>
+                            <button
+                                onClick={() => {
+                                    setShopForm({
+                                        shop_name: lastOrderData?.shop_name || resolvedShopDetails.shopName,
+                                        address: lastOrderData?.shop_address || resolvedShopDetails.address,
+                                        phone: lastOrderData?.shop_phone || resolvedShopDetails.phone,
+                                        email: lastOrderData?.shop_email || resolvedShopDetails.email,
+                                        gstin: lastOrderData?.shop_gstin || resolvedShopDetails.gstin,
+                                        tagline: lastOrderData?.shop_tagline || resolvedShopDetails.tagline
+                                    });
+                                    setIsShopModalOpen(true);
+                                }}
+                                className="no-print"
+                                title="Edit Shop Details"
+                                style={{
+                                    marginTop: '8px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    background: 'rgba(255, 255, 255, 0.22)',
+                                    color: '#FFFFFF',
+                                    border: '1px solid rgba(255, 255, 255, 0.4)',
+                                    padding: '3px 10px',
+                                    borderRadius: '20px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.35)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)'}
+                            >
+                                <Store size={12} />
+                                <span>Edit Shop Details</span>
+                            </button>
                         </div>
 
                         {/* Thermal Receipt Workspace (to print) */}
                         <div id="printable-pos-receipt" className="printable-pos-receipt" style={{ padding: '1.5rem', background: '#FFFFFF', flex: 1, overflowY: 'auto', maxHeight: '400px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'monospace', color: '#000' }}>
-                                <h4 style={{ margin: '0 0 4px', fontSize: '1.1rem', textTransform: 'uppercase' }}>CLIKS BUSINESS POS</h4>
-                                <p style={{ margin: 0, fontSize: '0.75rem' }}>Phone: +91 98765 43210</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'monospace', color: '#000', textAlign: 'center' }}>
+                                {/* Shop / Store Name */}
+                                <h4 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: '1.25' }}>
+                                    {lastOrderData?.shop_name || resolvedShopDetails.shopName}
+                                </h4>
+
+                                {/* Shop Address */}
+                                {(lastOrderData?.shop_address || resolvedShopDetails.address) && (
+                                    <p style={{ margin: '0 0 3px', fontSize: '0.72rem', lineHeight: '1.3', maxWidth: '270px', wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
+                                        {lastOrderData?.shop_address || resolvedShopDetails.address}
+                                    </p>
+                                )}
+
+                                {/* Shop Contact Details (Phone & Email) */}
+                                {(lastOrderData?.shop_phone || resolvedShopDetails.phone || lastOrderData?.shop_email || resolvedShopDetails.email) && (
+                                    <p style={{ margin: '1px 0 3px', fontSize: '0.75rem', fontWeight: '600' }}>
+                                        {(lastOrderData?.shop_phone || resolvedShopDetails.phone) && <span>Ph: {lastOrderData?.shop_phone || resolvedShopDetails.phone}</span>}
+                                        {(lastOrderData?.shop_phone || resolvedShopDetails.phone) && (lastOrderData?.shop_email || resolvedShopDetails.email) && <span> | </span>}
+                                        {(lastOrderData?.shop_email || resolvedShopDetails.email) && <span>{lastOrderData?.shop_email || resolvedShopDetails.email}</span>}
+                                    </p>
+                                )}
+
+                                {/* GSTIN */}
+                                {(lastOrderData?.shop_gstin || resolvedShopDetails.gstin) && (
+                                    <p style={{ margin: '1px 0 4px', fontSize: '0.72rem', fontWeight: '700' }}>
+                                        GSTIN: {lastOrderData?.shop_gstin || resolvedShopDetails.gstin}
+                                    </p>
+                                )}
+
                                 <p style={{ margin: '2px 0 8px', fontSize: '0.75rem' }}>Receipt No: {lastOrderData?.invoice_number || 'N/A'}</p>
                                 
                                 <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0' }} />
@@ -3079,7 +3325,9 @@ const BusinessPOS = () => {
                                 )}
 
                                 <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 'bold' }}>MODE: {(lastOrderData?.payment_mode || paymentMode || 'CASH').toUpperCase()}</p>
-                                <p style={{ margin: '8px 0 0', fontSize: '0.8rem', fontStyle: 'italic' }}>Thank you for your business!</p>
+                                <p style={{ margin: '8px 0 0', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                    {lastOrderData?.shop_tagline || resolvedShopDetails.tagline || `Thank you for shopping at ${lastOrderData?.shop_name || resolvedShopDetails.shopName}! Visit again!`}
+                                </p>
                             </div>
                         </div>
 
@@ -3107,6 +3355,317 @@ const BusinessPOS = () => {
                                 New Order
                             </button>
                         </div>
+                    </motion.div>
+                </div>
+            )}
+
+            {/* SHOP & BILL DETAILS MODAL */}
+            {isShopModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1400, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.94 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        style={{
+                            background: '#FFFFFF',
+                            width: '680px',
+                            maxWidth: '95vw',
+                            borderRadius: '24px',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                            position: 'relative',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            maxHeight: '90vh',
+                            overflow: 'hidden'
+                        }}
+                    >
+                        {/* Header */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                            padding: '1.25rem 1.75rem',
+                            color: 'white',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}>
+                                    <Store size={22} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900', color: '#FFFFFF', letterSpacing: '-0.01em' }}>
+                                        Shop & Bill Details
+                                    </h3>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#94A3B8', fontWeight: 500 }}>
+                                        Configure your local store name, address, contact numbers & bill footer
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsShopModalOpen(false)}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    border: 'none',
+                                    color: '#FFFFFF',
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <form onSubmit={handleSaveShopDetails} style={{ padding: '1.5rem 1.75rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                                {/* Left Column: Form Fields */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                            Shop / Store Name *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={shopForm.shop_name}
+                                            onChange={(e) => setShopForm(prev => ({ ...prev, shop_name: e.target.value }))}
+                                            placeholder="e.g. Sharma General Store"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.65rem 0.85rem',
+                                                borderRadius: '10px',
+                                                border: '1.5px solid #CBD5E1',
+                                                fontSize: '0.85rem',
+                                                fontWeight: '600',
+                                                outline: 'none',
+                                                boxSizing: 'border-box'
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                            Shop Address / Location *
+                                        </label>
+                                        <textarea
+                                            rows={2}
+                                            required
+                                            value={shopForm.address}
+                                            onChange={(e) => setShopForm(prev => ({ ...prev, address: e.target.value }))}
+                                            placeholder="e.g. Shop #4, Main Market, MG Road, Dehradun - 248001"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.65rem 0.85rem',
+                                                borderRadius: '10px',
+                                                border: '1.5px solid #CBD5E1',
+                                                fontSize: '0.82rem',
+                                                fontWeight: '500',
+                                                outline: 'none',
+                                                resize: 'vertical',
+                                                boxSizing: 'border-box'
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                                Contact Phone *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={shopForm.phone}
+                                                onChange={(e) => setShopForm(prev => ({ ...prev, phone: e.target.value }))}
+                                                placeholder="+91 98765 43210"
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.65rem 0.85rem',
+                                                    borderRadius: '10px',
+                                                    border: '1.5px solid #CBD5E1',
+                                                    fontSize: '0.82rem',
+                                                    fontWeight: '600',
+                                                    outline: 'none',
+                                                    boxSizing: 'border-box'
+                                                }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                                Email (Optional)
+                                            </label>
+                                            <input
+                                                type="email"
+                                                value={shopForm.email}
+                                                onChange={(e) => setShopForm(prev => ({ ...prev, email: e.target.value }))}
+                                                placeholder="shop@gmail.com"
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.65rem 0.85rem',
+                                                    borderRadius: '10px',
+                                                    border: '1.5px solid #CBD5E1',
+                                                    fontSize: '0.82rem',
+                                                    fontWeight: '500',
+                                                    outline: 'none',
+                                                    boxSizing: 'border-box'
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                            GSTIN / Tax ID (Optional)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={shopForm.gstin}
+                                            onChange={(e) => setShopForm(prev => ({ ...prev, gstin: e.target.value.toUpperCase() }))}
+                                            placeholder="e.g. 05AAAAA0000A1Z5"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.65rem 0.85rem',
+                                                borderRadius: '10px',
+                                                border: '1.5px solid #CBD5E1',
+                                                fontSize: '0.82rem',
+                                                fontWeight: '600',
+                                                outline: 'none',
+                                                boxSizing: 'border-box'
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                            Bill Footer Tagline
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={shopForm.tagline}
+                                            onChange={(e) => setShopForm(prev => ({ ...prev, tagline: e.target.value }))}
+                                            placeholder="e.g. Thank you for shopping with us! Visit again!"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.65rem 0.85rem',
+                                                borderRadius: '10px',
+                                                border: '1.5px solid #CBD5E1',
+                                                fontSize: '0.82rem',
+                                                fontWeight: '500',
+                                                outline: 'none',
+                                                boxSizing: 'border-box'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Right Column: Live Receipt Header Preview */}
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '6px' }}>
+                                        Live Thermal Bill Preview
+                                    </span>
+                                    <div style={{
+                                        flex: 1,
+                                        background: '#F8FAFC',
+                                        border: '1.5px dashed #94A3B8',
+                                        borderRadius: '14px',
+                                        padding: '1.25rem 1rem',
+                                        fontFamily: 'monospace',
+                                        fontSize: '0.75rem',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        textAlign: 'center',
+                                        color: '#0F172A'
+                                    }}>
+                                        <h4 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: '1.25' }}>
+                                            {shopForm.shop_name || 'YOUR SHOP NAME'}
+                                        </h4>
+                                        <p style={{ margin: '0 0 3px', fontSize: '0.7rem', color: '#334155', maxWidth: '240px', wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
+                                            {shopForm.address || 'Shop Address Line, City, State - Pincode'}
+                                        </p>
+                                        <p style={{ margin: '1px 0 3px', fontSize: '0.72rem', fontWeight: '600', color: '#0F172A' }}>
+                                            <span>Ph: {shopForm.phone || '+91 98765 43210'}</span>
+                                            {shopForm.email && <span> | {shopForm.email}</span>}
+                                        </p>
+                                        {shopForm.gstin && (
+                                            <p style={{ margin: '1px 0 4px', fontSize: '0.7rem', fontWeight: '700' }}>
+                                                GSTIN: {shopForm.gstin}
+                                            </p>
+                                        )}
+
+                                        <div style={{ width: '100%', borderBottom: '1px dashed #64748B', margin: '8px 0' }} />
+                                        
+                                        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#475569', marginBottom: '2px' }}>
+                                            <span>Date: {new Date().toLocaleDateString()}</span>
+                                            <span>Receipt: POS-2026-0001</span>
+                                        </div>
+                                        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#475569', marginBottom: '6px' }}>
+                                            <span>Customer: Walk-in Customer</span>
+                                            <span>Mode: CASH</span>
+                                        </div>
+
+                                        <div style={{ width: '100%', borderBottom: '1px dashed #64748B', margin: '4px 0' }} />
+                                        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold', margin: '4px 0' }}>
+                                            <span>TOTAL AMOUNT:</span>
+                                            <span>₹250.00</span>
+                                        </div>
+                                        <div style={{ width: '100%', borderBottom: '1px dashed #64748B', margin: '4px 0 8px' }} />
+
+                                        <p style={{ margin: 'auto 0 0', fontSize: '0.7rem', fontStyle: 'italic', color: '#64748B' }}>
+                                            {shopForm.tagline || 'Thank you for shopping with us! Visit again!'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Footer buttons */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid #E2E8F0', paddingTop: '1rem', marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsShopModalOpen(false)}
+                                    style={{
+                                        padding: '0.65rem 1.25rem',
+                                        borderRadius: '10px',
+                                        border: '1px solid #CBD5E1',
+                                        background: '#FFFFFF',
+                                        color: '#475569',
+                                        fontWeight: '700',
+                                        fontSize: '0.82rem',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    style={{
+                                        padding: '0.65rem 1.5rem',
+                                        borderRadius: '10px',
+                                        border: 'none',
+                                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                        color: '#FFFFFF',
+                                        fontWeight: '800',
+                                        fontSize: '0.82rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        boxShadow: '0 4px 10px rgba(16, 185, 129, 0.25)'
+                                    }}
+                                >
+                                    <Check size={16} strokeWidth={3} />
+                                    <span>Save & Apply to Bills</span>
+                                </button>
+                            </div>
+                        </form>
                     </motion.div>
                 </div>
             )}
@@ -3242,7 +3801,15 @@ const BusinessPOS = () => {
                                                     </div>
                                                     <button
                                                         onClick={() => {
-                                                            setLastOrderData(order);
+                                                            setLastOrderData({
+                                                                shop_name: order.shop_name || resolvedShopDetails.shopName,
+                                                                shop_address: order.shop_address || resolvedShopDetails.address,
+                                                                shop_phone: order.shop_phone || resolvedShopDetails.phone,
+                                                                shop_email: order.shop_email || resolvedShopDetails.email,
+                                                                shop_gstin: order.shop_gstin || resolvedShopDetails.gstin,
+                                                                shop_tagline: order.shop_tagline || resolvedShopDetails.tagline,
+                                                                ...order
+                                                            });
                                                             setShowReceiptModal(true);
                                                         }}
                                                         style={{

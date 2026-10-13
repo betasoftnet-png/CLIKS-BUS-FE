@@ -1177,22 +1177,42 @@ export const InvoiceTemplates = {
     // =====================================================
     compact_retail: ({ data, business }) => {
         const items = getParsedItems(data.items);
+        let local = {};
+        try {
+            local = JSON.parse(localStorage.getItem('cliks_pos_shop_profile') || 'null') ||
+                    JSON.parse(localStorage.getItem('cliks_org_profile') || 'null') ||
+                    JSON.parse(localStorage.getItem('cliks_business_config') || 'null') || {};
+        } catch (e) {}
+
+        const shopName = data?.shop_name || business?.pos_shop_name || local.pos_shop_name || local.shop_name || business?.business_name || business?.companyName || 'LOCAL RETAIL STORE';
+        const shopAddress = data?.shop_address || business?.pos_shop_address || local.pos_shop_address || local.shop_address || business?.address || business?.registeredAddress || local.address || '';
+        const shopPhone = data?.shop_phone || business?.pos_shop_phone || local.pos_shop_phone || local.shop_phone || business?.phone || local.phone || '';
+        const shopEmail = data?.shop_email || business?.pos_shop_email || local.pos_shop_email || local.shop_email || business?.email || local.email || '';
+        const shopGstin = data?.shop_gstin || business?.pos_shop_gstin || local.pos_shop_gstin || local.shop_gstin || business?.gstin || business?.gstinRef || local.gstin || '';
+        const shopTagline = data?.shop_tagline || business?.pos_shop_tagline || local.pos_shop_tagline || local.tagline || '*** THANK YOU FOR SHOPPING WITH US ***';
+
         return (
             <div style={{ 
                 width: '80mm', 
                 margin: '0 auto', 
                 padding: '5px', 
-                background: 'white',
+                background: 'white', 
                 fontFamily: 'monospace, "Courier New", Courier', 
                 fontSize: '11px', 
                 color: '#000',
                 lineHeight: '1.2'
             }}>
                 <div style={{ textAlign: 'center', marginBottom: '10px', borderBottom: '1px dashed #000', paddingBottom: '5px' }}>
-                    <b style={{ fontSize: '16px', display: 'block', textTransform: 'uppercase' }}>{business?.business_name || 'BUSINESS'}</b>
-                    <p style={{ margin: '2px 0', fontSize: '10px' }}>{business?.address}</p>
-                    <p style={{ margin: '2px 0' }}>Ph: {business?.phone || 'N/A'}</p>
-                    {business?.gstin && <b style={{ fontSize: '11px' }}>GSTIN: {business.gstin}</b>}
+                    <b style={{ fontSize: '15px', display: 'block', textTransform: 'uppercase', marginBottom: '2px' }}>{shopName}</b>
+                    {shopAddress && <p style={{ margin: '2px 0', fontSize: '10px', lineHeight: '1.25' }}>{shopAddress}</p>}
+                    {(shopPhone || shopEmail) && (
+                        <p style={{ margin: '2px 0', fontSize: '10px' }}>
+                            {shopPhone && <span>Ph: {shopPhone}</span>}
+                            {shopPhone && shopEmail && <span> | </span>}
+                            {shopEmail && <span>{shopEmail}</span>}
+                        </p>
+                    )}
+                    {shopGstin && <b style={{ fontSize: '10px', display: 'block', marginTop: '2px' }}>GSTIN: {shopGstin}</b>}
                 </div>
                 <div style={{ borderBottom: '1px dashed #000', paddingBottom: '5px', marginBottom: '5px', fontSize: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Inv: <b>#{data.invoice_number}</b></span><span>Dt: {data.due_date}</span></div>
@@ -1235,7 +1255,7 @@ export const InvoiceTemplates = {
                 </div>
                 <div style={{ marginTop: '10px', textAlign: 'center', fontSize: '9px', borderTop: '1px dashed #000', paddingTop: '10px' }}>
                     <span>Total Items: {items.length} | Items Qty: {items.reduce((sum, it) => sum + parseFloat(it.quantity || 0), 0)}</span>
-                    <div style={{ marginTop: '10px', fontWeight: 'bold', fontSize: '11px' }}>*** THANK YOU ***</div>
+                    <div style={{ marginTop: '8px', fontWeight: 'bold', fontSize: '10px' }}>{shopTagline}</div>
                     <div>E.& O.E.</div>
                 </div>
             </div>

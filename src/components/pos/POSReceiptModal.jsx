@@ -1,6 +1,58 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Printer } from 'lucide-react';
+import { Check, X, Printer, Edit2, Store } from 'lucide-react';
+
+const resolveShopDetails = (shopDetails, lastOrderData) => {
+    let local = {};
+    try {
+        local = JSON.parse(localStorage.getItem('cliks_pos_shop_profile') || 'null') ||
+                JSON.parse(localStorage.getItem('cliks_org_profile') || 'null') ||
+                JSON.parse(localStorage.getItem('cliks_business_config') || 'null') || {};
+    } catch (e) {}
+
+    const shopName = 
+        lastOrderData?.shop_name ||
+        shopDetails?.shop_name ||
+        shopDetails?.business_name ||
+        local.shop_name ||
+        local.business_name ||
+        local.companyName ||
+        'Local Retail Store';
+
+    const address = 
+        lastOrderData?.shop_address ||
+        shopDetails?.address ||
+        local.address ||
+        local.registeredAddress ||
+        (local.city ? `${local.city}${local.pincode ? ` - ${local.pincode}` : ''}` : '');
+
+    const phone = 
+        lastOrderData?.shop_phone ||
+        shopDetails?.phone ||
+        local.phone ||
+        '';
+
+    const email = 
+        lastOrderData?.shop_email ||
+        shopDetails?.email ||
+        local.email ||
+        '';
+
+    const gstin = 
+        lastOrderData?.shop_gstin ||
+        shopDetails?.gstin ||
+        local.gstin ||
+        local.gstinRef ||
+        '';
+
+    const tagline = 
+        lastOrderData?.shop_tagline ||
+        shopDetails?.tagline ||
+        local.tagline ||
+        'Thank you for shopping with us! Visit again!';
+
+    return { shopName, address, phone, email, gstin, tagline };
+};
 
 const POSReceiptModal = ({
     isOpen,
@@ -8,9 +60,13 @@ const POSReceiptModal = ({
     lastOrderData,
     paymentMode = 'CASH',
     formatCurrency = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
-    onPrint = () => window.print()
+    onPrint = () => window.print(),
+    shopDetails = null,
+    onEditShopDetails = null
 }) => {
     if (!isOpen || !lastOrderData) return null;
+
+    const { shopName, address, phone, email, gstin, tagline } = resolveShopDetails(shopDetails, lastOrderData);
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, backdropFilter: 'blur(8px)', padding: '1rem' }}>
@@ -66,19 +122,72 @@ const POSReceiptModal = ({
                 </button>
 
                 {/* Modal Header */}
-                <div className="no-print" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', padding: '1.5rem', color: 'white', textAlign: 'center', position: 'relative', borderRadius: '20px 20px 0 0' }}>
-                    <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
-                        <Check size={24} strokeWidth={3} />
+                <div className="no-print" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', padding: '1.25rem 1.5rem', color: 'white', textAlign: 'center', position: 'relative', borderRadius: '20px 20px 0 0' }}>
+                    <div style={{ width: '44px', height: '44px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.5rem' }}>
+                        <Check size={22} strokeWidth={3} />
                     </div>
-                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900' }}>Payment Successful!</h3>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', opacity: 0.9 }}>Order {lastOrderData?.invoice_number || ''} generated</p>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900' }}>Payment Successful!</h3>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.8rem', opacity: 0.9 }}>Order {lastOrderData?.invoice_number || ''} generated</p>
+                    {onEditShopDetails && (
+                        <button
+                            onClick={onEditShopDetails}
+                            className="no-print"
+                            title="Edit Shop Details"
+                            style={{
+                                marginTop: '8px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                background: 'rgba(255, 255, 255, 0.22)',
+                                color: '#FFFFFF',
+                                border: '1px solid rgba(255, 255, 255, 0.4)',
+                                padding: '3px 10px',
+                                borderRadius: '20px',
+                                fontSize: '0.72rem',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.35)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)'}
+                        >
+                            <Store size={12} />
+                            <span>Edit Shop Details</span>
+                        </button>
+                    )}
                 </div>
 
                 {/* Thermal Receipt Workspace (to print) */}
                 <div id="printable-pos-receipt" className="printable-pos-receipt" style={{ padding: '1.5rem', background: '#FFFFFF', flex: 1, overflowY: 'auto', maxHeight: '400px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'monospace', color: '#000' }}>
-                        <h4 style={{ margin: '0 0 4px', fontSize: '1.1rem', textTransform: 'uppercase' }}>CLIKS BUSINESS POS</h4>
-                        <p style={{ margin: 0, fontSize: '0.75rem' }}>Phone: +91 98765 43210</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'monospace', color: '#000', textAlign: 'center' }}>
+                        {/* Shop / Store Name */}
+                        <h4 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: '1.25' }}>
+                            {shopName}
+                        </h4>
+
+                        {/* Shop Address */}
+                        {address && (
+                            <p style={{ margin: '0 0 3px', fontSize: '0.72rem', lineHeight: '1.3', maxWidth: '270px', wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
+                                {address}
+                            </p>
+                        )}
+
+                        {/* Shop Contact Details (Phone & Email) */}
+                        {(phone || email) && (
+                            <p style={{ margin: '1px 0 3px', fontSize: '0.75rem', fontWeight: '600' }}>
+                                {phone && <span>Ph: {phone}</span>}
+                                {phone && email && <span> | </span>}
+                                {email && <span>{email}</span>}
+                            </p>
+                        )}
+
+                        {/* GSTIN */}
+                        {gstin && (
+                            <p style={{ margin: '1px 0 4px', fontSize: '0.72rem', fontWeight: '700' }}>
+                                GSTIN: {gstin}
+                            </p>
+                        )}
+
                         <p style={{ margin: '2px 0 8px', fontSize: '0.75rem' }}>Receipt No: {lastOrderData?.invoice_number || 'N/A'}</p>
                         
                         <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0' }} />
@@ -178,7 +287,7 @@ const POSReceiptModal = ({
                         )}
 
                         <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 'bold' }}>MODE: {(lastOrderData?.payment_mode || paymentMode || 'CASH').toUpperCase()}</p>
-                        <p style={{ margin: '8px 0 0', fontSize: '0.8rem', fontStyle: 'italic' }}>Thank you for your business!</p>
+                        <p style={{ margin: '8px 0 0', fontSize: '0.8rem', fontStyle: 'italic' }}>{tagline || `Thank you for shopping at ${shopName}! Visit again!`}</p>
                     </div>
                 </div>
 
