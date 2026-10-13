@@ -55,7 +55,17 @@ export const QuickRegisterItemModal = ({
     // Fetch live categories from database
     const { data: dbCategories = [] } = useQuery({
         queryKey: ['product-categories'],
-        queryFn: () => productsService.getCategories().catch(() => []),
+        queryFn: async () => {
+            try {
+                const res = await productsService.getCategories();
+                if (Array.isArray(res)) return res;
+                if (Array.isArray(res?.categories)) return res.categories;
+                if (Array.isArray(res?.data)) return res.data;
+                return [];
+            } catch {
+                return [];
+            }
+        },
         staleTime: 1000 * 60 * 5,
         enabled: Boolean(isOpen)
     });
@@ -63,20 +73,34 @@ export const QuickRegisterItemModal = ({
     // Available categories deduplicated
     const availableCategories = useMemo(() => {
         const set = new Set(DEFAULT_CATEGORIES);
-        (existingCategories || []).forEach(c => {
+
+        const safeExisting = Array.isArray(existingCategories)
+            ? existingCategories
+            : (Array.isArray(existingCategories?.categories) ? existingCategories.categories : []);
+        safeExisting.forEach(c => {
             const val = typeof c === 'string' ? c.trim() : (c?.name || c?.category_name || c?.category || '');
             if (val && val !== 'All') set.add(val);
         });
-        (dbCategories || []).forEach(c => {
+
+        const safeDbCats = Array.isArray(dbCategories)
+            ? dbCategories
+            : (Array.isArray(dbCategories?.categories)
+                ? dbCategories.categories
+                : (Array.isArray(dbCategories?.data) ? dbCategories.data : []));
+        safeDbCats.forEach(c => {
             const val = typeof c === 'string' ? c.trim() : (c?.category_name || c?.name || c?.category || '');
             if (val && val !== 'All') set.add(val);
         });
-        customCategoriesList.forEach(c => {
-            if (c && c.trim()) set.add(c.trim());
+
+        const safeCustom = Array.isArray(customCategoriesList) ? customCategoriesList : [];
+        safeCustom.forEach(c => {
+            if (c && typeof c === 'string' && c.trim()) set.add(c.trim());
         });
-        if (category && category.trim() && !isCustomCategory) {
+
+        if (category && typeof category === 'string' && category.trim() && !isCustomCategory) {
             set.add(category.trim());
         }
+
         return Array.from(set);
     }, [existingCategories, dbCategories, customCategoriesList, category, isCustomCategory]);
 
