@@ -22,6 +22,7 @@ import {
     ArrowDownRight,
     Package,
     Layers,
+    Factory,
     MapPin,
     Calculator,
     CreditCard,
@@ -385,6 +386,14 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/purchases/purchases')) return 'Purchase Invoice';
         if (path.includes('/purchases/suppliers')) return 'Suppliers';
         if (path.includes('/inventory/warehouse')) return 'Warehouse';
+
+        // Manufacturing Module
+        if (path.includes('/manufacturing/dashboard')) return 'Dashboard';
+        if (path.includes('/manufacturing/bom')) return 'Bill of Materials';
+        if (path.includes('/manufacturing/orders')) return 'Production Orders';
+        if (path.includes('/manufacturing/consumption')) return 'Material Consumption';
+        if (path.includes('/manufacturing/completion')) return 'Production Completion';
+        if (path.includes('/manufacturing/reports')) return 'Production Reports';
         if (path.includes('/finance/purchases/new')) return 'New Purchase';
         if (path.includes('/finance/purchases/register')) return 'Purchase Register';
         if (path.includes('/finance/purchases/vendors')) return 'Vendors';
@@ -551,6 +560,19 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     { label: 'Products', icon: Package, path: '/inventory/products', permission: PERMISSIONS.INV_PRODUCTS },
                     { label: 'Stock', icon: Layers, path: '/inventory/stock', permission: PERMISSIONS.INV_STOCK },
                     { label: 'Warehouse', icon: MapPin, path: '/inventory/warehouse', permission: PERMISSIONS.INV_WH_ALL }
+                ]
+            },
+            {
+                label: 'Manufacturing',
+                icon: Factory,
+                permission: PERMISSIONS.MANUFACTURING_ALL,
+                children: [
+                    { label: 'Dashboard', icon: BarChart3, path: '/manufacturing/dashboard', permission: PERMISSIONS.MFG_DASHBOARD },
+                    { label: 'Bill of Materials', icon: Layers, path: '/manufacturing/bom', permission: PERMISSIONS.MFG_BOM },
+                    { label: 'Production Orders', icon: ClipboardList, path: '/manufacturing/orders', permission: PERMISSIONS.MFG_ORDERS },
+                    { label: 'Material Consumption', icon: Activity, path: '/manufacturing/consumption', permission: PERMISSIONS.MFG_CONSUMPTION },
+                    { label: 'Production Completion', icon: CheckCircle2, path: '/manufacturing/completion', permission: PERMISSIONS.MFG_COMPLETION },
+                    { label: 'Production Reports', icon: FileCheck, path: '/manufacturing/reports', permission: PERMISSIONS.MFG_REPORTS }
                 ]
             },
             {
