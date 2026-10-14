@@ -1177,19 +1177,21 @@ export const InvoiceTemplates = {
     // =====================================================
     compact_retail: ({ data, business }) => {
         const items = getParsedItems(data.items);
+        let orgProfile = {};
+        let businessConfig = {};
         let local = {};
         try {
-            local = JSON.parse(localStorage.getItem('cliks_pos_shop_profile') || 'null') ||
-                    JSON.parse(localStorage.getItem('cliks_org_profile') || 'null') ||
-                    JSON.parse(localStorage.getItem('cliks_business_config') || 'null') || {};
+            orgProfile = JSON.parse(localStorage.getItem('cliks_org_profile') || 'null') || {};
+            businessConfig = JSON.parse(localStorage.getItem('cliks_business_config') || 'null') || {};
+            local = JSON.parse(localStorage.getItem('cliks_pos_shop_profile') || 'null') || {};
         } catch (e) {}
 
-        const shopName = data?.shop_name || business?.pos_shop_name || local.pos_shop_name || local.shop_name || business?.business_name || business?.companyName || 'LOCAL RETAIL STORE';
-        const shopAddress = data?.shop_address || business?.pos_shop_address || local.pos_shop_address || local.shop_address || business?.address || business?.registeredAddress || local.address || '';
-        const shopPhone = data?.shop_phone || business?.pos_shop_phone || local.pos_shop_phone || local.shop_phone || business?.phone || local.phone || '';
-        const shopEmail = data?.shop_email || business?.pos_shop_email || local.pos_shop_email || local.shop_email || business?.email || local.email || '';
-        const shopGstin = data?.shop_gstin || business?.pos_shop_gstin || local.pos_shop_gstin || local.shop_gstin || business?.gstin || business?.gstinRef || local.gstin || '';
-        const shopTagline = data?.shop_tagline || business?.pos_shop_tagline || local.pos_shop_tagline || local.tagline || '*** THANK YOU FOR SHOPPING WITH US ***';
+        const shopName = data?.shop_name || orgProfile.business_name || businessConfig.companyName || business?.business_name || business?.companyName || business?.pos_shop_name || local.shop_name || 'LOCAL RETAIL STORE';
+        const shopAddress = data?.shop_address || orgProfile.address || businessConfig.registeredAddress || business?.address || business?.registeredAddress || business?.pos_shop_address || local.address || '';
+        const shopPhone = data?.shop_phone || orgProfile.phone || businessConfig.phone || business?.phone || business?.pos_shop_phone || local.phone || '';
+        const shopEmail = data?.shop_email || orgProfile.email || businessConfig.email || business?.email || business?.pos_shop_email || local.email || '';
+        const shopGstin = data?.shop_gstin || orgProfile.gstin || businessConfig.gstinRef || business?.gstin || business?.gstinRef || business?.pos_shop_gstin || local.gstin || '';
+        const shopTagline = data?.shop_tagline || businessConfig.pos_shop_tagline || business?.pos_shop_tagline || local.tagline || '*** THANK YOU FOR SHOPPING WITH US ***';
 
         return (
             <div style={{ 

@@ -1,19 +1,23 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Printer, Edit2, Store } from 'lucide-react';
+import { Check, X, Printer, Edit2 } from 'lucide-react';
 
 const resolveShopDetails = (shopDetails, lastOrderData) => {
+    let orgProfile = {};
+    let businessConfig = {};
     let local = {};
     try {
-        local = JSON.parse(localStorage.getItem('cliks_pos_shop_profile') || 'null') ||
-                JSON.parse(localStorage.getItem('cliks_org_profile') || 'null') ||
-                JSON.parse(localStorage.getItem('cliks_business_config') || 'null') || {};
+        orgProfile = JSON.parse(localStorage.getItem('cliks_org_profile') || 'null') || {};
+        businessConfig = JSON.parse(localStorage.getItem('cliks_business_config') || 'null') || {};
+        local = JSON.parse(localStorage.getItem('cliks_pos_shop_profile') || 'null') || {};
     } catch (e) {}
 
     const shopName = 
         lastOrderData?.shop_name ||
         shopDetails?.shop_name ||
         shopDetails?.business_name ||
+        orgProfile.business_name ||
+        businessConfig.companyName ||
         local.shop_name ||
         local.business_name ||
         local.companyName ||
@@ -22,25 +26,34 @@ const resolveShopDetails = (shopDetails, lastOrderData) => {
     const address = 
         lastOrderData?.shop_address ||
         shopDetails?.address ||
+        orgProfile.address ||
+        businessConfig.registeredAddress ||
         local.address ||
         local.registeredAddress ||
+        (orgProfile.city ? `${orgProfile.city}${orgProfile.pincode ? ` - ${orgProfile.pincode}` : ''}` : '') ||
         (local.city ? `${local.city}${local.pincode ? ` - ${local.pincode}` : ''}` : '');
 
     const phone = 
         lastOrderData?.shop_phone ||
         shopDetails?.phone ||
+        orgProfile.phone ||
+        businessConfig.phone ||
         local.phone ||
         '';
 
     const email = 
         lastOrderData?.shop_email ||
         shopDetails?.email ||
+        orgProfile.email ||
+        businessConfig.email ||
         local.email ||
         '';
 
     const gstin = 
         lastOrderData?.shop_gstin ||
         shopDetails?.gstin ||
+        orgProfile.gstin ||
+        businessConfig.gstinRef ||
         local.gstin ||
         local.gstinRef ||
         '';
@@ -48,6 +61,7 @@ const resolveShopDetails = (shopDetails, lastOrderData) => {
     const tagline = 
         lastOrderData?.shop_tagline ||
         shopDetails?.tagline ||
+        businessConfig.pos_shop_tagline ||
         local.tagline ||
         'Thank you for shopping with us! Visit again!';
 
@@ -61,8 +75,7 @@ const POSReceiptModal = ({
     paymentMode = 'CASH',
     formatCurrency = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
     onPrint = () => window.print(),
-    shopDetails = null,
-    onEditShopDetails = null
+    shopDetails = null
 }) => {
     if (!isOpen || !lastOrderData) return null;
 
@@ -128,33 +141,6 @@ const POSReceiptModal = ({
                     </div>
                     <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900' }}>Payment Successful!</h3>
                     <p style={{ margin: '3px 0 0', fontSize: '0.8rem', opacity: 0.9 }}>Order {lastOrderData?.invoice_number || ''} generated</p>
-                    {onEditShopDetails && (
-                        <button
-                            onClick={onEditShopDetails}
-                            className="no-print"
-                            title="Edit Shop Details"
-                            style={{
-                                marginTop: '8px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                background: 'rgba(255, 255, 255, 0.22)',
-                                color: '#FFFFFF',
-                                border: '1px solid rgba(255, 255, 255, 0.4)',
-                                padding: '3px 10px',
-                                borderRadius: '20px',
-                                fontSize: '0.72rem',
-                                fontWeight: '700',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.35)'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.22)'}
-                        >
-                            <Store size={12} />
-                            <span>Edit Shop Details</span>
-                        </button>
-                    )}
                 </div>
 
                 {/* Thermal Receipt Workspace (to print) */}
