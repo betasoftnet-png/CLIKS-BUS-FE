@@ -78,11 +78,17 @@ const BusinessPOS = () => {
     const [selectedWarehouseIds, setSelectedWarehouseIds] = useState(() => initialPosSession?.selectedWarehouseIds || []);
     const [isWarehouseDropdownOpen, setIsWarehouseDropdownOpen] = useState(false);
     const warehouseDropdownRef = React.useRef(null);
+    const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+    const [categorySearchQuery, setCategorySearchQuery] = useState('');
+    const categoryDropdownRef = React.useRef(null);
 
     React.useEffect(() => {
         const handleClickOutside = (event) => {
             if (warehouseDropdownRef.current && !warehouseDropdownRef.current.contains(event.target)) {
                 setIsWarehouseDropdownOpen(false);
+            }
+            if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
+                setIsCategoryDropdownOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -1198,7 +1204,23 @@ const BusinessPOS = () => {
     };
 
     // Derived Categories
-    const categories = ['All', ...new Set(inventory.map(i => i.category).filter(Boolean))];
+    const categories = React.useMemo(() => ['All', ...new Set(inventory.map(i => i.category).filter(Boolean))], [inventory]);
+
+    const categoryCounts = React.useMemo(() => {
+        const counts = { All: inventory.length };
+        inventory.forEach(i => {
+            if (i.category) {
+                counts[i.category] = (counts[i.category] || 0) + 1;
+            }
+        });
+        return counts;
+    }, [inventory]);
+
+    const filteredCategories = React.useMemo(() => {
+        if (!categorySearchQuery.trim()) return categories;
+        const q = categorySearchQuery.toLowerCase();
+        return categories.filter(cat => cat.toLowerCase().includes(q));
+    }, [categories, categorySearchQuery]);
 
     // Filtered Products Catalog
     const filteredProducts = inventory.filter(prod => {
@@ -1950,31 +1972,184 @@ const BusinessPOS = () => {
                             />
                         </div>
 
-                        {/* Category Chips Container */}
-                        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px', maxWidth: '50%', alignItems: 'center' }}>
-                            {categories.slice(0, 5).map(cat => (
-                                <button
-                                    key={cat}
-                                    onClick={() => setSelectedCategory(cat)}
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        borderRadius: '20px',
-                                        fontSize: '0.8rem',
-                                        fontWeight: '700',
-                                        cursor: 'pointer',
-                                        whiteSpace: 'nowrap',
-                                        border: selectedCategory === cat ? '1px solid #10B981' : '1px solid #E2E8F0',
-                                        background: selectedCategory === cat ? '#ECFDF5' : '#FFFFFF',
-                                        color: selectedCategory === cat ? '#047857' : '#64748B',
-                                        transition: 'all 0.2s',
-                                        height: '100%',
-                                        display: 'inline-flex',
-                                        alignItems: 'center'
-                                    }}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
+                        {/* Category Dropdown (All Categories) */}
+                        <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={categoryDropdownRef}>
+                            <button
+                                type="button"
+                                onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.45rem',
+                                    padding: '0.45rem 0.95rem',
+                                    borderRadius: '12px',
+                                    border: selectedCategory !== 'All' ? '1.5px solid #10B981' : '1.5px solid #000000',
+                                    background: selectedCategory !== 'All' ? '#ECFDF5' : '#FFFFFF',
+                                    color: selectedCategory !== 'All' ? '#047857' : '#0F172A',
+                                    fontSize: '0.82rem',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    whiteSpace: 'nowrap',
+                                    height: '100%',
+                                    boxShadow: isCategoryDropdownOpen ? '0 0 0 3px rgba(16, 185, 129, 0.2)' : 'none'
+                                }}
+                                title="Filter Catalog by Category"
+                            >
+                                <Tag size={15} style={{ color: selectedCategory !== 'All' ? '#059669' : '#0F172A' }} />
+                                <span>
+                                    {selectedCategory === 'All' ? 'All Categories' : selectedCategory}
+                                </span>
+                                {selectedCategory !== 'All' && (
+                                    <span
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedCategory('All');
+                                        }}
+                                        title="Reset to All Categories"
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: '16px',
+                                            height: '16px',
+                                            borderRadius: '50%',
+                                            background: 'rgba(5, 150, 105, 0.2)',
+                                            marginLeft: '2px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <X size={11} strokeWidth={2.5} />
+                                    </span>
+                                )}
+                                <ChevronDown size={14} style={{ color: selectedCategory !== 'All' ? '#047857' : '#0F172A', transition: 'transform 0.2s', transform: isCategoryDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                            </button>
+
+                            {/* Dropdown Popover List */}
+                            {isCategoryDropdownOpen && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    right: 0,
+                                    marginTop: '6px',
+                                    background: '#FFFFFF',
+                                    border: '1px solid #E2E8F0',
+                                    borderRadius: '14px',
+                                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                                    zIndex: 60,
+                                    minWidth: '220px',
+                                    maxWidth: '300px',
+                                    padding: '0.5rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.25rem'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.25rem 0.4rem 0.4rem', borderBottom: '1px solid #F1F5F9', marginBottom: '0.2rem' }}>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                                            Select Category ({categories.length > 1 ? categories.length - 1 : 0})
+                                        </span>
+                                        {selectedCategory !== 'All' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedCategory('All');
+                                                    setIsCategoryDropdownOpen(false);
+                                                }}
+                                                style={{ border: 'none', background: 'transparent', color: '#10B981', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                Reset All
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {categories.length > 8 && (
+                                        <div style={{ padding: '0.2rem 0.2rem 0.4rem' }}>
+                                            <input
+                                                type="text"
+                                                placeholder="Search categories..."
+                                                value={categorySearchQuery}
+                                                onChange={(e) => setCategorySearchQuery(e.target.value)}
+                                                autoFocus
+                                                style={{
+                                                    width: '100%',
+                                                    boxSizing: 'border-box',
+                                                    padding: '0.4rem 0.6rem',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid #E2E8F0',
+                                                    fontSize: '0.78rem',
+                                                    outline: 'none',
+                                                    background: '#F8FAFC'
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div style={{ maxHeight: '250px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        {filteredCategories.length > 0 ? (
+                                            filteredCategories.map(cat => {
+                                                const isSelected = selectedCategory === cat;
+                                                const count = categoryCounts[cat] ?? 0;
+                                                return (
+                                                    <div
+                                                        key={cat}
+                                                        onClick={() => {
+                                                            setSelectedCategory(cat);
+                                                            setIsCategoryDropdownOpen(false);
+                                                            setCategorySearchQuery('');
+                                                        }}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'space-between',
+                                                            padding: '0.45rem 0.65rem',
+                                                            borderRadius: '8px',
+                                                            background: isSelected ? '#ECFDF5' : 'transparent',
+                                                            cursor: 'pointer',
+                                                            transition: 'background 0.15s ease'
+                                                        }}
+                                                        onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = '#F8FAFC'; }}
+                                                        onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                                                    >
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+                                                            {isSelected ? (
+                                                                <Check size={14} color="#059669" strokeWidth={2.5} style={{ flexShrink: 0 }} />
+                                                            ) : (
+                                                                <div style={{ width: 14, flexShrink: 0 }} />
+                                                            )}
+                                                            <span style={{
+                                                                fontSize: '0.8rem',
+                                                                fontWeight: isSelected ? '800' : '600',
+                                                                color: isSelected ? '#047857' : '#1E293B',
+                                                                whiteSpace: 'nowrap',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis'
+                                                            }}>
+                                                                {cat === 'All' ? 'All Categories' : cat}
+                                                            </span>
+                                                        </div>
+                                                        <span style={{
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: '700',
+                                                            padding: '1px 6px',
+                                                            borderRadius: '10px',
+                                                            background: isSelected ? '#D1FAE5' : '#F1F5F9',
+                                                            color: isSelected ? '#047857' : '#64748B',
+                                                            marginLeft: '6px',
+                                                            flexShrink: 0
+                                                        }}>
+                                                            {count}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div style={{ padding: '0.6rem', fontSize: '0.78rem', color: '#94A3B8', textAlign: 'center' }}>
+                                                No categories match "{categorySearchQuery}"
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
