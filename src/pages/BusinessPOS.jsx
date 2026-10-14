@@ -1788,9 +1788,9 @@ const BusinessPOS = () => {
                                 <ShoppingBag size={20} />
                             </div>
                             <div>
-                                <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em' }}>Retail POS System</h1>
+                                <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em' }}>POS System</h1>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>Speed Checkout Terminal #1</p>
+                                    {/* <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>Speed Checkout Terminal #1</p> */}
                                     <span style={{ fontSize: '0.7rem', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '4px', fontWeight: '750' }}>
                                         Cashier: {user?.username || user?.name || user?.full_name || user?.business_name || 'Admin'}
                                     </span>
