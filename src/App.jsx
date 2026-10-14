@@ -1,7 +1,8 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context';
 import { ProtectedRoute } from './routes/ProtectedRoute';
+import { PERMISSIONS, hasAccess, isInvoiceOnlyUser } from './utils/permissions';
 import { ErrorBoundary } from './components/common';
 import MainLayout from './layouts/MainLayout';
 import BooksLayout from './layouts/BooksLayout';
@@ -215,6 +216,15 @@ const GlobalConfirm = () => {
 
 function AuthenticatedApp() {
   const location = useLocation();
+  const { user } = useAuth();
+
+  // Strict Restriction: If Sub-ID is configured for "Generate Invoice Only",
+  // lock all navigation and redirect any non-invoice route immediately to /sales/invoice?create=true
+  if (isInvoiceOnlyUser(user)) {
+    if (!location.pathname.startsWith('/sales/invoice')) {
+      return <Navigate to="/sales/invoice?create=true" replace />;
+    }
+  }
 
   return (
     <ProtectedRoute>
@@ -312,8 +322,26 @@ function AuthenticatedApp() {
                 <Route path="/reports" element={<BusinessReports />} />
                 <Route path="/pos" element={<BusinessPOS />} />
                 <Route path="/sales/pos" element={<Navigate to="/pos" replace />} />
-                <Route path="/billing/simple" element={<SimpleBilling />} />
-                <Route path="/billing/records" element={<BillingRecords />} />
+                <Route 
+                  path="/billing/simple" 
+                  element={
+                    hasAccess(user, PERMISSIONS.SIMPLE_BILLING) ? (
+                      <SimpleBilling />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  } 
+                />
+                <Route 
+                  path="/billing/records" 
+                  element={
+                    hasAccess(user, PERMISSIONS.SIMPLE_BILLING) ? (
+                      <BillingRecords />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  } 
+                />
                 <Route path="/customization" element={<BusinessCustomization />} />
                 <Route path="/subscription" element={<BusinessSubscription />} />
                 <Route path="/social/meetup" element={<Navigate to="/social/betaclub" replace />} />

@@ -29,6 +29,7 @@ export const PERMISSIONS = {
   SALES_ORDERS_LIST: 212,
   SALES_RETURNS: 213,
   SALES_WARRANTY_CLAIMS: 214,
+  GENERATE_INVOICE_ONLY: 215, // STRICT CONTROL: Generate Invoice Only, No Other Access
   SALES_CUST_ALL: 220,
   SALES_CUST_LIST: 221,
   SALES_CUST_AGING_REPORTS: 222,
@@ -94,8 +95,21 @@ export const PERMISSIONS = {
   MFG_ORDERS: 1030,
   MFG_CONSUMPTION: 1040,
   MFG_COMPLETION: 1050,
-  MFG_REPORTS: 1060
+  MFG_REPORTS: 1060,
+
+  // 11. SIMPLE BILLING
+  SIMPLE_BILLING: 1100
 };
+
+export function isInvoiceOnlyUser(user) {
+  if (!user) return false;
+  const isSubId = user.is_sub_id === true || user.role === 'sub_id' || user.role === 'SUB_ID';
+  if (!isSubId) return false;
+  if (!user.permissions || !Array.isArray(user.permissions)) return false;
+
+  const perms = user.permissions.map(Number);
+  return perms.includes(PERMISSIONS.GENERATE_INVOICE_ONLY);
+}
 
 export function hasAccess(user, featureId) {
   // Full access for parents or users without a permissions array
@@ -105,23 +119,29 @@ export function hasAccess(user, featureId) {
 
   const perms = user.permissions.map(Number);
   
-  // 1. Check specific exact match (e.g. 211)
+  // STRICT INVOICE-ONLY USER RESTRICTION
+  // If the user has GENERATE_INVOICE_ONLY, they strictly ONLY have access to invoice generation and nothing else.
+  if (perms.includes(PERMISSIONS.GENERATE_INVOICE_ONLY)) {
+    return featureId === PERMISSIONS.GENERATE_INVOICE_ONLY || featureId === PERMISSIONS.SALES_INVOICE;
+  }
+
+  // 1. Check specific exact match (e.g. 211, 1100)
   if (perms.includes(featureId)) return true;
   
   // 2. User has a parent permission granting access to this child feature
   const subModuleId = Math.floor(featureId / 10) * 10; 
-  if (perms.includes(subModuleId)) return true;
+  if (subModuleId !== featureId && perms.includes(subModuleId)) return true;
   
   const moduleId = Math.floor(featureId / 100) * 100;
-  if (perms.includes(moduleId)) return true;
+  if (moduleId !== featureId && perms.includes(moduleId)) return true;
 
   // 3. The feature being checked is a parent module/sub-module, and the user has a child permission within it
   if (featureId % 100 === 0) {
-    // Parent module check (e.g. 100). Allow if user has ANY 1xx permission
-    if (perms.some(p => Math.floor(p / 100) * 100 === featureId)) return true;
+    // Parent module check (e.g. 100, 200). Allow if user has ANY child permission under this parent
+    if (perms.some(p => p !== PERMISSIONS.GENERATE_INVOICE_ONLY && Math.floor(p / 100) * 100 === featureId)) return true;
   } else if (featureId % 10 === 0) {
-    // Sub-module check (e.g. 110). Allow if user has ANY 11x permission
-    if (perms.some(p => Math.floor(p / 10) * 10 === featureId)) return true;
+    // Sub-module check (e.g. 110, 210). Allow if user has ANY child permission under this sub-module
+    if (perms.some(p => p !== PERMISSIONS.GENERATE_INVOICE_ONLY && Math.floor(p / 10) * 10 === featureId)) return true;
   }
 
   return false;

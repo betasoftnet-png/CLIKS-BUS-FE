@@ -67,7 +67,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/auth-context';
 import { useLanguage } from '../context/LanguageContext';
-import { PERMISSIONS, hasAccess } from '../utils/permissions';
+import { PERMISSIONS, hasAccess, isInvoiceOnlyUser } from '../utils/permissions';
 import '../App.css';
 import logoPng from '../assets/cliks6.png';
 import inventoryIconPng from '../assets/image.png';
@@ -565,7 +565,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 ]
             },
             { label: 'POS Billing', icon: Monitor, path: '/pos', permission: PERMISSIONS.POS_BILLING },
-            { label: 'Simple Billing', icon: Receipt, path: '/billing/simple' },
+            { label: 'Simple Billing', icon: Receipt, path: '/billing/simple', permission: PERMISSIONS.SIMPLE_BILLING },
             { label: 'Reports', icon: BarChart3, path: '/reports', permission: PERMISSIONS.REPORTS },
             { label: 'Barcode Gen', icon: Barcode, path: '/barcode', permission: PERMISSIONS.BARCODE_GEN },
             { label: 'Marketing', icon: Megaphone, path: '/marketing', permission: PERMISSIONS.MARKETING }
@@ -769,6 +769,72 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                 </React.Fragment>
                             ))}
                         </>
+                    ) : isInvoiceOnlyUser(user) ? (
+                        <div style={{ padding: '0.25rem 0.1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <div style={{
+                                padding: '0.75rem 0.85rem',
+                                background: '#F0FDF4',
+                                borderRadius: '12px',
+                                border: '1px solid #BBF7D0'
+                            }}>
+                                <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#166534', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                    Access Mode
+                                </div>
+                                <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#14532D', marginTop: '2px' }}>
+                                    Generate Invoice Only
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: '#15803D', marginTop: '2px', lineHeight: '1.2' }}>
+                                    Restricted to invoice generation
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => handleItemClick('Generate Invoice', '/sales/invoice?create=true')}
+                                style={{
+                                    width: '100%',
+                                    padding: '0.85rem',
+                                    borderRadius: '12px',
+                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontWeight: '800',
+                                    fontSize: '0.9rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem',
+                                    boxShadow: '0 4px 14px rgba(27, 107, 58, 0.25)',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                                onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                            >
+                                <Plus size={18} strokeWidth={3} /> {t('generateInvoice', 'Generate Invoice')}
+                            </button>
+
+                            <button
+                                onClick={() => handleItemClick('Sales Invoice', '/sales/invoice')}
+                                style={{
+                                    width: '100%',
+                                    padding: '0.75rem 1rem',
+                                    borderRadius: '10px',
+                                    background: location.pathname.startsWith('/sales/invoice') ? '#DCF2E4' : 'transparent',
+                                    color: location.pathname.startsWith('/sales/invoice') ? '#1B6B3A' : '#475569',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontWeight: '700',
+                                    fontSize: '0.875rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.65rem',
+                                    transition: 'all 0.15s ease'
+                                }}
+                            >
+                                <Receipt size={18} color={location.pathname.startsWith('/sales/invoice') ? '#1B6B3A' : '#64748B'} />
+                                <span>{t('salesInvoice', 'Sales Invoice')}</span>
+                            </button>
+                        </div>
                     ) : (
                         <>
                             {navigationConfig.standard.map(item => (
@@ -853,7 +919,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
             {/* Fixed Sidebar Footer - Responsive Compact Layout (Method 1 & Method 3) */}
             <div className="sidebar-footer-container">
                 {/* Storage Card - Relocated in removed FIN-PRO sidebar area */}
-                {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
+                {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && !isInvoiceOnlyUser(user) && (
                     <div 
                         onClick={() => setIsStorageModalOpen(true)}
                         title="Click to view Storage Allocation & Breakdown"
@@ -913,7 +979,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 )}
  
                 {/* Dynamic Multi-Plan Subscription Status Card (Matching User Visual Specs) */}
-                {(!isAdminMode && !isSalesAgentMode) && (
+                {(!isAdminMode && !isSalesAgentMode && !isInvoiceOnlyUser(user)) && (
                     <div className="sidebar-subscription-wrapper">
                         <DynamicSubscriptionWidget
                             activePlans={userSubscriptions}
@@ -927,18 +993,20 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 )}
 
                 {/* Bottom Settings & Help & Support (Method 1: Side-by-Side Grid) */}
-                <div className="sidebar-footer-nav-grid">
-                    <button
-                        onClick={() => handleItemClick('Settings', isAdminMode ? '/admin/settings' : '/settings')}
-                        className="sidebar-footer-btn"
-                        style={{
-                            color: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#4F46E5' : '#1B6B3A') : '#334155'
-                        }}
-                        title={t('settings', 'Settings')}
-                    >
-                        <SettingsIcon size={16} className="sidebar-footer-btn-icon" style={{ opacity: 0.85, flexShrink: 0 }} />
-                        <span className="sidebar-footer-btn-label">{t('settings', 'Settings')}</span>
-                    </button>
+                <div className="sidebar-footer-nav-grid" style={isInvoiceOnlyUser(user) ? { gridTemplateColumns: '1fr' } : undefined}>
+                    {!isInvoiceOnlyUser(user) && (
+                        <button
+                            onClick={() => handleItemClick('Settings', isAdminMode ? '/admin/settings' : '/settings')}
+                            className="sidebar-footer-btn"
+                            style={{
+                                color: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#4F46E5' : '#1B6B3A') : '#334155'
+                            }}
+                            title={t('settings', 'Settings')}
+                        >
+                            <SettingsIcon size={16} className="sidebar-footer-btn-icon" style={{ opacity: 0.85, flexShrink: 0 }} />
+                            <span className="sidebar-footer-btn-label">{t('settings', 'Settings')}</span>
+                        </button>
+                    )}
 
                     <button
                         onClick={() => handleItemClick('Help & Support', isAdminMode ? '/admin/faq' : (isSalesAgentMode ? '/sales-portal/faq' : '/faq'))}
@@ -946,7 +1014,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                         style={{
                             color: location.pathname.includes('/faq')
                                 ? (isAdminMode ? '#4F46E5' : (isSalesAgentMode ? '#EA580C' : '#1B6B3A'))
-                                : '#334155'
+                                : '#334155',
+                            justifyContent: isInvoiceOnlyUser(user) ? 'center' : 'flex-start'
                         }}
                         title={t('helpSupport', 'Help & Support')}
                     >

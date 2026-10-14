@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronRight, ChevronDown, Minus, Check, Save, UserPlus, Users, Loader2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, Minus, Check, Save, UserPlus, Users, Loader2, Receipt } from 'lucide-react';
 
 const PERMISSIONS_HIERARCHY = [
   {
@@ -56,7 +56,8 @@ const PERMISSIONS_HIERARCHY = [
           { id: 211, label: 'Sales Invoice' },
           { id: 212, label: 'Sales Orders List' },
           { id: 213, label: 'Sales Returns' },
-          { id: 214, label: 'Sales Warranty Claims' }
+          { id: 214, label: 'Sales Warranty Claims' },
+          { id: 215, label: 'Generate Invoice Only (Strict: No Other Access)' }
         ]
       },
       {
@@ -167,6 +168,12 @@ const PERMISSIONS_HIERARCHY = [
     label: 'POS Billing',
     children: [
       { id: 600, label: 'POS Billing' }
+    ]
+  },
+  {
+    label: 'Simple Billing',
+    children: [
+      { id: 1100, label: 'Simple Billing' }
     ]
   },
   {
@@ -331,9 +338,15 @@ const PermissionManager = () => {
   const handleTogglePermissions = (ids, check) => {
     setSelectedPermissions(prev => {
       if (check) {
-        // Add all ids that aren't already there
-        const newIds = ids.filter(id => !prev.includes(id));
-        return [...prev, ...newIds];
+        // If checking GENERATE_INVOICE_ONLY (215)
+        if (ids.includes(215)) {
+          // Strict invoice-only mode isolates permission to only 215
+          return [215];
+        }
+        // If checking other permissions, remove 215 if present
+        const without215 = prev.filter(id => id !== 215);
+        const newIds = ids.filter(id => !without215.includes(id));
+        return [...without215, ...newIds];
       } else {
         // Remove all ids
         return prev.filter(id => !ids.includes(id));
@@ -513,6 +526,54 @@ const PermissionManager = () => {
                 {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                 Save Changes
               </button>
+            </div>
+
+            {/* Quick Preset: Only Generate Invoice (Strict Mode) */}
+            <div className={`mb-6 p-5 rounded-2xl border transition-all ${
+                selectedPermissions.includes(215)
+                  ? 'bg-amber-50/80 border-amber-300 shadow-sm'
+                  : 'bg-white border-gray-200 hover:border-gray-300'
+            }`}>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className={`p-2.5 rounded-xl flex-shrink-0 ${
+                    selectedPermissions.includes(215) ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    <Receipt size={22} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <h3 className="text-base font-bold text-gray-900">Only Generate Invoice Control (Strict Mode)</h3>
+                      {selectedPermissions.includes(215) ? (
+                        <span className="px-2.5 py-0.5 text-xs font-bold bg-amber-200 text-amber-900 rounded-full">ACTIVE</span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-500 rounded-full">INACTIVE</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1 max-w-xl leading-relaxed">
+                      Restricts this Sub-ID to <strong>only generating invoices</strong>. All other access (Dashboard, customer databases, purchase lists, stock, financial reports, simple billing, and business settings) is completely blocked.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedPermissions.includes(215)) {
+                      setSelectedPermissions(prev => prev.filter(id => id !== 215));
+                    } else {
+                      setSelectedPermissions([215]);
+                    }
+                  }}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0 ${
+                    selectedPermissions.includes(215)
+                      ? 'bg-amber-600 text-white hover:bg-amber-700 shadow-sm'
+                      : 'bg-gray-900 text-white hover:bg-black shadow-sm'
+                  }`}
+                >
+                  {selectedPermissions.includes(215) ? 'Disable Strict Mode' : '⚡ Enable Invoice Only'}
+                </button>
+              </div>
             </div>
 
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">

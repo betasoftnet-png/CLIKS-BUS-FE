@@ -3,6 +3,7 @@ import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { useCurrency, useAuth } from '../context';
+import { isInvoiceOnlyUser } from '../utils/permissions';
 import { 
     FileText, 
     Plus, 
@@ -251,6 +252,7 @@ const INITIAL_BILLING_STAFF = [
 const BusinessBilling = () => {
     const { currency, formatCurrency } = useCurrency();
     const { selectedPlan, user } = useAuth();
+    const isInvoiceOnly = isInvoiceOnlyUser(user);
     const isStarterPlan = (selectedPlan || user?.tier) === 'Starter Plan';
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
@@ -3167,9 +3169,20 @@ const BusinessBilling = () => {
                         <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}>
                             <Receipt size={18} />
                         </div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>Billing Center</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>
+                                {isInvoiceOnly ? 'Invoice Generation Desk' : 'Billing Center'}
+                            </h1>
+                            {isInvoiceOnly && (
+                                <span style={{ fontSize: '0.7rem', fontWeight: '800', background: '#FEF3C7', color: '#92400E', padding: '0.2rem 0.6rem', borderRadius: '999px', border: '1px solid #FCD34D' }}>
+                                    GENERATE INVOICE ONLY
+                                </span>
+                            )}
+                        </div>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage client invoices and accounts receivable.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>
+                        {isInvoiceOnly ? 'Create and generate client invoices directly.' : 'Manage client invoices and accounts receivable.'}
+                    </p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                     {activeMainTab === 'delivery_challan' && (
@@ -3194,19 +3207,21 @@ const BusinessBilling = () => {
                         </button>
                     )}
 
-                    <button 
-                        onClick={() => setIsTemplatesModalOpen(true)}
-                        style={{ 
-                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                            padding: '0.65rem 1rem', borderRadius: '10px', 
-                            background: '#FFF', color: '#0F172A', border: '1px solid #E2E8F0', 
-                            fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.03)', transition: 'all 0.2s'
-                        }}
-                    >
-                        <LayoutTemplate size={15} />
-                        Templates
-                    </button>
+                    {!isInvoiceOnly && (
+                        <button 
+                            onClick={() => setIsTemplatesModalOpen(true)}
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                padding: '0.65rem 1rem', borderRadius: '10px', 
+                                background: '#FFF', color: '#0F172A', border: '1px solid #E2E8F0', 
+                                fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.03)', transition: 'all 0.2s'
+                            }}
+                        >
+                            <LayoutTemplate size={15} />
+                            Templates
+                        </button>
+                    )}
                     <button 
                         onClick={() => setIsModalOpen(true)}
                         style={{ 
@@ -3224,142 +3239,146 @@ const BusinessBilling = () => {
                 </div>
             </div>
 
-            {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                {[
-                    { label: 'Total Invoiced', value: formatCurrency(totalInvoiced), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
-                    { label: 'Paid Revenue', value: formatCurrency(paidInvoiced), icon: CheckCircle2, color: '#10B981', bg: '#ECFDF5' },
-                    { label: 'Outstanding Balance', value: formatCurrency(pendingInvoiced), icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
-                    { label: 'Active Clients', value: new Set((invoices || []).map(i => i.client_name)).size, icon: User, color: '#3B82F6', bg: '#EFF6FF' }
-                ].map((stat, idx) => (
-                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+            {/* Stats Grid - Hidden for Invoice Only users */}
+            {!isInvoiceOnly && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                    {[
+                        { label: 'Total Invoiced', value: formatCurrency(totalInvoiced), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
+                        { label: 'Paid Revenue', value: formatCurrency(paidInvoiced), icon: CheckCircle2, color: '#10B981', bg: '#ECFDF5' },
+                        { label: 'Outstanding Balance', value: formatCurrency(pendingInvoiced), icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
+                        { label: 'Active Clients', value: new Set((invoices || []).map(i => i.client_name)).size, icon: User, color: '#3B82F6', bg: '#EFF6FF' }
+                    ].map((stat, idx) => (
+                        <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                                <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+                            </div>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                                <stat.icon size={20} />
+                            </div>
                         </div>
-                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
-                            <stat.icon size={20} />
-                        </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
-            {/* Navigation Tab Bar (Placed ABOVE content box) */}
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1.25rem', overflowX: 'auto', paddingBottom: '2px' }}>
-                {/* 1. Orders List */}
-                <button
-                    type="button"
-                    onClick={() => {
-                        setActiveMainTab('orders');
-                        if (isModalOpen) closeModal();
-                    }}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.5rem 0.95rem',
-                        borderRadius: '10px',
-                        fontSize: '0.82rem',
-                        fontWeight: '800',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        border: (activeMainTab === 'orders' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
-                        background: (activeMainTab === 'orders' && !isModalOpen) ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : '#FFFFFF',
-                        color: (activeMainTab === 'orders' && !isModalOpen) ? '#FFFFFF' : '#475569',
-                        boxShadow: (activeMainTab === 'orders' && !isModalOpen) ? '0 4px 12px rgba(217, 119, 6, 0.25)' : 'none',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    <ShoppingCart size={15} />
-                    <span>Orders List</span>
-                </button>
+            {/* Navigation Tab Bar (Placed ABOVE content box) - Hidden for Invoice Only users */}
+            {!isInvoiceOnly && (
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1.25rem', overflowX: 'auto', paddingBottom: '2px' }}>
+                    {/* 1. Orders List */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveMainTab('orders');
+                            if (isModalOpen) closeModal();
+                        }}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            padding: '0.5rem 0.95rem',
+                            borderRadius: '10px',
+                            fontSize: '0.82rem',
+                            fontWeight: '800',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            border: (activeMainTab === 'orders' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
+                            background: (activeMainTab === 'orders' && !isModalOpen) ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' : '#FFFFFF',
+                            color: (activeMainTab === 'orders' && !isModalOpen) ? '#FFFFFF' : '#475569',
+                            boxShadow: (activeMainTab === 'orders' && !isModalOpen) ? '0 4px 12px rgba(217, 119, 6, 0.25)' : 'none',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <ShoppingCart size={15} />
+                        <span>Orders List</span>
+                    </button>
 
 
-                {/* 2. Sales Returns (Customers) */}
-                <button
-                    type="button"
-                    onClick={() => {
-                        setActiveMainTab('sales_returns');
-                        if (isModalOpen) closeModal();
-                    }}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.5rem 0.95rem',
-                        borderRadius: '10px',
-                        fontSize: '0.82rem',
-                        fontWeight: '800',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        border: (activeMainTab === 'sales_returns' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
-                        background: (activeMainTab === 'sales_returns' && !isModalOpen) ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : '#FFFFFF',
-                        color: (activeMainTab === 'sales_returns' && !isModalOpen) ? '#FFFFFF' : '#475569',
-                        boxShadow: (activeMainTab === 'sales_returns' && !isModalOpen) ? '0 4px 12px rgba(236, 72, 153, 0.25)' : 'none',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    <RotateCcw size={15} />
-                    <span>Sales Returns (Customers)</span>
-                </button>
+                    {/* 2. Sales Returns (Customers) */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveMainTab('sales_returns');
+                            if (isModalOpen) closeModal();
+                        }}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            padding: '0.5rem 0.95rem',
+                            borderRadius: '10px',
+                            fontSize: '0.82rem',
+                            fontWeight: '800',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            border: (activeMainTab === 'sales_returns' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
+                            background: (activeMainTab === 'sales_returns' && !isModalOpen) ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : '#FFFFFF',
+                            color: (activeMainTab === 'sales_returns' && !isModalOpen) ? '#FFFFFF' : '#475569',
+                            boxShadow: (activeMainTab === 'sales_returns' && !isModalOpen) ? '0 4px 12px rgba(236, 72, 153, 0.25)' : 'none',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <RotateCcw size={15} />
+                        <span>Sales Returns (Customers)</span>
+                    </button>
 
 
-                {/* 4. Warranty & Replacement Claims */}
-                <button
-                    type="button"
-                    onClick={() => {
-                        setActiveMainTab('warranty');
-                        if (isModalOpen) closeModal();
-                    }}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.5rem 0.95rem',
-                        borderRadius: '10px',
-                        fontSize: '0.82rem',
-                        fontWeight: '800',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        border: (activeMainTab === 'warranty' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
-                        background: (activeMainTab === 'warranty' && !isModalOpen) ? 'linear-gradient(135deg, #10B981 0%, #047857 100%)' : '#FFFFFF',
-                        color: (activeMainTab === 'warranty' && !isModalOpen) ? '#FFFFFF' : '#475569',
-                        boxShadow: (activeMainTab === 'warranty' && !isModalOpen) ? '0 4px 12px rgba(16, 185, 129, 0.25)' : 'none',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    <ShieldCheck size={15} />
-                    <span>Warranty & Replacement Claims</span>
-                </button>
+                    {/* 4. Warranty & Replacement Claims */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveMainTab('warranty');
+                            if (isModalOpen) closeModal();
+                        }}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            padding: '0.5rem 0.95rem',
+                            borderRadius: '10px',
+                            fontSize: '0.82rem',
+                            fontWeight: '800',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            border: (activeMainTab === 'warranty' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
+                            background: (activeMainTab === 'warranty' && !isModalOpen) ? 'linear-gradient(135deg, #10B981 0%, #047857 100%)' : '#FFFFFF',
+                            color: (activeMainTab === 'warranty' && !isModalOpen) ? '#FFFFFF' : '#475569',
+                            boxShadow: (activeMainTab === 'warranty' && !isModalOpen) ? '0 4px 12px rgba(16, 185, 129, 0.25)' : 'none',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <ShieldCheck size={15} />
+                        <span>Warranty & Replacement Claims</span>
+                    </button>
 
-                {/* 5. Delivery Challan */}
-                <button
-                    type="button"
-                    onClick={() => {
-                        setActiveMainTab('delivery_challan');
-                        if (isModalOpen) closeModal();
-                    }}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.5rem 0.95rem',
-                        borderRadius: '10px',
-                        fontSize: '0.82rem',
-                        fontWeight: '800',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        border: (activeMainTab === 'delivery_challan' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
-                        background: (activeMainTab === 'delivery_challan' && !isModalOpen) ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
-                        color: (activeMainTab === 'delivery_challan' && !isModalOpen) ? '#FFFFFF' : '#475569',
-                        boxShadow: (activeMainTab === 'delivery_challan' && !isModalOpen) ? '0 4px 12px rgba(3, 105, 161, 0.25)' : 'none',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    <Truck size={15} />
-                    <span>DELIVERY CHALLAN</span>
-                </button>
-            </div>
+                    {/* 5. Delivery Challan */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveMainTab('delivery_challan');
+                            if (isModalOpen) closeModal();
+                        }}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            padding: '0.5rem 0.95rem',
+                            borderRadius: '10px',
+                            fontSize: '0.82rem',
+                            fontWeight: '800',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            border: (activeMainTab === 'delivery_challan' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
+                            background: (activeMainTab === 'delivery_challan' && !isModalOpen) ? 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)' : '#FFFFFF',
+                            color: (activeMainTab === 'delivery_challan' && !isModalOpen) ? '#FFFFFF' : '#475569',
+                            boxShadow: (activeMainTab === 'delivery_challan' && !isModalOpen) ? '0 4px 12px rgba(3, 105, 161, 0.25)' : 'none',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <Truck size={15} />
+                        <span>DELIVERY CHALLAN</span>
+                    </button>
+                </div>
+            )}
 
             {/* Invoices List / Delivery Section */}
             {activeMainTab === 'delivery_challan' ? (
