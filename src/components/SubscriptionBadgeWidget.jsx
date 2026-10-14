@@ -315,6 +315,7 @@ export const SubscriptionBadgeWidget = ({
                 const plan = displayPlans[0];
                 return (
                     <div
+                        className="sidebar-single-plan-card"
                         style={{
                             width: '100%',
                             backgroundColor: '#0F172A',
@@ -329,7 +330,9 @@ export const SubscriptionBadgeWidget = ({
                         }}
                     >
                         {/* Left: Rounded square badge with shield/verification icon */}
-                        <IconSquareBadge type={plan.iconType || 'shield'} size={42} iconSize={23} />
+                        <div className="sidebar-shield-badge-wrapper">
+                            <IconSquareBadge type={plan.iconType || 'shield'} size={42} iconSize={23} />
+                        </div>
 
                         {/* Center: Module title in white bold uppercase above tier in amber uppercase */}
                         <div
@@ -343,6 +346,7 @@ export const SubscriptionBadgeWidget = ({
                             }}
                         >
                             <span
+                                className="sidebar-plan-module-title"
                                 style={{
                                     fontSize: '1.05rem',
                                     fontWeight: '900',
@@ -355,6 +359,7 @@ export const SubscriptionBadgeWidget = ({
                                 {plan.moduleTitle}
                             </span>
                             <span
+                                className="sidebar-plan-tier-title"
                                 style={{
                                     fontSize: '0.82rem',
                                     fontWeight: '800',
@@ -370,13 +375,15 @@ export const SubscriptionBadgeWidget = ({
                         </div>
 
                         {/* Right: White circle with gold border containing bold remaining days and DAYS */}
-                        <DaysCircleBadge
-                            days={plan.days}
-                            size={44}
-                            borderWidth={2.5}
-                            numFontSize="0.88rem"
-                            labelFontSize="0.42rem"
-                        />
+                        <div className="sidebar-days-circle-wrapper">
+                            <DaysCircleBadge
+                                days={plan.days}
+                                size={44}
+                                borderWidth={2.5}
+                                numFontSize="0.88rem"
+                                labelFontSize="0.42rem"
+                            />
+                        </div>
                     </div>
                 );
             })()}

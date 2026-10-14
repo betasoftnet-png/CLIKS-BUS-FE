@@ -1085,6 +1085,273 @@
     background: transparent;
 }
 
+/* ========================================================================== */
+/* SIDEBAR FOOTER RESPONSIVE COMPACT LAYOUT (Method 1 & Method 3)             */
+/* ========================================================================== */
+
+.sidebar-footer-container {
+    padding: 0.65rem 0.85rem 0.85rem 0.85rem;
+    border-top: 1px solid #F1F5F9;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    background: #FFFFFF;
+    z-index: 10;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+.sidebar-storage-card {
+    width: 100%;
+    background-color: #EFF6FF;
+    border-radius: 12px;
+    padding: 0.6rem 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid #DBEAFE;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sidebar-storage-card:hover {
+    background-color: #E0F2FE;
+    transform: translateY(-1px);
+}
+
+.sidebar-storage-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #1E293B;
+    line-height: 1.2;
+}
+
+.sidebar-storage-sub {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #475569;
+    line-height: 1.2;
+}
+
+.sidebar-storage-ring {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sidebar-storage-ring svg {
+    width: 36px;
+    height: 36px;
+}
+
+.sidebar-storage-ring-percent {
+    position: absolute;
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #2563EB;
+}
+
+.sidebar-subscription-wrapper {
+    margin: 0.1rem 0;
+    flex-shrink: 0;
+}
+
+/* Method 1: Side-by-Side Settings & Help */
+.sidebar-footer-nav-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sidebar-footer-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.55rem 0.45rem;
+    background: #FFFFFF;
+    border-radius: 10px;
+    border: 1px solid #D8F3E5;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.78rem;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s ease;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+.sidebar-footer-btn:hover {
+    background: #F9FBF9;
+    border-color: #A7F3D0;
+    transform: translateY(-1px);
+}
+
+.sidebar-footer-btn-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+/* ========================================================================== */
+/* Method 3: Responsive Viewport Height Media Queries                          */
+/* Automatically compacts widgets when vertical screen space is constrained   */
+/* ========================================================================== */
+
+@media (max-height: 850px) {
+    .sidebar-footer-container {
+        padding: 0.45rem 0.65rem 0.55rem 0.65rem !important;
+        gap: 0.35rem !important;
+    }
+
+    .sidebar-storage-card {
+        padding: 0.42rem 0.6rem !important;
+        border-radius: 10px !important;
+    }
+
+    .sidebar-storage-title {
+        font-size: 0.78rem !important;
+    }
+
+    .sidebar-storage-sub {
+        font-size: 0.68rem !important;
+    }
+
+    .sidebar-storage-ring {
+        width: 30px !important;
+        height: 30px !important;
+    }
+
+    .sidebar-storage-ring svg {
+        width: 30px !important;
+        height: 30px !important;
+    }
+
+    .sidebar-storage-ring-percent {
+        font-size: 0.62rem !important;
+    }
+
+    .sidebar-footer-btn {
+        padding: 0.46rem 0.35rem !important;
+        font-size: 0.75rem !important;
+        border-radius: 8px !important;
+        gap: 0.35rem !important;
+    }
+
+    .sidebar-footer-btn-icon {
+        width: 14px !important;
+        height: 14px !important;
+    }
+
+    .sidebar-single-plan-card {
+        padding: 6px 10px !important;
+        border-radius: 12px !important;
+    }
+
+    .sidebar-plan-module-title {
+        font-size: 0.92rem !important;
+    }
+
+    .sidebar-plan-tier-title {
+        font-size: 0.72rem !important;
+        margin-top: 1px !important;
+    }
+
+    .sidebar-days-circle-wrapper > div {
+        width: 36px !important;
+        height: 36px !important;
+    }
+
+    .sidebar-days-circle-wrapper span:first-child {
+        font-size: 0.76rem !important;
+    }
+
+    .sidebar-shield-badge-wrapper > div {
+        width: 34px !important;
+        height: 34px !important;
+    }
+
+    .sidebar-shield-badge-wrapper svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+}
+
+@media (max-height: 720px) {
+    .sidebar-footer-container {
+        padding: 0.35rem 0.5rem 0.45rem 0.5rem !important;
+        gap: 0.25rem !important;
+        max-height: 40vh !important;
+        overflow-y: auto !important;
+    }
+
+    .sidebar-storage-card {
+        padding: 0.35rem 0.5rem !important;
+    }
+
+    .sidebar-storage-title {
+        font-size: 0.74rem !important;
+    }
+
+    .sidebar-storage-sub {
+        display: none !important; /* Hide subtitle on very compact laptops to save vital vertical space */
+    }
+
+    .sidebar-footer-btn {
+        padding: 0.36rem 0.25rem !important;
+        font-size: 0.72rem !important;
+        gap: 0.25rem !important;
+    }
+
+    .sidebar-footer-btn-icon {
+        width: 13px !important;
+        height: 13px !important;
+    }
+
+    .sidebar-single-plan-card {
+        padding: 5px 8px !important;
+        border-radius: 10px !important;
+    }
+
+    .sidebar-plan-module-title {
+        font-size: 0.84rem !important;
+    }
+
+    .sidebar-plan-tier-title {
+        font-size: 0.68rem !important;
+    }
+
+    .sidebar-days-circle-wrapper > div {
+        width: 30px !important;
+        height: 30px !important;
+    }
+
+    .sidebar-days-circle-wrapper span:first-child {
+        font-size: 0.68rem !important;
+    }
+
+    .sidebar-shield-badge-wrapper > div {
+        width: 28px !important;
+        height: 28px !important;
+    }
+
+    .sidebar-shield-badge-wrapper svg {
+        width: 15px !important;
+        height: 15px !important;
+    }
+}
+
 /* Collapsed Sidebar (Desktop) */
 .sidebar.collapsed {
     width: 0;

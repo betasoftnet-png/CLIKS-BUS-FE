@@ -850,54 +850,24 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 </div>
             )}
 
-            {/* Fixed Sidebar Footer - Relocated outside scroll container based on User Specification */}
-            <div style={{
-                padding: '0.75rem 1rem 1rem 1rem',
-                borderTop: '1px solid #F1F5F9',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.6rem',
-                flexShrink: 0,
-                background: '#FFFFFF',
-                zIndex: 10
-            }}>
+            {/* Fixed Sidebar Footer - Responsive Compact Layout (Method 1 & Method 3) */}
+            <div className="sidebar-footer-container">
                 {/* Storage Card - Relocated in removed FIN-PRO sidebar area */}
                 {!isSocialMode && !isFinanceMode && !isAdminMode && !isSalesAgentMode && (
                     <div 
                         onClick={() => setIsStorageModalOpen(true)}
                         title="Click to view Storage Allocation & Breakdown"
-                        style={{
-                            width: '100%',
-                            backgroundColor: '#EFF6FF',
-                            borderRadius: '12px',
-                            padding: '0.75rem 0.85rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            border: '1px solid #DBEAFE',
-                            boxSizing: 'border-box',
-                            flexShrink: 0,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#E0F2FE';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#EFF6FF';
-                            e.currentTarget.style.transform = 'translateY(0)';
-                        }}
+                        className="sidebar-storage-card"
                     >
                         {/* Left Info Column */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                                <Cloud size={18} color="#2563EB" strokeWidth={2.2} />
-                                <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1E293B' }}>
+                                <Cloud size={17} color="#2563EB" strokeWidth={2.2} style={{ flexShrink: 0 }} />
+                                <span className="sidebar-storage-title">
                                     {t('storage', 'Storage')}
                                 </span>
                             </div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: '500', color: '#475569' }}>
+                            <div className="sidebar-storage-sub">
                                 {`${storageData.usedFormatted} of ${storageData.totalCapacityFormatted} used`}
                             </div>
                         </div>
@@ -910,16 +880,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                             const strokeDashoffset = circ * (1 - storagePercent / 100);
 
                             return (
-                                <div style={{
-                                    position: 'relative',
-                                    width: '38px',
-                                    height: '38px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0
-                                }}>
-                                    <svg width="38" height="38" viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
+                                <div className="sidebar-storage-ring">
+                                    <svg viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
                                         <circle
                                             cx="18"
                                             cy="18"
@@ -941,12 +903,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                             style={{ transition: 'stroke-dashoffset 0.3s ease' }}
                                         />
                                     </svg>
-                                    <span style={{
-                                        position: 'absolute',
-                                        fontSize: '0.72rem',
-                                        fontWeight: '800',
-                                        color: '#2563EB'
-                                    }}>
+                                    <span className="sidebar-storage-ring-percent">
                                         {Math.round(storagePercent)}%
                                     </span>
                                 </div>
@@ -957,7 +914,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
  
                 {/* Dynamic Multi-Plan Subscription Status Card (Matching User Visual Specs) */}
                 {(!isAdminMode && !isSalesAgentMode) && (
-                    <div style={{ margin: '0.25rem 0' }}>
+                    <div className="sidebar-subscription-wrapper">
                         <DynamicSubscriptionWidget
                             activePlans={userSubscriptions}
                             plans={userSubscriptions}
@@ -969,64 +926,34 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     </div>
                 )}
 
+                {/* Bottom Settings & Help & Support (Method 1: Side-by-Side Grid) */}
+                <div className="sidebar-footer-nav-grid">
+                    <button
+                        onClick={() => handleItemClick('Settings', isAdminMode ? '/admin/settings' : '/settings')}
+                        className="sidebar-footer-btn"
+                        style={{
+                            color: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#4F46E5' : '#1B6B3A') : '#334155'
+                        }}
+                        title={t('settings', 'Settings')}
+                    >
+                        <SettingsIcon size={16} className="sidebar-footer-btn-icon" style={{ opacity: 0.85, flexShrink: 0 }} />
+                        <span className="sidebar-footer-btn-label">{t('settings', 'Settings')}</span>
+                    </button>
 
-                {/* Bottom Settings Block */}
-                <button
-                    onClick={() => handleItemClick('Settings', isAdminMode ? '/admin/settings' : '/settings')}
-                    style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0.75rem 1rem',
-                        background: '#FFFFFF',
-                        color: (location.pathname.includes('/settings') || location.pathname.includes('/customization')) ? (isAdminMode ? '#4F46E5' : '#1B6B3A') : '#334155',
-                        borderRadius: '10px',
-                        border: '1px solid #D8F3E5',
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        fontSize: '0.85rem',
-                        transition: 'background 0.2s'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.background = '#F9FBF9'}
-                    onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <SettingsIcon size={18} style={{ opacity: 0.8 }} />
-                        <span>{t('settings', 'Settings')}</span>
-                    </div>
-                    <ChevronRight size={14} style={{ opacity: 0.5 }} />
-                </button>
- 
-                {/* Help & Support Block */}
-                <button
-                    onClick={() => handleItemClick('Help & Support', isAdminMode ? '/admin/faq' : (isSalesAgentMode ? '/sales-portal/faq' : '/faq'))}
-                    style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0.75rem 1rem',
-                        background: '#FFFFFF',
-                        color: location.pathname.includes('/faq')
-                            ? (isAdminMode ? '#4F46E5' : (isSalesAgentMode ? '#EA580C' : '#1B6B3A'))
-                            : '#334155',
-                        borderRadius: '10px',
-                        border: '1px solid #D8F3E5',
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        fontSize: '0.85rem',
-                        transition: 'background 0.2s'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.background = '#F9FBF9'}
-                    onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <HelpCircle size={18} style={{ opacity: 0.8 }} />
-                        <span>{t('helpSupport', 'Help & Support')}</span>
-                    </div>
-                    <ChevronRight size={14} style={{ opacity: 0.5 }} />
-                </button>
+                    <button
+                        onClick={() => handleItemClick('Help & Support', isAdminMode ? '/admin/faq' : (isSalesAgentMode ? '/sales-portal/faq' : '/faq'))}
+                        className="sidebar-footer-btn"
+                        style={{
+                            color: location.pathname.includes('/faq')
+                                ? (isAdminMode ? '#4F46E5' : (isSalesAgentMode ? '#EA580C' : '#1B6B3A'))
+                                : '#334155'
+                        }}
+                        title={t('helpSupport', 'Help & Support')}
+                    >
+                        <HelpCircle size={16} className="sidebar-footer-btn-icon" style={{ opacity: 0.85, flexShrink: 0 }} />
+                        <span className="sidebar-footer-btn-label">{t('helpSupport', 'Help & Support')}</span>
+                    </button>
+                </div>
             </div>
 
             {/* Storage Allocation & Content Breakdown Modal */}
