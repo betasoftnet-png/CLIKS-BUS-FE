@@ -965,8 +965,8 @@ const BusinessPOS = () => {
                 source: 'products',
                 isUnlimited: isItemUnlimited,
                 is_unlimited: isItemUnlimited,
-                hsn_code: prod?.hsn_code || variables?.hsn_code || variables?.hsnCode || '1006',
-                hsnCode: prod?.hsn_code || variables?.hsn_code || variables?.hsnCode || '1006'
+                hsn_code: prod?.hsn_code || variables?.hsn_code || variables?.hsnCode || '',
+                hsnCode: prod?.hsn_code || variables?.hsn_code || variables?.hsnCode || ''
             };
 
             queryClient.setQueryData(['pos-catalog'], (old = []) => {

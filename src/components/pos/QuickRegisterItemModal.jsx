@@ -129,6 +129,7 @@ export const QuickRegisterItemModal = ({
     const [hsnInfoDescription, setHsnInfoDescription] = useState('');
     const [isHsnInfoLoading, setIsHsnInfoLoading] = useState(false);
     const hsnContainerRef = useRef(null);
+    const lastSuggestedNameRef = useRef('');
 
     // Initialize or reset form state when modal opens or editingProduct changes
     useEffect(() => {
@@ -252,6 +253,7 @@ export const QuickRegisterItemModal = ({
             setHsnQueryOverride('');
             setUserTypedHsnCode(false);
             setIsAutoSuggestedHsn(false);
+            lastSuggestedNameRef.current = '';
         }
         setHsnSuggestions([]);
         setShowHsnDropdown(false);
@@ -311,18 +313,23 @@ export const QuickRegisterItemModal = ({
     useEffect(() => {
         if (!isOpen) return;
 
-        // If user manually typed / selected an HSN code, don't overwrite it
-        if (userTypedHsnCode) return;
-
         const term = (name || '').trim();
+
+        // When item name is erased or less than 2 characters:
+        // Clear HSN code, clear suggestions, close dropdown, and reset flags
         if (term.length < 2) {
             setHsnSuggestions([]);
             setShowHsnDropdown(false);
-            if (isAutoSuggestedHsn) {
-                setHsnCode('');
-                setHsnInfoDescription('');
-                setIsAutoSuggestedHsn(false);
-            }
+            setHsnCode('');
+            setHsnInfoDescription('');
+            setIsAutoSuggestedHsn(false);
+            setUserTypedHsnCode(false);
+            lastSuggestedNameRef.current = '';
+            return;
+        }
+
+        // If user manually typed an HSN code directly into the HSN input for this exact product name, don't overwrite it
+        if (userTypedHsnCode && lastSuggestedNameRef.current && lastSuggestedNameRef.current.toLowerCase() === term.toLowerCase()) {
             return;
         }
 
@@ -336,19 +343,19 @@ export const QuickRegisterItemModal = ({
                     if (safeResults.length > 0) {
                         const top = safeResults[0];
                         const code = top?.hsnCode || top?.hsn_code;
-                        if (code && (!hsnCode || isAutoSuggestedHsn)) {
+                        if (code) {
                             setHsnCode(code);
                             setHsnInfoDescription(top.description || '');
                             setIsAutoSuggestedHsn(true);
+                            lastSuggestedNameRef.current = term;
                         }
                         setShowHsnDropdown(true);
                     } else {
                         setShowHsnDropdown(false);
-                        if (isAutoSuggestedHsn) {
-                            setHsnCode('');
-                            setHsnInfoDescription('');
-                            setIsAutoSuggestedHsn(false);
-                        }
+                        setHsnCode('');
+                        setHsnInfoDescription('');
+                        setIsAutoSuggestedHsn(false);
+                        lastSuggestedNameRef.current = term;
                     }
                 })
                 .catch(() => {
@@ -361,7 +368,7 @@ export const QuickRegisterItemModal = ({
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [isOpen, name, userTypedHsnCode]);
+    }, [isOpen, name]);
 
     // 2. Manual HSN search when user interacts with HSN input
     useEffect(() => {
@@ -426,8 +433,8 @@ export const QuickRegisterItemModal = ({
                 source: 'products',
                 isUnlimited: isItemUnlimited,
                 is_unlimited: isItemUnlimited,
-                hsn_code: prod?.hsn_code || variables?.hsn_code || variables?.hsnCode || '1006',
-                hsnCode: prod?.hsn_code || variables?.hsn_code || variables?.hsnCode || '1006'
+                hsn_code: prod?.hsn_code || variables?.hsn_code || variables?.hsnCode || '',
+                hsnCode: prod?.hsn_code || variables?.hsn_code || variables?.hsnCode || ''
             };
 
             // Requirement 4: Instant Update - push new product into active POS catalogue state
@@ -525,7 +532,7 @@ export const QuickRegisterItemModal = ({
         const defaultUnit = (unit || '').trim() || 'PCS';
         const defaultSku = (sku || '').trim() || `SKU-${Date.now().toString().slice(-4)}`;
         const defaultBarcode = (barcode || '').trim() || defaultSku;
-        const defaultHsnCode = (hsnCode || '').trim() || (hsnSuggestions.length > 0 ? (hsnSuggestions[0].hsnCode || hsnSuggestions[0].hsn_code) : '1006');
+        const defaultHsnCode = (hsnCode || '').trim() || (hsnSuggestions.length > 0 ? (hsnSuggestions[0].hsnCode || hsnSuggestions[0].hsn_code) : '');
 
         const sPrice = parseFloat(sellingPrice) || 0;
         const resolvedWarehouse = (dbWarehouses && dbWarehouses.length > 0 ? (dbWarehouses[0].id || dbWarehouses[0].name) : null) || 'Main Godown';
@@ -596,7 +603,20 @@ export const QuickRegisterItemModal = ({
                             required
                             type="text"
                             value={name}
-                            onChange={(e) => setName(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setName(val);
+                                setUserTypedHsnCode(false);
+                                if (!val.trim()) {
+                                    setHsnCode('');
+                                    setHsnInfoDescription('');
+                                    setHsnSuggestions([]);
+                                    setShowHsnDropdown(false);
+                                    setHsnQueryOverride('');
+                                    setIsAutoSuggestedHsn(false);
+                                    lastSuggestedNameRef.current = '';
+                                }
+                            }}
                             style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }}
                             placeholder="e.g. Tomato / Rice / Milk"
                         />
@@ -909,7 +929,7 @@ export const QuickRegisterItemModal = ({
                                         }
                                     }}
                                     style={{ width: '100%', padding: '0.75rem', paddingRight: '2.25rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }}
-                                    placeholder="e.g. 1006"
+                                    placeholder="e.g. 1006 / 7108 / 8517"
                                 />
 
                                 {/* Info ⓘ Icon inside input aligned to far right */}
@@ -1017,10 +1037,11 @@ export const QuickRegisterItemModal = ({
                                             onClick={() => {
                                                 setHsnCode(item.hsnCode);
                                                 setHsnQueryOverride('');
-                                                setUserTypedHsnCode(true);
-                                                setIsAutoSuggestedHsn(false);
+                                                setUserTypedHsnCode(false);
+                                                setIsAutoSuggestedHsn(true);
                                                 setShowHsnDropdown(false);
                                                 setHsnInfoDescription(item.description);
+                                                lastSuggestedNameRef.current = (name || '').trim();
                                             }}
                                             style={{
                                                 padding: '0.6rem 0.75rem',
