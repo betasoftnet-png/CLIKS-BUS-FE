@@ -317,6 +317,7 @@ export const QuickRegisterItemModal = ({
         const term = (name || '').trim();
         if (term.length < 2) {
             setHsnSuggestions([]);
+            setShowHsnDropdown(false);
             if (isAutoSuggestedHsn) {
                 setHsnCode('');
                 setHsnInfoDescription('');
@@ -340,14 +341,19 @@ export const QuickRegisterItemModal = ({
                             setHsnInfoDescription(top.description || '');
                             setIsAutoSuggestedHsn(true);
                         }
-                    } else if (isAutoSuggestedHsn) {
-                        setHsnCode('');
-                        setHsnInfoDescription('');
-                        setIsAutoSuggestedHsn(false);
+                        setShowHsnDropdown(true);
+                    } else {
+                        setShowHsnDropdown(false);
+                        if (isAutoSuggestedHsn) {
+                            setHsnCode('');
+                            setHsnInfoDescription('');
+                            setIsAutoSuggestedHsn(false);
+                        }
                     }
                 })
                 .catch(() => {
                     setHsnSuggestions([]);
+                    setShowHsnDropdown(false);
                 })
                 .finally(() => {
                     setIsHsnLoading(false);
@@ -972,74 +978,6 @@ export const QuickRegisterItemModal = ({
                                     </div>
                                 )}
                             </div>
-
-                            {/* Auto-suggested badge */}
-                            {isAutoSuggestedHsn && hsnCode && (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.68rem', color: '#047857', fontWeight: '700' }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        <span>✨ Suggested for &ldquo;{name}&rdquo;:</span>
-                                        <span style={{ fontWeight: '850', color: '#065F46' }}>{hsnCode}</span>
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowHsnDropdown(prev => !prev)}
-                                        style={{ border: 'none', background: 'transparent', color: '#2563EB', cursor: 'pointer', fontSize: '0.68rem', fontWeight: '700', textDecoration: 'underline', flexShrink: 0, marginLeft: '6px' }}
-                                    >
-                                        {showHsnDropdown ? 'Hide' : `Options (${hsnSuggestions.length})`}
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Quick suggestion chips when dropdown is closed */}
-                            {!showHsnDropdown && hsnSuggestions.length > 0 && (
-                                <div style={{ marginTop: '5px', display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
-                                    {hsnSuggestions.slice(0, 3).map((item, idx) => {
-                                        const isSelected = hsnCode === item.hsnCode;
-                                        return (
-                                            <button
-                                                key={idx}
-                                                type="button"
-                                                onClick={() => {
-                                                    setHsnCode(item.hsnCode);
-                                                    setHsnInfoDescription(item.description);
-                                                    setHsnQueryOverride('');
-                                                    setUserTypedHsnCode(true);
-                                                    setIsAutoSuggestedHsn(false);
-                                                    setShowHsnDropdown(false);
-                                                }}
-                                                style={{
-                                                    border: isSelected ? '1px solid #10B981' : '1px solid #CBD5E1',
-                                                    background: isSelected ? '#ECFDF5' : '#F8FAFC',
-                                                    color: isSelected ? '#047857' : '#475569',
-                                                    borderRadius: '6px',
-                                                    padding: '2px 6px',
-                                                    fontSize: '0.68rem',
-                                                    fontWeight: '700',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '4px'
-                                                }}
-                                                title={item.description}
-                                            >
-                                                <span style={{ fontWeight: '800' }}>{item.hsnCode}</span>
-                                                <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.8 }}>
-                                                    {item.description}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                    {hsnSuggestions.length > 3 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowHsnDropdown(true)}
-                                            style={{ border: 'none', background: 'transparent', color: '#2563EB', fontSize: '0.68rem', fontWeight: '700', cursor: 'pointer' }}
-                                        >
-                                            +{hsnSuggestions.length - 3} more
-                                        </button>
-                                    )}
-                                </div>
-                            )}
 
                             {/* HSN Suggestions Dropdown */}
                             {showHsnDropdown && (
