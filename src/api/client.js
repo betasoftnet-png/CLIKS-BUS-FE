@@ -229,7 +229,10 @@ async function request(endpoint, options = {}) {
     // Handle error responses (304 is technically not 'ok' but is a success for caching)
     if (!response.ok && response.status !== 304) {
         if (response.status === 401 && typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { status: 401 } }));
+            const isLogoutEndpoint = endpoint.includes('/logout') || endpoint.includes('/presence/logout');
+            if (!isLogoutEndpoint) {
+                window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { status: 401 } }));
+            }
         }
         throw await normalizeError(null, response);
     }

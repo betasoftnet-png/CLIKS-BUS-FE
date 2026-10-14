@@ -33,8 +33,16 @@ export const AuthProvider = ({ children }) => {
     const [planDaysRemaining, setPlanDaysRemaining] = useState(342);
     const queryClient = useQueryClient();
 
+    const isLoggingOutRef = React.useRef(false);
+
     const logout = React.useCallback(() => {
-        caService.setUserOffline().catch(() => {});
+        if (isLoggingOutRef.current) return;
+        isLoggingOutRef.current = true;
+
+        const currentToken = localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token');
+        if (currentToken && currentToken !== 'mock-test-token') {
+            caService.setUserOffline().catch(() => {});
+        }
         localStorage.removeItem('books_auth_token');
         localStorage.removeItem('bnx_auth_token');
         
@@ -49,6 +57,10 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         // Clear query cache to prevent User B from seeing User A's cached data
         queryClient.clear();
+
+        setTimeout(() => {
+            isLoggingOutRef.current = false;
+        }, 1500);
     }, [queryClient]);
 
     useEffect(() => {
@@ -97,7 +109,7 @@ export const AuthProvider = ({ children }) => {
         };
 
         initAuth();
-    }, [token, logout, user]);
+    }, [token, logout]);
 
     useEffect(() => {
         const handleUnauthorized = () => {
