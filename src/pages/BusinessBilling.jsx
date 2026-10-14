@@ -828,7 +828,12 @@ const BusinessBilling = () => {
         };
     }, [userSettings, realtimeConfig]);
 
-    const loyaltyEnabled = activeConfig.loyaltyEnabled !== false && activeConfig.loyalty !== false;
+    const loyaltyEnabled = React.useMemo(() => {
+        if (activeConfig.loyaltyEnabled !== undefined) return Boolean(activeConfig.loyaltyEnabled);
+        if (activeConfig.loyalty !== undefined) return Boolean(activeConfig.loyalty);
+        if (activeConfig.loyalty_enabled !== undefined) return Boolean(activeConfig.loyalty_enabled && activeConfig.loyalty_enabled !== 0);
+        return false;
+    }, [activeConfig]);
     const dropdownOptions = React.useMemo(() => activeConfig?.invoiceDropdownOptions || DEFAULT_DROPDOWNS, [activeConfig]);
 
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -2998,11 +3003,13 @@ const BusinessBilling = () => {
                                             <span>{formatCurrency(calculateEstimatedProfit())}</span>
                                         </div>
                                     )}
-                                    <div style={{ display: 'flex', justifyContent: 'center', background: '#F0FDF4', border: '1px dashed #BBF7D0', padding: '0.3rem', borderRadius: '6px', marginTop: '0.2rem' }}>
-                                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            🎉 Points to earn this bill: {formData.earned_points || 0} pts
-                                        </p>
-                                    </div>
+                                    {loyaltyEnabled && (
+                                        <div style={{ display: 'flex', justifyContent: 'center', background: '#F0FDF4', border: '1px dashed #BBF7D0', padding: '0.3rem', borderRadius: '6px', marginTop: '0.2rem' }}>
+                                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#15803D', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                🎉 Points to earn this bill: {formData.earned_points || 0} pts
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

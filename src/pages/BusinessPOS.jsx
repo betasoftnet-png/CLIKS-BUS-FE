@@ -1458,7 +1458,8 @@ const BusinessPOS = () => {
     const loyaltyEnabled = React.useMemo(() => {
         if (activeConfig?.loyaltyEnabled !== undefined) return Boolean(activeConfig.loyaltyEnabled);
         if (activeConfig?.loyalty !== undefined) return Boolean(activeConfig.loyalty);
-        return true;
+        if (activeConfig?.loyalty_enabled !== undefined) return Boolean(activeConfig.loyalty_enabled && activeConfig.loyalty_enabled !== 0);
+        return false;
     }, [activeConfig]);
 
     const ptsFor1Rs = activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100;

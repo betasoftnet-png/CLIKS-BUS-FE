@@ -519,7 +519,12 @@ const BusinessCRM = () => {
         };
     }, []);
 
-    const loyaltyEnabled = activeConfig.loyaltyEnabled !== false && activeConfig.loyalty !== false;
+    const loyaltyEnabled = React.useMemo(() => {
+        if (activeConfig.loyaltyEnabled !== undefined) return Boolean(activeConfig.loyaltyEnabled);
+        if (activeConfig.loyalty !== undefined) return Boolean(activeConfig.loyalty);
+        if (activeConfig.loyalty_enabled !== undefined) return Boolean(activeConfig.loyalty_enabled && activeConfig.loyalty_enabled !== 0);
+        return false;
+    }, [activeConfig]);
 
     // Handle instant Add Customer trigger from Dashboard
     const [searchParams, setSearchParams] = useSearchParams();
@@ -1174,20 +1179,22 @@ const BusinessCRM = () => {
                 >
                     <BarChart3 size={16} /> Aging & Collection Reports 📊
                 </button>
-                <button 
-                    onClick={() => setIsPointsModalOpen(true)}
-                    className="crm-btn-secondary"
-                    style={{ 
-                        padding: '0.45rem 1rem', borderRadius: '8px', 
-                        background: '#EFF6FF', 
-                        color: '#2563EB',
-                        border: '1px solid #BFDBFE', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                        boxShadow: '0 2px 4px rgba(37, 99, 235, 0.06)'
-                    }}
-                >
-                    <FileText size={16} /> Points Rules & Ratio
-                </button>
+                {loyaltyEnabled && (
+                    <button 
+                        onClick={() => setIsPointsModalOpen(true)}
+                        className="crm-btn-secondary"
+                        style={{ 
+                            padding: '0.45rem 1rem', borderRadius: '8px', 
+                            background: '#EFF6FF', 
+                            color: '#2563EB',
+                            border: '1px solid #BFDBFE', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            boxShadow: '0 2px 4px rgba(37, 99, 235, 0.06)'
+                        }}
+                    >
+                        <FileText size={16} /> Points Rules & Ratio
+                    </button>
+                )}
             </div>
 
             {/* Tab 1: Customers Master List */}
@@ -2323,7 +2330,7 @@ const BusinessCRM = () => {
             )}
 
             {/* POINTS CALCULATION & DISTRIBUTION RULES MODAL */}
-            {isPointsModalOpen && (
+            {loyaltyEnabled && isPointsModalOpen && (
                 <div 
                     onClick={() => setIsPointsModalOpen(false)}
                     style={{ 

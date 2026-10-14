@@ -19,7 +19,9 @@ export default function EditInvoiceModal({
   const cfg = serverSettings?.data || serverSettings || {};
   const loyaltyEnabled = loyaltyEnabledProp !== undefined 
     ? Boolean(loyaltyEnabledProp) 
-    : (cfg.loyaltyEnabled !== false && cfg.loyalty !== false);
+    : (cfg.loyaltyEnabled !== undefined 
+        ? Boolean(cfg.loyaltyEnabled) 
+        : (cfg.loyalty !== undefined ? Boolean(cfg.loyalty) : false));
 
   if (!isOpen) return null;
 
@@ -331,9 +333,11 @@ export default function EditInvoiceModal({
                   </span>
                 </div>
 
-                <div className="mt-2 p-2 bg-emerald-50 rounded-xl text-center text-xs font-bold text-emerald-800">
-                  🎉 Points to earn this bill: {totals.grandTotal} pts
-                </div>
+                {loyaltyEnabled && (
+                  <div className="mt-2 p-2 bg-emerald-50 rounded-xl text-center text-xs font-bold text-emerald-800">
+                    🎉 Points to earn this bill: {totals.grandTotal} pts
+                  </div>
+                )}
               </div>
             </div>
 
