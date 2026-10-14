@@ -2458,7 +2458,7 @@ const BusinessBilling = () => {
                             {/* Left: Dynamic Interaction Pane */}
                             <div className="billing-modal-form-pane" style={{ 
                                 flex: showLivePreview ? '1 1 55%' : '1 1 100%', 
-                                overflowY: 'scroll', 
+                                overflowY: 'auto', 
                                 padding: '1.5rem 2rem 2rem', 
                                 display: 'flex', 
                                 flexDirection: 'column',
@@ -3031,7 +3031,7 @@ const BusinessBilling = () => {
                                     flex: '1 1 45%', 
                                     background: '#F8FAFC', 
                                     borderLeft: '1px solid #E2E8F0', 
-                                    overflowY: 'scroll', 
+                                    overflowY: 'auto', 
                                     padding: '2rem', 
                                     display: 'flex', 
                                     flexDirection: 'column', 
@@ -3126,6 +3126,10 @@ const BusinessBilling = () => {
                     }
                 }
             ` }} />
+            {isModalOpen ? (
+                renderInvoiceWorkspace()
+            ) : (
+                <>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
                 <div>
@@ -3174,35 +3178,18 @@ const BusinessBilling = () => {
                         Templates
                     </button>
                     <button 
-                        onClick={() => {
-                            if (isModalOpen) {
-                                closeModal();
-                            } else {
-                                setIsModalOpen(true);
-                            }
-                        }}
+                        onClick={() => setIsModalOpen(true)}
                         style={{ 
                             display: 'flex', alignItems: 'center', gap: '0.5rem', 
                             padding: '0.65rem 1rem', borderRadius: '10px', 
-                            background: isModalOpen ? '#F1F5F9' : 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', 
-                            color: isModalOpen ? '#475569' : 'white', 
-                            border: isModalOpen ? '1px solid #CBD5E1' : 'none', 
+                            background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', 
                             fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
-                            boxShadow: isModalOpen ? 'none' : '0 8px 16px rgba(236, 72, 153, 0.2)',
+                            boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)',
                             transition: 'all 0.2s'
                         }}
                     >
-                        {isModalOpen ? (
-                            <>
-                                <ArrowLeft size={15} />
-                                Back to Invoices
-                            </>
-                        ) : (
-                            <>
-                                <Plus size={15} />
-                                Generate Invoice
-                            </>
-                        )}
+                        <Plus size={15} />
+                        Generate Invoice
                     </button>
                 </div>
             </div>
@@ -3342,55 +3329,10 @@ const BusinessBilling = () => {
                     <Truck size={15} />
                     <span>DELIVERY CHALLAN</span>
                 </button>
-
-                {/* Active Invoice Workspace Tab */}
-                {isModalOpen && (
-                    <button
-                        type="button"
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.45rem',
-                            padding: '0.5rem 0.95rem',
-                            borderRadius: '10px',
-                            fontSize: '0.82rem',
-                            fontWeight: '800',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            border: 'none',
-                            background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)',
-                            color: '#FFFFFF',
-                            boxShadow: '0 4px 12px rgba(236, 72, 153, 0.25)',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        <Receipt size={15} />
-                        <span>{editingInvoice ? `Edit: ${editingInvoice.invoice_number}` : 'Generate Invoice'}</span>
-                        <span 
-                            onClick={(e) => { e.stopPropagation(); closeModal(); }}
-                            title="Close"
-                            style={{ 
-                                display: 'inline-flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'center', 
-                                marginLeft: '4px',
-                                padding: '2px',
-                                borderRadius: '50%',
-                                background: 'rgba(255, 255, 255, 0.25)',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            <X size={12} />
-                        </span>
-                    </button>
-                )}
-
             </div>
 
-            {/* Invoices List / Delivery Section / Invoice Generator */}
-            {isModalOpen ? (
-                renderInvoiceWorkspace()
-            ) : activeMainTab === 'delivery_challan' ? (
+            {/* Invoices List / Delivery Section */}
+            {activeMainTab === 'delivery_challan' ? (
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto', paddingRight: '0.25rem' }}>
                     {/* 2. KPI SUMMARY CARDS (Top of the Delivery Section) */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
@@ -4353,6 +4295,8 @@ const BusinessBilling = () => {
                     )}
                 </div>
             </div>
+            )}
+                </>
             )}
 
             {/* Invoice Settings Modal */}
