@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCurrency, useLanguage } from '../context';
+import { useCurrency, useLanguage, useAuth } from '../context';
 import {
     LayoutDashboard,
     Briefcase,
@@ -90,6 +90,8 @@ const BusinessDashboard = () => {
     const navigate = useNavigate();
     const { formatCurrency } = useCurrency();
     const { t } = useLanguage();
+    const { user } = useAuth();
+    const isSubId = Boolean(user && (user.is_sub_id === true || user.role === 'sub_id' || user.role === 'SUB_ID'));
     
     // States for custom interactive SVGs
     const [hoveredSalesPoint, setHoveredSalesPoint] = useState(null);
@@ -304,9 +306,10 @@ const BusinessDashboard = () => {
                     ))}
                 </div>
 
-                {/* Quick Actions Row */}
-                <div style={{ marginTop: '2.25rem', marginBottom: '2.25rem' }}>
-                    <h2 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#1E293B', marginBottom: '1.25rem', letterSpacing: '-0.3px' }}>{t('quickActionCenter', 'Quick Action Center')}</h2>
+                {/* Quick Actions Row - Hidden for Sub-IDs */}
+                {!isSubId && (
+                    <div style={{ marginTop: '2.25rem', marginBottom: '2.25rem' }}>
+                        <h2 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#1E293B', marginBottom: '1.25rem', letterSpacing: '-0.3px' }}>{t('quickActionCenter', 'Quick Action Center')}</h2>
 
                     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                         {MASTER_SHORTCUTS.filter(s => selectedShortcuts.includes(s.id)).map(shortcut => {
@@ -386,6 +389,7 @@ const BusinessDashboard = () => {
                         </button>
                     </div>
                 </div>
+                )}
 
                 {/* Redesigned Charts Content Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-6" style={{ boxSizing: 'border-box' }}>
@@ -728,9 +732,10 @@ const BusinessDashboard = () => {
                 </div>
             </div>
 
-            {/* Customisation Modal Overlay */}
-            <AnimatePresence>
-                {isModalOpen && (
+            {/* Customisation Modal Overlay - Hidden for Sub-IDs */}
+            {!isSubId && (
+                <AnimatePresence>
+                    {isModalOpen && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -909,6 +914,7 @@ const BusinessDashboard = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+            )}
         </div>
     );
 };
