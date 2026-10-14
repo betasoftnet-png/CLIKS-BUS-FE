@@ -1443,8 +1443,13 @@ const BusinessPOS = () => {
         return acc + (discountedItemTotal * (itemTaxRate / 100));
     }, 0);
 
-    // Master Config for Loyalty
-    const loyaltyEnabled = activeConfig.loyaltyEnabled !== false;
+    // Master Config for Loyalty (sourced directly from Backend API)
+    const loyaltyEnabled = React.useMemo(() => {
+        if (activeConfig?.loyaltyEnabled !== undefined) return Boolean(activeConfig.loyaltyEnabled);
+        if (activeConfig?.loyalty !== undefined) return Boolean(activeConfig.loyalty);
+        return true;
+    }, [activeConfig]);
+
     const ptsFor1Rs = activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100;
     const rsPer1Point = activeConfig.loyaltyRsPer1Point !== undefined ? activeConfig.loyaltyRsPer1Point : 100;
     const maxClaimPct = activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50;
@@ -1494,12 +1499,12 @@ const BusinessPOS = () => {
 
         setIsCheckingOut(true);
 
-        const ptsEarned = effectivePointsEarned;
-        const ptsRedeemed = effectivePointsRedeemed;
-        const existingPts = availableCustomerPoints;
-        const remainingPts = Math.max(0, existingPts - ptsRedeemed + ptsEarned);
+        const ptsEarned = loyaltyEnabled ? effectivePointsEarned : 0;
+        const ptsRedeemed = loyaltyEnabled ? effectivePointsRedeemed : 0;
+        const existingPts = loyaltyEnabled ? availableCustomerPoints : 0;
+        const remainingPts = loyaltyEnabled ? Math.max(0, existingPts - ptsRedeemed + ptsEarned) : existingPts;
 
-        if (selectedCustomerObj?.id) {
+        if (loyaltyEnabled && selectedCustomerObj?.id) {
             crmService.updateCustomer(selectedCustomerObj.id, {
                 ...selectedCustomerObj,
                 loyalty_points: remainingPts
@@ -1521,15 +1526,15 @@ const BusinessPOS = () => {
             shop_tagline: resolvedShopDetails.tagline,
             billed_by: billedByName,
             cashier_name: billedByName,
-            existing_loyalty_points: existingPts,
-            loyalty_points_earned: ptsEarned,
-            loyaltyPointsEarned: ptsEarned,
-            loyalty_points_redeemed: ptsRedeemed,
-            loyaltyPointsRedeemed: ptsRedeemed,
-            loyalty_discount_amount: loyaltyDiscountAmount,
-            loyaltyDiscount: loyaltyDiscountAmount,
-            remaining_loyalty_points: remainingPts,
-            final_loyalty_points: remainingPts,
+            existing_loyalty_points: loyaltyEnabled ? existingPts : 0,
+            loyalty_points_earned: loyaltyEnabled ? ptsEarned : 0,
+            loyaltyPointsEarned: loyaltyEnabled ? ptsEarned : 0,
+            loyalty_points_redeemed: loyaltyEnabled ? ptsRedeemed : 0,
+            loyaltyPointsRedeemed: loyaltyEnabled ? ptsRedeemed : 0,
+            loyalty_discount_amount: loyaltyEnabled ? loyaltyDiscountAmount : 0,
+            loyaltyDiscount: loyaltyEnabled ? loyaltyDiscountAmount : 0,
+            remaining_loyalty_points: loyaltyEnabled ? remainingPts : 0,
+            final_loyalty_points: loyaltyEnabled ? remainingPts : 0,
             amount: subtotal,
             tax_amount: calculatedTax,
             total_amount: finalTotal,
@@ -2596,11 +2601,13 @@ const BusinessPOS = () => {
                                                     {cust.email && <span>Email: {cust.email}</span>}
                                                 </div>
                                             </div>
-                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800' }}>
-                                                    ⭐ Loyalty Points: {getCustomerLtp(cust)}
-                                                </span>
-                                            </div>
+                                            {loyaltyEnabled && (
+                                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800' }}>
+                                                        ⭐ Loyalty Points: {getCustomerLtp(cust)}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     ));
                                 })()}
@@ -2624,10 +2631,14 @@ const BusinessPOS = () => {
                                 <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '220px' }} title={selectedCustomerObj.email}>
                                     {selectedCustomerObj.email || 'N/A'}
                                 </span>
-                                <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
-                                <span style={{ fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.1rem 0.45rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                                    LTP: <strong>{getCustomerLtp(selectedCustomerObj)}</strong>
-                                </span>
+                                {loyaltyEnabled && (
+                                    <>
+                                        <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
+                                        <span style={{ fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.1rem 0.45rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                                            LTP: <strong>{getCustomerLtp(selectedCustomerObj)}</strong>
+                                        </span>
+                                    </>
+                                )}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
                                 {/* 1. Edit / Change Customer Icon Button */}
@@ -3079,7 +3090,7 @@ const BusinessPOS = () => {
                                         </div>
 
                                         {/* Loyalty Discount if any */}
-                                        {loyaltyDiscountAmount > 0 && (
+                                        {loyaltyEnabled && loyaltyDiscountAmount > 0 && (
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#DC2626', fontWeight: '600' }}>
                                                 <span>Pts Discount</span>
                                                 <span>-{formatCurrency(loyaltyDiscountAmount)}</span>
@@ -3353,7 +3364,7 @@ const BusinessPOS = () => {
                                         <span>TAX (GST):</span>
                                         <span>{formatCurrency(lastOrderData?.tax_amount || 0)}</span>
                                     </div>
-                                    {(lastOrderData?.loyalty_discount_amount > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
+                                    {loyaltyEnabled && (lastOrderData?.loyalty_discount_amount > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                                             <span>LOYALTY DISCOUNT:</span>
                                             <span>- {formatCurrency(lastOrderData?.loyalty_discount_amount || lastOrderData?.loyalty_points_redeemed || 0)}</span>
@@ -3374,7 +3385,7 @@ const BusinessPOS = () => {
                                 <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '12px 0' }} />
 
                                 {/* Loyalty Points Summary on Receipt */}
-                                {(lastOrderData?.existing_loyalty_points !== undefined || lastOrderData?.loyalty_points_earned > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
+                                {loyaltyEnabled && (lastOrderData?.existing_loyalty_points !== undefined || lastOrderData?.loyalty_points_earned > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
                                     <div style={{ width: '100%', fontSize: '0.75rem', textAlign: 'left', marginBottom: '6px' }}>
                                         <p style={{ margin: '0 0 4px', fontWeight: 'bold', textTransform: 'uppercase' }}>LOYALTY POINTS:</p>
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>

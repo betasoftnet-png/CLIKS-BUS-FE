@@ -1,4 +1,6 @@
 import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { settingsService } from '../../services/settingsService';
 
 export default function EditInvoiceModal({
   isOpen,
@@ -6,7 +8,19 @@ export default function EditInvoiceModal({
   items = [],
   setItems,
   onUpdateInvoice,
+  loyaltyEnabled: loyaltyEnabledProp = undefined
 }) {
+  const { data: serverSettings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsService.getSettings,
+    enabled: Boolean(isOpen) && loyaltyEnabledProp === undefined
+  });
+
+  const cfg = serverSettings?.data || serverSettings || {};
+  const loyaltyEnabled = loyaltyEnabledProp !== undefined 
+    ? Boolean(loyaltyEnabledProp) 
+    : (cfg.loyaltyEnabled !== false && cfg.loyalty !== false);
+
   if (!isOpen) return null;
 
   // 1. Calculate dynamic totals over ALL items (whether 4 or 20+)
@@ -259,27 +273,29 @@ export default function EditInvoiceModal({
               </div>
 
               {/* Loyalty Card */}
-              <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl space-y-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
-                  LOYALTY POINTS
-                </span>
-                <p className="text-xs font-bold text-emerald-900">
-                  ⭐ Available Points: 10475
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Redeem Points"
-                    className="flex-1 px-3 py-1.5 bg-white border border-emerald-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer"
-                  >
-                    Use Max
-                  </button>
+              {loyaltyEnabled && (
+                <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                    LOYALTY POINTS
+                  </span>
+                  <p className="text-xs font-bold text-emerald-900">
+                    ⭐ Available Points: 10475
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Redeem Points"
+                      className="flex-1 px-3 py-1.5 bg-white border border-emerald-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold cursor-pointer"
+                    >
+                      Use Max
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Right Column: Dynamic Bill Totals */}

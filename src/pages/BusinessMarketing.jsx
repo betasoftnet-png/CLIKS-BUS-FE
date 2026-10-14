@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { crmService, mailService, marketingService } from '../services';
+import { crmService, mailService, marketingService, settingsService } from '../services';
 
 import { 
     Send, 
@@ -240,6 +240,14 @@ const BusinessMarketing = () => {
     const [typeFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
     const [isLaunching, setIsLaunching] = useState(false);
+
+    const { data: serverSettings } = useQuery({
+        queryKey: ['settings'],
+        queryFn: settingsService.getSettings,
+        refetchOnWindowFocus: false
+    });
+    const cfg = serverSettings?.data || serverSettings || {};
+    const loyaltyEnabled = cfg.loyaltyEnabled !== false && cfg.loyalty !== false;
 
     const [formData, setFormData] = useState({
         campaign_name: '',
@@ -1008,9 +1016,11 @@ const BusinessMarketing = () => {
                                                                         <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{cust.email || 'No email provided'}</span>
                                                                     </div>
                                                                 </div>
-                                                                <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#B45309', background: '#FFFBEB', padding: '0.1rem 0.35rem', borderRadius: '4px', flexShrink: 0 }}>
-                                                                    ⭐ {cust.loyalty_points || cust.points || 0} Pts
-                                                                </span>
+                                                                {loyaltyEnabled && (
+                                                                    <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#B45309', background: '#FFFBEB', padding: '0.1rem 0.35rem', borderRadius: '4px', flexShrink: 0 }}>
+                                                                        ⭐ {cust.loyalty_points || cust.points || 0} Pts
+                                                                    </span>
+                                                                )}
                                                             </label>
                                                         );
                                                     })

@@ -799,13 +799,36 @@ const BusinessBilling = () => {
         refetchOnWindowFocus: false
     });
 
-    // Fetch customization settings dynamically to enforce master configurations
+    // Fetch customization & loyalty settings dynamically from backend database
     const { data: userSettings } = useQuery({
         queryKey: ['settings'],
         queryFn: settingsService.getSettings,
-        refetchOnWindowFocus: false
+        refetchOnWindowFocus: true
     });
-    const activeConfig = React.useMemo(() => userSettings?.data || userSettings || {}, [userSettings]);
+
+    const [realtimeConfig, setRealtimeConfig] = useState(null);
+
+    React.useEffect(() => {
+        const handleConfigUpdate = (e) => {
+            if (e?.detail) {
+                setRealtimeConfig(e.detail);
+            }
+        };
+        window.addEventListener('cliksConfigUpdated', handleConfigUpdate);
+        return () => {
+            window.removeEventListener('cliksConfigUpdated', handleConfigUpdate);
+        };
+    }, []);
+
+    const activeConfig = React.useMemo(() => {
+        const serverCfg = userSettings?.data || userSettings || {};
+        return {
+            ...serverCfg,
+            ...(realtimeConfig || {})
+        };
+    }, [userSettings, realtimeConfig]);
+
+    const loyaltyEnabled = activeConfig.loyaltyEnabled !== false && activeConfig.loyalty !== false;
     const dropdownOptions = React.useMemo(() => activeConfig?.invoiceDropdownOptions || DEFAULT_DROPDOWNS, [activeConfig]);
 
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -1057,15 +1080,15 @@ const BusinessBilling = () => {
         const ptsFor1Rs = activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100;
         const rsPer1Point = activeConfig.loyaltyRsPer1Point !== undefined ? activeConfig.loyaltyRsPer1Point : 100;
         
-        const redeemedPts = parseFloat(currentFormData.redeemed_points) || 0;
-        const redeemedAmt = ptsFor1Rs > 0 ? (redeemedPts / ptsFor1Rs) : 0;
+        const redeemedPts = loyaltyEnabled ? (parseFloat(currentFormData.redeemed_points) || 0) : 0;
+        const redeemedAmt = (loyaltyEnabled && ptsFor1Rs > 0) ? (redeemedPts / ptsFor1Rs) : 0;
         
         const adjustedTotal = rawTotal - redeemedAmt;
         const roundedTotal = activeConfig.roundOff !== false ? Math.max(0, Math.round(adjustedTotal)) : Math.max(0, adjustedTotal);
         const roundOff = roundedTotal - adjustedTotal;
         
         // Earn points based on final bill amount using dynamic setting
-        const earnedPts = rsPer1Point > 0 ? Math.floor(roundedTotal / rsPer1Point) : 0;
+        const earnedPts = (loyaltyEnabled && rsPer1Point > 0) ? Math.floor(roundedTotal / rsPer1Point) : 0;
 
         return {
             amount: parseFloat(subtotal) || 0,
@@ -2305,9 +2328,9 @@ const BusinessBilling = () => {
             payload.due_date = `${formData.due_date} (${timeStr})`;
         }
 
-        if (activeSelectedCustomer) {
+        if (loyaltyEnabled && activeSelectedCustomer) {
             const currentPts = activeSelectedCustomer.loyalty_points || 0;
-            const newPts = currentPts - (formData.redeemed_points || 0) + (formData.earned_points || 0);
+            const newPts = Math.max(0, currentPts - (formData.redeemed_points || 0) + (formData.earned_points || 0));
             
             // Fire and forget update to CRM, success is handled seamlessly on invalidate query
             crmService.updateCustomer(activeSelectedCustomer.id, {
@@ -2853,7 +2876,7 @@ const BusinessBilling = () => {
                                         </div>
                                     </div>
 
-                                    {activeConfig.loyaltyEnabled !== false && (
+                                    {loyaltyEnabled && (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.75rem', background: '#F0FDF4', borderRadius: '10px', border: '1px solid #DCFCE7' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase' }}>
@@ -2955,7 +2978,7 @@ const BusinessBilling = () => {
                                         <span>GST Amount:</span>
                                         <span style={{ maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(formData.tax_amount)}</span>
                                     </div>
-                                    {formData.redeemed_points > 0 && (
+                                    {loyaltyEnabled && formData.redeemed_points > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontWeight: '700', fontSize: '0.8rem' }}>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><Tag size={10} /> Loyalty Discount:</span>
                                             <span>- {formatCurrency(formData.redeemed_points / (activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100))}</span>

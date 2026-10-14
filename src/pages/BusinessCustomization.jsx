@@ -145,6 +145,7 @@ const BusinessCustomization = () => {
         partyGroup: false, 
         partyStatus: false, 
         loyalty: true, 
+        loyaltyEnabled: true,
         payReminder: true,
 
         // ACCOUNTING & REMINDERS
@@ -207,6 +208,16 @@ const BusinessCustomization = () => {
                         ...dbSettings,
                         ...(dbSettings.settings || {})
                     };
+
+                    if (merged.loyalty !== undefined && merged.loyaltyEnabled === undefined) {
+                        merged.loyaltyEnabled = merged.loyalty;
+                    } else if (merged.loyaltyEnabled !== undefined && merged.loyalty === undefined) {
+                        merged.loyalty = merged.loyaltyEnabled;
+                    } else if (merged.loyalty !== undefined && merged.loyaltyEnabled !== undefined) {
+                        const unified = Boolean(merged.loyalty) && Boolean(merged.loyaltyEnabled);
+                        merged.loyalty = unified;
+                        merged.loyaltyEnabled = unified;
+                    }
                     
                     if (parsedOrg.business_name && (!merged.companyName || merged.companyName === 'My Primary Firm')) {
                         merged.companyName = parsedOrg.business_name;
@@ -268,6 +279,11 @@ const BusinessCustomization = () => {
     const handleToggle = (key) => {
         setConfig(prev => {
             const updated = { ...prev, [key]: !prev[key] };
+            if (key === 'loyalty') {
+                updated.loyaltyEnabled = updated.loyalty;
+            } else if (key === 'loyaltyEnabled') {
+                updated.loyalty = updated.loyaltyEnabled;
+            }
             if (key === 'darkMode') {
                 localStorage.setItem('cliks_dark_mode', String(updated.darkMode));
                 if (updated.darkMode) {

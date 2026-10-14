@@ -16,10 +16,11 @@ const Settings = () => {
         notifications: true,
         emailDigest: false,
         darkMode: false,
-        language: localStorage.getItem('cliks_language') || 'EN-US',
+        language: 'EN-US',
         twoFactor: true,
         dataSharing: false,
         loyaltyEnabled: true,
+        loyalty: true,
         loyaltyRsPer1Point: 100,
         loyaltyPointsPer1Rs: 100,
         loyaltyMaxClaimPercent: 50
@@ -33,10 +34,18 @@ const Settings = () => {
     React.useEffect(() => {
         if (serverSettings) {
             const settingsObj = serverSettings.data || serverSettings;
-            setLocalSettings(prev => ({
-                ...prev,
-                ...settingsObj
-            }));
+            const loyaltyVal = (settingsObj.loyaltyEnabled !== undefined) ? settingsObj.loyaltyEnabled : (settingsObj.loyalty !== undefined ? settingsObj.loyalty : undefined);
+            setLocalSettings(prev => {
+                const merged = {
+                    ...prev,
+                    ...settingsObj
+                };
+                if (loyaltyVal !== undefined) {
+                    merged.loyaltyEnabled = loyaltyVal;
+                    merged.loyalty = loyaltyVal;
+                }
+                return merged;
+            });
         }
     }, [serverSettings]);
 
@@ -44,12 +53,18 @@ const Settings = () => {
         mutationFn: (data) => settingsService.updateSettings(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['settings'] });
+            queryClient.invalidateQueries({ queryKey: ['loyalty-program-settings'] });
         }
     });
 
     const handleToggle = (key) => {
         setLocalSettings(prev => {
             const updated = { ...prev, [key]: !prev[key] };
+            if (key === 'loyaltyEnabled') {
+                updated.loyalty = updated.loyaltyEnabled;
+            } else if (key === 'loyalty') {
+                updated.loyaltyEnabled = updated.loyalty;
+            }
             if (key === 'darkMode') {
                 localStorage.setItem('cliks_dark_mode', String(updated.darkMode));
                 if (updated.darkMode) {
@@ -62,9 +77,15 @@ const Settings = () => {
                     document.body.classList.remove('dark-theme', 'dark');
                 }
             }
-            localStorage.setItem('cliks_business_config', JSON.stringify(updated));
-            localStorage.setItem('cliks_active_config', JSON.stringify(updated));
+            // Broadcast event for UI reactivity
             window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+
+            // Immediately persist toggle to backend database
+            settingsService.updateSettings(updated).then(() => {
+                queryClient.invalidateQueries({ queryKey: ['settings'] });
+                queryClient.invalidateQueries({ queryKey: ['loyalty-program-settings'] });
+            }).catch(err => console.warn('[Settings] Failed to save toggle to backend:', err));
+
             return updated;
         });
     };
@@ -75,18 +96,21 @@ const Settings = () => {
             setLanguage(val);
             localStorage.setItem('cliks_language', val);
             document.documentElement.setAttribute('lang', val);
-            localStorage.setItem('cliks_business_config', JSON.stringify(updated));
-            localStorage.setItem('cliks_active_config', JSON.stringify(updated));
             window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+            settingsService.updateSettings(updated).then(() => {
+                queryClient.invalidateQueries({ queryKey: ['settings'] });
+            }).catch(err => console.warn('[Settings] Failed to save language:', err));
             return updated;
         });
     };
 
     const handleSave = () => {
-        mutation.mutate(localSettings);
-        localStorage.setItem('cliks_business_config', JSON.stringify(localSettings));
-        localStorage.setItem('cliks_active_config', JSON.stringify(localSettings));
-        window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: localSettings }));
+        const payload = {
+            ...localSettings,
+            loyalty: localSettings.loyaltyEnabled
+        };
+        mutation.mutate(payload);
+        window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: payload }));
     };
 
     if (isLoading) {

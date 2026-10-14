@@ -75,11 +75,17 @@ const POSReceiptModal = ({
     paymentMode = 'CASH',
     formatCurrency = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
     onPrint = () => window.print(),
-    shopDetails = null
+    shopDetails = null,
+    loyaltyEnabled: loyaltyEnabledProp = undefined
 }) => {
     if (!isOpen || !lastOrderData) return null;
 
     const { shopName, address, phone, email, gstin, tagline } = resolveShopDetails(shopDetails, lastOrderData);
+    
+    // Determine loyalty enabled state from prop or backend settings
+    const loyaltyEnabled = loyaltyEnabledProp !== undefined 
+        ? Boolean(loyaltyEnabledProp)
+        : (lastOrderData?.loyalty_discount_amount > 0 || lastOrderData?.loyalty_points_redeemed > 0 || lastOrderData?.loyalty_points_earned > 0);
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, backdropFilter: 'blur(8px)', padding: '1rem' }}>
@@ -228,7 +234,7 @@ const POSReceiptModal = ({
                                 <span>TAX (GST):</span>
                                 <span>{formatCurrency(lastOrderData?.tax_amount || 0)}</span>
                             </div>
-                            {(lastOrderData?.loyalty_discount_amount > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
+                            {loyaltyEnabled && (lastOrderData?.loyalty_discount_amount > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                                     <span>LOYALTY DISCOUNT:</span>
                                     <span>- {formatCurrency(lastOrderData?.loyalty_discount_amount || lastOrderData?.loyalty_points_redeemed || 0)}</span>
@@ -249,7 +255,7 @@ const POSReceiptModal = ({
                         <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '12px 0' }} />
                         
                         {/* Loyalty Points Summary on Receipt */}
-                        {(lastOrderData?.existing_loyalty_points !== undefined || lastOrderData?.loyalty_points_earned > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
+                        {loyaltyEnabled && (lastOrderData?.existing_loyalty_points !== undefined || lastOrderData?.loyalty_points_earned > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
                             <div style={{ width: '100%', fontSize: '0.75rem', textAlign: 'left', marginBottom: '6px' }}>
                                 <p style={{ margin: '0 0 4px', fontWeight: 'bold', textTransform: 'uppercase' }}>LOYALTY POINTS:</p>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>

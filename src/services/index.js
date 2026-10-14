@@ -46,4 +46,5 @@ export * from './finproService';
 export * from './taxAuditService';
 export * from './complianceService';
 export * from './manufacturingService';
+export * from './loyaltyService';
 

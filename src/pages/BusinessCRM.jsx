@@ -501,13 +501,25 @@ const BusinessCRM = () => {
             try {
                 const res = await settingsService.getSettings();
                 const data = res?.data || res || {};
-                setActiveConfig(data);
+                setActiveConfig(prev => ({ ...prev, ...data }));
             } catch (err) {
                 console.error("Failed to load settings:", err);
             }
         };
         fetchSettings();
+
+        const handleConfigUpdate = (e) => {
+            if (e?.detail) {
+                setActiveConfig(prev => ({ ...prev, ...e.detail }));
+            }
+        };
+        window.addEventListener('cliksConfigUpdated', handleConfigUpdate);
+        return () => {
+            window.removeEventListener('cliksConfigUpdated', handleConfigUpdate);
+        };
     }, []);
+
+    const loyaltyEnabled = activeConfig.loyaltyEnabled !== false && activeConfig.loyalty !== false;
 
     // Handle instant Add Customer trigger from Dashboard
     const [searchParams, setSearchParams] = useSearchParams();
@@ -1230,14 +1242,14 @@ const BusinessCRM = () => {
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0, padding: '0.5rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-        { key: 'customer_name', label: 'Customer Name', placeholder: 'Name' },
-        { key: 'business', label: 'Business / Email', placeholder: 'e.g. ABC Ltd' },
-        { key: 'gstin', label: 'GSTIN / Type', placeholder: 'Tax ID' },
-        { key: 'credit_limit', label: 'Credit Limit', placeholder: 'e.g. 50000' },
-        { key: 'outstanding', label: 'Outstanding', placeholder: 'e.g. 5000' },
-        { key: 'loyalty_points', label: 'Loyalty Pts', placeholder: 'e.g. 100' },
-        { key: '_actions', label: 'Actions', noFilter: true }
-    ]} onFilterChange={setColFilters} />
+                                { key: 'customer_name', label: 'Customer Name', placeholder: 'Name' },
+                                { key: 'business', label: 'Business / Email', placeholder: 'e.g. ABC Ltd' },
+                                { key: 'gstin', label: 'GSTIN / Type', placeholder: 'Tax ID' },
+                                { key: 'credit_limit', label: 'Credit Limit', placeholder: 'e.g. 50000' },
+                                { key: 'outstanding', label: 'Outstanding', placeholder: 'e.g. 5000' },
+                                ...(loyaltyEnabled ? [{ key: 'loyalty_points', label: 'Loyalty Pts', placeholder: 'e.g. 100' }] : []),
+                                { key: '_actions', label: 'Actions', noFilter: true }
+                            ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredCustomers.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((row) => (
                                     <tr key={row.id} className="crm-table-row" style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
@@ -1305,7 +1317,7 @@ const BusinessCRM = () => {
                                                 {(row.current_balance || 0) > 0 ? formatCurrency(row.current_balance || 0) : ((row.current_balance || 0) < 0 ? `- ${formatCurrency(Math.abs(row.current_balance || 0))} (Adv)` : formatCurrency(0))}
                                             </span>
                                         </td>
-                                        {activeConfig.loyalty !== false && (
+                                        {loyaltyEnabled && (
                                             <td style={{ padding: '0.6rem 1rem' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.5rem', background: '#F0FDF4', borderRadius: '6px', border: '1px solid #DCFCE7', width: 'max-content' }}>
                                                     <Tag size={12} color="#16A34A" />
@@ -1772,25 +1784,39 @@ const BusinessCRM = () => {
                                             </div>
                                         </div>
 
-                                        {/* Row 2: Opening Loyalty Points (with star icon) and Account Status */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', maxWidth: '440px' }}>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Opening Loyalty Points</label>
-                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Star size={14} /></span>
-                                                    <input type="number" min={!editingCustomer ? "0" : undefined} step={!editingCustomer ? "1" : undefined} value={formData.loyalty_points === 0 ? '' : formData.loyalty_points} placeholder="0" onKeyDown={(e) => { if (!editingCustomer) { if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') { e.preventDefault(); } } }} onChange={(e) => { if (!editingCustomer) { const rawVal = e.target.value; if (rawVal === '') { setFormData({...formData, loyalty_points: 0}); return; } const sanitized = rawVal.replace(/[^0-9]/g, ''); let parsed = parseInt(sanitized, 10); if (isNaN(parsed) || parsed < 0) { parsed = 0; } setFormData({...formData, loyalty_points: parsed}); } else { setFormData({...formData, loyalty_points: parseInt(e.target.value) || 0}); } }} style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} />
+                                        {/* Row 2: Opening Loyalty Points (if enabled) and Account Status */}
+                                        {loyaltyEnabled ? (
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', maxWidth: '440px' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Opening Loyalty Points</label>
+                                                    <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                        <span style={{ width: '38px', height: '100%', color: '#94A3B8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Star size={14} /></span>
+                                                        <input type="number" min={!editingCustomer ? "0" : undefined} step={!editingCustomer ? "1" : undefined} value={formData.loyalty_points === 0 ? '' : formData.loyalty_points} placeholder="0" onKeyDown={(e) => { if (!editingCustomer) { if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') { e.preventDefault(); } } }} onChange={(e) => { if (!editingCustomer) { const rawVal = e.target.value; if (rawVal === '') { setFormData({...formData, loyalty_points: 0}); return; } const sanitized = rawVal.replace(/[^0-9]/g, ''); let parsed = parseInt(sanitized, 10); if (isNaN(parsed) || parsed < 0) { parsed = 0; } setFormData({...formData, loyalty_points: parsed}); } else { setFormData({...formData, loyalty_points: parseInt(e.target.value) || 0}); } }} style={{ flex: 1, height: '100%', padding: '0 0.75rem 0 0', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'transparent' }} />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Account Status</label>
+                                                    <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                        <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} style={{ width: '100%', height: '100%', padding: '0 0.75rem', border: 'none', outline: 'none', background: 'white', fontSize: '0.85rem', cursor: 'pointer' }}>
+                                                            <option value="active">Active</option>
+                                                            <option value="inactive">Inactive</option>
+                                                        </select>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Account Status</label>
-                                                <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                    <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} style={{ width: '100%', height: '100%', padding: '0 0.75rem', border: 'none', outline: 'none', background: 'white', fontSize: '0.85rem', cursor: 'pointer' }}>
-                                                        <option value="active">Active</option>
-                                                        <option value="inactive">Inactive</option>
-                                                    </select>
+                                        ) : (
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.85rem', maxWidth: '220px' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Account Status</label>
+                                                    <div className="h-10 flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden" style={{ height: '40px', minHeight: '40px', display: 'flex', alignItems: 'center', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                        <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} style={{ width: '100%', height: '100%', padding: '0 0.75rem', border: 'none', outline: 'none', background: 'white', fontSize: '0.85rem', cursor: 'pointer' }}>
+                                                            <option value="active">Active</option>
+                                                            <option value="inactive">Inactive</option>
+                                                        </select>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -2070,7 +2096,7 @@ const BusinessCRM = () => {
                                             <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>DUE DAYS</p>
                                             <p style={{ fontSize: '0.9rem', color: '#1E293B', margin: '2px 0 0 0', fontWeight: '800' }}>{selectedProfileCustomer.due_days || 30} Days</p>
                                         </div>
-                                        {activeConfig.loyalty !== false && (
+                                        {loyaltyEnabled && (
                                             <div>
                                                 <p style={{ fontSize: '0.75rem', color: '#94A3B8', margin: 0, fontWeight: '700' }}>LOYALTY POINTS</p>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '2px' }}>
@@ -2249,7 +2275,7 @@ const BusinessCRM = () => {
                                                 <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>GSTIN</th>
                                                 <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>City</th>
                                                 <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>Outstanding Bal</th>
-                                                <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>Loyalty Pts</th>
+                                                {loyaltyEnabled && <th style={{ padding: '0.75rem', fontWeight: '800', color: '#64748B' }}>Loyalty Pts</th>}
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -2263,7 +2289,7 @@ const BusinessCRM = () => {
                                                     <td style={{ padding: '0.75rem', color: '#475569' }}>{c.gstin || '—'}</td>
                                                     <td style={{ padding: '0.75rem', color: '#475569' }}>{c.city || '—'}</td>
                                                     <td style={{ padding: '0.75rem', color: '#047857', fontWeight: '700' }}>{formatCurrency(c.outstanding_balance)}</td>
-                                                    <td style={{ padding: '0.75rem', color: '#475569', fontWeight: '700' }}>{c.loyalty_points}</td>
+                                                    {loyaltyEnabled && <td style={{ padding: '0.75rem', color: '#475569', fontWeight: '700' }}>{c.loyalty_points}</td>}
                                                 </tr>
                                             ))}
                                         </tbody>
