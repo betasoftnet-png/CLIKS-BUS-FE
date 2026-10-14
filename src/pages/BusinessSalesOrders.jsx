@@ -870,7 +870,7 @@ const BusinessSalesOrders = () => {
                                                             sku: prod.sku || '',
                                                             price: parseFloat(prod.selling_price || prod.price || 0),
                                                             hsn: prod.hsn_code || '',
-                                                            gst: parseInt(prod.gst_percentage || prod.tax_percentage || 18)
+                                                            gst: (prod.gst_percentage !== undefined && prod.gst_percentage !== null) ? parseInt(prod.gst_percentage, 10) : ((prod.tax_percentage !== undefined && prod.tax_percentage !== null) ? parseInt(prod.tax_percentage, 10) : 18)
                                                         };
                                                         const updated = calculateTotals(list, formData.shipping_charge);
                                                         setFormData({

@@ -679,7 +679,7 @@ const BusinessInventory = () => {
             expiry_date: formData.has_expiry ? (formData.expiry_date || null) : null,
             mfg_date: formData.has_expiry ? (formData.mfg_date || formData.manufacturing_date || null) : null,
             manufacturing_date: formData.has_expiry ? (formData.manufacturing_date || formData.mfg_date || null) : null,
-            tax_percentage: parseFloat(formData.gst_percentage) || 18,
+            tax_percentage: (formData.gst_percentage !== undefined && formData.gst_percentage !== null && !isNaN(parseFloat(formData.gst_percentage))) ? parseFloat(formData.gst_percentage) : 18,
             warehouse_id: formData.warehouse,
             product_type: formData.product_type,
             hsn_code: formData.hsn_code,

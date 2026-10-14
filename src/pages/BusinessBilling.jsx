@@ -1147,7 +1147,7 @@ const BusinessBilling = () => {
                     inventory_id: null,
                     price: parseFloat(selectedProd.selling_price || selectedProd.price || 0),
                     hsn_code: selectedProd.hsn_code || selectedProd.sku || '',
-                    tax_rate: parseInt(selectedProd.gst_percentage || selectedProd.tax_percentage || 18),
+                    tax_rate: (selectedProd.gst_percentage !== undefined && selectedProd.gst_percentage !== null) ? parseInt(selectedProd.gst_percentage, 10) : ((selectedProd.tax_percentage !== undefined && selectedProd.tax_percentage !== null) ? parseInt(selectedProd.tax_percentage, 10) : 18),
                     unit: selectedProd.primary_unit || 'Pcs',
                     total: (newItems[index].quantity || 1) * parseFloat(selectedProd.selling_price || 0)
                 };

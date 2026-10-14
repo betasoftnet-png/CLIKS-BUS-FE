@@ -661,7 +661,7 @@ const BusinessPOS = () => {
                         category: s.category || matchedProd.category || 'General',
                         warehouse_id: s.warehouse || s.location || 'Main Godown',
                         location: s.location || s.warehouse || 'Main Godown',
-                        tax_percentage: s.tax_percentage !== undefined && s.tax_percentage !== null ? parseFloat(s.tax_percentage) : (matchedProd.tax_percentage || 0),
+                        tax_percentage: s.tax_percentage !== undefined && s.tax_percentage !== null ? parseFloat(s.tax_percentage) : (matchedProd.tax_percentage !== undefined && matchedProd.tax_percentage !== null ? parseFloat(matchedProd.tax_percentage) : 0),
                         source: 'stock',
                         isUnlimited: isItemUnlimited,
                         rawProduct: s
@@ -711,7 +711,7 @@ const BusinessPOS = () => {
                         const existing = uniqueMap.get(key);
                         uniqueMap.set(key, {
                             ...existing,
-                            tax_percentage: existing.tax_percentage || item.tax_percentage || 0,
+                            tax_percentage: existing.tax_percentage !== undefined && existing.tax_percentage !== null ? existing.tax_percentage : (item.tax_percentage !== undefined && item.tax_percentage !== null ? item.tax_percentage : 0),
                             hsn_code: existing.hsn_code || item.hsn_code || '',
                             hsnCode: existing.hsnCode || item.hsnCode || '',
                             barcode: existing.barcode || item.barcode || '',
@@ -958,10 +958,10 @@ const BusinessPOS = () => {
                 category_name: prod?.category || prod?.category_name || variables?.category || 'General',
                 warehouse_id: prod?.warehouse_id || variables?.warehouse_id || 'Main Godown',
                 location: prod?.location || variables?.warehouse_id || 'Main Godown',
-                tax_percentage: parseFloat(prod?.tax_percentage ?? variables?.tax_percentage ?? 18) || 0,
-                tax_rate: parseFloat(prod?.tax_percentage ?? variables?.tax_percentage ?? 18) || 0,
-                taxRate: parseFloat(prod?.tax_percentage ?? variables?.tax_percentage ?? 18) || 0,
-                gst_percentage: parseFloat(prod?.tax_percentage ?? variables?.tax_percentage ?? 18) || 0,
+                tax_percentage: (prod?.tax_percentage !== undefined && prod?.tax_percentage !== null) ? parseFloat(prod.tax_percentage) : ((variables?.tax_percentage !== undefined && variables?.tax_percentage !== null) ? parseFloat(variables.tax_percentage) : 18),
+                tax_rate: (prod?.tax_percentage !== undefined && prod?.tax_percentage !== null) ? parseFloat(prod.tax_percentage) : ((variables?.tax_percentage !== undefined && variables?.tax_percentage !== null) ? parseFloat(variables.tax_percentage) : 18),
+                taxRate: (prod?.tax_percentage !== undefined && prod?.tax_percentage !== null) ? parseFloat(prod.tax_percentage) : ((variables?.tax_percentage !== undefined && variables?.tax_percentage !== null) ? parseFloat(variables.tax_percentage) : 18),
+                gst_percentage: (prod?.tax_percentage !== undefined && prod?.tax_percentage !== null) ? parseFloat(prod.tax_percentage) : ((variables?.tax_percentage !== undefined && variables?.tax_percentage !== null) ? parseFloat(variables.tax_percentage) : 18),
                 source: 'products',
                 isUnlimited: isItemUnlimited,
                 is_unlimited: isItemUnlimited,
@@ -1189,7 +1189,7 @@ const BusinessPOS = () => {
             unit: prod.unit || 'PCS',
             selling_price: prod.price ? String(prod.price) : '',
             quantity: prod.quantity ? String(prod.quantity) : '',
-            tax_percentage: prod.tax_percentage || 18,
+            tax_percentage: (prod.tax_percentage !== undefined && prod.tax_percentage !== null) ? prod.tax_percentage : 18,
             hsn_code: resolvedHsn
         });
         setHsnQueryOverride('');

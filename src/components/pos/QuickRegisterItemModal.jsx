@@ -121,13 +121,14 @@ export const QuickRegisterItemModal = ({
     const [showHsnDropdown, setShowHsnDropdown] = useState(false);
     const [hasSearchedHsn, setHasSearchedHsn] = useState(false);
     const [hsnQueryOverride, setHsnQueryOverride] = useState('');
-    const [userInteractedHsn, setUserInteractedHsn] = useState(false);
+    const [userTypedHsnCode, setUserTypedHsnCode] = useState(false);
+    const [isAutoSuggestedHsn, setIsAutoSuggestedHsn] = useState(false);
 
     // HSN Info Description Popover State & Ref
     const [showHsnInfoPopover, setShowHsnInfoPopover] = useState(false);
     const [hsnInfoDescription, setHsnInfoDescription] = useState('');
     const [isHsnInfoLoading, setIsHsnInfoLoading] = useState(false);
-    const hsnInfoRef = useRef(null);
+    const hsnContainerRef = useRef(null);
 
     // Initialize or reset form state when modal opens or editingProduct changes
     useEffect(() => {
@@ -146,7 +147,13 @@ export const QuickRegisterItemModal = ({
             if (catVal && !DEFAULT_CATEGORIES.includes(catVal)) {
                 setCustomCategoriesList(prev => Array.from(new Set([...prev, catVal])));
             }
-            const taxVal = editingProduct.tax_percentage ?? editingProduct.tax_rate ?? editingProduct.taxRate ?? 18;
+            const taxVal = (editingProduct.tax_percentage !== undefined && editingProduct.tax_percentage !== null)
+                ? editingProduct.tax_percentage
+                : ((editingProduct.tax_rate !== undefined && editingProduct.tax_rate !== null)
+                    ? editingProduct.tax_rate
+                    : ((editingProduct.taxRate !== undefined && editingProduct.taxRate !== null)
+                        ? editingProduct.taxRate
+                        : 18));
             setTaxRate(`${taxVal}% GST`);
             setSku(editingProduct.sku || '');
             setBarcode(editingProduct.barcode || editingProduct.sku || '');
@@ -181,7 +188,8 @@ export const QuickRegisterItemModal = ({
 
             setHsnCode(resolvedHsn || '');
             setHsnQueryOverride('');
-            setUserInteractedHsn(false);
+            setUserTypedHsnCode(Boolean(resolvedHsn));
+            setIsAutoSuggestedHsn(false);
 
             // Fetch live product from APIs if hsnCode is still empty, or auto-discover from HSN master taxonomy
             if (!resolvedHsn) {
@@ -209,13 +217,19 @@ export const QuickRegisterItemModal = ({
                     if (found) {
                         const code = found.hsn_code || found.hsnCode || found.hsn || found.hsn_sac;
                         setHsnCode(code);
+                        setUserTypedHsnCode(true);
+                        setIsAutoSuggestedHsn(false);
                     } else if (targetName && targetName.length >= 2) {
                         // Intelligent HSN auto-discovery from HSN master table based on product name
                         hsnService.searchHSN(targetName).then(results => {
                             if (results && results.length > 0) {
-                                const bestCode = results[0]?.hsnCode || results[0]?.hsn_code;
+                                const best = results[0];
+                                const bestCode = best?.hsnCode || best?.hsn_code;
                                 if (bestCode) {
                                     setHsnCode(bestCode);
+                                    setHsnInfoDescription(best.description || '');
+                                    setIsAutoSuggestedHsn(true);
+                                    setHsnSuggestions(results);
                                 }
                             }
                         }).catch(() => {});
@@ -236,7 +250,8 @@ export const QuickRegisterItemModal = ({
             setBarcode(`SKU-${Date.now().toString().slice(-4)}`);
             setHsnCode('');
             setHsnQueryOverride('');
-            setUserInteractedHsn(false);
+            setUserTypedHsnCode(false);
+            setIsAutoSuggestedHsn(false);
         }
         setHsnSuggestions([]);
         setShowHsnDropdown(false);
@@ -283,34 +298,72 @@ export const QuickRegisterItemModal = ({
 
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (hsnInfoRef.current && !hsnInfoRef.current.contains(event.target)) {
+            if (hsnContainerRef.current && !hsnContainerRef.current.contains(event.target)) {
                 setShowHsnInfoPopover(false);
+                setShowHsnDropdown(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // 1. Intelligent HSN auto-suggestion when user types Product Name
     useEffect(() => {
-        if (!isOpen) {
-            setShowHsnDropdown(false);
+        if (!isOpen) return;
+
+        // If user manually typed / selected an HSN code, don't overwrite it
+        if (userTypedHsnCode) return;
+
+        const term = (name || '').trim();
+        if (term.length < 2) {
             setHsnSuggestions([]);
-            setHsnQueryOverride('');
-            setHasSearchedHsn(false);
-            setShowHsnInfoPopover(false);
+            if (isAutoSuggestedHsn) {
+                setHsnCode('');
+                setHsnInfoDescription('');
+                setIsAutoSuggestedHsn(false);
+            }
             return;
         }
 
-        // Only search/suggest when the user has actively interacted with the HSN input!
-        // Never auto-pop suggestions on opening the edit modal!
-        if (!userInteractedHsn) {
-            return;
-        }
+        const timer = setTimeout(() => {
+            setIsHsnLoading(true);
+            setHasSearchedHsn(true);
+            hsnService.searchHSN(term)
+                .then(results => {
+                    const safeResults = Array.isArray(results) ? results : [];
+                    setHsnSuggestions(safeResults);
+                    if (safeResults.length > 0) {
+                        const top = safeResults[0];
+                        const code = top?.hsnCode || top?.hsn_code;
+                        if (code && (!hsnCode || isAutoSuggestedHsn)) {
+                            setHsnCode(code);
+                            setHsnInfoDescription(top.description || '');
+                            setIsAutoSuggestedHsn(true);
+                        }
+                    } else if (isAutoSuggestedHsn) {
+                        setHsnCode('');
+                        setHsnInfoDescription('');
+                        setIsAutoSuggestedHsn(false);
+                    }
+                })
+                .catch(() => {
+                    setHsnSuggestions([]);
+                })
+                .finally(() => {
+                    setIsHsnLoading(false);
+                });
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [isOpen, name, userTypedHsnCode]);
+
+    // 2. Manual HSN search when user interacts with HSN input
+    useEffect(() => {
+        if (!isOpen || !userTypedHsnCode) return;
 
         const query = (hsnQueryOverride || hsnCode || '').trim();
         if (query.length < 2) {
             setHsnSuggestions([]);
-            setShowHsnDropdown(false);
             setHasSearchedHsn(false);
             return;
         }
@@ -320,7 +373,7 @@ export const QuickRegisterItemModal = ({
             setHasSearchedHsn(true);
             hsnService.searchHSN(query)
                 .then(results => {
-                    setHsnSuggestions(results || []);
+                    setHsnSuggestions(Array.isArray(results) ? results : []);
                     setShowHsnDropdown(true);
                 })
                 .catch(() => {
@@ -332,7 +385,7 @@ export const QuickRegisterItemModal = ({
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [isOpen, userInteractedHsn, hsnQueryOverride, hsnCode]);
+    }, [isOpen, userTypedHsnCode, hsnQueryOverride, hsnCode]);
 
     // Mutation: Create product with instant catalog cache injection
     const createProductMutation = useMutation({
@@ -360,10 +413,10 @@ export const QuickRegisterItemModal = ({
                 category_name: prod?.category || prod?.category_name || variables?.category || 'General',
                 warehouse_id: prod?.warehouse_id || variables?.warehouse_id || 'Main Godown',
                 location: prod?.location || variables?.warehouse_id || 'Main Godown',
-                tax_percentage: parseFloat(prod?.tax_percentage ?? variables?.tax_percentage ?? 18) || 0,
-                tax_rate: parseFloat(prod?.tax_percentage ?? variables?.tax_percentage ?? 18) || 0,
-                taxRate: parseFloat(prod?.tax_percentage ?? variables?.tax_percentage ?? 18) || 0,
-                gst_percentage: parseFloat(prod?.tax_percentage ?? variables?.tax_percentage ?? 18) || 0,
+                tax_percentage: (prod?.tax_percentage !== undefined && prod?.tax_percentage !== null) ? parseFloat(prod.tax_percentage) : ((variables?.tax_percentage !== undefined && variables?.tax_percentage !== null) ? parseFloat(variables.tax_percentage) : 18),
+                tax_rate: (prod?.tax_percentage !== undefined && prod?.tax_percentage !== null) ? parseFloat(prod.tax_percentage) : ((variables?.tax_percentage !== undefined && variables?.tax_percentage !== null) ? parseFloat(variables.tax_percentage) : 18),
+                taxRate: (prod?.tax_percentage !== undefined && prod?.tax_percentage !== null) ? parseFloat(prod.tax_percentage) : ((variables?.tax_percentage !== undefined && variables?.tax_percentage !== null) ? parseFloat(variables.tax_percentage) : 18),
+                gst_percentage: (prod?.tax_percentage !== undefined && prod?.tax_percentage !== null) ? parseFloat(prod.tax_percentage) : ((variables?.tax_percentage !== undefined && variables?.tax_percentage !== null) ? parseFloat(variables.tax_percentage) : 18),
                 source: 'products',
                 isUnlimited: isItemUnlimited,
                 is_unlimited: isItemUnlimited,
@@ -450,8 +503,9 @@ export const QuickRegisterItemModal = ({
         e.preventDefault();
 
         // 1. Numeric Parsing for Tax Rate:
-        // The GST dropdown value "18% GST" must be parsed into a clean numeric value 18 before sending:
-        const parsedTax = parseFloat(taxRate.replace(/[^0-9.]/g, '')) || 0;
+        // The GST dropdown value "0% GST", "18% GST", etc. must be parsed into a clean numeric value:
+        const parsedTax = parseFloat(taxRate.replace(/[^0-9.]/g, ''));
+        const cleanTax = isNaN(parsedTax) ? 18 : parsedTax;
 
         // 2. Sanitize Opening Stock for Unlimited Product:
         // When isUnlimited is active, set openingStock: 999999 and isUnlimited: true (do NOT pass UI display strings like ~ Unlimited).
@@ -465,7 +519,7 @@ export const QuickRegisterItemModal = ({
         const defaultUnit = (unit || '').trim() || 'PCS';
         const defaultSku = (sku || '').trim() || `SKU-${Date.now().toString().slice(-4)}`;
         const defaultBarcode = (barcode || '').trim() || defaultSku;
-        const defaultHsnCode = (hsnCode || '').trim() || '1006';
+        const defaultHsnCode = (hsnCode || '').trim() || (hsnSuggestions.length > 0 ? (hsnSuggestions[0].hsnCode || hsnSuggestions[0].hsn_code) : '1006');
 
         const sPrice = parseFloat(sellingPrice) || 0;
         const resolvedWarehouse = (dbWarehouses && dbWarehouses.length > 0 ? (dbWarehouses[0].id || dbWarehouses[0].name) : null) || 'Main Godown';
@@ -488,10 +542,10 @@ export const QuickRegisterItemModal = ({
             purchase_price: sPrice * 0.7,
             selling_price: sPrice,
             price: sPrice,
-            tax_percentage: parsedTax,
-            taxRate: parsedTax,
-            tax_rate: parsedTax,
-            gst_percentage: parsedTax,
+            tax_percentage: cleanTax,
+            taxRate: cleanTax,
+            tax_rate: cleanTax,
+            gst_percentage: cleanTax,
             hsn_code: defaultHsnCode,
             hsnCode: defaultHsnCode,
             hsn: defaultHsnCode,
@@ -819,10 +873,10 @@ export const QuickRegisterItemModal = ({
                                 style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }}
                             />
                         </div>
-                        <div style={{ position: 'relative' }} ref={hsnInfoRef}>
+                        <div style={{ position: 'relative' }} ref={hsnContainerRef}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>HSN / SAC Code</label>
-                                {isHsnLoading && <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '600' }}>Searching...</span>}
+                                {isHsnLoading && <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '600' }}>Suggesting...</span>}
                             </div>
                             <div style={{ position: 'relative' }}>
                                 <input
@@ -832,13 +886,20 @@ export const QuickRegisterItemModal = ({
                                         const val = e.target.value;
                                         setHsnCode(val);
                                         setHsnQueryOverride(val);
-                                        setUserInteractedHsn(true);
+                                        setUserTypedHsnCode(true);
+                                        setIsAutoSuggestedHsn(false);
                                         setShowHsnInfoPopover(false);
                                     }}
                                     onFocus={() => {
-                                        if (hsnCode && hsnCode.length >= 2) {
-                                            setUserInteractedHsn(true);
-                                            setShowHsnDropdown(true);
+                                        setShowHsnDropdown(true);
+                                        const q = (hsnQueryOverride || hsnCode || name || '').trim();
+                                        if (q.length >= 2 && hsnSuggestions.length === 0) {
+                                            setIsHsnLoading(true);
+                                            setHasSearchedHsn(true);
+                                            hsnService.searchHSN(q)
+                                                .then(res => setHsnSuggestions(Array.isArray(res) ? res : []))
+                                                .catch(() => setHsnSuggestions([]))
+                                                .finally(() => setIsHsnLoading(false));
                                         }
                                     }}
                                     style={{ width: '100%', padding: '0.75rem', paddingRight: '2.25rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600 }}
@@ -912,6 +973,74 @@ export const QuickRegisterItemModal = ({
                                 )}
                             </div>
 
+                            {/* Auto-suggested badge */}
+                            {isAutoSuggestedHsn && hsnCode && (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.68rem', color: '#047857', fontWeight: '700' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <span>✨ Suggested for &ldquo;{name}&rdquo;:</span>
+                                        <span style={{ fontWeight: '850', color: '#065F46' }}>{hsnCode}</span>
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowHsnDropdown(prev => !prev)}
+                                        style={{ border: 'none', background: 'transparent', color: '#2563EB', cursor: 'pointer', fontSize: '0.68rem', fontWeight: '700', textDecoration: 'underline', flexShrink: 0, marginLeft: '6px' }}
+                                    >
+                                        {showHsnDropdown ? 'Hide' : `Options (${hsnSuggestions.length})`}
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Quick suggestion chips when dropdown is closed */}
+                            {!showHsnDropdown && hsnSuggestions.length > 0 && (
+                                <div style={{ marginTop: '5px', display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+                                    {hsnSuggestions.slice(0, 3).map((item, idx) => {
+                                        const isSelected = hsnCode === item.hsnCode;
+                                        return (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => {
+                                                    setHsnCode(item.hsnCode);
+                                                    setHsnInfoDescription(item.description);
+                                                    setHsnQueryOverride('');
+                                                    setUserTypedHsnCode(true);
+                                                    setIsAutoSuggestedHsn(false);
+                                                    setShowHsnDropdown(false);
+                                                }}
+                                                style={{
+                                                    border: isSelected ? '1px solid #10B981' : '1px solid #CBD5E1',
+                                                    background: isSelected ? '#ECFDF5' : '#F8FAFC',
+                                                    color: isSelected ? '#047857' : '#475569',
+                                                    borderRadius: '6px',
+                                                    padding: '2px 6px',
+                                                    fontSize: '0.68rem',
+                                                    fontWeight: '700',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px'
+                                                }}
+                                                title={item.description}
+                                            >
+                                                <span style={{ fontWeight: '800' }}>{item.hsnCode}</span>
+                                                <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.8 }}>
+                                                    {item.description}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                    {hsnSuggestions.length > 3 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowHsnDropdown(true)}
+                                            style={{ border: 'none', background: 'transparent', color: '#2563EB', fontSize: '0.68rem', fontWeight: '700', cursor: 'pointer' }}
+                                        >
+                                            +{hsnSuggestions.length - 3} more
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
                             {/* HSN Suggestions Dropdown */}
                             {showHsnDropdown && (
                                 <div style={{
@@ -930,7 +1059,9 @@ export const QuickRegisterItemModal = ({
                                     padding: '0.5rem'
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', borderBottom: '1px solid #F1F5F9' }}>
-                                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase' }}>HSN/SAC Suggestions</span>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase' }}>
+                                            {name ? `Suggested for "${name}"` : 'HSN/SAC Suggestions'}
+                                        </span>
                                         <button type="button" onClick={() => setShowHsnDropdown(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8', padding: '2px' }}><X size={14} /></button>
                                     </div>
 
@@ -948,7 +1079,8 @@ export const QuickRegisterItemModal = ({
                                             onClick={() => {
                                                 setHsnCode(item.hsnCode);
                                                 setHsnQueryOverride('');
-                                                setUserInteractedHsn(false);
+                                                setUserTypedHsnCode(true);
+                                                setIsAutoSuggestedHsn(false);
                                                 setShowHsnDropdown(false);
                                                 setHsnInfoDescription(item.description);
                                             }}
@@ -966,7 +1098,14 @@ export const QuickRegisterItemModal = ({
                                             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                         >
                                             <div style={{ flex: 1, paddingRight: '0.5rem', overflow: 'hidden' }}>
-                                                <div style={{ fontWeight: '850', fontSize: '0.85rem', color: '#047857' }}>{item.hsnCode}</div>
+                                                <div style={{ fontWeight: '850', fontSize: '0.85rem', color: '#047857' }}>
+                                                    {item.hsnCode}
+                                                    {hsnCode === item.hsnCode && (
+                                                        <span style={{ marginLeft: '6px', fontSize: '0.65rem', background: '#DCFCE7', color: '#166534', padding: '1px 5px', borderRadius: '4px' }}>
+                                                            Selected
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <div style={{ fontSize: '0.75rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.description}</div>
                                             </div>
                                             <button

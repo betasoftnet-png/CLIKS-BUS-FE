@@ -42,8 +42,8 @@ export const NewProductModal = ({ isOpen, onClose, onSuccess, onProductCreated }
                 purchase_price: parseFloat(data.purchase_price || form.purchase_price || 0),
                 price: parseFloat(data.price || data.selling_price || form.selling_price || form.purchase_price || 0),
                 primary_unit: data.primary_unit || data.unit || form.primary_unit || 'pcs',
-                gst_percentage: parseInt(data.tax_percentage || form.tax_percentage || 18, 10),
-                tax_rate: parseInt(data.tax_percentage || form.tax_percentage || 18, 10),
+                gst_percentage: (data.tax_percentage !== undefined && data.tax_percentage !== null) ? parseInt(data.tax_percentage, 10) : ((form.tax_percentage !== undefined && form.tax_percentage !== null) ? parseInt(form.tax_percentage, 10) : 18),
+                tax_rate: (data.tax_percentage !== undefined && data.tax_percentage !== null) ? parseInt(data.tax_percentage, 10) : ((form.tax_percentage !== undefined && form.tax_percentage !== null) ? parseInt(form.tax_percentage, 10) : 18),
                 category: data.category || form.category || 'General',
                 has_expiry: hasExpiry,
                 is_perishable: hasExpiry,
@@ -78,6 +78,7 @@ export const NewProductModal = ({ isOpen, onClose, onSuccess, onProductCreated }
         const generatedSku = form.sku.trim() || `SKU-${Date.now().toString().slice(-6)}`;
         const pPrice = parseFloat(form.purchase_price) || 0;
         const sPrice = parseFloat(form.selling_price) || (pPrice > 0 ? parseFloat((pPrice * 1.2).toFixed(2)) : 0);
+        const submittedTax = (form.tax_percentage !== undefined && form.tax_percentage !== null && !isNaN(parseInt(form.tax_percentage, 10))) ? parseInt(form.tax_percentage, 10) : 18;
 
         const payload = {
             name: form.name.trim(),
@@ -90,8 +91,8 @@ export const NewProductModal = ({ isOpen, onClose, onSuccess, onProductCreated }
             purchase_price: pPrice,
             selling_price: sPrice,
             price: sPrice,
-            tax_percentage: parseInt(form.tax_percentage, 10) || 18,
-            gst_percentage: parseInt(form.tax_percentage, 10) || 18,
+            tax_percentage: submittedTax,
+            gst_percentage: submittedTax,
             hsn_code: form.hsn_code.trim(),
             has_expiry: hasExpiry,
             is_perishable: hasExpiry,
