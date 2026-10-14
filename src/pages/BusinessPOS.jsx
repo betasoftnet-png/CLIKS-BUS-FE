@@ -1777,6 +1777,28 @@ const BusinessPOS = () => {
         window.print();
     };
 
+    // Derive operator prefix and email identifier for POS terminal
+    const userEmail = user?.email || user?.username || '';
+    const isSubId = Boolean(user && (user.is_sub_id === true || user.role === 'sub_id' || user.role === 'SUB_ID'));
+
+    let userPrefix = '';
+    if (isSubId) {
+        userPrefix = user?.prefix;
+        if (!userPrefix && userEmail.includes('@')) {
+            const localPart = userEmail.split('@')[0];
+            if (localPart.includes('.')) {
+                userPrefix = localPart.split('.')[0];
+            }
+        }
+        if (!userPrefix) {
+            userPrefix = user?.username || 'subid';
+        }
+    } else {
+        // Main ID displays as owner
+        userPrefix = 'owner';
+    }
+    const displayEmail = user?.email || user?.username || user?.name || 'Admin';
+
     return (
         <div style={{ display: 'flex', height: '100%', gap: '1rem', padding: '1rem', background: '#F1F5F9', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
 
@@ -1795,7 +1817,7 @@ const BusinessPOS = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     {/* <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>Speed Checkout Terminal #1</p> */}
                                     <span style={{ fontSize: '0.7rem', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '4px', fontWeight: '750' }}>
-                                        Cashier: {user?.username || user?.name || user?.full_name || user?.business_name || 'Admin'}
+                                        {userPrefix} : {displayEmail}
                                     </span>
                                 </div>
                             </div>
