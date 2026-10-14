@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { settingsService } from '../services';
+import { settingsService, loyaltyService } from '../services';
 
 import { Toggle } from '../components/ui/toggle';
-import { Bell, Shield, Globe, Save, Sliders, Award } from 'lucide-react';
+import { Bell, Shield, Globe, Save, Sliders, Award, Check, AlertCircle, Loader2 } from 'lucide-react';
 
 import { useLanguage } from '../context';
 
@@ -12,6 +12,7 @@ const Settings = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { t, setLanguage } = useLanguage();
+    const [saveFeedback, setSaveFeedback] = useState(null);
     const [localSettings, setLocalSettings] = useState({
         notifications: true,
         emailDigest: false,
@@ -41,8 +42,8 @@ const Settings = () => {
                     ...settingsObj
                 };
                 if (loyaltyVal !== undefined) {
-                    merged.loyaltyEnabled = loyaltyVal;
-                    merged.loyalty = loyaltyVal;
+                    merged.loyaltyEnabled = Boolean(loyaltyVal);
+                    merged.loyalty = Boolean(loyaltyVal);
                 }
                 return merged;
             });
@@ -50,10 +51,35 @@ const Settings = () => {
     }, [serverSettings]);
 
     const mutation = useMutation({
-        mutationFn: (data) => settingsService.updateSettings(data),
-        onSuccess: () => {
+        mutationFn: async (data) => {
+            const res = await settingsService.updateSettings(data);
+            try {
+                await loyaltyService.updateProgramSettings({
+                    loyaltyEnabled: data.loyaltyEnabled,
+                    loyalty: data.loyaltyEnabled,
+                    loyaltyRsPer1Point: data.loyaltyRsPer1Point,
+                    loyaltyPointsPer1Rs: data.loyaltyPointsPer1Rs,
+                    loyaltyMaxClaimPercent: data.loyaltyMaxClaimPercent
+                });
+            } catch (syncErr) {
+                console.warn('[Settings] Syncing loyalty program settings notice:', syncErr?.message || syncErr);
+            }
+            return res;
+        },
+        onSuccess: (res, variables) => {
+            queryClient.setQueryData(['settings'], (old) => {
+                const existing = old?.data || old || {};
+                return { ...existing, ...variables };
+            });
             queryClient.invalidateQueries({ queryKey: ['settings'] });
             queryClient.invalidateQueries({ queryKey: ['loyalty-program-settings'] });
+            setSaveFeedback({ type: 'success', message: 'Preferences saved successfully!' });
+            setTimeout(() => setSaveFeedback(null), 3500);
+        },
+        onError: (err) => {
+            const msg = err?.response?.data?.message || err?.message || 'Failed to save settings. Please check backend connection.';
+            setSaveFeedback({ type: 'error', message: msg });
+            setTimeout(() => setSaveFeedback(null), 5000);
         }
     });
 
@@ -244,27 +270,61 @@ const Settings = () => {
                 />
             </SettingSection>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
+            {saveFeedback && (
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    padding: '0.85rem 1.25rem',
+                    marginBottom: '1rem',
+                    borderRadius: '8px',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    background: saveFeedback.type === 'success' ? '#ECFDF5' : '#FEF2F2',
+                    border: `1px solid ${saveFeedback.type === 'success' ? '#A7F3D0' : '#FECACA'}`,
+                    color: saveFeedback.type === 'success' ? '#065F46' : '#991B1B'
+                }}>
+                    {saveFeedback.type === 'success' ? <Check size={18} /> : <AlertCircle size={18} />}
+                    <span>{saveFeedback.message}</span>
+                </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '1rem', marginTop: '2rem' }}>
                 <button 
                     onClick={handleSave}
-                    disabled={mutation.isLoading}
+                    disabled={mutation.isPending || mutation.isLoading}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem',
                         padding: '0.75rem 2rem',
-                        background: 'var(--primary)',
+                        background: (mutation.isPending || mutation.isLoading) ? '#94A3B8' : (saveFeedback?.type === 'success' ? '#16A34A' : 'var(--primary)'),
                         color: 'white',
                         border: 'none',
                         borderRadius: '8px',
                         fontWeight: 600,
-                        cursor: mutation.isLoading ? 'not-allowed' : 'pointer',
+                        cursor: (mutation.isPending || mutation.isLoading) ? 'not-allowed' : 'pointer',
                         boxShadow: '0 4px 6px -1px rgba(27, 107, 58, 0.2)',
-                        opacity: mutation.isLoading ? 0.7 : 1
+                        opacity: (mutation.isPending || mutation.isLoading) ? 0.65 : 1,
+                        transition: 'all 0.2s ease'
                     }}
                 >
-                    <Save size={18} />
-                    {mutation.isLoading ? 'Saving...' : 'Save Changes'}
+                    {(mutation.isPending || mutation.isLoading) ? (
+                        <>
+                            <Loader2 size={18} className="animate-spin" />
+                            <span>Saving Changes...</span>
+                        </>
+                    ) : saveFeedback?.type === 'success' ? (
+                        <>
+                            <Check size={18} />
+                            <span>Saved!</span>
+                        </>
+                    ) : (
+                        <>
+                            <Save size={18} />
+                            <span>Save Changes</span>
+                        </>
+                    )}
                 </button>
             </div>
         </div>

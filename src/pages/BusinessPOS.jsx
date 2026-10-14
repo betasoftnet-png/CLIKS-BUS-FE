@@ -447,7 +447,14 @@ const BusinessPOS = () => {
         queryFn: settingsService.getSettings,
         refetchOnWindowFocus: false
     });
-    const activeConfig = React.useMemo(() => userSettings?.data || userSettings || {}, [userSettings]);
+    const [realtimeConfig, setRealtimeConfig] = useState(null);
+    const activeConfig = React.useMemo(() => {
+        const serverCfg = userSettings?.data || userSettings || {};
+        return {
+            ...serverCfg,
+            ...(realtimeConfig || {})
+        };
+    }, [userSettings, realtimeConfig]);
 
     // Profile query for business & shop defaults
     const { data: profileData } = useQuery({
@@ -469,12 +476,16 @@ const BusinessPOS = () => {
     });
 
     React.useEffect(() => {
-        const handleOrgUpdate = () => {
+        const handleOrgUpdate = (e) => {
             try {
                 const org = JSON.parse(localStorage.getItem('cliks_org_profile') || 'null');
                 const cfg = JSON.parse(localStorage.getItem('cliks_business_config') || 'null');
                 setCustomizationProfile({ org: org || {}, cfg: cfg || {} });
-            } catch (e) {}
+            } catch (err) {}
+            if (e?.detail) {
+                setRealtimeConfig(e.detail);
+                queryClient.invalidateQueries({ queryKey: ['settings'] });
+            }
         };
         window.addEventListener('cliksOrgProfileUpdated', handleOrgUpdate);
         window.addEventListener('cliksConfigUpdated', handleOrgUpdate);
@@ -484,7 +495,7 @@ const BusinessPOS = () => {
             window.removeEventListener('cliksConfigUpdated', handleOrgUpdate);
             window.removeEventListener('storage', handleOrgUpdate);
         };
-    }, []);
+    }, [queryClient]);
 
     // Shop Profile sourced directly from /customization org profile (business name, phone, GSTIN reference, contact email)
     const resolvedShopDetails = React.useMemo(() => {
