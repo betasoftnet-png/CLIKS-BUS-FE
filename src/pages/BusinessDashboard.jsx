@@ -156,13 +156,13 @@ const BusinessDashboard = () => {
 
     const { data: expensesCategoryReport } = useQuery({
         queryKey: ['expensesCategoryDashboard', activeBranchId],
-        queryFn: () => expensesService.getCategoryReport(),
+        queryFn: () => expensesService.getCategoryReport(activeBranchId),
         retry: false
     });
 
     const { data: purchasesData } = useQuery({
         queryKey: ['purchases', activeBranchId],
-        queryFn: () => purchasesService.getPurchases(),
+        queryFn: () => purchasesService.getPurchases(activeBranchId),
         retry: false
     });
 
@@ -200,10 +200,11 @@ const BusinessDashboard = () => {
     const summaryExpenses = dashboardSummary?.total_expenses 
         ?? dashboardSummary?.data?.total_expenses;
 
-    const totalExpensesAmount = (trialBalanceData?.totalExpenses ?? trialBalanceData?.data?.totalExpenses)
-        ?? ((expensesCategoryReport && expensesCategoryReport.length > 0)
+    const totalExpensesAmount = (summaryExpenses !== undefined && summaryExpenses !== null && !isNaN(Number(summaryExpenses)))
+        ? Number(summaryExpenses)
+        : ((expensesCategoryReport && expensesCategoryReport.length > 0)
             ? expensesCategoryReport.reduce((acc, e) => acc + (parseFloat(e.total_amount || e.total || 0)), 0)
-            : (summaryExpenses ? Number(summaryExpenses) : 0));
+            : 0);
 
     const estimatedNetProfit = totalSalesAmount - totalExpensesAmount;
 

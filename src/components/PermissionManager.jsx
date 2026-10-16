@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { ChevronRight, ChevronDown, Minus, Check, Save, UserPlus, Users, Loader2, Receipt, Building, MapPin, Store } from 'lucide-react';
 import { branchService } from '../services/branchService';
 
@@ -275,6 +276,8 @@ const PermissionNode = ({ node, selectedIds, onToggle }) => {
 
 const PermissionManager = () => {
   const API_BASE = import.meta.env.VITE_API_SUB_BASE_URL || '';
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const [subIds, setSubIds] = useState([]);
   const [selectedSubId, setSelectedSubId] = useState(null);
@@ -292,6 +295,25 @@ const PermissionManager = () => {
   const [createForm, setCreateForm] = useState({
     prefix: '', password: '', firstName: '', lastName: '', branchId: '', branchName: ''
   });
+
+  // Handle incoming showroom navigation (e.g. from BusinessBranches "Add Manager")
+  useEffect(() => {
+    const passedBranchId = location.state?.branchId || searchParams.get('branchId');
+    const passedBranchName = location.state?.branchName || searchParams.get('branchName');
+    const shouldOpenCreate = location.state?.autoCreate || searchParams.get('action') === 'create' || Boolean(passedBranchId);
+
+    if (shouldOpenCreate) {
+      setShowCreateForm(true);
+      setSelectedSubId(null);
+      if (passedBranchId) {
+        setCreateForm(prev => ({
+          ...prev,
+          branchId: String(passedBranchId),
+          branchName: passedBranchName || prev.branchName
+        }));
+      }
+    }
+  }, [location.state, searchParams]);
 
   const getAuthToken = () => localStorage.getItem('bnx_auth_token') || localStorage.getItem('books_auth_token');
 
@@ -539,6 +561,17 @@ const PermissionManager = () => {
             <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
               <UserPlus className="text-emerald-600" /> Create New Sub-ID
             </h2>
+
+            {createForm.branchId && (
+              <div className="mb-5 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2.5 text-sm text-emerald-900">
+                <Building className="text-emerald-600 flex-shrink-0" size={20} />
+                <div>
+                  <div className="font-bold">Showroom Manager Account</div>
+                  <div className="text-xs text-emerald-700">Assigning to: <strong>{createForm.branchName || `Branch #${createForm.branchId}`}</strong></div>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleCreateSubId} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Prefix / Username</label>

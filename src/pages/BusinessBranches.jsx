@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { branchService, productsService } from '../services';
 import { useCurrency, useAuth } from '../context';
 import {
     Building, Plus, Search, MapPin, Phone, Mail, ArrowRightLeft,
     Package, CheckCircle2, AlertCircle, Edit3, Trash2, Store,
-    X, RefreshCw, Layers, ShieldCheck, ChevronRight, BarChart3
+    X, RefreshCw, Layers, ShieldCheck, ChevronRight, BarChart3,
+    UserPlus, Users
 } from 'lucide-react';
 import '../App.css';
 
 const BusinessBranches = () => {
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { formatCurrency } = useCurrency();
     const { user } = useAuth();
@@ -25,6 +28,10 @@ const BusinessBranches = () => {
     const [isStockAdjustModalOpen, setIsStockAdjustModalOpen] = useState(false);
     const [selectedProductForAdjust, setSelectedProductForAdjust] = useState(null);
     const [adjustQty, setAdjustQty] = useState('');
+
+    // Showroom Manager prompt after showroom creation
+    const [newlyCreatedBranch, setNewlyCreatedBranch] = useState(null);
+    const [isManagerPromptModalOpen, setIsManagerPromptModalOpen] = useState(false);
 
     // Form States
     const [branchForm, setBranchForm] = useState({
@@ -85,11 +92,19 @@ const BusinessBranches = () => {
     // Mutations
     const createBranchMutation = useMutation({
         mutationFn: branchService.createBranch,
-        onSuccess: () => {
+        onSuccess: (data, variables) => {
             queryClient.invalidateQueries(['branches']);
             showToast('Showroom branch created successfully!');
             setIsCreateModalOpen(false);
+
+            // Extract newly created branch info
+            const created = (data && (data.data || data.id)) ? (data.data || data) : { name: variables?.name };
+            const branchId = created?.id || data?.id || null;
+            const branchName = created?.name || variables?.name || 'New Showroom';
+
             resetForm();
+            setNewlyCreatedBranch({ id: branchId, name: branchName, code: created?.code || variables?.code });
+            setIsManagerPromptModalOpen(true);
         },
         onError: (err) => showToast(err.message || 'Failed to create branch', 'error')
     });
@@ -247,6 +262,20 @@ const BusinessBranches = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <button
+                        onClick={() => navigate('/manage-subids')}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            background: '#FFFFFF', color: '#0F172A', border: '1px solid #E2E8F0',
+                            padding: '0.65rem 1.1rem', borderRadius: '12px', fontWeight: '700', fontSize: '0.875rem',
+                            cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                        }}
+                        title="Manage Sub-IDs and Showroom Managers"
+                    >
+                        <Users size={16} className="text-emerald-600" />
+                        Showroom Managers
+                    </button>
+
                     <button
                         onClick={() => {
                             setTransferForm(prev => ({
@@ -483,20 +512,41 @@ const BusinessBranches = () => {
                                         </div>
                                     </div>
 
-                                    <button
-                                        onClick={() => {
-                                            setSelectedBranchForStock(branch);
-                                            setActiveTab('stock');
-                                        }}
-                                        style={{
-                                            display: 'flex', alignItems: 'center', gap: '4px',
-                                            background: '#F1F5F9', border: 'none', padding: '0.45rem 0.75rem',
-                                            borderRadius: '8px', fontSize: '0.75rem', fontWeight: '750', color: '#1E293B',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        View Stock <ChevronRight size={14} />
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <button
+                                            onClick={() => navigate('/manage-subids', {
+                                                state: {
+                                                    branchId: branch.id,
+                                                    branchName: branch.name,
+                                                    autoCreate: true
+                                                }
+                                            })}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', gap: '4px',
+                                                background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.45rem 0.75rem',
+                                                borderRadius: '8px', fontSize: '0.75rem', fontWeight: '750', color: '#065F46',
+                                                cursor: 'pointer'
+                                            }}
+                                            title={`Add Manager or Sub-ID for ${branch.name}`}
+                                        >
+                                            <UserPlus size={14} /> Add Manager
+                                        </button>
+
+                                        <button
+                                            onClick={() => {
+                                                setSelectedBranchForStock(branch);
+                                                setActiveTab('stock');
+                                            }}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', gap: '4px',
+                                                background: '#F1F5F9', border: 'none', padding: '0.45rem 0.75rem',
+                                                borderRadius: '8px', fontSize: '0.75rem', fontWeight: '750', color: '#1E293B',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            View Stock <ChevronRight size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))
@@ -1015,8 +1065,76 @@ const BusinessBranches = () => {
                 </div>
             )}
 
+            {/* MODAL: PROMPT TO ADD SHOWROOM MANAGER AFTER CREATING BRANCH */}
+            {isManagerPromptModalOpen && newlyCreatedBranch && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '1rem' }}>
+                    <div style={{ background: '#FFFFFF', borderRadius: '24px', width: '100%', maxWidth: '480px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#ECFDF5', color: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', border: '8px solid #F0FDF4' }}>
+                            <CheckCircle2 size={36} />
+                        </div>
+
+                        <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.35rem', fontWeight: '850', color: '#0F172A' }}>
+                            Showroom Added Successfully!
+                        </h2>
+
+                        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '0.85rem', margin: '1rem 0 1.25rem' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600', textTransform: 'uppercase' }}>Showroom Name</span>
+                            <div style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0F172A' }}>
+                                {newlyCreatedBranch.name}
+                            </div>
+                            {newlyCreatedBranch.code && (
+                                <span style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: '700' }}>
+                                    Code: {newlyCreatedBranch.code}
+                                </span>
+                            )}
+                        </div>
+
+                        <p style={{ margin: '0 0 1.75rem', fontSize: '0.875rem', color: '#475569', lineHeight: 1.5 }}>
+                            Would you like to create and assign a <strong>Showroom Manager (Sub-ID)</strong> for this showroom now? The manager will be locked to this branch's stock and POS sales counters.
+                        </p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <button
+                                onClick={() => {
+                                    setIsManagerPromptModalOpen(false);
+                                    navigate('/manage-subids', {
+                                        state: {
+                                            branchId: newlyCreatedBranch.id,
+                                            branchName: newlyCreatedBranch.name,
+                                            autoCreate: true
+                                        }
+                                    });
+                                }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                    width: '100%', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                    color: 'white', border: 'none', padding: '0.85rem', borderRadius: '12px',
+                                    fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer',
+                                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
+                                }}
+                            >
+                                <UserPlus size={18} />
+                                Create Showroom Manager Now
+                            </button>
+
+                            <button
+                                onClick={() => setIsManagerPromptModalOpen(false)}
+                                style={{
+                                    width: '100%', background: '#F1F5F9', color: '#475569',
+                                    border: 'none', padding: '0.75rem', borderRadius: '12px',
+                                    fontWeight: '700', fontSize: '0.875rem', cursor: 'pointer'
+                                }}
+                            >
+                                I'll Add Manager Later
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };
 
 export default BusinessBranches;
+

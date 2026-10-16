@@ -1,10 +1,16 @@
 import { apiClient } from '../api/client';
 
+const toParams = (arg) => {
+    if (!arg) return undefined;
+    if (typeof arg === 'object') return arg;
+    return { branch_id: arg };
+};
+
 /**
  * Expenses & Budgeting Service connected to live /expenses backend
  */
 export const expensesService = {
-    getExpenses: () => apiClient.get('/expenses').then(res => res.data.data || res.data),
+    getExpenses: (params) => apiClient.get('/expenses', { params: toParams(params) }).then(res => res.data.data || res.data),
     createExpense: (data) => apiClient.post('/expenses', data).then(res => res.data.data || res.data),
     getBudgets: () => apiClient.get('/expenses/budgets').then(res => res.data.data || res.data),
     createBudget: (data) => apiClient.post('/expenses/budgets', data).then(res => res.data.data || res.data),
@@ -19,7 +25,8 @@ export const expensesService = {
     createRecurring: (data) => apiClient.post('/expenses/recurring', data).then(res => res.data.data || res.data),
     updateRecurring: (id, data) => apiClient.put(`/expenses/recurring/${id}`, data).then(res => res.data.data || res.data),
     deleteRecurring: (id) => apiClient.delete(`/expenses/recurring/${id}`).then(res => res.data.data || res.data),
-    getCategoryReport: () => apiClient.get('/expenses/reports/category').then(res => res.data.data || res.data)
+    getCategoryReport: (params) => apiClient.get('/expenses/reports/category', { params: toParams(params) }).then(res => res.data.data || res.data)
 };
 
 export default expensesService;
+
