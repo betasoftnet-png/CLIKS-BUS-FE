@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { ChevronRight, ChevronDown, Minus, Check, Save, UserPlus, Users, Loader2, Receipt, Building, MapPin, Store } from 'lucide-react';
 import { branchService } from '../services/branchService';
+import { useAuth } from '../context';
 
 const PERMISSIONS_HIERARCHY = [
   {
@@ -278,6 +279,10 @@ const PermissionManager = () => {
   const API_BASE = import.meta.env.VITE_API_SUB_BASE_URL || '';
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+
+  const isBranchManager = Boolean(user && (user.is_sub_id || user.role === 'sub_id' || user.role === 'SUB_ID') && user.branch_id);
+  const managerBranchId = user?.branch_id ? String(user.branch_id) : null;
 
   const [subIds, setSubIds] = useState([]);
   const [selectedSubId, setSelectedSubId] = useState(null);
@@ -296,24 +301,24 @@ const PermissionManager = () => {
     prefix: '', password: '', firstName: '', lastName: '', branchId: '', branchName: ''
   });
 
-  // Handle incoming showroom navigation (e.g. from BusinessBranches "Add Manager")
+  // Handle incoming showroom navigation or branch manager default lock
   useEffect(() => {
-    const passedBranchId = location.state?.branchId || searchParams.get('branchId');
-    const passedBranchName = location.state?.branchName || searchParams.get('branchName');
+    const passedBranchId = location.state?.branchId || searchParams.get('branchId') || (isBranchManager ? managerBranchId : null);
+    const passedBranchName = location.state?.branchName || searchParams.get('branchName') || (isBranchManager ? user?.branch_name : null);
     const shouldOpenCreate = location.state?.autoCreate || searchParams.get('action') === 'create' || Boolean(passedBranchId);
 
     if (shouldOpenCreate) {
       setShowCreateForm(true);
       setSelectedSubId(null);
-      if (passedBranchId) {
-        setCreateForm(prev => ({
-          ...prev,
-          branchId: String(passedBranchId),
-          branchName: passedBranchName || prev.branchName
-        }));
-      }
     }
-  }, [location.state, searchParams]);
+    if (passedBranchId) {
+      setCreateForm(prev => ({
+        ...prev,
+        branchId: String(passedBranchId),
+        branchName: passedBranchName || prev.branchName
+      }));
+    }
+  }, [location.state, searchParams, isBranchManager, managerBranchId, user?.branch_name]);
 
   const getAuthToken = () => localStorage.getItem('bnx_auth_token') || localStorage.getItem('books_auth_token');
 
@@ -425,7 +430,11 @@ const PermissionManager = () => {
     e.preventDefault();
     setIsSaving(true);
 
-    const selectedBranch = branches.find(b => String(b.id) === String(createForm.branchId));
+    const assignedBranchId = isBranchManager ? managerBranchId : createForm.branchId;
+    const selectedBranch = branches.find(b => String(b.id) === String(assignedBranchId));
+    const assignedBranchName = isBranchManager
+      ? (user?.branch_name || selectedBranch?.name || createForm.branchName)
+      : (selectedBranch ? selectedBranch.name : (createForm.branchName || undefined));
 
     const payload = {
       prefix: createForm.prefix.trim(),
@@ -433,8 +442,8 @@ const PermissionManager = () => {
       firstName: createForm.firstName.trim(),
       lastName: createForm.lastName.trim(),
       accountType: 'BUSINESS',
-      branchId: createForm.branchId ? parseInt(createForm.branchId) : undefined,
-      branchName: selectedBranch ? selectedBranch.name : (createForm.branchName || undefined),
+      branchId: assignedBranchId ? parseInt(assignedBranchId) : undefined,
+      branchName: assignedBranchName || undefined,
       permissions: []
     };
 
@@ -487,6 +496,10 @@ const PermissionManager = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const displayedSubIds = (isBranchManager && managerBranchId)
+    ? subIds.filter(s => String(s.branchId) === String(managerBranchId))
+    : subIds;
+
   return (
     <div className="flex h-[calc(100vh-64px)] bg-gray-50 font-sans">
 
@@ -501,7 +514,8 @@ const PermissionManager = () => {
       <div className="w-1/4 min-w-[250px] bg-white border-r border-gray-200 overflow-y-auto flex flex-col">
         <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
           <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <Users size={18} className="text-gray-600" /> Sub-IDs
+            <Users size={18} className="text-gray-600" />
+            {isBranchManager ? `${user?.branch_name || 'Showroom'} Staff` : 'Sub-IDs'}
           </h2>
           <button
             onClick={() => setShowCreateForm(true)}
@@ -515,12 +529,12 @@ const PermissionManager = () => {
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {isLoading ? (
             <div className="flex justify-center p-6"><Loader2 className="animate-spin text-gray-400" /></div>
-          ) : subIds.length === 0 ? (
+          ) : displayedSubIds.length === 0 ? (
             <div className="text-center p-6 text-sm text-gray-500">
-              No Sub-IDs found. Create one to get started.
+              {isBranchManager ? 'No staff Sub-IDs created for this showroom yet.' : 'No Sub-IDs found. Create one to get started.'}
             </div>
           ) : (
-            subIds.map(subId => (
+            displayedSubIds.map(subId => (
               <button
                 key={subId.id}
                 onClick={() => handleSelectSubId(subId)}
@@ -598,29 +612,43 @@ const PermissionManager = () => {
                   <Building size={15} className="text-emerald-600" />
                   Assign Showroom / Branch
                 </label>
-                <select
-                  value={createForm.branchId}
-                  onChange={e => {
-                    const bId = e.target.value;
-                    const found = branches.find(b => String(b.id) === String(bId));
-                    setCreateForm({
-                      ...createForm,
-                      branchId: bId,
-                      branchName: found ? found.name : ''
-                    });
-                  }}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-gray-800 text-sm font-medium"
-                >
-                  <option value="">-- All Showrooms (HQ Admin) --</option>
-                  {branches.map(b => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} ({b.code || `BR-${b.id}`})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Locks this Sub-ID to this showroom's stock and POS billing counter.
-                </p>
+                {isBranchManager ? (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm font-bold text-emerald-900">
+                      <Building size={16} className="text-emerald-600" />
+                      {user?.branch_name || (branches.find(b => String(b.id) === String(managerBranchId))?.name) || `Showroom #${managerBranchId}`}
+                    </div>
+                    <p className="text-xs text-emerald-700 mt-1">
+                      🔒 As Showroom Manager, all Sub-IDs you create are automatically locked to your showroom.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <select
+                      value={createForm.branchId}
+                      onChange={e => {
+                        const bId = e.target.value;
+                        const found = branches.find(b => String(b.id) === String(bId));
+                        setCreateForm({
+                          ...createForm,
+                          branchId: bId,
+                          branchName: found ? found.name : ''
+                        });
+                      }}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-gray-800 text-sm font-medium"
+                    >
+                      <option value="">-- All Showrooms (HQ Admin) --</option>
+                      {branches.map(b => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.code || `BR-${b.id}`})
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Locks this Sub-ID to this showroom's stock and POS billing counter.
+                    </p>
+                  </>
+                )}
               </div>
 
               <button
@@ -646,22 +674,28 @@ const PermissionManager = () => {
                   <span className="text-xs font-bold text-gray-600 flex items-center gap-1">
                     <Building size={14} className="text-emerald-600" /> Assigned Showroom:
                   </span>
-                  <select
-                    value={selectedSubId.branchId || ''}
-                    disabled={isUpdatingBranch}
-                    onChange={(e) => {
-                      const newId = e.target.value ? parseInt(e.target.value) : null;
-                      handleUpdateSubIdBranch(selectedSubId.id, newId);
-                    }}
-                    className="px-3 py-1 text-xs font-bold rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer shadow-sm"
-                  >
-                    <option value="">All Showrooms / Global</option>
-                    {branches.map(b => (
-                      <option key={b.id} value={b.id}>
-                        {b.name} ({b.code})
-                      </option>
-                    ))}
-                  </select>
+                  {isBranchManager ? (
+                    <span className="px-2.5 py-0.5 text-xs font-bold rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      {selectedSubId.branchName || (selectedSubId.branchId ? `Branch #${selectedSubId.branchId}` : user?.branch_name || 'Your Showroom')}
+                    </span>
+                  ) : (
+                    <select
+                      value={selectedSubId.branchId || ''}
+                      disabled={isUpdatingBranch}
+                      onChange={(e) => {
+                        const newId = e.target.value ? parseInt(e.target.value) : null;
+                        handleUpdateSubIdBranch(selectedSubId.id, newId);
+                      }}
+                      className="px-3 py-1 text-xs font-bold rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer shadow-sm"
+                    >
+                      <option value="">All Showrooms / Global</option>
+                      {branches.map(b => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.code})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   {isUpdatingBranch && <Loader2 size={14} className="animate-spin text-emerald-600" />}
                 </div>
               </div>

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck, Camera, UserCog, UserPlus, Users, X, CheckCircle2 } from "lucide-react";
+import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck, Camera, UserCog, UserPlus, Users, X, CheckCircle2, Building, Store } from "lucide-react";
 import { useAuth, useCurrency } from "../context";
 import { useNavigate } from "react-router-dom";
 
@@ -13,6 +13,9 @@ export function ProfileDropdown({
     const { user } = useAuth();
     const navigate = useNavigate();
     const dropdownRef = useRef(null);
+
+    const isOwner = !user?.is_sub_id && user?.role !== 'sub_id' && user?.role !== 'SUB_ID';
+    const isBranchManager = Boolean(user && (user.is_sub_id || user.role === 'sub_id' || user.role === 'SUB_ID') && user.branch_id);
     
     // Profile Photo & Camera Menu States
     const [profilePhoto, setProfilePhoto] = useState(() => localStorage.getItem("profile_photo") || null);
@@ -900,7 +903,24 @@ export function ProfileDropdown({
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 0' }}>
-                                    {(!user?.is_sub_id && user?.role !== 'sub_id' && user?.role !== 'SUB_ID') && (
+                                    {/* Manage Branches - strictly visible to OWNER only */}
+                                    {isOwner && (
+                                        <button
+                                            onClick={() => {
+                                                navigate('/inventory/branches');
+                                                setOpen(false);
+                                            }}
+                                            style={styles.menuItem}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            <Building size={18} color="#5f6368" />
+                                            <span>Manage Branches</span>
+                                        </button>
+                                    )}
+
+                                    {/* Manage SubIDs - visible to Owner and Branch Managers */}
+                                    {(isOwner || isBranchManager) && (
                                         <button
                                             onClick={() => {
                                                 navigate('/manage-subids');
@@ -911,7 +931,7 @@ export function ProfileDropdown({
                                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                         >
                                             <Users size={18} color="#5f6368" />
-                                            <span>Manage SubIDs</span>
+                                            <span>{isBranchManager ? 'Manage Showroom Sub-IDs' : 'Manage SubIDs'}</span>
                                         </button>
                                     )}
 
