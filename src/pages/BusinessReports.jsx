@@ -41,18 +41,19 @@ import {
 } from 'lucide-react';
 import '../App.css';
 
-import { useCurrency } from '../context';
+import { useCurrency, useBranch } from '../context';
 
 const BusinessReports = () => {
     const { formatCurrency } = useCurrency();
+    const { activeBranchId, activeBranchName, isLocked } = useBranch();
     const [activeCategory, setActiveCategory] = useState('all');
     const [viewMode, setViewMode] = useState('both'); // 'table', 'graph', 'both'
     const [exportToast, setExportToast] = useState('');
 
 
     const { data: summary } = useQuery({
-        queryKey: ['reportsSummary'],
-        queryFn: () => reportsService.getDashboardSummary()
+        queryKey: ['reportsSummary', activeBranchId],
+        queryFn: () => reportsService.getDashboardSummary(activeBranchId)
     });
 
     const [selectedReport, setSelectedReport] = useState(null);
@@ -1068,8 +1069,29 @@ const BusinessReports = () => {
                             <BarChart3 size={18} />
                         </div>
                         <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>Business Reports</h1>
+                        {activeBranchId && (
+                            <span style={{
+                                padding: '4px 12px',
+                                borderRadius: '999px',
+                                fontSize: '12px',
+                                fontWeight: '800',
+                                backgroundColor: '#ECFDF5',
+                                color: '#059669',
+                                border: '1px solid #A7F3D0',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                            }}>
+                                📍 {activeBranchName} {isLocked ? '(Showroom Manager)' : ''}
+                            </span>
+                        )}
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Comprehensive analytical insights into every aspect of your operations.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>
+                        {activeBranchId
+                            ? `Comprehensive analytical insights scoped strictly to ${activeBranchName}.`
+                            : 'Comprehensive analytical insights into every aspect of your enterprise operations.'
+                        }
+                    </p>
                 </div>
             </div>
 

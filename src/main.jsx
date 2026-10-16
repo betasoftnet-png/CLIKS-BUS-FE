@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './context/AuthContext'
+import { BranchProvider } from './context/BranchContext'
 import { CurrencyProvider } from './context/CurrencyContext'
 import { LanguageProvider } from './context/LanguageContext'
 import './styles/tokens.css'
@@ -28,11 +29,13 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <CurrencyProvider>
-          <LanguageProvider>
-            <App />
-          </LanguageProvider>
-        </CurrencyProvider>
+        <BranchProvider>
+          <CurrencyProvider>
+            <LanguageProvider>
+              <App />
+            </LanguageProvider>
+          </CurrencyProvider>
+        </BranchProvider>
       </AuthProvider>
     </QueryClientProvider>
   </StrictMode>,

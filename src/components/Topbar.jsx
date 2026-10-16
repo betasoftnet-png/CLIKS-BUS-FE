@@ -24,6 +24,7 @@ import NotificationBell from './NotificationBell';
 import NotificationDropdown from './NotificationDropdown';
 import { useNotifications } from '../hooks/useNotifications';
 import { caService } from '../services/caService';
+import BranchSelector from './BranchSelector';
 
 
 
@@ -339,9 +340,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
 
     return (
         <header className="topbar" style={{ paddingLeft: '1.5rem', paddingRight: '64px' }}>
-            {/* Left: Branding / App Switcher */}
-            <div className="topbar-left">
-                {/* ... existing logo code ... */}
+            {/* Left: Branding / App Switcher & Showroom Selector */}
+            <div className="topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div
                     className="logo-area"
                     onClick={onToggleSidebar}
@@ -364,6 +364,9 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                         Cliks<span className="logo-business-text"> Business</span>
                     </span>
                 </div>
+
+                {/* Showroom / Multi-Branch Switcher */}
+                <BranchSelector />
             </div>
 
             {/* Hamburger Button (Mobile) - Now toggles Sidebar! */}

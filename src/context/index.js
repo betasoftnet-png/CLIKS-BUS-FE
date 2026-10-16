@@ -8,3 +8,4 @@ export { AuthProvider } from './AuthContext';
 export { useAuth } from './auth-context';
 export { CurrencyProvider, useCurrency } from './CurrencyContext';
 export { LanguageProvider, useLanguage } from './LanguageContext';
+export { BranchProvider, useBranch } from './BranchContext';

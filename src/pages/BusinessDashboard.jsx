@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCurrency, useLanguage, useAuth } from '../context';
+import { useCurrency, useLanguage, useAuth, useBranch } from '../context';
 import {
     LayoutDashboard,
     Briefcase,
@@ -91,6 +91,7 @@ const BusinessDashboard = () => {
     const { formatCurrency } = useCurrency();
     const { t } = useLanguage();
     const { user } = useAuth();
+    const { activeBranchId, selectedBranchId, activeBranchName, isLocked } = useBranch();
     const isSubId = Boolean(user && (user.is_sub_id === true || user.role === 'sub_id' || user.role === 'SUB_ID'));
     
     // States for custom interactive SVGs
@@ -136,37 +137,37 @@ const BusinessDashboard = () => {
 
     // Analytics Queries
     const { data: dashboardSummary } = useQuery({
-        queryKey: ['dashboardSummary'],
-        queryFn: () => reportsService.getDashboardSummary(),
+        queryKey: ['dashboardSummary', activeBranchId],
+        queryFn: () => reportsService.getDashboardSummary(activeBranchId),
         retry: false
     });
 
     const { data: salesOverview } = useQuery({
-        queryKey: ['salesOverviewDashboard'],
-        queryFn: () => reportsService.getSalesOverview(),
+        queryKey: ['salesOverviewDashboard', activeBranchId],
+        queryFn: () => reportsService.getSalesOverview(activeBranchId),
         retry: false
     });
 
     const { data: topProducts } = useQuery({
-        queryKey: ['topProductsDashboard'],
-        queryFn: () => reportsService.getTopProducts(),
+        queryKey: ['topProductsDashboard', activeBranchId],
+        queryFn: () => reportsService.getTopProducts(activeBranchId),
         retry: false
     });
 
     const { data: expensesCategoryReport } = useQuery({
-        queryKey: ['expensesCategoryDashboard'],
+        queryKey: ['expensesCategoryDashboard', activeBranchId],
         queryFn: () => expensesService.getCategoryReport(),
         retry: false
     });
 
     const { data: purchasesData } = useQuery({
-        queryKey: ['purchases'],
+        queryKey: ['purchases', activeBranchId],
         queryFn: () => purchasesService.getPurchases(),
         retry: false
     });
 
     const { data: trialBalanceData } = useQuery({
-        queryKey: ['trialBalanceDashboard'],
+        queryKey: ['trialBalanceDashboard', activeBranchId],
         queryFn: () => accountingService.getTrialBalance(),
         retry: false
     });
@@ -261,8 +262,31 @@ const BusinessDashboard = () => {
             {/* Header */}
             <div className="dashboard-header" style={{ flexShrink: 0 }}>
                 <div className="dashboard-header-title">
-                    <h1>{t('businessOverview', 'Business Overview')}</h1>
-                    <p>{t('monitorPerformance', 'Monitor your enterprise performance and operations.')}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <h1>{t('businessOverview', 'Business Overview')}</h1>
+                        {activeBranchId && (
+                            <span style={{
+                                padding: '4px 12px',
+                                borderRadius: '999px',
+                                fontSize: '12px',
+                                fontWeight: '800',
+                                backgroundColor: '#ECFDF5',
+                                color: '#059669',
+                                border: '1px solid #A7F3D0',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                            }}>
+                                📍 {activeBranchName} {isLocked ? '(Showroom Manager)' : ''}
+                            </span>
+                        )}
+                    </div>
+                    <p>
+                        {activeBranchId
+                            ? `Displaying sales, monthly trends and inventory metrics scoped strictly to ${activeBranchName}.`
+                            : t('monitorPerformance', 'Monitor your enterprise performance and operations.')
+                        }
+                    </p>
                 </div>
                 <div className="dashboard-header-actions">
 

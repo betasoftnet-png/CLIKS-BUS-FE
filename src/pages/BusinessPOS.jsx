@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCurrency, useAuth } from '../context';
+import { useCurrency, useAuth, useBranch } from '../context';
 import {
     Search,
     Plus,
@@ -92,16 +92,23 @@ const BusinessPOS = () => {
         refetchOnWindowFocus: false
     });
     const posBranches = Array.isArray(posBranchesData) ? posBranchesData : (posBranchesData?.data || []);
+    const { activeBranchId } = useBranch();
     const [selectedPosBranch, setSelectedPosBranch] = useState(null);
 
     React.useEffect(() => {
-        if (posBranches.length > 0 && !selectedPosBranch) {
-            const assigned = (user?.branch_id || user?.branchId)
-                ? posBranches.find(b => b.id === (user?.branch_id || user?.branchId))
-                : (posBranches.find(b => b.is_main_branch) || posBranches[0]);
-            setSelectedPosBranch(assigned || posBranches[0]);
+        if (posBranches.length > 0) {
+            if (user?.is_sub_id && (user?.branch_id || user?.branchId)) {
+                const assigned = posBranches.find(b => b.id === (user?.branch_id || user?.branchId));
+                if (assigned) setSelectedPosBranch(assigned);
+            } else if (activeBranchId) {
+                const active = posBranches.find(b => b.id === activeBranchId);
+                if (active) setSelectedPosBranch(active);
+            } else if (!selectedPosBranch) {
+                const def = posBranches.find(b => b.is_main_branch) || posBranches[0];
+                setSelectedPosBranch(def);
+            }
         }
-    }, [posBranches, user, selectedPosBranch]);
+    }, [posBranches, user, activeBranchId]);
 
     React.useEffect(() => {
         const handleClickOutside = (event) => {

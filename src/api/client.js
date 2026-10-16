@@ -70,6 +70,21 @@ function buildUrl(endpoint, params = null) {
     return url.toString();
 }
 
+// In-memory active branch header (no localStorage)
+let inMemoryActiveBranchId = null;
+
+export function setActiveBranchHeader(branchId) {
+    if (!branchId || branchId === 'all' || branchId === 'null' || branchId === 'undefined') {
+        inMemoryActiveBranchId = null;
+    } else {
+        inMemoryActiveBranchId = String(branchId);
+    }
+}
+
+export function getActiveBranchHeader() {
+    return inMemoryActiveBranchId;
+}
+
 /**
  * Build headers for a request.
  * Merges default headers with custom headers and injects Auth token if present.
@@ -84,6 +99,11 @@ function buildHeaders(customHeaders = {}) {
     const token = localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token');
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // Inject in-memory branch header for multi-branch scoping (no localStorage)
+    if (inMemoryActiveBranchId) {
+        headers['x-branch-id'] = inMemoryActiveBranchId;
     }
 
     return headers;
@@ -317,6 +337,11 @@ export const apiClient = {
      */
     delete: (endpoint, options = {}) =>
         request(endpoint, { ...options, method: 'DELETE' }),
+
+    /**
+     * Set in-memory active branch header (no localStorage)
+     */
+    setActiveBranchHeader,
 };
 
 // ---------------------------------------------------------------------------
