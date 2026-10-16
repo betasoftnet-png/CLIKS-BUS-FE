@@ -33,7 +33,11 @@ import {
     MoreVertical,
     Tag,
     Building,
-    Store
+    Store,
+    ArrowDownAZ,
+    ArrowDownZA,
+    Barcode,
+    SlidersHorizontal
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -84,6 +88,11 @@ const BusinessPOS = () => {
     const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
     const [categorySearchQuery, setCategorySearchQuery] = useState('');
     const categoryDropdownRef = React.useRef(null);
+    const [productSort, setProductSort] = useState(() => initialPosSession?.productSort || 'default');
+    const [searchTarget, setSearchTarget] = useState(() => initialPosSession?.searchTarget || 'all');
+    const [alphabetLetterFilter, setAlphabetLetterFilter] = useState(() => initialPosSession?.alphabetLetterFilter || '');
+    const [isSortFilterDropdownOpen, setIsSortFilterDropdownOpen] = useState(false);
+    const sortFilterDropdownRef = React.useRef(null);
 
     // Multi-Branch Showroom Context for POS
     const { data: posBranchesData = [] } = useQuery({
@@ -117,6 +126,9 @@ const BusinessPOS = () => {
             }
             if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
                 setIsCategoryDropdownOpen(false);
+            }
+            if (sortFilterDropdownRef.current && !sortFilterDropdownRef.current.contains(event.target)) {
+                setIsSortFilterDropdownOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -164,7 +176,10 @@ const BusinessPOS = () => {
                 (heldCarts && heldCarts.length > 0) ||
                 discountVal > 0 ||
                 loyaltyPointsEarned > 0 ||
-                loyaltyPointsRedeemed > 0;
+                loyaltyPointsRedeemed > 0 ||
+                productSort !== 'default' ||
+                searchTarget !== 'all' ||
+                Boolean(alphabetLetterFilter);
 
             if (hasData) {
                 const sessionData = {
@@ -182,7 +197,10 @@ const BusinessPOS = () => {
                     loyaltyPointsRedeemed,
                     isPtsEarnedManuallyEdited,
                     selectedCategory,
-                    selectedWarehouseIds
+                    selectedWarehouseIds,
+                    productSort,
+                    searchTarget,
+                    alphabetLetterFilter
                 };
                 sessionStorage.setItem(POS_SESSION_STORAGE_KEY, JSON.stringify(sessionData));
             } else {
@@ -206,7 +224,10 @@ const BusinessPOS = () => {
         loyaltyPointsRedeemed,
         isPtsEarnedManuallyEdited,
         selectedCategory,
-        selectedWarehouseIds
+        selectedWarehouseIds,
+        productSort,
+        searchTarget,
+        alphabetLetterFilter
     ]);
 
     const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -1261,48 +1282,102 @@ const BusinessPOS = () => {
         return categories.filter(cat => cat.toLowerCase().includes(q));
     }, [categories, categorySearchQuery]);
 
-    // Filtered Products Catalog
-    const filteredProducts = inventory.filter(prod => {
+    // Filtered & Sorted Products Catalog
+    const filteredProducts = React.useMemo(() => {
         const lowerSearch = searchTerm.toLowerCase().trim();
 
-        // Warehouse matching logic (Multi-select)
-        let matchesWarehouse = true;
-        if (selectedWarehouseIds.length > 0) {
-            matchesWarehouse = selectedWarehouseIds.some(whId => {
-                const selectedWh = dbWarehouses.find(w => String(w.id) === String(whId) || w.code === whId || w.name === whId);
-                const targetId = String(whId).toLowerCase();
-                const targetCode = (selectedWh?.code || `WH-0${whId}`).toLowerCase();
-                const targetName = (selectedWh?.name || selectedWh?.warehouse_name || '').toLowerCase();
+        const filtered = inventory.filter(prod => {
+            // Warehouse matching logic (Multi-select)
+            let matchesWarehouse = true;
+            if (selectedWarehouseIds.length > 0) {
+                matchesWarehouse = selectedWarehouseIds.some(whId => {
+                    const selectedWh = dbWarehouses.find(w => String(w.id) === String(whId) || w.code === whId || w.name === whId);
+                    const targetId = String(whId).toLowerCase();
+                    const targetCode = (selectedWh?.code || `WH-0${whId}`).toLowerCase();
+                    const targetName = (selectedWh?.name || selectedWh?.warehouse_name || '').toLowerCase();
 
-                const pWhId = String(prod.warehouse_id || '').toLowerCase();
-                const pLoc = String(prod.location || '').toLowerCase();
+                    const pWhId = String(prod.warehouse_id || '').toLowerCase();
+                    const pLoc = String(prod.location || '').toLowerCase();
 
+                    return (
+                        pWhId === targetId ||
+                        pWhId === targetCode ||
+                        pWhId === targetName ||
+                        pWhId === `wh-0${targetId}` ||
+                        (targetName && pLoc.includes(targetName)) ||
+                        (targetName && pWhId.includes(targetName)) ||
+                        (selectedWh && (pWhId === String(selectedWh.id) || pLoc === selectedWh.name?.toLowerCase()))
+                    );
+                });
+            }
+
+            const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
+
+            // Alphabet Letter Filter (e.g. from A-Z jump bar)
+            let matchesLetter = true;
+            if (alphabetLetterFilter) {
+                const prodName = (prod.name || '').trim();
+                if (alphabetLetterFilter === '#') {
+                    matchesLetter = !prodName || !/^[A-Za-z]/i.test(prodName);
+                } else {
+                    matchesLetter = prodName.toUpperCase().startsWith(alphabetLetterFilter.toUpperCase());
+                }
+            }
+
+            if (!matchesCategory || !matchesWarehouse || !matchesLetter) {
+                return false;
+            }
+
+            if (!lowerSearch) {
+                return true;
+            }
+
+            // Search Target matching: 'all' | 'alphabet' | 'code'
+            if (searchTarget === 'alphabet') {
+                return (prod.name || '').toLowerCase().includes(lowerSearch);
+            }
+            if (searchTarget === 'code') {
                 return (
-                    pWhId === targetId ||
-                    pWhId === targetCode ||
-                    pWhId === targetName ||
-                    pWhId === `wh-0${targetId}` ||
-                    (targetName && pLoc.includes(targetName)) ||
-                    (targetName && pWhId.includes(targetName)) ||
-                    (selectedWh && (pWhId === String(selectedWh.id) || pLoc === selectedWh.name?.toLowerCase()))
+                    (prod.sku || '').toLowerCase().includes(lowerSearch) ||
+                    (prod.barcode || '').toLowerCase().includes(lowerSearch) ||
+                    (prod.hsn_code || '').toLowerCase().includes(lowerSearch) ||
+                    String(prod.id || '').toLowerCase().includes(lowerSearch)
                 );
+            }
+
+            return (
+                (prod.name || '').toLowerCase().includes(lowerSearch) ||
+                (prod.sku || '').toLowerCase().includes(lowerSearch) ||
+                (prod.barcode || '').toLowerCase().includes(lowerSearch) ||
+                (prod.category || '').toLowerCase().includes(lowerSearch) ||
+                (prod.price || 0).toString().includes(lowerSearch)
+            );
+        });
+
+        // Sorting: 'alphabet_asc' | 'alphabet_desc' | 'code_asc' | 'code_desc' | 'default'
+        if (productSort === 'alphabet_asc') {
+            return filtered.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base', numeric: true }));
+        }
+        if (productSort === 'alphabet_desc') {
+            return filtered.slice().sort((a, b) => (b.name || '').localeCompare(a.name || '', undefined, { sensitivity: 'base', numeric: true }));
+        }
+        if (productSort === 'code_asc') {
+            return filtered.slice().sort((a, b) => {
+                const codeA = (a.sku || a.barcode || a.hsn_code || String(a.id || '')).trim();
+                const codeB = (b.sku || b.barcode || b.hsn_code || String(b.id || '')).trim();
+                return codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+            });
+        }
+        if (productSort === 'code_desc') {
+            return filtered.slice().sort((a, b) => {
+                const codeA = (a.sku || a.barcode || a.hsn_code || String(a.id || '')).trim();
+                const codeB = (b.sku || b.barcode || b.hsn_code || String(b.id || '')).trim();
+                return codeB.localeCompare(codeA, undefined, { numeric: true, sensitivity: 'base' });
             });
         }
 
-        const matchesCategory = selectedCategory === 'All' || prod.category === selectedCategory;
-
-        if (!lowerSearch) {
-            return matchesCategory && matchesWarehouse;
-        }
-
-        const matchesSearch =
-            (prod.name || '').toLowerCase().includes(lowerSearch) ||
-            (prod.sku || '').toLowerCase().includes(lowerSearch) ||
-            (prod.category || '').toLowerCase().includes(lowerSearch) ||
-            (prod.price || 0).toString().includes(lowerSearch);
-
-        return matchesSearch && matchesCategory && matchesWarehouse;
-    });
+        return filtered;
+    }, [inventory, searchTerm, searchTarget, selectedWarehouseIds, dbWarehouses, selectedCategory, alphabetLetterFilter, productSort]);
 
     // Handlers
     const isDecimalUnit = (unit) => {
@@ -2051,17 +2126,348 @@ const BusinessPOS = () => {
                                 )}
                             </div>
                         )}
-                        <div style={{ position: 'relative', flex: 1 }}>
+                        <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
                             <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input
                                 type="text"
-                                placeholder="Search item name, category or barcode SKU..."
+                                placeholder={
+                                    searchTarget === 'alphabet'
+                                        ? "Search by product name (Alphabet wise)..."
+                                        : searchTarget === 'code'
+                                            ? "Search by barcode SKU or code..."
+                                            : "Search item name, category or barcode SKU..."
+                                }
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F8FAFC', fontSize: '0.9rem', fontWeight: 500, transition: 'border-color 0.2s', height: '100%' }}
+                                style={{ width: '100%', padding: '0.75rem 2.2rem 0.75rem 2.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F8FAFC', fontSize: '0.9rem', fontWeight: 500, transition: 'border-color 0.2s', height: '100%' }}
                                 onFocus={(e) => e.target.style.borderColor = '#10B981'}
                                 onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
                             />
+                            {searchTerm && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchTerm('')}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '12px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'rgba(148, 163, 184, 0.2)',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: '18px',
+                                        height: '18px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        color: '#64748B'
+                                    }}
+                                    title="Clear search"
+                                >
+                                    <X size={12} strokeWidth={2.5} />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Product Filter & Sort Dropdown (Alphabet Wise / Code Wise) */}
+                        <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={sortFilterDropdownRef}>
+                            <button
+                                type="button"
+                                onClick={() => setIsSortFilterDropdownOpen(!isSortFilterDropdownOpen)}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.45rem',
+                                    padding: '0.45rem 0.85rem',
+                                    borderRadius: '12px',
+                                    border: (productSort !== 'default' || searchTarget !== 'all') ? '1.5px solid #10B981' : '1.5px solid #000000',
+                                    background: (productSort !== 'default' || searchTarget !== 'all') ? '#ECFDF5' : '#FFFFFF',
+                                    color: (productSort !== 'default' || searchTarget !== 'all') ? '#047857' : '#0F172A',
+                                    fontSize: '0.82rem',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    whiteSpace: 'nowrap',
+                                    height: '100%',
+                                    boxShadow: isSortFilterDropdownOpen ? '0 0 0 3px rgba(16, 185, 129, 0.2)' : 'none'
+                                }}
+                                title="Filter Catalog Alphabet-wise or Code-wise"
+                            >
+                                {productSort === 'alphabet_asc' ? (
+                                    <ArrowDownAZ size={15} style={{ color: '#059669' }} />
+                                ) : productSort === 'alphabet_desc' ? (
+                                    <ArrowDownZA size={15} style={{ color: '#059669' }} />
+                                ) : productSort === 'code_asc' || productSort === 'code_desc' ? (
+                                    <Barcode size={15} style={{ color: '#059669' }} />
+                                ) : (
+                                    <SlidersHorizontal size={15} style={{ color: searchTarget !== 'all' ? '#059669' : '#0F172A' }} />
+                                )}
+
+                                <span>
+                                    {productSort === 'alphabet_asc'
+                                        ? 'Alphabet (A-Z)'
+                                        : productSort === 'alphabet_desc'
+                                            ? 'Alphabet (Z-A)'
+                                            : productSort === 'code_asc'
+                                                ? 'Code Wise (Asc)'
+                                                : productSort === 'code_desc'
+                                                    ? 'Code Wise (Desc)'
+                                                    : searchTarget === 'alphabet'
+                                                        ? 'Alphabet Filter'
+                                                        : searchTarget === 'code'
+                                                            ? 'Code Filter'
+                                                            : 'Alphabet / Code'}
+                                </span>
+
+                                {(productSort !== 'default' || searchTarget !== 'all' || alphabetLetterFilter) && (
+                                    <span
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setProductSort('default');
+                                            setSearchTarget('all');
+                                            setAlphabetLetterFilter('');
+                                        }}
+                                        title="Reset Sort & Filter to Default"
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: '16px',
+                                            height: '16px',
+                                            borderRadius: '50%',
+                                            background: 'rgba(5, 150, 105, 0.2)',
+                                            marginLeft: '2px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <X size={11} strokeWidth={2.5} />
+                                    </span>
+                                )}
+
+                                <ChevronDown size={14} style={{ color: (productSort !== 'default' || searchTarget !== 'all') ? '#047857' : '#0F172A', transition: 'transform 0.2s', transform: isSortFilterDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                            </button>
+
+                            {/* Dropdown Popover */}
+                            {isSortFilterDropdownOpen && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    right: 0,
+                                    marginTop: '6px',
+                                    background: '#FFFFFF',
+                                    border: '1px solid #E2E8F0',
+                                    borderRadius: '14px',
+                                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                                    zIndex: 60,
+                                    minWidth: '270px',
+                                    maxWidth: '320px',
+                                    padding: '0.65rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.65rem'
+                                }}>
+                                    {/* Header */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.4rem', borderBottom: '1px solid #F1F5F9' }}>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                            Product List Filter & Sort
+                                        </span>
+                                        {(productSort !== 'default' || searchTarget !== 'all' || alphabetLetterFilter) && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setProductSort('default');
+                                                    setSearchTarget('all');
+                                                    setAlphabetLetterFilter('');
+                                                }}
+                                                style={{ border: 'none', background: 'transparent', color: '#10B981', fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                Reset Default
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* View List By: Alphabet or Code */}
+                                    <div>
+                                        <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
+                                            View Product List In:
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            {/* Alphabet Wise (A to Z) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setProductSort(productSort === 'alphabet_asc' ? 'default' : 'alphabet_asc');
+                                                    if (productSort !== 'alphabet_asc') setAlphabetLetterFilter('');
+                                                    setIsSortFilterDropdownOpen(false);
+                                                }}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    padding: '0.5rem 0.65rem',
+                                                    borderRadius: '8px',
+                                                    background: productSort === 'alphabet_asc' ? '#ECFDF5' : '#F8FAFC',
+                                                    border: productSort === 'alphabet_asc' ? '1px solid #A7F3D0' : '1px solid transparent',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <ArrowDownAZ size={16} color={productSort === 'alphabet_asc' ? '#059669' : '#475569'} />
+                                                    <div>
+                                                        <div style={{ fontSize: '0.8rem', fontWeight: productSort === 'alphabet_asc' ? '800' : '600', color: productSort === 'alphabet_asc' ? '#047857' : '#1E293B' }}>
+                                                            Alphabet Wise (A → Z)
+                                                        </div>
+                                                        <div style={{ fontSize: '0.67rem', color: '#64748B' }}>Sort products by name A to Z</div>
+                                                    </div>
+                                                </div>
+                                                {productSort === 'alphabet_asc' && <Check size={15} color="#059669" strokeWidth={2.5} />}
+                                            </button>
+
+                                            {/* Alphabet Wise (Z to A) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setProductSort(productSort === 'alphabet_desc' ? 'default' : 'alphabet_desc');
+                                                    if (productSort !== 'alphabet_desc') setAlphabetLetterFilter('');
+                                                    setIsSortFilterDropdownOpen(false);
+                                                }}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    padding: '0.5rem 0.65rem',
+                                                    borderRadius: '8px',
+                                                    background: productSort === 'alphabet_desc' ? '#ECFDF5' : '#F8FAFC',
+                                                    border: productSort === 'alphabet_desc' ? '1px solid #A7F3D0' : '1px solid transparent',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <ArrowDownZA size={16} color={productSort === 'alphabet_desc' ? '#059669' : '#475569'} />
+                                                    <div>
+                                                        <div style={{ fontSize: '0.8rem', fontWeight: productSort === 'alphabet_desc' ? '800' : '600', color: productSort === 'alphabet_desc' ? '#047857' : '#1E293B' }}>
+                                                            Alphabet Wise (Z → A)
+                                                        </div>
+                                                        <div style={{ fontSize: '0.67rem', color: '#64748B' }}>Sort products by name Z to A</div>
+                                                    </div>
+                                                </div>
+                                                {productSort === 'alphabet_desc' && <Check size={15} color="#059669" strokeWidth={2.5} />}
+                                            </button>
+
+                                            {/* Code Wise (0 to 9, A to Z) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setProductSort(productSort === 'code_asc' ? 'default' : 'code_asc');
+                                                    setAlphabetLetterFilter('');
+                                                    setIsSortFilterDropdownOpen(false);
+                                                }}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    padding: '0.5rem 0.65rem',
+                                                    borderRadius: '8px',
+                                                    background: productSort === 'code_asc' ? '#ECFDF5' : '#F8FAFC',
+                                                    border: productSort === 'code_asc' ? '1px solid #A7F3D0' : '1px solid transparent',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <Barcode size={16} color={productSort === 'code_asc' ? '#059669' : '#475569'} />
+                                                    <div>
+                                                        <div style={{ fontSize: '0.8rem', fontWeight: productSort === 'code_asc' ? '800' : '600', color: productSort === 'code_asc' ? '#047857' : '#1E293B' }}>
+                                                            Code Wise (0 → 9 / A → Z)
+                                                        </div>
+                                                        <div style={{ fontSize: '0.67rem', color: '#64748B' }}>Sort by SKU / Barcode / Code</div>
+                                                    </div>
+                                                </div>
+                                                {productSort === 'code_asc' && <Check size={15} color="#059669" strokeWidth={2.5} />}
+                                            </button>
+
+                                            {/* Code Wise (Descending) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setProductSort(productSort === 'code_desc' ? 'default' : 'code_desc');
+                                                    setAlphabetLetterFilter('');
+                                                    setIsSortFilterDropdownOpen(false);
+                                                }}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    padding: '0.5rem 0.65rem',
+                                                    borderRadius: '8px',
+                                                    background: productSort === 'code_desc' ? '#ECFDF5' : '#F8FAFC',
+                                                    border: productSort === 'code_desc' ? '1px solid #A7F3D0' : '1px solid transparent',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <Barcode size={16} color={productSort === 'code_desc' ? '#059669' : '#475569'} />
+                                                    <div>
+                                                        <div style={{ fontSize: '0.8rem', fontWeight: productSort === 'code_desc' ? '800' : '600', color: productSort === 'code_desc' ? '#047857' : '#1E293B' }}>
+                                                            Code Wise (9 → 0 / Z → A)
+                                                        </div>
+                                                        <div style={{ fontSize: '0.67rem', color: '#64748B' }}>Reverse code sequence</div>
+                                                    </div>
+                                                </div>
+                                                {productSort === 'code_desc' && <Check size={15} color="#059669" strokeWidth={2.5} />}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Section 2: Search Query Field Filter */}
+                                    <div style={{ paddingTop: '0.35rem', borderTop: '1px solid #F1F5F9' }}>
+                                        <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
+                                            Search In Field:
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem' }}>
+                                            {[
+                                                { id: 'all', label: 'All Fields' },
+                                                { id: 'alphabet', label: 'Name (A-Z)' },
+                                                { id: 'code', label: 'Code / SKU' }
+                                            ].map(opt => {
+                                                const isSelected = searchTarget === opt.id;
+                                                return (
+                                                    <button
+                                                        key={opt.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSearchTarget(opt.id);
+                                                            setIsSortFilterDropdownOpen(false);
+                                                        }}
+                                                        style={{
+                                                            padding: '0.35rem 0.25rem',
+                                                            borderRadius: '6px',
+                                                            border: isSelected ? '1.5px solid #10B981' : '1px solid #E2E8F0',
+                                                            background: isSelected ? '#ECFDF5' : '#FFFFFF',
+                                                            color: isSelected ? '#047857' : '#475569',
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: isSelected ? '800' : '600',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.15s ease',
+                                                            textAlign: 'center'
+                                                        }}
+                                                    >
+                                                        {opt.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Category Dropdown (All Categories) */}
@@ -2244,6 +2650,83 @@ const BusinessPOS = () => {
                             )}
                         </div>
                     </div>
+
+                    {/* Quick Alphabet Letter Jump Strip (When Alphabet Wise or Name Search is Active) */}
+                    {(productSort === 'alphabet_asc' || productSort === 'alphabet_desc' || searchTarget === 'alphabet') && (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            overflowX: 'auto',
+                            padding: '0.3rem 0.4rem',
+                            background: '#F8FAFC',
+                            borderRadius: '10px',
+                            border: '1px solid #E2E8F0',
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none'
+                        }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', paddingLeft: '4px', whiteSpace: 'nowrap' }}>
+                                Jump To:
+                            </span>
+                            {['All', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''), '#'].map(letter => {
+                                const isSelected = (!alphabetLetterFilter && letter === 'All') || (alphabetLetterFilter === letter);
+                                return (
+                                    <button
+                                        key={letter}
+                                        type="button"
+                                        onClick={() => setAlphabetLetterFilter(letter === 'All' ? '' : letter)}
+                                        style={{
+                                            minWidth: '22px',
+                                            height: '22px',
+                                            padding: '0 4px',
+                                            borderRadius: '5px',
+                                            border: isSelected ? '1px solid #10B981' : '1px solid transparent',
+                                            background: isSelected ? '#10B981' : 'transparent',
+                                            color: isSelected ? '#FFFFFF' : '#475569',
+                                            fontSize: '0.7rem',
+                                            fontWeight: isSelected ? '800' : '600',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            transition: 'all 0.15s ease',
+                                            flexShrink: 0
+                                        }}
+                                    >
+                                        {letter}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Active Filter Indicator Bar */}
+                    {(productSort !== 'default' || searchTarget !== 'all' || alphabetLetterFilter) && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.25rem 0.6rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '8px', fontSize: '0.72rem', color: '#065F46', fontWeight: '600', flexWrap: 'wrap', gap: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                <span style={{ fontWeight: '800' }}>Active Filter:</span>
+                                {productSort === 'alphabet_asc' && <span style={{ background: '#FFFFFF', padding: '1px 6px', borderRadius: '4px', border: '1px solid #A7F3D0' }}>🔤 Alphabet (A-Z)</span>}
+                                {productSort === 'alphabet_desc' && <span style={{ background: '#FFFFFF', padding: '1px 6px', borderRadius: '4px', border: '1px solid #A7F3D0' }}>🔤 Alphabet (Z-A)</span>}
+                                {productSort === 'code_asc' && <span style={{ background: '#FFFFFF', padding: '1px 6px', borderRadius: '4px', border: '1px solid #A7F3D0' }}>🏷️ Code Wise (Asc)</span>}
+                                {productSort === 'code_desc' && <span style={{ background: '#FFFFFF', padding: '1px 6px', borderRadius: '4px', border: '1px solid #A7F3D0' }}>🏷️ Code Wise (Desc)</span>}
+                                {alphabetLetterFilter && <span style={{ background: '#FFFFFF', padding: '1px 6px', borderRadius: '4px', border: '1px solid #A7F3D0' }}>Letter: "{alphabetLetterFilter}"</span>}
+                                {searchTarget === 'alphabet' && <span style={{ background: '#FFFFFF', padding: '1px 6px', borderRadius: '4px', border: '1px solid #A7F3D0' }}>Search: Name Only</span>}
+                                {searchTarget === 'code' && <span style={{ background: '#FFFFFF', padding: '1px 6px', borderRadius: '4px', border: '1px solid #A7F3D0' }}>Search: Code/SKU Only</span>}
+                                <span style={{ color: '#047857' }}>({filteredProducts.length} items found)</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setProductSort('default');
+                                    setSearchTarget('all');
+                                    setAlphabetLetterFilter('');
+                                }}
+                                style={{ background: 'transparent', border: 'none', color: '#047857', fontWeight: '800', cursor: 'pointer', fontSize: '0.72rem', textDecoration: 'underline' }}
+                            >
+                                Reset All
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Products Grid scroll area */}
