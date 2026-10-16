@@ -185,17 +185,17 @@ const BusinessDashboard = () => {
         ?? dashboardSummary?.purchases_total 
         ?? dashboardSummary?.data?.purchases_total;
 
-    const totalPurchasesAmount = (summaryPurchases !== undefined && summaryPurchases !== null && Number(summaryPurchases) > 0)
+    const totalPurchasesAmount = (summaryPurchases !== undefined && summaryPurchases !== null && !isNaN(Number(summaryPurchases)))
         ? Number(summaryPurchases)
-        : (purchasesAggregate || Number(summaryPurchases) || 0);
+        : (purchasesAggregate || 0);
 
     const summarySales = dashboardSummary?.total_sales 
         ?? dashboardSummary?.data?.total_sales 
         ?? dashboardSummary?.sales_total;
 
-    const totalSalesAmount = (summarySales !== undefined && summarySales !== null && Number(summarySales) > 0)
+    const totalSalesAmount = (summarySales !== undefined && summarySales !== null && !isNaN(Number(summarySales)))
         ? Number(summarySales)
-        : (salesOverview?.total_sales ?? salesOverview?.data?.total_sales ?? 0);
+        : (Number(salesOverview?.total_sales ?? salesOverview?.data?.total_sales) || 0);
 
     const summaryExpenses = dashboardSummary?.total_expenses 
         ?? dashboardSummary?.data?.total_expenses;

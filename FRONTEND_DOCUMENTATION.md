@@ -205,8 +205,8 @@ The backend uses a hybrid database configuration to support SQLite in developmen
 
 ### 2. JWT Lifespan & Token Rotation Flow
 Authentication uses a double-token approach:
-*   **Access Token (JWT):** Signed using the `JWT_SECRET` key, carrying user session variables (user ID, username, email, role) with an expiration lifespan set to **`24h`**.
-*   **Refresh Token:** An opaque token consisting of a Base64-encoded user ID prefix joined with secure random bytes (e.g. `b64UserId.randomString`). Validated using bcrypt (`bcrypt.compareSync`), checked against expiration limits set to **`7 days`**, and saved in the database `refresh_tokens` table.
+*   **Access Token (JWT):** Signed using the `JWT_SECRET` key, carrying user session variables (user ID, username, email, role) with an expiration lifespan set to **`30d`**.
+*   **Refresh Token:** An opaque token consisting of a Base64-encoded user ID prefix joined with secure random bytes (e.g. `b64UserId.randomString`). Validated using bcrypt (`bcrypt.compareSync`), checked against expiration limits set to **`30 days`**, and saved in the database `refresh_tokens` table.
 *   **Rotation Flow (`TokenService.rotateRefreshToken`):** When the client calls the refresh endpoint, the backend decodes the token's Base64 user ID, retrieves all active tokens for that user ID from the database, and validates the match using `bcrypt`. Once validated, the database **deletes the old refresh token record** (strict single-use rotation rule to prevent replay attacks) and issues a new pair of access and refresh tokens.
 
 ### 3. Backend RBAC Middleware Enforcement (Critical Protection)
