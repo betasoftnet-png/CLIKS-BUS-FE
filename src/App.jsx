@@ -227,6 +227,14 @@ function AuthenticatedApp() {
     }
   }
 
+  // Strict Restriction: Showroom branch management is strictly for the business Owner ID
+  const isOwner = !user?.is_sub_id && user?.role !== 'sub_id' && user?.role !== 'SUB_ID';
+  if (!isOwner) {
+    if (location.pathname.startsWith('/inventory/branches') || location.pathname === '/branches' || location.pathname === '/settings/branches') {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
   return (
     <ProtectedRoute>
       <ErrorBoundary>

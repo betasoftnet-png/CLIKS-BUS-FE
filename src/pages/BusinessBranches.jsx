@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { branchService, productsService } from '../services';
 import { useCurrency, useAuth } from '../context';
@@ -16,6 +16,13 @@ const BusinessBranches = () => {
     const queryClient = useQueryClient();
     const { formatCurrency } = useCurrency();
     const { user } = useAuth();
+
+    const isOwner = !user?.is_sub_id && user?.role !== 'sub_id' && user?.role !== 'SUB_ID';
+
+    // Strictly Owner Only - immediately redirect managers and staff
+    if (user && !isOwner) {
+        return <Navigate to="/dashboard" replace />;
+    }
 
     const [activeTab, setActiveTab] = useState('branches'); // 'branches' | 'stock' | 'transfers'
     const [searchTerm, setSearchTerm] = useState('');
