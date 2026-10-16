@@ -76,6 +76,7 @@ import PublicInvoiceDetails from './pages/PublicInvoiceDetails';
 import BusinessCalculator from './pages/BusinessCalculator';
 import BusinessLauncher from './pages/BusinessLauncher';
 import PermissionManager from './components/PermissionManager';
+import BusinessBranches from './pages/BusinessBranches';
 import Join from './pages/Join';
 import Register from './pages/Register';
 
@@ -307,6 +308,9 @@ function AuthenticatedApp() {
                 <Route path="/finance/subscriptions" element={<BusinessExpenses defaultTab="recurring" />} />
                 <Route path="/inventory/warehouse" element={<FeatureGate feature="multi-warehouse" requiredPlanName="Growth Plan"><BusinessWarehouse /></FeatureGate>} />
                 <Route path="/inventory/warehouses" element={<FeatureGate feature="multi-warehouse" requiredPlanName="Growth Plan"><BusinessWarehouse /></FeatureGate>} />
+                <Route path="/inventory/branches" element={<BusinessBranches />} />
+                <Route path="/branches" element={<BusinessBranches />} />
+                <Route path="/settings/branches" element={<BusinessBranches />} />
                 <Route path="/finance/accounting" element={<FeatureGate feature="accounting" requiredPlanName="Starter Plan"><BusinessAccounting /></FeatureGate>} />
                 <Route path="/finance/gst" element={<FeatureGate feature="gst-filings" requiredPlanName="Starter Plan"><BusinessGST /></FeatureGate>} />
                 <Route path="/finance/tax" element={<FeatureGate feature="gst-filings" requiredPlanName="Starter Plan"><BusinessGST /></FeatureGate>} />

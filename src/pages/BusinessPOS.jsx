@@ -31,7 +31,9 @@ import {
     Info,
     UserPlus,
     MoreVertical,
-    Tag
+    Tag,
+    Building,
+    Store
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -44,6 +46,7 @@ import { hsnService } from '../services/hsnService';
 import { warehouseService } from '../services/warehouseService';
 import { settingsService } from '../services/settingsService';
 import { profileService } from '../services/profileService';
+import { branchService } from '../services/branchService';
 import '../App.css';
 import { customConfirm, customPrompt } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
@@ -81,6 +84,24 @@ const BusinessPOS = () => {
     const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
     const [categorySearchQuery, setCategorySearchQuery] = useState('');
     const categoryDropdownRef = React.useRef(null);
+
+    // Multi-Branch Showroom Context for POS
+    const { data: posBranchesData = [] } = useQuery({
+        queryKey: ['branches'],
+        queryFn: branchService.getBranches,
+        refetchOnWindowFocus: false
+    });
+    const posBranches = Array.isArray(posBranchesData) ? posBranchesData : (posBranchesData?.data || []);
+    const [selectedPosBranch, setSelectedPosBranch] = useState(null);
+
+    React.useEffect(() => {
+        if (posBranches.length > 0 && !selectedPosBranch) {
+            const assigned = (user?.branch_id || user?.branchId)
+                ? posBranches.find(b => b.id === (user?.branch_id || user?.branchId))
+                : (posBranches.find(b => b.is_main_branch) || posBranches[0]);
+            setSelectedPosBranch(assigned || posBranches[0]);
+        }
+    }, [posBranches, user, selectedPosBranch]);
 
     React.useEffect(() => {
         const handleClickOutside = (event) => {
@@ -1530,11 +1551,12 @@ const BusinessPOS = () => {
             client_name: customerName || 'Walk-in Customer',
             client_email: customerEmail || selectedCustomerObj?.email || null,
             client_phone: selectedCustomerObj?.phone_number || selectedCustomerObj?.phone || null,
-            shop_name: resolvedShopDetails.shopName,
-            shop_address: resolvedShopDetails.address,
-            shop_phone: resolvedShopDetails.phone,
-            shop_email: resolvedShopDetails.email,
-            shop_gstin: resolvedShopDetails.gstin,
+            branch_id: selectedPosBranch?.id || user?.branch_id || user?.branchId || undefined,
+            shop_name: selectedPosBranch?.name || user?.branch_name || user?.branchName || resolvedShopDetails?.shopName,
+            shop_address: selectedPosBranch?.address || resolvedShopDetails?.address,
+            shop_phone: selectedPosBranch?.phone || resolvedShopDetails?.phone,
+            shop_email: selectedPosBranch?.email || resolvedShopDetails?.email,
+            shop_gstin: selectedPosBranch?.gstin || resolvedShopDetails?.gstin,
             shop_tagline: resolvedShopDetails.tagline,
             billed_by: billedByName,
             cashier_name: billedByName,
@@ -1819,6 +1841,30 @@ const BusinessPOS = () => {
                                     <span style={{ fontSize: '0.7rem', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '4px', fontWeight: '750' }}>
                                         {userPrefix} : {displayEmail}
                                     </span>
+
+                                    {/* Showroom Branch Indicator or Switcher */}
+                                    {(user?.is_sub_id && (user?.branch_name || user?.branchName || user?.branch_id || user?.branchId)) ? (
+                                        <span style={{ fontSize: '0.7rem', color: '#065F46', background: '#D1FAE5', border: '1px solid #6EE7B7', padding: '1px 8px', borderRadius: '4px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                            <Building size={11} />
+                                            {user?.branch_name || user?.branchName || selectedPosBranch?.name || `Branch #${user?.branch_id}`} 🔒
+                                        </span>
+                                    ) : posBranches.length > 0 ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#F8FAFC', border: '1px solid #CBD5E1', padding: '1px 6px', borderRadius: '4px' }}>
+                                            <Building size={11} className="text-emerald-600" />
+                                            <select
+                                                value={selectedPosBranch?.id || ''}
+                                                onChange={(e) => {
+                                                    const found = posBranches.find(b => String(b.id) === e.target.value);
+                                                    if (found) setSelectedPosBranch(found);
+                                                }}
+                                                style={{ fontSize: '0.7rem', fontWeight: '800', color: '#0F172A', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer' }}
+                                            >
+                                                {posBranches.map(b => (
+                                                    <option key={b.id} value={b.id}>📍 {b.name} ({b.code})</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    ) : null}
                                 </div>
                             </div>
                         </div>

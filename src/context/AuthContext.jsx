@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('books_auth_token'));
     const [user, setUser] = useState(() => {
         try {
-            const raw = localStorage.getItem('books_auth_token');
+            const raw = localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token');
             if (raw && raw.includes('.')) {
                 const payload = JSON.parse(atob(raw.split('.')[1]));
                 const uName = payload.username || (payload.email ? payload.email.split('@')[0] : 'User');
@@ -23,7 +23,12 @@ export const AuthProvider = ({ children }) => {
                     fullName: uName,
                     email: payload.email,
                     role: payload.role,
-                    account_type: payload.account_type || payload.accountType || 'business'
+                    account_type: payload.account_type || payload.accountType || 'business',
+                    is_sub_id: Boolean(payload.is_sub_id || payload.isSubId),
+                    branch_id: payload.branch_id || payload.branchId || null,
+                    branch_name: payload.branch_name || payload.branchName || null,
+                    branchId: payload.branch_id || payload.branchId || null,
+                    branchName: payload.branch_name || payload.branchName || null
                 };
             }
         } catch (e) {}

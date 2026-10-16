@@ -47,4 +47,5 @@ export * from './taxAuditService';
 export * from './complianceService';
 export * from './manufacturingService';
 export * from './loyaltyService';
+export * from './branchService';
 

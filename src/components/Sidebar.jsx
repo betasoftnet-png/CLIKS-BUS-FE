@@ -552,7 +552,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 children: [
                     { label: 'Products', icon: Package, path: '/inventory/products', permission: PERMISSIONS.INV_PRODUCTS },
                     { label: 'Stock', icon: Layers, path: '/inventory/stock', permission: PERMISSIONS.INV_STOCK },
-                    { label: 'Warehouse', icon: MapPin, path: '/inventory/warehouse', permission: PERMISSIONS.INV_WH_ALL }
+                    { label: 'Warehouse', icon: MapPin, path: '/inventory/warehouse', permission: PERMISSIONS.INV_WH_ALL },
+                    { label: 'Branches', icon: Building, path: '/inventory/branches' }
                 ]
             },
             {

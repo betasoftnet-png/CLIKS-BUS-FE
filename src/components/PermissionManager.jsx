@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronRight, ChevronDown, Minus, Check, Save, UserPlus, Users, Loader2, Receipt } from 'lucide-react';
+import { ChevronRight, ChevronDown, Minus, Check, Save, UserPlus, Users, Loader2, Receipt, Building, MapPin, Store } from 'lucide-react';
+import { branchService } from '../services/branchService';
 
 const PERMISSIONS_HIERARCHY = [
   {
@@ -283,13 +284,26 @@ const PermissionManager = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
+  const [branches, setBranches] = useState([]);
+  const [isUpdatingBranch, setIsUpdatingBranch] = useState(false);
+
   // Create Form State
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createForm, setCreateForm] = useState({
-    prefix: '', password: '', firstName: '', lastName: ''
+    prefix: '', password: '', firstName: '', lastName: '', branchId: '', branchName: ''
   });
 
-  const getAuthToken = () => localStorage.getItem('bnx_auth_token');
+  const getAuthToken = () => localStorage.getItem('bnx_auth_token') || localStorage.getItem('books_auth_token');
+
+  const fetchBranches = async () => {
+    try {
+      const res = await branchService.getBranches();
+      const list = Array.isArray(res) ? res : (res?.data || []);
+      setBranches(list);
+    } catch (e) {
+      console.warn('[PermissionManager] Could not load branches:', e.message);
+    }
+  };
 
   const fetchSubIds = async () => {
     setIsLoading(true);
@@ -327,6 +341,7 @@ const PermissionManager = () => {
 
   useEffect(() => {
     fetchSubIds();
+    fetchBranches();
   }, []);
 
   const handleSelectSubId = (subId) => {
@@ -388,9 +403,16 @@ const PermissionManager = () => {
     e.preventDefault();
     setIsSaving(true);
 
+    const selectedBranch = branches.find(b => String(b.id) === String(createForm.branchId));
+
     const payload = {
-      ...createForm,
+      prefix: createForm.prefix.trim(),
+      password: createForm.password,
+      firstName: createForm.firstName.trim(),
+      lastName: createForm.lastName.trim(),
       accountType: 'BUSINESS',
+      branchId: createForm.branchId ? parseInt(createForm.branchId) : undefined,
+      branchName: selectedBranch ? selectedBranch.name : (createForm.branchName || undefined),
       permissions: []
     };
 
@@ -404,17 +426,37 @@ const PermissionManager = () => {
         body: JSON.stringify(payload)
       });
 
-      if (!response.ok) throw new Error('Failed to create Sub-ID');
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || 'Failed to create Sub-ID');
+      }
 
-      showToast('Sub-ID created successfully!', 'success');
+      showToast('Sub-ID created successfully with branch assignment!', 'success');
       setShowCreateForm(false);
-      setCreateForm({ prefix: '', password: '', firstName: '', lastName: '' });
+      setCreateForm({ prefix: '', password: '', firstName: '', lastName: '', branchId: '', branchName: '' });
       fetchSubIds(); // Refresh list
     } catch (error) {
       console.error(error);
-      showToast('Failed to create Sub-ID.', 'error');
+      showToast(error.message || 'Failed to create Sub-ID.', 'error');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleUpdateSubIdBranch = async (subId, newBranchId) => {
+    setIsUpdatingBranch(true);
+    try {
+      const found = branches.find(b => b.id === newBranchId);
+      const bName = found ? found.name : '';
+      await branchService.updateSubIdBranch(subId, { branchId: newBranchId, branchName: bName });
+      showToast('Showroom branch updated successfully!', 'success');
+      setSubIds(prev => prev.map(s => s.id === subId ? { ...s, branchId: newBranchId, branchName: bName } : s));
+      setSelectedSubId(prev => prev?.id === subId ? { ...prev, branchId: newBranchId, branchName: bName } : prev);
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Failed to update branch assignment', 'error');
+    } finally {
+      setIsUpdatingBranch(false);
     }
   };
 
@@ -465,9 +507,24 @@ const PermissionManager = () => {
                     : 'bg-white border-gray-100 hover:border-gray-300'
                   }`}
               >
-                <div className="font-bold text-gray-800">{subId.firstName} {subId.lastName}</div>
-                {subId.email && <div className="text-xs text-gray-500 mt-1 truncate" title={subId.email}>{subId.email}</div>}
-                <div className="text-xs text-gray-400 mt-0.5 font-mono">ID: {subId.username || subId.prefix || subId.id}</div>
+                <div className="font-bold text-gray-800 flex items-center justify-between">
+                  <span>{subId.firstName} {subId.lastName}</span>
+                </div>
+                {subId.email && <div className="text-xs text-gray-500 mt-0.5 truncate" title={subId.email}>{subId.email}</div>}
+                
+                {/* Branch Assignment Badge */}
+                <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                    subId.branchName || subId.branchId
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    <Building size={11} className={subId.branchName || subId.branchId ? 'text-emerald-600' : 'text-gray-400'} />
+                    {subId.branchName || (subId.branchId ? `Branch #${subId.branchId}` : 'All Showrooms')}
+                  </span>
+                </div>
+
+                <div className="text-[11px] text-gray-400 mt-1 font-mono">ID: {subId.username || subId.prefix || subId.id}</div>
               </button>
             ))
           )}
@@ -478,44 +535,102 @@ const PermissionManager = () => {
       <div className="flex-1 overflow-y-auto bg-white p-8">
 
         {showCreateForm ? (
-          <div className="max-w-md mx-auto mt-10 p-8 border border-gray-200 rounded-2xl shadow-sm bg-white">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Create New Sub-ID</h2>
+          <div className="max-w-md mx-auto mt-6 p-8 border border-gray-200 rounded-2xl shadow-sm bg-white">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <UserPlus className="text-emerald-600" /> Create New Sub-ID
+            </h2>
             <form onSubmit={handleCreateSubId} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Prefix / Username</label>
-                <input required type="text" value={createForm.prefix} onChange={e => setCreateForm({ ...createForm, prefix: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition" placeholder="e.g. staff_01" />
+                <input required type="text" value={createForm.prefix} onChange={e => setCreateForm({ ...createForm, prefix: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition" placeholder="e.g. cashier_tambaram" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">First Name</label>
-                  <input required type="text" value={createForm.firstName} onChange={e => setCreateForm({ ...createForm, firstName: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" placeholder="John" />
+                  <input required type="text" value={createForm.firstName} onChange={e => setCreateForm({ ...createForm, firstName: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" placeholder="Ramesh" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Last Name</label>
-                  <input required type="text" value={createForm.lastName} onChange={e => setCreateForm({ ...createForm, lastName: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" placeholder="Doe" />
+                  <input required type="text" value={createForm.lastName} onChange={e => setCreateForm({ ...createForm, lastName: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" placeholder="Kumar" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
                 <input required type="password" value={createForm.password} onChange={e => setCreateForm({ ...createForm, password: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" placeholder="••••••••" />
               </div>
+
+              {/* Showroom / Branch Selector */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
+                  <Building size={15} className="text-emerald-600" />
+                  Assign Showroom / Branch
+                </label>
+                <select
+                  value={createForm.branchId}
+                  onChange={e => {
+                    const bId = e.target.value;
+                    const found = branches.find(b => String(b.id) === String(bId));
+                    setCreateForm({
+                      ...createForm,
+                      branchId: bId,
+                      branchName: found ? found.name : ''
+                    });
+                  }}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white text-gray-800 text-sm font-medium"
+                >
+                  <option value="">-- All Showrooms (HQ Admin) --</option>
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.code || `BR-${b.id}`})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Locks this Sub-ID to this showroom's stock and POS billing counter.
+                </p>
+              </div>
+
               <button
                 type="submit"
                 disabled={isSaving}
                 className="w-full mt-6 bg-green-700 hover:bg-green-800 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-50"
               >
                 {isSaving ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />}
-                Create Account
+                Create Sub-ID Account
               </button>
             </form>
           </div>
         ) : selectedSubId ? (
           <div className="max-w-4xl mx-auto">
 
-            <div className="flex justify-between items-center mb-8 bg-gray-50 p-6 rounded-2xl border border-gray-200">
+            <div className="flex justify-between items-center mb-8 bg-gray-50 p-6 rounded-2xl border border-gray-200 flex-wrap gap-4">
               <div>
                 <h1 className="text-2xl font-black text-gray-900">Manage Permissions</h1>
-                <p className="text-gray-500 mt-1">Configuring access for <strong className="text-gray-800">{selectedSubId.firstName} {selectedSubId.lastName}</strong></p>
+                <p className="text-gray-500 mt-1">Configuring access for <strong className="text-gray-800">{selectedSubId.firstName} {selectedSubId.lastName}</strong> ({selectedSubId.username || selectedSubId.email})</p>
+
+                {/* Showroom Branch Reassignment */}
+                <div className="flex items-center gap-2 mt-3">
+                  <span className="text-xs font-bold text-gray-600 flex items-center gap-1">
+                    <Building size={14} className="text-emerald-600" /> Assigned Showroom:
+                  </span>
+                  <select
+                    value={selectedSubId.branchId || ''}
+                    disabled={isUpdatingBranch}
+                    onChange={(e) => {
+                      const newId = e.target.value ? parseInt(e.target.value) : null;
+                      handleUpdateSubIdBranch(selectedSubId.id, newId);
+                    }}
+                    className="px-3 py-1 text-xs font-bold rounded-lg border border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer shadow-sm"
+                  >
+                    <option value="">All Showrooms / Global</option>
+                    {branches.map(b => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.code})
+                      </option>
+                    ))}
+                  </select>
+                  {isUpdatingBranch && <Loader2 size={14} className="animate-spin text-emerald-600" />}
+                </div>
               </div>
 
               <button
