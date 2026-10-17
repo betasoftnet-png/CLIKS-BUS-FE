@@ -37,7 +37,8 @@ import {
     ArrowDownAZ,
     ArrowDownZA,
     Barcode,
-    SlidersHorizontal
+    SlidersHorizontal,
+    Wallet
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -93,6 +94,9 @@ const BusinessPOS = () => {
     const [alphabetLetterFilter, setAlphabetLetterFilter] = useState(() => initialPosSession?.alphabetLetterFilter || '');
     const [isSortFilterDropdownOpen, setIsSortFilterDropdownOpen] = useState(false);
     const sortFilterDropdownRef = React.useRef(null);
+    const [isCreditMode, setIsCreditMode] = useState(false);
+    const [creditReceivedAmount, setCreditReceivedAmount] = useState('');
+    const [gstType, setGstType] = useState('intra'); // 'intra' (CGST+SGST) | 'inter' (IGST)
 
     // Multi-Branch Showroom Context for POS
     const { data: posBranchesData = [] } = useQuery({
@@ -957,6 +961,8 @@ const BusinessPOS = () => {
             setIsPtsEarnedManuallyEdited(false);
             setDiscountVal(0);
             setActiveHeldCartInfo(null);
+            setIsCreditMode(false);
+            setCreditReceivedAmount('');
 
             // Refetch to reflect updated inventory, customers & stats
             queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
@@ -1592,7 +1598,7 @@ const BusinessPOS = () => {
         }
     }, [autoEarnedPoints, isPtsEarnedManuallyEdited]);
 
-    const handleCheckout = (mode) => {
+    const handleCheckout = (mode, customReceived = null) => {
         const validCartItems = cart.filter(item => (parseFloat(item.quantity) || 0) > 0);
         if (validCartItems.length === 0 || isCheckingOut) {
             alert('Cannot generate bill. Please enter a product quantity greater than 0.');
@@ -1628,6 +1634,16 @@ const BusinessPOS = () => {
 
         const billedByName = user?.username || user?.name || user?.full_name || user?.business_name || (user?.email ? user.email.split('@')[0] : 'Cashier');
 
+        const isCredit = mode === 'Credit';
+        const received = isCredit
+            ? (customReceived !== null ? parseFloat(customReceived) : (parseFloat(creditReceivedAmount) || 0))
+            : finalTotal;
+        const due = isCredit ? Math.max(0, finalTotal - received) : 0;
+
+        const cgst = gstType === 'intra' ? (calculatedTax / 2) : 0;
+        const sgst = gstType === 'intra' ? (calculatedTax / 2) : 0;
+        const igst = gstType === 'inter' ? calculatedTax : 0;
+
         const payload = {
             customer_id: selectedCustomerObj?.id || null,
             client_name: customerName || 'Walk-in Customer',
@@ -1653,9 +1669,13 @@ const BusinessPOS = () => {
             final_loyalty_points: loyaltyEnabled ? remainingPts : 0,
             amount: subtotal,
             tax_amount: calculatedTax,
+            gst_type: gstType,
+            cgst_amount: cgst,
+            sgst_amount: sgst,
+            igst_amount: igst,
             total_amount: finalTotal,
-            paid_amount: finalTotal,
-            due_amount: 0,
+            paid_amount: received,
+            due_amount: due,
             discount_amount: discountAmount,
             round_off: roundOff,
             payment_mode: mode,
@@ -3653,10 +3673,60 @@ const BusinessPOS = () => {
                                             </div>
                                         )}
 
-                                        {/* Calculated GST */}
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', color: '#64748B' }}>
-                                            <span>Calculated GST</span>
-                                            <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax)}</span>
+                                        {/* Calculated GST with 3 Types (CGST, SGST, IGST) breakdown */}
+                                        <div style={{ background: '#F8FAFC', borderRadius: '6px', border: '1px solid #E2E8F0', padding: '0.3rem 0.4rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#475569' }}>GST Breakdown</span>
+                                                <div style={{ display: 'flex', gap: '2px', background: '#E2E8F0', padding: '1px', borderRadius: '4px' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setGstType('intra')}
+                                                        style={{ border: 'none', background: gstType === 'intra' ? '#10B981' : 'transparent', color: gstType === 'intra' ? '#FFFFFF' : '#64748B', borderRadius: '3px', padding: '1px 5px', fontSize: '0.6rem', fontWeight: '800', cursor: 'pointer' }}
+                                                        title="Intra-State (CGST 50% + SGST 50%)"
+                                                    >
+                                                        CGST+SGST
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setGstType('inter')}
+                                                        style={{ border: 'none', background: gstType === 'inter' ? '#10B981' : 'transparent', color: gstType === 'inter' ? '#FFFFFF' : '#64748B', borderRadius: '3px', padding: '1px 5px', fontSize: '0.6rem', fontWeight: '800', cursor: 'pointer' }}
+                                                        title="Inter-State (IGST 100%)"
+                                                    >
+                                                        IGST
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            {gstType === 'intra' ? (
+                                                <>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#64748B' }}>
+                                                        <span>CGST (Central Tax)</span>
+                                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax / 2)}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#64748B' }}>
+                                                        <span>SGST (State Tax)</span>
+                                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax / 2)}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem', color: '#94A3B8' }}>
+                                                        <span>IGST (Integrated)</span>
+                                                        <span>{formatCurrency(0)}</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem', color: '#94A3B8' }}>
+                                                        <span>CGST (Central Tax)</span>
+                                                        <span>{formatCurrency(0)}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem', color: '#94A3B8' }}>
+                                                        <span>SGST (State Tax)</span>
+                                                        <span>{formatCurrency(0)}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#64748B' }}>
+                                                        <span>IGST (Integrated)</span>
+                                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax)}</span>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
 
                                         {/* Loyalty Discount if any */}
@@ -3693,92 +3763,206 @@ const BusinessPOS = () => {
 
                             </div>
 
-                            {/* Checkout Payment Action Matrix */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem', marginTop: '2px' }}>
-                                <button
-                                    disabled={!hasValidCartItems || isCheckingOut}
-                                    onClick={() => handleCheckout('Cash')}
-                                    style={{
-                                        padding: '0.4rem 0.25rem',
-                                        borderRadius: '8px',
-                                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                                        color: '#FFFFFF',
-                                        border: 'none',
-                                        fontWeight: '800',
-                                        fontSize: '0.75rem',
-                                        cursor: !hasValidCartItems ? 'not-allowed' : 'pointer',
-                                        display: 'flex',
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '4px',
-                                        opacity: !hasValidCartItems ? 0.5 : 1,
-                                        boxShadow: hasValidCartItems ? '0 3px 8px rgba(16, 185, 129, 0.2)' : 'none',
-                                        transition: 'transform 0.1s'
-                                    }}
-                                    onMouseDown={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(0.97)')}
-                                    onMouseUp={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(1)')}
-                                >
-                                    <DollarSign size={14} />
-                                    Cash (F1)
-                                </button>
+                            {/* Credit Mode Details Panel (When Credit is selected) */}
+                            {isCreditMode ? (
+                                <div style={{ background: '#FFFBEB', border: '1.5px solid #FCD34D', borderRadius: '10px', padding: '0.6rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.45rem', marginTop: '2px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.78rem', fontWeight: '850', color: '#92400E', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <Wallet size={14} color="#D97706" /> Credit Payment
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCreditMode(false)}
+                                            style={{ border: 'none', background: 'transparent', color: '#B45309', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                                            title="Cancel Credit"
+                                        >
+                                            <X size={15} />
+                                        </button>
+                                    </div>
 
-                                <button
-                                    disabled={!hasValidCartItems || isCheckingOut}
-                                    onClick={() => handleCheckout('UPI')}
-                                    style={{
-                                        padding: '0.4rem 0.25rem',
-                                        borderRadius: '8px',
-                                        background: 'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)',
-                                        color: '#FFFFFF',
-                                        border: 'none',
-                                        fontWeight: '800',
-                                        fontSize: '0.75rem',
-                                        cursor: !hasValidCartItems ? 'not-allowed' : 'pointer',
-                                        display: 'flex',
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '4px',
-                                        opacity: !hasValidCartItems ? 0.5 : 1,
-                                        boxShadow: hasValidCartItems ? '0 3px 8px rgba(79, 70, 229, 0.2)' : 'none',
-                                        transition: 'transform 0.1s'
-                                    }}
-                                    onMouseDown={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(0.97)')}
-                                    onMouseUp={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(1)')}
-                                >
-                                    <Smartphone size={14} />
-                                    UPI (F2)
-                                </button>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: '#FFFFFF', padding: '0.45rem 0.65rem', borderRadius: '8px', border: '1px solid #FEF3C7' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.64rem', fontWeight: '800', color: '#B45309', textTransform: 'uppercase', marginBottom: '2px' }}>
+                                                Received Amount
+                                            </label>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', border: '1px solid #FDE68A', borderRadius: '6px', padding: '0 4px', background: '#FFF' }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#92400E' }}>{currency.symbol}</span>
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    min="0"
+                                                    max={finalTotal}
+                                                    placeholder="0.00"
+                                                    value={creditReceivedAmount}
+                                                    onChange={(e) => setCreditReceivedAmount(e.target.value)}
+                                                    style={{ width: '100%', border: 'none', outline: 'none', fontSize: '0.85rem', fontWeight: '850', color: '#92400E', padding: '3px 0' }}
+                                                    autoFocus
+                                                />
+                                            </div>
+                                        </div>
 
-                                <button
-                                    disabled={!hasValidCartItems || isCheckingOut}
-                                    onClick={() => handleCheckout('Card')}
-                                    style={{
-                                        padding: '0.4rem 0.25rem',
-                                        borderRadius: '8px',
-                                        background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                                        color: '#FFFFFF',
-                                        border: 'none',
-                                        fontWeight: '800',
-                                        fontSize: '0.75rem',
-                                        cursor: !hasValidCartItems ? 'not-allowed' : 'pointer',
-                                        display: 'flex',
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '4px',
-                                        opacity: !hasValidCartItems ? 0.5 : 1,
-                                        boxShadow: hasValidCartItems ? '0 3px 8px rgba(245, 158, 11, 0.2)' : 'none',
-                                        transition: 'transform 0.1s'
-                                    }}
-                                    onMouseDown={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(0.97)')}
-                                    onMouseUp={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(1)')}
-                                >
-                                    <CreditCard size={14} />
-                                    Card (F3)
-                                </button>
-                            </div>
+                                        <div>
+                                            <span style={{ display: 'block', fontSize: '0.64rem', fontWeight: '800', color: '#B45309', textTransform: 'uppercase', marginBottom: '2px' }}>
+                                                Credit Balance (Due)
+                                            </span>
+                                            <div style={{ fontSize: '0.92rem', fontWeight: '950', color: '#B91C1C', paddingTop: '3px' }}>
+                                                {formatCurrency(Math.max(0, finalTotal - (parseFloat(creditReceivedAmount) || 0)))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCreditReceivedAmount('0')}
+                                            style={{ padding: '0.3rem 0.5rem', borderRadius: '6px', border: '1px solid #FDE68A', background: '#FEF3C7', color: '#92400E', fontSize: '0.68rem', fontWeight: '800', cursor: 'pointer' }}
+                                        >
+                                            Full Credit (₹0)
+                                        </button>
+                                        <button
+                                            disabled={!hasValidCartItems || isCheckingOut}
+                                            onClick={() => handleCheckout('Credit')}
+                                            style={{
+                                                flex: 1,
+                                                padding: '0.45rem',
+                                                borderRadius: '8px',
+                                                border: 'none',
+                                                background: 'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)',
+                                                color: '#FFFFFF',
+                                                fontWeight: '850',
+                                                fontSize: '0.78rem',
+                                                cursor: (!hasValidCartItems || isCheckingOut) ? 'not-allowed' : 'pointer',
+                                                boxShadow: '0 3px 8px rgba(234, 88, 12, 0.25)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '4px'
+                                            }}
+                                        >
+                                            Confirm Credit Sale
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Checkout Payment Action Matrix: Cash, UPI, Card, Credit (Without F1, F2, F3) */
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.35rem', marginTop: '2px' }}>
+                                    <button
+                                        disabled={!hasValidCartItems || isCheckingOut}
+                                        onClick={() => handleCheckout('Cash')}
+                                        style={{
+                                            padding: '0.45rem 0.2rem',
+                                            borderRadius: '8px',
+                                            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                            color: '#FFFFFF',
+                                            border: 'none',
+                                            fontWeight: '800',
+                                            fontSize: '0.75rem',
+                                            cursor: !hasValidCartItems ? 'not-allowed' : 'pointer',
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '3px',
+                                            opacity: !hasValidCartItems ? 0.5 : 1,
+                                            boxShadow: hasValidCartItems ? '0 3px 8px rgba(16, 185, 129, 0.2)' : 'none',
+                                            transition: 'transform 0.1s'
+                                        }}
+                                        onMouseDown={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(0.97)')}
+                                        onMouseUp={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(1)')}
+                                    >
+                                        <DollarSign size={13} />
+                                        Cash
+                                    </button>
+
+                                    <button
+                                        disabled={!hasValidCartItems || isCheckingOut}
+                                        onClick={() => handleCheckout('UPI')}
+                                        style={{
+                                            padding: '0.45rem 0.2rem',
+                                            borderRadius: '8px',
+                                            background: 'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)',
+                                            color: '#FFFFFF',
+                                            border: 'none',
+                                            fontWeight: '800',
+                                            fontSize: '0.75rem',
+                                            cursor: !hasValidCartItems ? 'not-allowed' : 'pointer',
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '3px',
+                                            opacity: !hasValidCartItems ? 0.5 : 1,
+                                            boxShadow: hasValidCartItems ? '0 3px 8px rgba(79, 70, 229, 0.2)' : 'none',
+                                            transition: 'transform 0.1s'
+                                        }}
+                                        onMouseDown={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(0.97)')}
+                                        onMouseUp={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(1)')}
+                                    >
+                                        <Smartphone size={13} />
+                                        UPI
+                                    </button>
+
+                                    <button
+                                        disabled={!hasValidCartItems || isCheckingOut}
+                                        onClick={() => handleCheckout('Card')}
+                                        style={{
+                                            padding: '0.45rem 0.2rem',
+                                            borderRadius: '8px',
+                                            background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                                            color: '#FFFFFF',
+                                            border: 'none',
+                                            fontWeight: '800',
+                                            fontSize: '0.75rem',
+                                            cursor: !hasValidCartItems ? 'not-allowed' : 'pointer',
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '3px',
+                                            opacity: !hasValidCartItems ? 0.5 : 1,
+                                            boxShadow: hasValidCartItems ? '0 3px 8px rgba(245, 158, 11, 0.2)' : 'none',
+                                            transition: 'transform 0.1s'
+                                        }}
+                                        onMouseDown={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(0.97)')}
+                                        onMouseUp={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(1)')}
+                                    >
+                                        <CreditCard size={13} />
+                                        Card
+                                    </button>
+
+                                    <button
+                                        disabled={!hasValidCartItems || isCheckingOut}
+                                        onClick={() => {
+                                            setIsCreditMode(true);
+                                            setCreditReceivedAmount('0');
+                                        }}
+                                        style={{
+                                            padding: '0.45rem 0.2rem',
+                                            borderRadius: '8px',
+                                            background: 'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)',
+                                            color: '#FFFFFF',
+                                            border: 'none',
+                                            fontWeight: '800',
+                                            fontSize: '0.75rem',
+                                            cursor: !hasValidCartItems ? 'not-allowed' : 'pointer',
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '3px',
+                                            opacity: !hasValidCartItems ? 0.5 : 1,
+                                            boxShadow: hasValidCartItems ? '0 3px 8px rgba(234, 88, 12, 0.2)' : 'none',
+                                            transition: 'transform 0.1s'
+                                        }}
+                                        onMouseDown={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(0.97)')}
+                                        onMouseUp={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(1)')}
+                                    >
+                                        <Wallet size={13} />
+                                        Credit
+                                    </button>
+                                </div>
+                            )}
                         </>
                     )}
                 </div>
@@ -3852,19 +4036,19 @@ const BusinessPOS = () => {
                         {/* Thermal Receipt Workspace (to print) */}
                         <div id="printable-pos-receipt" className="printable-pos-receipt" style={{ padding: '1.5rem', background: '#FFFFFF', flex: 1, overflowY: 'auto', maxHeight: '400px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'monospace', color: '#000', textAlign: 'center' }}>
-                                {/* Shop / Store Name */}
+                                {/* 1. Shop / Business Name */}
                                 <h4 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: '1.25' }}>
-                                    {lastOrderData?.shop_name || resolvedShopDetails.shopName}
+                                    {lastOrderData?.shop_name || resolvedShopDetails.shopName || 'CLIKS STORE'}
                                 </h4>
 
-                                {/* Shop Address */}
+                                {/* 2. Address (presented in between business name and phone number) */}
                                 {(lastOrderData?.shop_address || resolvedShopDetails.address) && (
                                     <p style={{ margin: '0 0 3px', fontSize: '0.72rem', lineHeight: '1.3', maxWidth: '270px', wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
                                         {lastOrderData?.shop_address || resolvedShopDetails.address}
                                     </p>
                                 )}
 
-                                {/* Shop Contact Details (Phone & Email) */}
+                                {/* 3. Phone number and Email */}
                                 {(lastOrderData?.shop_phone || resolvedShopDetails.phone || lastOrderData?.shop_email || resolvedShopDetails.email) && (
                                     <p style={{ margin: '1px 0 3px', fontSize: '0.75rem', fontWeight: '600' }}>
                                         {(lastOrderData?.shop_phone || resolvedShopDetails.phone) && <span>Ph: {lastOrderData?.shop_phone || resolvedShopDetails.phone}</span>}
@@ -3873,7 +4057,7 @@ const BusinessPOS = () => {
                                     </p>
                                 )}
 
-                                {/* GSTIN */}
+                                {/* 4. GSTIN (after phone number and mail) */}
                                 {(lastOrderData?.shop_gstin || resolvedShopDetails.gstin) && (
                                     <p style={{ margin: '1px 0 4px', fontSize: '0.72rem', fontWeight: '700' }}>
                                         GSTIN: {lastOrderData?.shop_gstin || resolvedShopDetails.gstin}
@@ -3888,29 +4072,40 @@ const BusinessPOS = () => {
                                     <span>Date: {lastOrderData?.created_at ? new Date(lastOrderData.created_at).toLocaleDateString() : new Date().toLocaleDateString()}</span>
                                     <span>Time: {lastOrderData?.created_at ? new Date(lastOrderData.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '8px' }}>
+                                
+                                {/* Customer and Payment Mode (Mode placed after Customer) */}
+                                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '6px' }}>
                                     <span>Customer: {lastOrderData?.client_name || 'Walk-in Customer'}</span>
+                                    <span style={{ fontWeight: '700' }}>Mode: {(lastOrderData?.payment_mode || paymentMode || 'CASH').toUpperCase()}</span>
                                 </div>
 
                                 <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '4px 0 8px' }} />
 
-                                {/* Items Table */}
-                                <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse', fontFamily: 'monospace' }}>
+                                {/* Items Table with Left-Aligned Item Names */}
+                                <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse', fontFamily: 'monospace', tableLayout: 'fixed' }}>
                                     <thead>
                                         <tr style={{ borderBottom: '1px solid #000' }}>
-                                            <th style={{ textAlign: 'left', padding: '4px 0' }}>ITEM</th>
-                                            <th style={{ textAlign: 'center', padding: '4px 0' }}>QTY</th>
-                                            <th style={{ textAlign: 'right', padding: '4px 0' }}>RATE</th>
-                                            <th style={{ textAlign: 'right', padding: '4px 0' }}>AMOUNT</th>
+                                            <th style={{ width: '42%', textAlign: 'left', padding: '4px 0' }}>ITEM</th>
+                                            <th style={{ width: '18%', textAlign: 'center', padding: '4px 0' }}>QTY</th>
+                                            <th style={{ width: '20%', textAlign: 'right', padding: '4px 0' }}>RATE</th>
+                                            <th style={{ width: '20%', textAlign: 'right', padding: '4px 0' }}>AMOUNT</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {((lastOrderData?.items && (typeof lastOrderData.items === 'string' ? JSON.parse(lastOrderData.items) : lastOrderData.items)) || []).map((item, i) => (
                                             <tr key={i}>
-                                                <td style={{ padding: '4px 0', maxWidth: '120px', overflow: 'hidden' }}>{item?.description || item?.name || 'Item'}</td>
-                                                <td style={{ padding: '4px 0', textAlign: 'center' }}>{item?.quantity || 0} {item?.unit || 'PCS'}</td>
-                                                <td style={{ padding: '4px 0', textAlign: 'right' }}>₹{item?.price || item?.unit_price || 0}/{item?.unit || 'PCS'}</td>
-                                                <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(item?.total || item?.amount || (item?.price && item?.quantity ? item.price * item.quantity : 0))}</td>
+                                                <td style={{ textAlign: 'left', padding: '4px 0', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                                                    {item?.description || item?.name || 'Item'}
+                                                </td>
+                                                <td style={{ textAlign: 'center', padding: '4px 0' }}>
+                                                    {item?.quantity || 0} {item?.unit || 'PCS'}
+                                                </td>
+                                                <td style={{ textAlign: 'right', padding: '4px 0' }}>
+                                                    ₹{item?.price || item?.unit_price || 0}
+                                                </td>
+                                                <td style={{ textAlign: 'right', padding: '4px 0' }}>
+                                                    {formatCurrency(item?.total || item?.amount || (item?.price && item?.quantity ? item.price * item.quantity : 0))}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -3918,8 +4113,8 @@ const BusinessPOS = () => {
 
                                 <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0' }} />
 
-                                {/* Tally */}
-                                <div style={{ width: '100%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {/* Tally with 3 GST Types (CGST, SGST, IGST) */}
+                                <div style={{ width: '100%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span>SUBTOTAL:</span>
                                         <span>{formatCurrency(lastOrderData?.amount || 0)}</span>
@@ -3930,16 +4125,46 @@ const BusinessPOS = () => {
                                             <span>- {formatCurrency(lastOrderData.discount_amount)}</span>
                                         </div>
                                     )}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span>TAX (GST):</span>
-                                        <span>{formatCurrency(lastOrderData?.tax_amount || 0)}</span>
-                                    </div>
                                     {loyaltyEnabled && (lastOrderData?.loyalty_discount_amount > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                                             <span>LOYALTY DISCOUNT:</span>
                                             <span>- {formatCurrency(lastOrderData?.loyalty_discount_amount || lastOrderData?.loyalty_points_redeemed || 0)}</span>
                                         </div>
                                     )}
+
+                                    {/* 3 GST Types Breakdown */}
+                                    {Number(lastOrderData?.igst_amount || 0) > 0 ? (
+                                        <>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                                <span>CGST (0%):</span>
+                                                <span>{formatCurrency(0)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                                <span>SGST (0%):</span>
+                                                <span>{formatCurrency(0)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                                <span>IGST:</span>
+                                                <span>{formatCurrency(lastOrderData?.igst_amount || lastOrderData?.tax_amount || 0)}</span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                                <span>CGST:</span>
+                                                <span>{formatCurrency(lastOrderData?.cgst_amount !== undefined ? lastOrderData.cgst_amount : (Number(lastOrderData?.tax_amount || 0) / 2))}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                                <span>SGST:</span>
+                                                <span>{formatCurrency(lastOrderData?.sgst_amount !== undefined ? lastOrderData.sgst_amount : (Number(lastOrderData?.tax_amount || 0) / 2))}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                                <span>IGST:</span>
+                                                <span>{formatCurrency(0)}</span>
+                                            </div>
+                                        </>
+                                    )}
+
                                     {Math.abs(lastOrderData?.round_off || 0) > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                             <span>ROUND OFF:</span>
@@ -3952,35 +4177,72 @@ const BusinessPOS = () => {
                                     </div>
                                 </div>
 
-                                <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '12px 0' }} />
+                                <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '10px 0' }} />
 
-                                {/* Loyalty Points Summary on Receipt */}
-                                {loyaltyEnabled && (lastOrderData?.existing_loyalty_points !== undefined || lastOrderData?.loyalty_points_earned > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
-                                    <div style={{ width: '100%', fontSize: '0.75rem', textAlign: 'left', marginBottom: '6px' }}>
-                                        <p style={{ margin: '0 0 4px', fontWeight: 'bold', textTransform: 'uppercase' }}>LOYALTY POINTS:</p>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>Existing Points:</span>
-                                            <span>{lastOrderData?.existing_loyalty_points ?? 0}</span>
+                                {/* Loyalty Points & Credit Balance Side-by-Side (Credit placed on right side of Loyalty Points) */}
+                                {((loyaltyEnabled && (lastOrderData?.existing_loyalty_points !== undefined || lastOrderData?.loyalty_points_earned > 0 || lastOrderData?.loyalty_points_redeemed > 0)) ||
+                                  (lastOrderData?.payment_mode?.toUpperCase() === 'CREDIT' || Number(lastOrderData?.due_amount || 0) > 0 || lastOrderData?.paid_amount !== undefined)) && (
+                                    <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.72rem', textAlign: 'left', marginBottom: '6px' }}>
+                                        {/* Left Side: Loyalty Points */}
+                                        <div style={{ flex: 1 }}>
+                                            {loyaltyEnabled && (lastOrderData?.existing_loyalty_points !== undefined || lastOrderData?.loyalty_points_earned > 0 || lastOrderData?.loyalty_points_redeemed > 0) ? (
+                                                <div>
+                                                    <p style={{ margin: '0 0 3px', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '0.72rem' }}>LOYALTY POINTS:</p>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span>Existing:</span>
+                                                        <span>{lastOrderData?.existing_loyalty_points ?? 0}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span>Redeemed:</span>
+                                                        <span>{lastOrderData?.loyalty_points_redeemed ?? 0}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span>Earned:</span>
+                                                        <span>{lastOrderData?.loyalty_points_earned ?? 0}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px', borderTop: '1px dotted #000', paddingTop: '2px' }}>
+                                                        <span>Balance:</span>
+                                                        <span>{lastOrderData?.remaining_loyalty_points ?? lastOrderData?.final_loyalty_points ?? Math.max(0, (lastOrderData?.existing_loyalty_points || 0) - (lastOrderData?.loyalty_points_redeemed || 0) + (lastOrderData?.loyalty_points_earned || 0))}</span>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div style={{ opacity: 0.6, fontStyle: 'italic', fontSize: '0.7rem' }}>
+                                                    Order completed successfully.
+                                                </div>
+                                            )}
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>Points Redeemed:</span>
-                                            <span>{lastOrderData?.loyalty_points_redeemed ?? 0}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>Points Earned:</span>
-                                            <span>{lastOrderData?.loyalty_points_earned ?? 0}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px', borderTop: '1px dotted #000', paddingTop: '2px' }}>
-                                            <span>Remaining Points:</span>
-                                            <span>{lastOrderData?.remaining_loyalty_points ?? lastOrderData?.final_loyalty_points ?? Math.max(0, (lastOrderData?.existing_loyalty_points || 0) - (lastOrderData?.loyalty_points_redeemed || 0) + (lastOrderData?.loyalty_points_earned || 0))}</span>
-                                        </div>
-                                        <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0 4px' }} />
+
+                                        {/* Right Side: Credit Option Summary (Received Amount & Credit Balance) */}
+                                        {(lastOrderData?.payment_mode?.toUpperCase() === 'CREDIT' || Number(lastOrderData?.due_amount || 0) > 0 || lastOrderData?.paid_amount !== undefined) && (
+                                            <div style={{ flex: 1, borderLeft: '1px dashed #000', paddingLeft: '8px' }}>
+                                                <p style={{ margin: '0 0 3px', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '0.72rem' }}>CREDIT SUMMARY:</p>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Total:</span>
+                                                    <span>{formatCurrency(lastOrderData?.total_amount || 0)}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Received:</span>
+                                                    <span>{formatCurrency(lastOrderData?.paid_amount ?? 0)}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px', borderTop: '1px dotted #000', paddingTop: '2px' }}>
+                                                    <span>Credit Bal:</span>
+                                                    <span style={{ color: Number(lastOrderData?.due_amount || 0) > 0 ? '#b91c1c' : '#000' }}>
+                                                        {formatCurrency(lastOrderData?.due_amount ?? 0)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
-                                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 'bold' }}>MODE: {(lastOrderData?.payment_mode || paymentMode || 'CASH').toUpperCase()}</p>
-                                <p style={{ margin: '8px 0 0', fontSize: '0.8rem', fontStyle: 'italic' }}>
-                                    {lastOrderData?.shop_tagline || resolvedShopDetails.tagline || `Thank you for shopping at ${lastOrderData?.shop_name || resolvedShopDetails.shopName}! Visit again!`}
+                                <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '6px 0 8px' }} />
+
+                                {/* Thanks for your business mentioning Cliks business name */}
+                                <p style={{ margin: '4px 0 2px', fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                                    Thanks for your business with {lastOrderData?.shop_name || resolvedShopDetails.shopName || 'Cliks Store'}!
+                                </p>
+                                <p style={{ margin: 0, fontSize: '0.72rem', color: '#475569', fontStyle: 'italic' }}>
+                                    Visit again! • Powered by Cliks POS
                                 </p>
                             </div>
                         </div>
@@ -4129,20 +4391,33 @@ const BusinessPOS = () => {
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                     <div>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A' }}>{order.invoice_number}</span>
-                                                            <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#ECFDF5', color: '#047857', fontSize: '0.65rem', fontWeight: '800' }}>PAID</span>
+                                                            <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#0F172A' }}>{order.invoice_number}</span>
+                                                            {order.payment_mode === 'Credit' || (order.due_amount && order.due_amount > 0) ? (
+                                                                (order.paid_amount && order.paid_amount > 0) ? (
+                                                                    <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#EEF2FF', color: '#4338CA', fontSize: '0.65rem', fontWeight: '850' }}>PARTIAL CREDIT</span>
+                                                                ) : (
+                                                                    <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#FEF3C7', color: '#B45309', fontSize: '0.65rem', fontWeight: '850' }}>CREDIT</span>
+                                                                )
+                                                            ) : (
+                                                                <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#ECFDF5', color: '#047857', fontSize: '0.65rem', fontWeight: '850' }}>PAID</span>
+                                                            )}
+                                                            <span style={{ padding: '2px 8px', borderRadius: '6px', background: '#F1F5F9', color: '#334155', fontSize: '0.65rem', fontWeight: '750', textTransform: 'uppercase' }}>{order.payment_mode || 'Cash'}</span>
                                                         </div>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.75rem', color: '#64748B', flexWrap: 'wrap' }}>
                                                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} /> {new Date(order.created_at).toLocaleString()}</span>
-                                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><User size={12} /> {order.client_name}</span>
-                                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><CreditCard size={12} /> {order.payment_mode}</span>
+                                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><User size={12} /> {order.client_name || 'Walk-in Customer'}</span>
                                                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#047857', fontWeight: '750' }}>Billed by: {order.billed_by || order.cashier_name || user?.name || 'Cashier'}</span>
                                                         </div>
                                                     </div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                                                         <div style={{ textAlign: 'right' }}>
                                                             <span style={{ display: 'block', fontSize: '1.1rem', fontWeight: '900', color: '#0F172A' }}>{formatCurrency(order.total_amount || 0)}</span>
-                                                            <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{order.items?.length || 0} items</span>
+                                                            {(order.payment_mode === 'Credit' || (order.due_amount && order.due_amount > 0)) && (
+                                                                <div style={{ fontSize: '0.68rem', fontWeight: '700', color: '#B45309' }}>
+                                                                    Rec: {formatCurrency(order.paid_amount || 0)} • Due: <span style={{ color: '#DC2626' }}>{formatCurrency(order.due_amount || 0)}</span>
+                                                                </div>
+                                                            )}
+                                                            <span style={{ fontSize: '0.68rem', color: '#64748B' }}>{order.items?.length || 0} items</span>
                                                         </div>
                                                         <button
                                                             onClick={() => {
@@ -4186,24 +4461,27 @@ const BusinessPOS = () => {
                                                     </div>
                                                 </div>
 
-                                                {/* Item list in history */}
-                                                <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem' }}>
+                                                {/* Clean 4-Column Aligned Items Table in History */}
+                                                <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem', border: '1px solid #F1F5F9' }}>
                                                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-                                                        <FilterableTableHead columns={[
-                                                            { key: 'item', label: 'Item', placeholder: 'Name/SKU' },
-                                                            { key: 'qty', label: 'Qty', placeholder: 'e.g. 2' },
-                                                            { key: 'amount', label: 'Amount', placeholder: 'e.g. 500' }
-                                                        ]} onFilterChange={setColFilters} />
+                                                        <thead>
+                                                            <tr style={{ borderBottom: '1.5px solid #CBD5E1', color: '#64748B' }}>
+                                                                <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: '800', width: '45%' }}>ITEM</th>
+                                                                <th style={{ textAlign: 'center', padding: '6px 8px', fontWeight: '800', width: '15%' }}>QTY</th>
+                                                                <th style={{ textAlign: 'right', padding: '6px 8px', fontWeight: '800', width: '20%' }}>PRICE</th>
+                                                                <th style={{ textAlign: 'right', padding: '6px 8px', fontWeight: '800', width: '20%' }}>TOTAL</th>
+                                                            </tr>
+                                                        </thead>
                                                         <tbody>
                                                             {order.items?.map((item, idx) => (
-                                                                <tr key={idx} style={{ color: '#1E293B' }}>
-                                                                    <td style={{ padding: '6px 0', fontWeight: '650' }}>
-                                                                        {item.description}
-                                                                        {item.sku && <span style={{ display: 'block', fontSize: '0.65rem', color: '#94A3B8', fontFamily: 'monospace' }}>[{item.sku}]</span>}
+                                                                <tr key={idx} style={{ borderBottom: '1px solid #E2E8F0', color: '#1E293B' }}>
+                                                                    <td style={{ textAlign: 'left', padding: '6px 8px', fontWeight: '650' }}>
+                                                                        <div style={{ color: '#0F172A' }}>{item.name || item.description || 'Item'}</div>
+                                                                        {item.sku && <div style={{ fontSize: '0.65rem', color: '#94A3B8', fontFamily: 'monospace' }}>SKU: {item.sku}</div>}
                                                                     </td>
-                                                                    <td style={{ padding: '6px 0', textAlign: 'center', fontWeight: '700' }}>{item.quantity}</td>
-                                                                    <td style={{ padding: '6px 0', textAlign: 'right' }}>{formatCurrency(item.price || 0)}</td>
-                                                                    <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: '700' }}>{formatCurrency(item.total || 0)}</td>
+                                                                    <td style={{ textAlign: 'center', padding: '6px 8px', fontWeight: '700' }}>{item.quantity} {item.unit || 'PCS'}</td>
+                                                                    <td style={{ textAlign: 'right', padding: '6px 8px' }}>{formatCurrency(item.price || item.unit_price || 0)}</td>
+                                                                    <td style={{ textAlign: 'right', padding: '6px 8px', fontWeight: '800' }}>{formatCurrency(item.total || item.amount || ((item.price || 0) * (item.quantity || 1)))}</td>
                                                                 </tr>
                                                             ))}
                                                         </tbody>
