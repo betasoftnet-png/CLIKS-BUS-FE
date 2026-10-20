@@ -32,7 +32,8 @@ import {
     MessageCircle,
     Send,
     Globe,
-    ShieldCheck
+    ShieldCheck,
+    ArrowRightLeft
 } from 'lucide-react';
 import { paymentsStore } from '../lib/paymentsStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -407,6 +408,21 @@ const BusinessPurchases = () => {
         }
     });
 
+    // 🏢 Fulfill Internal Requisition: transfers stock from Main Showroom to requesting Branch
+    const fulfillRequisitionMutation = useMutation({
+        mutationFn: (id) => purchasesService.fulfillInternalRequisition(id),
+        onSuccess: (res) => {
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['branches'] });
+            alert(`✅ Stock Requisition Accepted & Dispatched!\n\n${res?.message || 'Stock successfully transferred from Main Showroom to destination branch.'}`);
+        },
+        onError: (err) => {
+            alert('Error fulfilling requisition: ' + (err.response?.data?.message || err.message || 'Failed to dispatch stock'));
+        }
+    });
+
     // Warehouse query for Receive Goods dropdown
     const warehousesQuery = useQuery({
         queryKey: ['warehouses'],
@@ -703,26 +719,29 @@ const BusinessPurchases = () => {
             }
         }
 
+        const isRequisition = createDocType === 'REQUISITION' || formHeader.purchase_type === 'INTERNAL' || String(formHeader.supplier_name || '').toLowerCase().includes('main showroom');
         const totals = computeDocTotals(formItems, formHeader.shipping_charge);
 
         const docPayload = {
             ...formHeader,
             warehouse_id: formHeader.warehouse_id || 'Main Godown',
-            doc_type: createDocType,
+            doc_type: isRequisition ? 'PO' : createDocType,
+            purchase_type: isRequisition ? 'INTERNAL' : (formHeader.purchase_type || 'GST'),
+            supplier_name: isRequisition ? (formHeader.supplier_name || 'Main Showroom') : formHeader.supplier_name,
             items: formItems.map(i => ({
                 ...i,
                 received_quantity: createDocType === 'BILL' ? i.quantity : 0
             })),
-            status: createDocType === 'PO' ? 'Approved' : 'paid',
-            payment_status: createDocType === 'BILL' ? (parseFloat(formHeader.paid_amount) >= totals.grand_total ? 'paid' : (parseFloat(formHeader.paid_amount) > 0 ? 'partial' : 'pending')) : (totals.grand_total === (parseFloat(formHeader.advance_amount) || 0) ? 'paid' : ((parseFloat(formHeader.advance_amount) || 0) > 0 ? 'partial' : 'pending')),
-            paid_amount: createDocType === 'BILL' ? (parseFloat(formHeader.paid_amount) || totals.grand_total) : 0,
-            advance_amount: createDocType === 'PO' ? (parseFloat(formHeader.advance_amount) || 0) : 0,
+            status: isRequisition ? 'Pending Approval' : (createDocType === 'PO' ? 'Approved' : 'paid'),
+            payment_status: isRequisition ? 'n/a' : (createDocType === 'BILL' ? (parseFloat(formHeader.paid_amount) >= totals.grand_total ? 'paid' : (parseFloat(formHeader.paid_amount) > 0 ? 'partial' : 'pending')) : (totals.grand_total === (parseFloat(formHeader.advance_amount) || 0) ? 'paid' : ((parseFloat(formHeader.advance_amount) || 0) > 0 ? 'partial' : 'pending'))),
+            paid_amount: isRequisition ? 0 : (createDocType === 'BILL' ? (parseFloat(formHeader.paid_amount) || totals.grand_total) : 0),
+            advance_amount: isRequisition ? 0 : (createDocType === 'PO' ? (parseFloat(formHeader.advance_amount) || 0) : 0),
             ...totals
         };
 
-        // Log Expense Transaction for Purchase Bill/Advance Payment
+        // Log Expense Transaction for Purchase Bill/Advance Payment (Skip for internal requisitions)
         const paymentAmt = createDocType === 'BILL' ? docPayload.paid_amount : docPayload.advance_amount;
-        if (paymentAmt > 0) {
+        if (!isRequisition && paymentAmt > 0) {
             paymentsStore.addTransaction({
                 type: createDocType === 'RETURN' ? 'income' : 'expense',
                 reference_type: 'purchase',
@@ -839,7 +858,26 @@ const BusinessPurchases = () => {
                     </div>
                     <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage vendor procurement cycles, GST input tax credits, multi-warehouse receiving, and purchase returns.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <button 
+                        onClick={() => { 
+                            setCreateDocType('REQUISITION'); 
+                            setFormHeader(prev => ({
+                                ...prev,
+                                purchase_type: 'INTERNAL',
+                                supplier_id: 'internal_main',
+                                supplier_name: 'Main Showroom',
+                                supplier_gstin: 'INTERNAL-TRANSFER',
+                                billing_address: 'Main Showroom / Central Warehouse',
+                                contact_number: 'Internal Stock Depository',
+                                payment_mode: 'Internal Transfer'
+                            }));
+                            setIsCreateModalOpen(true); 
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.15rem', borderRadius: '10px', background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', color: 'white', border: 'none', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)' }}
+                    >
+                        <ArrowRightLeft size={15} /> Request Stock from Main Branch
+                    </button>
                     <button 
                         onClick={() => { setCreateDocType('PO'); setIsCreateModalOpen(true); }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
@@ -986,7 +1024,13 @@ const BusinessPurchases = () => {
                                         </td>
                                         <td className="align-top" style={{ width: '20%', padding: '1.25rem 1.5rem', verticalAlign: 'top', overflow: 'hidden' }}>
                                             <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.9rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{po.supplier_name}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#94A3B8', display: 'block', marginTop: '4px' }}>GSTIN: {po.supplier_gstin || 'Unregistered'}</span>
+                                            {(po.purchase_type === 'INTERNAL' || po.purchase_type === 'REQUISITION' || String(po.supplier_name || '').toLowerCase().includes('main showroom')) ? (
+                                                <span style={{ fontSize: '0.75rem', color: '#6366F1', fontWeight: '800', display: 'block', marginTop: '4px' }}>
+                                                    🏬 For: {po.branch_name || 'Branch Showroom'}
+                                                </span>
+                                            ) : (
+                                                <span style={{ fontSize: '0.8rem', color: '#94A3B8', display: 'block', marginTop: '4px' }}>GSTIN: {po.supplier_gstin || 'Unregistered'}</span>
+                                            )}
                                         </td>
                                         <td className="align-top" style={{ width: '25%', padding: '1.25rem 1.5rem', verticalAlign: 'top' }}>
                                             <div className="max-h-24 overflow-y-auto" style={{ maxHeight: '6rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem', paddingRight: '0.25rem' }}>
@@ -1014,6 +1058,7 @@ const BusinessPurchases = () => {
                                         </td>
                                         <td className="align-top" style={{ width: '13%', padding: '1.25rem 1.5rem', verticalAlign: 'top' }}>
                                             {(() => {
+                                                const isInternal = po.purchase_type === 'INTERNAL' || po.purchase_type === 'REQUISITION' || String(po.supplier_name || '').toLowerCase().includes('main showroom');
                                                 const statusType = po.supplier_response_type || po.supplier_confirmation_status || po.status;
                                                 const isConfirmed = statusType === 'CONFIRMED' || po.status === 'Paid';
                                                 const isPartiallyAvailable = statusType === 'PARTIALLY_AVAILABLE';
@@ -1032,7 +1077,21 @@ const BusinessPurchases = () => {
                                                 let badgeText = 'SENT TO SUPPLIER (PENDING)';
                                                 let statusMessage = 'Awaiting Supplier Confirmation';
 
-                                                if (isConfirmed) {
+                                                if (isInternal) {
+                                                    if (po.status === 'Completed') {
+                                                        badgeBg = '#F0FDF4';
+                                                        badgeColor = '#15803D';
+                                                        badgeIcon = <CheckCircle2 size={13} />;
+                                                        badgeText = 'FULFILLED & TRANSFERRED';
+                                                        statusMessage = `Stock successfully dispatched to ${po.branch_name || 'Branch'}.`;
+                                                    } else {
+                                                        badgeBg = '#EEF2FF';
+                                                        badgeColor = '#4338CA';
+                                                        badgeIcon = <Clock size={13} />;
+                                                        badgeText = 'STOCK REQUISITION (PENDING DISPATCH)';
+                                                        statusMessage = `Requested by ${po.branch_name || 'Branch'}. Awaiting Main Showroom dispatch.`;
+                                                    }
+                                                } else if (isConfirmed) {
                                                     badgeBg = '#F0FDF4';
                                                     badgeColor = '#15803D';
                                                     badgeIcon = <CheckCircle2 size={13} />;
@@ -1185,6 +1244,46 @@ const BusinessPurchases = () => {
                                         <td className="align-top" style={{ width: '10%', padding: '1.25rem 1.5rem', textAlign: 'right', verticalAlign: 'top' }}>
                                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
                                                 {(() => {
+                                                    const isInternal = po.purchase_type === 'INTERNAL' || po.purchase_type === 'REQUISITION' || String(po.supplier_name || '').toLowerCase().includes('main showroom');
+                                                    
+                                                    if (isInternal) {
+                                                        if (po.status === 'Completed') {
+                                                            return (
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: '800', fontSize: '0.8rem' }}>
+                                                                    <CheckCircle2 size={16} /> Dispatched
+                                                                </span>
+                                                            );
+                                                        }
+                                                        return (
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (window.confirm(`Accept Requisition #${po.purchase_number}?\n\nThis will automatically deduct items from Main Showroom and credit them to ${po.branch_name || 'the requesting branch'}.`)) {
+                                                                        fulfillRequisitionMutation.mutate(po.id);
+                                                                    }
+                                                                }}
+                                                                disabled={fulfillRequisitionMutation.isPending}
+                                                                title="Accept Requisition & Transfer Stock from Main Showroom to Branch"
+                                                                style={{ 
+                                                                    padding: '0.45rem 0.85rem', 
+                                                                    borderRadius: '10px', 
+                                                                    border: 'none', 
+                                                                    background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', 
+                                                                    color: 'white', 
+                                                                    fontWeight: '750', 
+                                                                    fontSize: '0.8rem', 
+                                                                    cursor: fulfillRequisitionMutation.isPending ? 'not-allowed' : 'pointer', 
+                                                                    display: 'inline-flex', 
+                                                                    alignItems: 'center', 
+                                                                    gap: '0.4rem',
+                                                                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)'
+                                                                }}
+                                                            >
+                                                                <ArrowRightLeft size={14} /> {fulfillRequisitionMutation.isPending ? 'Transferring...' : 'Accept & Dispatch'}
+                                                            </button>
+                                                        );
+                                                    }
+
                                                     if (po.status === 'Completed' || (po.supplier_response_type || po.supplier_confirmation_status || po.status) === 'PARTIAL_REJECTED') {
                                                         return null;
                                                     }
@@ -1599,10 +1698,18 @@ const BusinessPurchases = () => {
                     <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                             <div>
-                                <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B' }}>
-                                    {createDocType === 'PO' ? 'New Purchase Order (PO)' : (createDocType === 'BILL' ? 'Register New Purchase Bill' : 'Log Purchase Return (Debit Note)')}
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: createDocType === 'REQUISITION' ? '#4F46E5' : '#064E3B' }}>
+                                    {createDocType === 'REQUISITION' 
+                                        ? 'New Branch Stock Requisition (Internal PO)'
+                                        : (createDocType === 'PO' ? 'New Purchase Order (PO)' : (createDocType === 'BILL' ? 'Register New Purchase Bill' : 'Log Purchase Return (Debit Note)'))
+                                    }
                                 </h2>
-                                <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Doc Reference: {formHeader.purchase_number}</p>
+                                <p style={{ fontSize: '0.85rem', color: '#64748B' }}>
+                                    {createDocType === 'REQUISITION' 
+                                        ? `Requisition Reference: ${formHeader.purchase_number} • Requesting stock from Main Showroom` 
+                                        : `Doc Reference: ${formHeader.purchase_number}`
+                                    }
+                                </p>
                             </div>
                             <button onClick={() => setIsCreateModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
@@ -1620,6 +1727,20 @@ const BusinessPurchases = () => {
                                             value={formHeader.supplier_id || ''} 
                                             onChange={(e) => {
                                                 const selectedId = e.target.value;
+                                                if (selectedId === 'internal_main') {
+                                                    setCreateDocType('REQUISITION');
+                                                    setFormHeader({ 
+                                                        ...formHeader, 
+                                                        supplier_id: 'internal_main',
+                                                        supplier_name: 'Main Showroom',
+                                                        supplier_gstin: 'INTERNAL-TRANSFER',
+                                                        billing_address: 'Main Showroom / Central Warehouse',
+                                                        contact_number: 'Internal Stock Depository',
+                                                        purchase_type: 'INTERNAL',
+                                                        payment_mode: 'Internal Transfer'
+                                                    });
+                                                    return;
+                                                }
                                                 const supp = suppliersList.find(s => String(s.id || s.supplier_id) === String(selectedId));
                                                 if (supp) {
                                                     setFormHeader({ 
@@ -1650,6 +1771,9 @@ const BusinessPurchases = () => {
                                             style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}
                                         >
                                             <option value="">-- Select Active Supplier --</option>
+                                            <option value="internal_main" style={{ color: '#4F46E5', fontWeight: '800' }}>
+                                                🏢 Main Showroom (Internal Stock Requisition)
+                                            </option>
                                             {suppliersList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => (
                                                 <option key={s.id || s.supplier_id} value={s.id || s.supplier_id}>{s.name || s.supplier_name} {s.company_name ? `(${s.company_name})` : ''}</option>
                                             ))}
