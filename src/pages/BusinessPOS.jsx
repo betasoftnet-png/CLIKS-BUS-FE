@@ -123,6 +123,17 @@ const BusinessPOS = () => {
         }
     }, [posBranches, user, activeBranchId]);
 
+    // Active Showroom Promotions for Current Counter
+    const { data: activeShowroomPromos = [] } = useQuery({
+        queryKey: ['activeShowroomPromos', selectedPosBranch?.id],
+        queryFn: () => branchService.getActiveBranchPromotions(selectedPosBranch.id),
+        enabled: !!selectedPosBranch?.id,
+        refetchOnWindowFocus: false
+    });
+    const activePromosList = Array.isArray(activeShowroomPromos) ? activeShowroomPromos : (activeShowroomPromos?.data || []);
+    const [appliedShowroomPromo, setAppliedShowroomPromo] = useState(null);
+    const [storeCreditToRedeem, setStoreCreditToRedeem] = useState('');
+
     React.useEffect(() => {
         const handleClickOutside = (event) => {
             if (warehouseDropdownRef.current && !warehouseDropdownRef.current.contains(event.target)) {
@@ -960,11 +971,15 @@ const BusinessPOS = () => {
             setLoyaltyPointsRedeemed(0);
             setIsPtsEarnedManuallyEdited(false);
             setDiscountVal(0);
+            setAppliedShowroomPromo(null);
+            setStoreCreditToRedeem('');
             setActiveHeldCartInfo(null);
             setIsCreditMode(false);
             setCreditReceivedAmount('');
 
             // Refetch to reflect updated inventory, customers & stats
+            queryClient.invalidateQueries({ queryKey: ['business-customers'] });
+            queryClient.invalidateQueries({ queryKey: ['crossBranchCustomers'] });
             queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
@@ -1553,8 +1568,39 @@ const BusinessPOS = () => {
         ? (subtotal * (parseFloat(discountVal) || 0) / 100)
         : (parseFloat(discountVal) || 0);
 
-    const discountedTotal = Math.max(0, subtotal - discountAmount);
-    const discountPercent = subtotal > 0 ? (discountAmount / subtotal) : 0;
+    // Showroom-Specific Promotion Discount (Strictly for this branch showroom)
+    const showroomPromoDiscount = React.useMemo(() => {
+        if (!appliedShowroomPromo || subtotal <= 0) return 0;
+        if (appliedShowroomPromo.min_order_amount > 0 && subtotal < appliedShowroomPromo.min_order_amount) return 0;
+
+        const val = parseFloat(appliedShowroomPromo.discount_value) || 0;
+        if (appliedShowroomPromo.promotion_type === 'PERCENTAGE') {
+            if (appliedShowroomPromo.applies_to === 'ALL_PRODUCTS') {
+                return (subtotal * val) / 100;
+            } else if (appliedShowroomPromo.applies_to === 'CATEGORY') {
+                const catTotal = cart.reduce((acc, it) => {
+                    const catItem = inventory.find(p => p.id === it.id || (p.sku && it.sku && p.sku === it.sku));
+                    return (catItem?.category?.toLowerCase() === appliedShowroomPromo.target_name?.toLowerCase()) ? acc + it.total : acc;
+                }, 0);
+                return (catTotal * val) / 100;
+            } else if (appliedShowroomPromo.applies_to === 'SPECIFIC_PRODUCT') {
+                const prodTotal = cart.reduce((acc, it) => {
+                    return (String(it.id) === String(appliedShowroomPromo.target_id)) ? acc + it.total : acc;
+                }, 0);
+                return (prodTotal * val) / 100;
+            }
+            return (subtotal * val) / 100;
+        } else if (appliedShowroomPromo.promotion_type === 'FLAT_AMOUNT') {
+            return Math.min(subtotal, val);
+        } else if (appliedShowroomPromo.promotion_type === 'CUSTOM_PRICE') {
+            return Math.min(subtotal, val);
+        }
+        return 0;
+    }, [appliedShowroomPromo, subtotal, cart, inventory]);
+
+    const totalDiscountAmount = discountAmount + showroomPromoDiscount;
+    const discountedTotal = Math.max(0, subtotal - totalDiscountAmount);
+    const discountPercent = subtotal > 0 ? (totalDiscountAmount / subtotal) : 0;
 
     const calculatedTax = cart.reduce((acc, item) => {
         const catItem = inventory.find(p => p.id === item.id || (p.sku && item.sku && p.sku === item.sku));
@@ -1583,7 +1629,12 @@ const BusinessPOS = () => {
     const effectivePointsRedeemed = (loyaltyEnabled && selectedCustomerObj) ? Math.max(0, Math.min(maxRedeemablePoints, parseFloat(loyaltyPointsRedeemed) || 0)) : 0;
     const loyaltyDiscountAmount = (loyaltyEnabled && ptsFor1Rs > 0) ? (effectivePointsRedeemed / ptsFor1Rs) : 0;
 
-    const totalBeforeRound = Math.max(0, discountedTotal + calculatedTax - loyaltyDiscountAmount);
+    // Cross-Branch Store Credit Redemption calculation
+    const availableStoreCredit = selectedCustomerObj ? (parseFloat(selectedCustomerObj.store_credit) || 0) : 0;
+    const maxRedeemableCredit = Math.min(availableStoreCredit, Math.max(0, discountedTotal + calculatedTax - loyaltyDiscountAmount));
+    const effectiveStoreCreditRedeemed = selectedCustomerObj ? Math.max(0, Math.min(maxRedeemableCredit, parseFloat(storeCreditToRedeem) || 0)) : 0;
+
+    const totalBeforeRound = Math.max(0, discountedTotal + calculatedTax - loyaltyDiscountAmount - effectiveStoreCreditRedeemed);
     const finalTotal = activeConfig.roundOff !== false ? Math.max(0, Math.round(totalBeforeRound)) : Math.max(0, totalBeforeRound);
     const roundOff = finalTotal - totalBeforeRound;
     const hasValidCartItems = cart.some(item => (parseFloat(item.quantity) || 0) > 0);
@@ -1676,7 +1727,11 @@ const BusinessPOS = () => {
             total_amount: finalTotal,
             paid_amount: received,
             due_amount: due,
-            discount_amount: discountAmount,
+            discount_amount: totalDiscountAmount,
+            store_credit_redeemed: effectiveStoreCreditRedeemed,
+            showroom_promo_id: appliedShowroomPromo?.id || null,
+            showroom_promo_name: appliedShowroomPromo?.title || null,
+            showroom_promo_discount: showroomPromoDiscount,
             round_off: roundOff,
             payment_mode: mode,
             items: validCartItems.map(item => ({
@@ -3229,6 +3284,18 @@ const BusinessPOS = () => {
                                         </span>
                                     </>
                                 )}
+                                <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
+                                <span style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '0.1rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
+                                    🏪 {selectedCustomerObj.branch_name || 'Main Showroom'}
+                                </span>
+                                {parseFloat(selectedCustomerObj.store_credit) > 0 && (
+                                    <>
+                                        <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
+                                        <span style={{ background: '#ECFDF5', color: '#047857', border: '1px solid #6EE7B7', padding: '0.1rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '850', whiteSpace: 'nowrap' }}>
+                                            💳 Credit: {formatCurrency(selectedCustomerObj.store_credit)}
+                                        </span>
+                                    </>
+                                )}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
                                 {/* 1. Edit / Change Customer Icon Button */}
@@ -3654,6 +3721,108 @@ const BusinessPOS = () => {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Showroom-Specific Promotion */}
+                                    {activePromosList.length > 0 && (
+                                        <div style={{ background: '#F0FDF4', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #BBF7D0', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                    <Sparkles size={10} /> Showroom Promo
+                                                </span>
+                                                <span style={{ fontSize: '0.62rem', color: '#047857', fontWeight: '800' }}>
+                                                    {activePromosList.length} Active
+                                                </span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                                                <select
+                                                    value={appliedShowroomPromo?.id || ''}
+                                                    onChange={(e) => {
+                                                        const promo = activePromosList.find(p => String(p.id) === String(e.target.value));
+                                                        setAppliedShowroomPromo(promo || null);
+                                                    }}
+                                                    style={{
+                                                        flex: 1, minWidth: 0, padding: '0.25rem 0.45rem', boxSizing: 'border-box',
+                                                        borderRadius: '6px', border: '1px solid #86EFAC', background: 'white',
+                                                        fontSize: '0.75rem', fontWeight: '750', color: '#166534', outline: 'none'
+                                                    }}
+                                                >
+                                                    <option value="">No Showroom Promo</option>
+                                                    {activePromosList.map(p => (
+                                                        <option key={p.id} value={p.id}>
+                                                            {p.title} ({p.promotion_type === 'PERCENTAGE' ? `${p.discount_value}% OFF` : `${formatCurrency(p.discount_value)} OFF`})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {appliedShowroomPromo && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setAppliedShowroomPromo(null)}
+                                                        style={{ padding: '0.25rem 0.45rem', borderRadius: '6px', background: '#FEE2E2', color: '#DC2626', border: 'none', fontSize: '0.65rem', fontWeight: '800', cursor: 'pointer' }}
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {showroomPromoDiscount > 0 && (
+                                                <div style={{ fontSize: '0.62rem', fontWeight: '800', color: '#15803D', textAlign: 'right' }}>
+                                                    Promo Savings: -{formatCurrency(showroomPromoDiscount)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Cross-Branch Store Credit */}
+                                    {selectedCustomerObj && parseFloat(selectedCustomerObj.store_credit) > 0 && (
+                                        <div style={{ background: '#EFF6FF', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #BFDBFE', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#1D4ED8', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                    <Wallet size={10} /> Store Credit
+                                                </span>
+                                                <span style={{ fontSize: '0.62rem', color: '#1E40AF', fontWeight: '800' }}>
+                                                    Avail: {formatCurrency(availableStoreCredit)}
+                                                </span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    min="0"
+                                                    max={maxRedeemableCredit}
+                                                    placeholder="Credit To Use"
+                                                    value={storeCreditToRedeem || ''}
+                                                    onChange={(e) => {
+                                                        let val = parseFloat(e.target.value) || 0;
+                                                        if (val > maxRedeemableCredit) val = maxRedeemableCredit;
+                                                        if (val < 0) val = 0;
+                                                        setStoreCreditToRedeem(val);
+                                                    }}
+                                                    style={{
+                                                        flex: 1, minWidth: 0, padding: '0.25rem 0.45rem', boxSizing: 'border-box',
+                                                        borderRadius: '6px', border: '1px solid #93C5FD', background: 'white',
+                                                        fontSize: '0.75rem', fontWeight: '750', color: '#1D4ED8', outline: 'none'
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setStoreCreditToRedeem(maxRedeemableCredit)}
+                                                    disabled={maxRedeemableCredit <= 0}
+                                                    style={{
+                                                        padding: '0.25rem 0.45rem', borderRadius: '6px', background: '#2563EB',
+                                                        color: 'white', border: 'none', fontSize: '0.65rem', fontWeight: '800',
+                                                        cursor: maxRedeemableCredit <= 0 ? 'not-allowed' : 'pointer',
+                                                        opacity: maxRedeemableCredit <= 0 ? 0.5 : 1, whiteSpace: 'nowrap'
+                                                    }}
+                                                >
+                                                    Max
+                                                </button>
+                                            </div>
+                                            {effectiveStoreCreditRedeemed > 0 && (
+                                                <div style={{ fontSize: '0.62rem', fontWeight: '800', color: '#1D4ED8', textAlign: 'right' }}>
+                                                    Credit Redeemed: -{formatCurrency(effectiveStoreCreditRedeemed)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* SECOND HALF: Subtotal, GST, Round Off, Payable Amount */}
@@ -3734,6 +3903,22 @@ const BusinessPOS = () => {
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#DC2626', fontWeight: '600' }}>
                                                 <span>Pts Discount</span>
                                                 <span>-{formatCurrency(loyaltyDiscountAmount)}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Showroom Promo Discount if any */}
+                                        {showroomPromoDiscount > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#059669', fontWeight: '750' }}>
+                                                <span>🏷️ {appliedShowroomPromo?.title || 'Showroom Promo'}</span>
+                                                <span>-{formatCurrency(showroomPromoDiscount)}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Cross-Branch Store Credit if any */}
+                                        {effectiveStoreCreditRedeemed > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#2563EB', fontWeight: '750' }}>
+                                                <span>💳 Store Credit</span>
+                                                <span>-{formatCurrency(effectiveStoreCreditRedeemed)}</span>
                                             </div>
                                         )}
 

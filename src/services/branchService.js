@@ -93,5 +93,57 @@ export const branchService = {
         }
 
         return await response.json();
+    },
+
+    // ==========================================
+    // 3. SALES & CUSTOMER MODULES
+    // ==========================================
+
+    // 11a. Request showroom discount / price override (Branch -> Main Branch)
+    requestShowroomPromotion: async (promoData) => {
+        const response = await apiClient.post('/branches/promotions/request', promoData);
+        return response?.data || response;
+    },
+
+    // 11b. Fetch all promotions & discount requests
+    getShowroomPromotions: async (params = {}) => {
+        const response = await apiClient.get('/branches/promotions', { params });
+        return response?.data || response || [];
+    },
+
+    // 11c. Approve or Reject discount request (Main Branch / Owner)
+    updateShowroomPromotionStatus: async (promoId, { status, rejection_reason }) => {
+        const response = await apiClient.put(`/branches/promotions/${promoId}/status`, { status, rejection_reason });
+        return response?.data || response;
+    },
+
+    // 11d. Delete promotion
+    deleteShowroomPromotion: async (promoId) => {
+        const response = await apiClient.delete(`/branches/promotions/${promoId}`);
+        return response?.data || response;
+    },
+
+    // 11e. Get active approved promotions for a specific branch (for POS)
+    getActiveBranchPromotions: async (branchId) => {
+        const response = await apiClient.get(`/branches/${branchId}/active-promotions`);
+        return response?.data || response || [];
+    },
+
+    // 12a. Fetch cross-branch customer registry (Unified loyalty & store credit)
+    getCrossBranchCustomers: async (params = {}) => {
+        const response = await apiClient.get('/branches/customers/cross-branch', { params });
+        return response?.data || response;
+    },
+
+    // 12b. Issue or redeem store credit for customer at any showroom
+    issueCrossBranchStoreCredit: async (customerId, payload) => {
+        const response = await apiClient.post(`/branches/customers/${customerId}/store-credit`, payload);
+        return response?.data || response;
+    },
+
+    // 12c. Fetch customer cross-branch activity history
+    getCustomerCrossBranchHistory: async (customerId) => {
+        const response = await apiClient.get(`/branches/customers/${customerId}/history`);
+        return response?.data || response;
     }
 };
