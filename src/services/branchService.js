@@ -55,6 +55,24 @@ export const branchService = {
         return response?.data || response || [];
     },
 
+    // 9b. Reverse transfer (Return damaged / dead stock to Main Showroom)
+    createReverseTransfer: async (transferData) => {
+        const response = await apiClient.post('/branches/transfers/return-to-main', transferData);
+        return response?.data || response;
+    },
+
+    // 9c. Fetch low-stock and out-of-stock items for a branch
+    getBranchLowStock: async (branchId) => {
+        const response = await apiClient.get(`/branches/${branchId}/low-stock`);
+        return response?.data || response;
+    },
+
+    // 9d. 1-Click Auto Requisition from Main Showroom
+    createAutoRequisition: async (branchId, payload = {}) => {
+        const response = await apiClient.post(`/branches/${branchId}/auto-requisition`, payload);
+        return response?.data || response;
+    },
+
     // 10. Re-assign Sub-ID to a branch (Java BNX Backend endpoint)
     updateSubIdBranch: async (subId, { branchId, branchName }) => {
         const API_BASE = import.meta.env.VITE_API_SUB_BASE_URL || import.meta.env.VITE_API_BASE_URL || 'https://api.bnxmail.com';

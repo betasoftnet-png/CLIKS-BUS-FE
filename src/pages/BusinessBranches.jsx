@@ -7,7 +7,7 @@ import {
     Building, Plus, Search, MapPin, Phone, Mail, ArrowRightLeft,
     Package, CheckCircle2, AlertCircle, Edit3, Trash2, Store,
     X, RefreshCw, Layers, ShieldCheck, ChevronRight, BarChart3,
-    UserPlus, Users
+    UserPlus, Users, AlertTriangle, Zap, RotateCcw, Box, ArrowDownLeft
 } from 'lucide-react';
 import '../App.css';
 
@@ -24,7 +24,7 @@ const BusinessBranches = () => {
         return <Navigate to="/dashboard" replace />;
     }
 
-    const [activeTab, setActiveTab] = useState('branches'); // 'branches' | 'stock' | 'transfers'
+    const [activeTab, setActiveTab] = useState('branches'); // 'branches' | 'stock' | 'low_stock' | 'transfers'
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedBranchForStock, setSelectedBranchForStock] = useState(null);
 
@@ -32,9 +32,13 @@ const BusinessBranches = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [editingBranch, setEditingBranch] = useState(null);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
     const [isStockAdjustModalOpen, setIsStockAdjustModalOpen] = useState(false);
     const [selectedProductForAdjust, setSelectedProductForAdjust] = useState(null);
     const [adjustQty, setAdjustQty] = useState('');
+
+    // Low stock selections for batch auto-requisition
+    const [selectedLowStockIds, setSelectedLowStockIds] = useState([]);
 
     // Showroom Manager prompt after showroom creation
     const [newlyCreatedBranch, setNewlyCreatedBranch] = useState(null);
@@ -60,6 +64,15 @@ const BusinessBranches = () => {
         to_branch_id: '',
         product_id: '',
         quantity: 1,
+        notes: ''
+    });
+
+    const [returnForm, setReturnForm] = useState({
+        from_branch_id: '',
+        to_branch_id: '',
+        product_id: '',
+        quantity: 1,
+        return_reason: 'Damaged Goods / Packaging Defect',
         notes: ''
     });
 
@@ -95,6 +108,18 @@ const BusinessBranches = () => {
         queryKey: ['branchTransfers'],
         queryFn: branchService.getTransfers
     });
+
+    // Advanced Inventory: Low-stock query & replenishment intelligence
+    const { data: lowStockResponse, isLoading: isLoadingLowStock, refetch: refetchLowStock } = useQuery({
+        queryKey: ['branchLowStock', selectedBranchForStock?.id],
+        queryFn: () => branchService.getBranchLowStock(selectedBranchForStock.id),
+        enabled: !!selectedBranchForStock?.id
+    });
+
+    const lowStockData = lowStockResponse?.data || lowStockResponse || {};
+    const lowStockItems = Array.isArray(lowStockData?.items) ? lowStockData.items : [];
+    const lowStockSummary = lowStockData?.summary || { total_low_stock_items: 0, out_of_stock_count: 0, fulfillable_from_main_count: 0 };
+    const mainBranchInfo = lowStockData?.main_branch;
 
     // Mutations
     const createBranchMutation = useMutation({
@@ -142,6 +167,7 @@ const BusinessBranches = () => {
             queryClient.invalidateQueries(['branches']);
             queryClient.invalidateQueries(['branchStock']);
             queryClient.invalidateQueries(['branchTransfers']);
+            queryClient.invalidateQueries(['branchLowStock']);
             showToast('Stock transferred successfully!');
             setIsTransferModalOpen(false);
             setTransferForm({ from_branch_id: '', to_branch_id: '', product_id: '', quantity: 1, notes: '' });
@@ -149,11 +175,47 @@ const BusinessBranches = () => {
         onError: (err) => showToast(err.message || 'Transfer failed', 'error')
     });
 
+    // Advanced Inventory Mutation: Reverse Transfer (Return damaged/dead stock to Main Warehouse)
+    const reverseTransferMutation = useMutation({
+        mutationFn: branchService.createReverseTransfer,
+        onSuccess: (data) => {
+            queryClient.invalidateQueries(['branches']);
+            queryClient.invalidateQueries(['branchStock']);
+            queryClient.invalidateQueries(['branchTransfers']);
+            queryClient.invalidateQueries(['branchLowStock']);
+            showToast(data?.message || 'Reverse return to Main Showroom processed!');
+            setIsReturnModalOpen(false);
+            setReturnForm({
+                from_branch_id: '',
+                to_branch_id: '',
+                product_id: '',
+                quantity: 1,
+                return_reason: 'Damaged Goods / Packaging Defect',
+                notes: ''
+            });
+        },
+        onError: (err) => showToast(err.message || 'Reverse return failed', 'error')
+    });
+
+    // Advanced Inventory Mutation: 1-Click Auto Requisition from Main Showroom
+    const autoRequisitionMutation = useMutation({
+        mutationFn: ({ branchId, items }) => branchService.createAutoRequisition(branchId, { items }),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries(['branchLowStock']);
+            queryClient.invalidateQueries(['branchStock']);
+            queryClient.invalidateQueries(['purchases']);
+            showToast(data?.message || '1-Click Auto-Requisition drafted to Main Showroom!');
+            setSelectedLowStockIds([]);
+        },
+        onError: (err) => showToast(err.message || 'Failed to generate requisition', 'error')
+    });
+
     const adjustStockMutation = useMutation({
         mutationFn: branchService.adjustBranchStock,
         onSuccess: () => {
             queryClient.invalidateQueries(['branchStock']);
             queryClient.invalidateQueries(['branches']);
+            queryClient.invalidateQueries(['branchLowStock']);
             showToast('Branch stock updated!');
             setIsStockAdjustModalOpen(false);
         },
@@ -219,6 +281,60 @@ const BusinessBranches = () => {
         };
 
         transferMutation.mutate(payload);
+    };
+
+    const handleExecuteReturn = (e) => {
+        e.preventDefault();
+        if (!returnForm.from_branch_id) {
+            return showToast('Select source showroom for return', 'error');
+        }
+        if (!returnForm.product_id) {
+            return showToast('Select an item to return', 'error');
+        }
+
+        const selectedProd = branchStock.find(p => String(p.id) === String(returnForm.product_id));
+        const payload = {
+            from_branch_id: parseInt(returnForm.from_branch_id),
+            to_branch_id: returnForm.to_branch_id ? parseInt(returnForm.to_branch_id) : undefined,
+            items: [{
+                product_id: parseInt(returnForm.product_id),
+                name: selectedProd?.name || 'Product',
+                quantity: parseFloat(returnForm.quantity) || 1
+            }],
+            return_reason: returnForm.return_reason,
+            notes: returnForm.notes
+        };
+
+        reverseTransferMutation.mutate(payload);
+    };
+
+    const handle1ClickAutoRequisition = (singleItem = null) => {
+        if (!selectedBranchForStock?.id) return;
+        if (selectedBranchForStock?.is_main_branch) {
+            return showToast('Main Showroom is the central warehouse and cannot draft requisition to itself', 'error');
+        }
+
+        let itemsPayload = null;
+        if (singleItem) {
+            itemsPayload = [{
+                product_id: singleItem.product_id || singleItem.id,
+                quantity: singleItem.suggested_reorder_qty,
+                unit_price: singleItem.purchase_price
+            }];
+        } else if (selectedLowStockIds.length > 0) {
+            itemsPayload = lowStockItems
+                .filter(it => selectedLowStockIds.includes(it.id))
+                .map(it => ({
+                    product_id: it.id,
+                    quantity: it.suggested_reorder_qty,
+                    unit_price: it.purchase_price
+                }));
+        }
+
+        autoRequisitionMutation.mutate({
+            branchId: selectedBranchForStock.id,
+            items: itemsPayload
+        });
     };
 
     const filteredBranches = activeBranchesList.filter(b =>
@@ -305,6 +421,28 @@ const BusinessBranches = () => {
 
                     <button
                         onClick={() => {
+                            const nonMain = activeBranchesList.find(b => !b.is_main_branch) || activeBranchesList[0];
+                            const main = activeBranchesList.find(b => b.is_main_branch) || activeBranchesList[0];
+                            setReturnForm(prev => ({
+                                ...prev,
+                                from_branch_id: selectedBranchForStock && !selectedBranchForStock.is_main_branch ? selectedBranchForStock.id : (nonMain?.id || ''),
+                                to_branch_id: main?.id || ''
+                            }));
+                            setIsReturnModalOpen(true);
+                        }}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3',
+                            padding: '0.65rem 1.1rem', borderRadius: '12px', fontWeight: '750', fontSize: '0.875rem',
+                            cursor: 'pointer', boxShadow: '0 1px 3px rgba(225, 29, 72, 0.08)'
+                        }}
+                    >
+                        <RotateCcw size={16} />
+                        Return Goods to Main
+                    </button>
+
+                    <button
+                        onClick={() => {
                             setEditingBranch(null);
                             resetForm();
                             setIsCreateModalOpen(true);
@@ -324,7 +462,7 @@ const BusinessBranches = () => {
             </div>
 
             {/* KPI Metric Summary */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>Total Showrooms</span>
                     <div style={{ fontSize: '1.75rem', fontWeight: '850', color: '#0F172A', marginTop: '4px' }}>
@@ -349,18 +487,38 @@ const BusinessBranches = () => {
                     <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>Products stocked</span>
                 </div>
 
+                <div 
+                    onClick={() => setActiveTab('low_stock')}
+                    style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '16px', border: lowStockSummary.total_low_stock_items > 0 ? '1px solid #FCD34D' : '1px solid #E2E8F0', boxShadow: '0 2px 6px rgba(0,0,0,0.02)', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: lowStockSummary.total_low_stock_items > 0 ? '#D97706' : '#64748B', textTransform: 'uppercase' }}>Low Stock Alerts</span>
+                            <div style={{ fontSize: '1.75rem', fontWeight: '850', color: lowStockSummary.total_low_stock_items > 0 ? '#D97706' : '#0F172A', marginTop: '4px' }}>
+                                {lowStockSummary.total_low_stock_items}
+                            </div>
+                        </div>
+                        {lowStockSummary.total_low_stock_items > 0 && (
+                            <span style={{ background: '#FEF3C7', color: '#B45309', padding: '2px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800' }}>
+                                {lowStockSummary.out_of_stock_count} critical
+                            </span>
+                        )}
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: '#D97706', fontWeight: '600' }}>Click to auto-replenish →</span>
+                </div>
+
                 <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>Inter-Branch Transfers</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>Transfers & Returns</span>
                     <div style={{ fontSize: '1.75rem', fontWeight: '850', color: '#0F172A', marginTop: '4px' }}>
                         {transfers.length}
                     </div>
-                    <span style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: '600' }}>Completed movements</span>
+                    <span style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: '600' }}>Log movements</span>
                 </div>
             </div>
 
             {/* Navigation Tabs & Search Bar */}
             <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                <div style={{ display: 'flex', gap: '0.5rem', background: '#F1F5F9', padding: '4px', borderRadius: '12px' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', background: '#F1F5F9', padding: '4px', borderRadius: '12px', flexWrap: 'wrap' }}>
                     <button
                         onClick={() => setActiveTab('branches')}
                         style={{
@@ -386,6 +544,29 @@ const BusinessBranches = () => {
                         Branch Stock Matrix
                     </button>
                     <button
+                        onClick={() => setActiveTab('low_stock')}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '0.5rem 1.25rem', borderRadius: '10px', border: 'none',
+                            fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s ease',
+                            background: activeTab === 'low_stock' ? '#FFFFFF' : 'transparent',
+                            color: activeTab === 'low_stock' ? '#7C3AED' : '#64748B',
+                            boxShadow: activeTab === 'low_stock' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none'
+                        }}
+                    >
+                        <Zap size={15} color={activeTab === 'low_stock' ? '#7C3AED' : '#94A3B8'} />
+                        Low Stock & Auto-Reorder
+                        {lowStockItems.length > 0 && (
+                            <span style={{
+                                background: activeTab === 'low_stock' ? '#EDE9FE' : '#FEF3C7',
+                                color: activeTab === 'low_stock' ? '#7C3AED' : '#D97706',
+                                padding: '2px 6px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800'
+                            }}>
+                                {lowStockItems.length}
+                            </span>
+                        )}
+                    </button>
+                    <button
                         onClick={() => setActiveTab('transfers')}
                         style={{
                             padding: '0.5rem 1.25rem', borderRadius: '10px', border: 'none',
@@ -395,7 +576,7 @@ const BusinessBranches = () => {
                             boxShadow: activeTab === 'transfers' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none'
                         }}
                     >
-                        Transfers Log ({transfers.length})
+                        Transfers & Returns Log ({transfers.length})
                     </button>
                 </div>
 
@@ -688,24 +869,304 @@ const BusinessBranches = () => {
                 </div>
             )}
 
-            {/* TAB 3: INTER-BRANCH TRANSFERS */}
+            {/* TAB: LOW STOCK ALERTS & 1-CLICK AUTO-REORDER */}
+            {activeTab === 'low_stock' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Branch Selector Toolbar & 1-Click Action Bar */}
+                    <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Zap size={22} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '850', color: '#0F172A' }}>
+                                        Showroom Stock Depletion & Automated Replenishment
+                                    </h3>
+                                    <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748B' }}>
+                                        Identifies branch inventory at or below threshold and calculates suggested indent requisitions from Main Showroom.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '0.825rem', fontWeight: '700', color: '#475569' }}>Showroom:</span>
+                                    <select
+                                        value={selectedBranchForStock?.id || ''}
+                                        onChange={(e) => {
+                                            const b = activeBranchesList.find(x => String(x.id) === e.target.value);
+                                            if (b) setSelectedBranchForStock(b);
+                                        }}
+                                        style={{
+                                            padding: '0.5rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0',
+                                            fontWeight: '800', fontSize: '0.85rem', color: '#0F172A', background: '#FFFFFF',
+                                            outline: 'none', cursor: 'pointer'
+                                        }}
+                                    >
+                                        {activeBranchesList.map(b => (
+                                            <option key={b.id} value={b.id}>{b.name} {b.is_main_branch ? '⭐ (Main Central)' : ''}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <button
+                                    onClick={() => refetchLowStock()}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#FFFFFF', border: '1px solid #E2E8F0', padding: '0.45rem 0.85rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}
+                                >
+                                    <RefreshCw size={14} /> Refresh
+                                </button>
+
+                                <button
+                                    disabled={lowStockItems.length === 0 || autoRequisitionMutation.isPending || selectedBranchForStock?.is_main_branch}
+                                    onClick={() => handle1ClickAutoRequisition()}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: '8px',
+                                        background: lowStockItems.length === 0 || selectedBranchForStock?.is_main_branch ? '#CBD5E1' : 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                                        color: 'white', border: 'none', padding: '0.6rem 1.25rem',
+                                        borderRadius: '10px', fontWeight: '800', fontSize: '0.875rem',
+                                        cursor: lowStockItems.length === 0 || selectedBranchForStock?.is_main_branch ? 'not-allowed' : 'pointer',
+                                        boxShadow: lowStockItems.length === 0 || selectedBranchForStock?.is_main_branch ? 'none' : '0 4px 12px rgba(124, 58, 237, 0.3)'
+                                    }}
+                                >
+                                    <Zap size={16} />
+                                    {autoRequisitionMutation.isPending ? 'Drafting Requisition...' : `⚡ 1-Click Auto-Indent (${selectedLowStockIds.length > 0 ? selectedLowStockIds.length : lowStockItems.length} Items)`}
+                                </button>
+                            </div>
+                        </div>
+
+                        {selectedBranchForStock?.is_main_branch && (
+                            <div style={{ marginTop: '1rem', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '10px', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '8px', color: '#1E40AF', fontSize: '0.825rem' }}>
+                                <AlertCircle size={16} />
+                                <span>
+                                    <strong>Note:</strong> <strong>{selectedBranchForStock.name}</strong> is designated as the Main Central Warehouse. It fulfills stock requests sent by retail showrooms. Switch to a retail branch above to view its low-stock alerts and draft replenishment requisitions.
+                                </span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 3 Metric Cards for Low Stock Intelligence */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>Total Shortages</span>
+                                    <div style={{ fontSize: '1.75rem', fontWeight: '850', color: '#D97706', marginTop: '4px' }}>
+                                        {lowStockSummary.total_low_stock_items}
+                                    </div>
+                                </div>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <AlertTriangle size={18} />
+                                </div>
+                            </div>
+                            <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '500' }}>Products at or below threshold</span>
+                        </div>
+
+                        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>Critical Out-of-Stock</span>
+                                    <div style={{ fontSize: '1.75rem', fontWeight: '850', color: '#EF4444', marginTop: '4px' }}>
+                                        {lowStockSummary.out_of_stock_count}
+                                    </div>
+                                </div>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <AlertCircle size={18} />
+                                </div>
+                            </div>
+                            <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: '600' }}>Zero items remaining on shelf</span>
+                        </div>
+
+                        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', textTransform: 'uppercase' }}>Main Showroom Ready</span>
+                                    <div style={{ fontSize: '1.75rem', fontWeight: '850', color: '#059669', marginTop: '4px' }}>
+                                        {lowStockSummary.fulfillable_from_main_count} / {lowStockSummary.total_low_stock_items}
+                                    </div>
+                                </div>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <CheckCircle2 size={18} />
+                                </div>
+                            </div>
+                            <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: '600' }}>Available for immediate dispatch</span>
+                        </div>
+                    </div>
+
+                    {/* Low Stock Table */}
+                    <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                        <div style={{ padding: '0.85rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAFAFA' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={lowStockItems.length > 0 && selectedLowStockIds.length === lowStockItems.length}
+                                    onChange={(e) => {
+                                        if (e.target.checked) {
+                                            setSelectedLowStockIds(lowStockItems.map(it => it.id));
+                                        } else {
+                                            setSelectedLowStockIds([]);
+                                        }
+                                    }}
+                                    style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                                />
+                                <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A' }}>
+                                    {selectedLowStockIds.length > 0 ? `${selectedLowStockIds.length} items selected for reorder` : 'Items Requiring Replenishment'}
+                                </span>
+                            </div>
+                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                                Central Warehouse: <strong>{mainBranchInfo?.name || 'Main Showroom'}</strong>
+                            </span>
+                        </div>
+
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                                <thead>
+                                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>
+                                        <th style={{ padding: '0.85rem 0.75rem', width: '40px', textAlign: 'center' }}></th>
+                                        <th style={{ padding: '0.85rem 1rem' }}>Product Details</th>
+                                        <th style={{ padding: '0.85rem 1rem' }}>Current Showroom Stock</th>
+                                        <th style={{ padding: '0.85rem 1rem' }}>Threshold</th>
+                                        <th style={{ padding: '0.85rem 1rem' }}>Main Warehouse Stock</th>
+                                        <th style={{ padding: '0.85rem 1rem' }}>Suggested Reorder</th>
+                                        <th style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>Replenish Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {isLoadingLowStock ? (
+                                        <tr><td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: '#64748B' }}>Analyzing showroom stock levels...</td></tr>
+                                    ) : lowStockItems.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: '#059669' }}>
+                                                <CheckCircle2 size={32} style={{ margin: '0 auto 8px auto', display: 'block' }} />
+                                                <strong>All items well-stocked!</strong> No products are below threshold at this showroom.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        lowStockItems.map(item => {
+                                            const isSelected = selectedLowStockIds.includes(item.id);
+                                            return (
+                                                <tr key={item.id} style={{ borderBottom: '1px solid #F1F5F9', background: isSelected ? '#FAF5FF' : 'transparent' }}>
+                                                    <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setSelectedLowStockIds(prev => [...prev, item.id]);
+                                                                } else {
+                                                                    setSelectedLowStockIds(prev => prev.filter(x => x !== item.id));
+                                                                }
+                                                            }}
+                                                            style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                                                        />
+                                                    </td>
+                                                    <td style={{ padding: '0.85rem 1rem' }}>
+                                                        <div style={{ fontWeight: '750', color: '#0F172A' }}>{item.name}</div>
+                                                        <div style={{ fontSize: '0.75rem', color: '#64748B', display: 'flex', gap: '8px', marginTop: '2px' }}>
+                                                            <span>SKU: {item.sku || '—'}</span>
+                                                            <span>•</span>
+                                                            <span>Category: {item.category || 'General'}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ padding: '0.85rem 1rem' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <span style={{ fontWeight: '850', fontSize: '0.95rem', color: item.urgency === 'CRITICAL_OUT_OF_STOCK' ? '#EF4444' : '#D97706' }}>
+                                                                {item.current_quantity} {item.unit}
+                                                            </span>
+                                                            <span style={{
+                                                                background: item.urgency === 'CRITICAL_OUT_OF_STOCK' ? '#FEF2F2' : '#FFFBEB',
+                                                                color: item.urgency === 'CRITICAL_OUT_OF_STOCK' ? '#EF4444' : '#D97706',
+                                                                border: `1px solid ${item.urgency === 'CRITICAL_OUT_OF_STOCK' ? '#FEE2E2' : '#FEF3C7'}`,
+                                                                padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: '800'
+                                                            }}>
+                                                                {item.urgency === 'CRITICAL_OUT_OF_STOCK' ? 'OUT OF STOCK' : 'LOW STOCK'}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ padding: '0.85rem 1rem', color: '#64748B', fontWeight: '600' }}>
+                                                        {item.low_stock_threshold} {item.unit}
+                                                    </td>
+                                                    <td style={{ padding: '0.85rem 1rem' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <span style={{ fontWeight: '750', color: item.can_fulfill_from_main ? '#059669' : '#DC2626' }}>
+                                                                {item.main_showroom_stock} {item.unit}
+                                                            </span>
+                                                            <span style={{
+                                                                background: item.can_fulfill_from_main ? '#ECFDF5' : '#FEF2F2',
+                                                                color: item.can_fulfill_from_main ? '#059669' : '#DC2626',
+                                                                padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: '700'
+                                                            }}>
+                                                                {item.can_fulfill_from_main ? 'Sufficient' : 'Shortage at Main'}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ padding: '0.85rem 1rem' }}>
+                                                        <span style={{ background: '#EDE9FE', color: '#6D28D9', padding: '3px 8px', borderRadius: '6px', fontWeight: '850', fontSize: '0.85rem' }}>
+                                                            +{item.suggested_reorder_qty} {item.unit}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>
+                                                        <button
+                                                            disabled={selectedBranchForStock?.is_main_branch || autoRequisitionMutation.isPending}
+                                                            onClick={() => handle1ClickAutoRequisition(item)}
+                                                            style={{
+                                                                background: '#F5F3FF', border: '1px solid #DDD6FE', color: '#6D28D9',
+                                                                padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800',
+                                                                cursor: selectedBranchForStock?.is_main_branch ? 'not-allowed' : 'pointer'
+                                                            }}
+                                                        >
+                                                            Indent Now
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* TAB: INTER-BRANCH TRANSFERS & REVERSE RETURNS */}
             {activeTab === 'transfers' && (
                 <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                    <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAFAFA' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A' }}>Transfer History Across Showrooms</span>
-                        <button
-                            onClick={() => setIsTransferModalOpen(true)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', border: 'none', padding: '0.45rem 0.85rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer' }}
-                        >
-                            <Plus size={15} /> New Transfer
-                        </button>
+                    <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FAFAFA', flexWrap: 'wrap', gap: '0.75rem' }}>
+                        <div>
+                            <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A' }}>Showroom Stock Movements & Return Logistics</span>
+                            <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#64748B' }}>Audit trail of forward branch transfers and damaged/dead stock returned to Main Warehouse.</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                                onClick={() => {
+                                    const nonMain = activeBranchesList.find(b => !b.is_main_branch) || activeBranchesList[0];
+                                    const main = activeBranchesList.find(b => b.is_main_branch) || activeBranchesList[0];
+                                    setReturnForm(prev => ({
+                                        ...prev,
+                                        from_branch_id: selectedBranchForStock && !selectedBranchForStock.is_main_branch ? selectedBranchForStock.id : (nonMain?.id || ''),
+                                        to_branch_id: main?.id || ''
+                                    }));
+                                    setIsReturnModalOpen(true);
+                                }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', padding: '0.45rem 0.85rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer' }}
+                            >
+                                <RotateCcw size={14} /> Return Damaged / Dead Stock
+                            </button>
+                            <button
+                                onClick={() => setIsTransferModalOpen(true)}
+                                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', border: 'none', padding: '0.45rem 0.85rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer' }}
+                            >
+                                <Plus size={15} /> New Transfer
+                            </button>
+                        </div>
                     </div>
 
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                             <thead>
                                 <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>
-                                    <th style={{ padding: '0.85rem 1.25rem' }}>Transfer #</th>
+                                    <th style={{ padding: '0.85rem 1.25rem' }}>Transfer # & Type</th>
                                     <th style={{ padding: '0.85rem 1rem' }}>Source Branch</th>
                                     <th style={{ padding: '0.85rem 1rem' }}>Destination</th>
                                     <th style={{ padding: '0.85rem 1rem' }}>Items Moved</th>
@@ -723,34 +1184,53 @@ const BusinessBranches = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    transfers.map(t => (
-                                        <tr key={t.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                            <td style={{ padding: '0.85rem 1.25rem', fontWeight: '800', color: '#0F172A', fontFamily: 'monospace' }}>
-                                                {t.transfer_no || `TRF-${t.id}`}
-                                            </td>
-                                            <td style={{ padding: '0.85rem 1rem', fontWeight: '600', color: '#475569' }}>
-                                                {t.from_branch_name} ({t.from_branch_code})
-                                            </td>
-                                            <td style={{ padding: '0.85rem 1rem', fontWeight: '700', color: '#059669' }}>
-                                                {t.to_branch_name} ({t.to_branch_code})
-                                            </td>
-                                            <td style={{ padding: '0.85rem 1rem', color: '#334155' }}>
-                                                {t.items?.map((it, idx) => (
-                                                    <span key={idx} style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', marginRight: '4px' }}>
-                                                        {it.quantity}x {it.name}
+                                    transfers.map(t => {
+                                        const isReverse = t.transfer_type === 'RETURN_TO_MAIN';
+                                        return (
+                                            <tr key={t.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                <td style={{ padding: '0.85rem 1.25rem' }}>
+                                                    <div style={{ fontWeight: '800', color: '#0F172A', fontFamily: 'monospace' }}>
+                                                        {t.transfer_no || `TRF-${t.id}`}
+                                                    </div>
+                                                    {isReverse ? (
+                                                        <div style={{ marginTop: '4px' }}>
+                                                            <span style={{ background: '#FFF1F2', color: '#E11D48', border: '1px solid #FECDD3', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: '800' }}>
+                                                                REVERSE RETURN
+                                                            </span>
+                                                            <div style={{ fontSize: '0.72rem', color: '#9F1239', marginTop: '2px', fontWeight: '600' }}>
+                                                                {t.return_reason || 'Damaged / Dead Stock'}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <span style={{ background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: '700' }}>
+                                                            FORWARD TRANSFER
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td style={{ padding: '0.85rem 1rem', fontWeight: '600', color: '#475569' }}>
+                                                    {t.from_branch_name} ({t.from_branch_code})
+                                                </td>
+                                                <td style={{ padding: '0.85rem 1rem', fontWeight: '700', color: isReverse ? '#BE123C' : '#059669' }}>
+                                                    {t.to_branch_name} ({t.to_branch_code})
+                                                </td>
+                                                <td style={{ padding: '0.85rem 1rem', color: '#334155' }}>
+                                                    {t.items?.map((it, idx) => (
+                                                        <span key={idx} style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', marginRight: '4px', display: 'inline-block', marginBottom: '2px' }}>
+                                                            {it.quantity}x {it.name}
+                                                        </span>
+                                                    ))}
+                                                </td>
+                                                <td style={{ padding: '0.85rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>
+                                                    {t.created_at ? new Date(t.created_at).toLocaleDateString() : 'Today'}
+                                                </td>
+                                                <td style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>
+                                                    <span style={{ background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', padding: '2px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800' }}>
+                                                        {t.status?.toUpperCase() || 'COMPLETED'}
                                                     </span>
-                                                ))}
-                                            </td>
-                                            <td style={{ padding: '0.85rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>
-                                                {t.created_at ? new Date(t.created_at).toLocaleDateString() : 'Today'}
-                                            </td>
-                                            <td style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>
-                                                <span style={{ background: '#ECFDF5', color: '#059669', border: '1px solid #A7F3D0', padding: '2px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800' }}>
-                                                    {t.status?.toUpperCase() || 'COMPLETED'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
@@ -1066,6 +1546,141 @@ const BusinessBranches = () => {
                                 }}
                             >
                                 {transferMutation.isPending ? 'Executing Transfer...' : 'Confirm & Dispatch Transfer'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* REVERSE TRANSFER MODAL: RETURN DAMAGED / DEAD STOCK TO MAIN WAREHOUSE */}
+            {isReturnModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
+                    <div style={{ background: '#FFFFFF', borderRadius: '20px', width: '100%', maxWidth: '500px', padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#FFF1F2', color: '#E11D48', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <RotateCcw size={18} />
+                                </div>
+                                <div>
+                                    <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '850', color: '#0F172A' }}>
+                                        Return Goods to Main Warehouse
+                                    </h2>
+                                    <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#64748B' }}>
+                                        Reverse inventory transfer for damaged, dead, or consolidated showroom stock.
+                                    </p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsReturnModalOpen(false)} style={{ background: '#F1F5F9', border: 'none', borderRadius: '8px', padding: '6px', cursor: 'pointer' }}>
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleExecuteReturn} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                                        Origin Showroom (Returning From) *
+                                    </label>
+                                    <select
+                                        required
+                                        value={returnForm.from_branch_id}
+                                        onChange={e => setReturnForm({ ...returnForm, from_branch_id: e.target.value })}
+                                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                                    >
+                                        <option value="">Select Showroom</option>
+                                        {activeBranchesList.map(b => (
+                                            <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                                        Destination (Central Hub)
+                                    </label>
+                                    <div style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: '#F8FAFC', fontSize: '0.85rem', color: '#0F172A', fontWeight: '800', boxSizing: 'border-box' }}>
+                                        {mainBranchInfo?.name || 'Main Showroom'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                                    Return Classification / Reason *
+                                </label>
+                                <select
+                                    required
+                                    value={returnForm.return_reason}
+                                    onChange={e => setReturnForm({ ...returnForm, return_reason: e.target.value })}
+                                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', background: '#FFF' }}
+                                >
+                                    <option value="Damaged Goods / Packaging Defect">⚠️ Damaged Goods / Packaging Defect</option>
+                                    <option value="Dead Stock / Slow Moving Inventory">⏳ Dead Stock / Slow Moving Inventory</option>
+                                    <option value="Near Expiry / Expired Batch">📅 Near Expiry / Expired Batch</option>
+                                    <option value="Showroom Consolidation">🏬 Showroom Stock Consolidation</option>
+                                    <option value="Customer Return / Warranty Claim">🔄 Customer Return / Warranty Claim</option>
+                                    <option value="Other">📝 Other Logistics Return</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                                    Product to Return *
+                                </label>
+                                <select
+                                    required
+                                    value={returnForm.product_id}
+                                    onChange={e => setReturnForm({ ...returnForm, product_id: e.target.value })}
+                                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                                >
+                                    <option value="">Select item from branch...</option>
+                                    {branchStock.map(p => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.name} (In Branch: {p.branch_quantity} {p.unit || 'PCS'})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                                    Return Quantity *
+                                </label>
+                                <input
+                                    required
+                                    type="number"
+                                    min="1"
+                                    step="any"
+                                    value={returnForm.quantity}
+                                    onChange={e => setReturnForm({ ...returnForm, quantity: e.target.value })}
+                                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                                    Inspection Notes / Reason Details
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Scratched screen during transit, unbox defect"
+                                    value={returnForm.notes}
+                                    onChange={e => setReturnForm({ ...returnForm, notes: e.target.value })}
+                                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }}
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={reverseTransferMutation.isPending}
+                                style={{
+                                    width: '100%', marginTop: '0.5rem', background: 'linear-gradient(135deg, #E11D48 0%, #BE123C 100%)',
+                                    color: 'white', border: 'none', padding: '0.85rem', borderRadius: '12px',
+                                    fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer',
+                                    boxShadow: '0 4px 12px rgba(225, 29, 72, 0.25)'
+                                }}
+                            >
+                                {reverseTransferMutation.isPending ? 'Processing Return...' : 'Confirm & Dispatch Return to Main Showroom'}
                             </button>
                         </form>
                     </div>
