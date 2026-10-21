@@ -12,29 +12,39 @@ const resolveShopDetails = (shopDetails, lastOrderData) => {
         local = JSON.parse(localStorage.getItem('cliks_pos_shop_profile') || 'null') || {};
     } catch (e) {}
 
+    const branchFullAddress = shopDetails ? (
+        [shopDetails.address, shopDetails.city, shopDetails.state, shopDetails.pincode].filter(Boolean).join(', ') || shopDetails.address
+    ) : null;
+
     const shopName = 
         lastOrderData?.shop_name ||
         shopDetails?.shop_name ||
+        shopDetails?.name ||
         shopDetails?.business_name ||
         orgProfile.business_name ||
         businessConfig.companyName ||
         local.shop_name ||
+        local.name ||
         local.business_name ||
         local.companyName ||
         'Local Retail Store';
 
     const address = 
         lastOrderData?.shop_address ||
+        shopDetails?.shop_address ||
+        branchFullAddress ||
         shopDetails?.address ||
         orgProfile.address ||
         businessConfig.registeredAddress ||
         local.address ||
         local.registeredAddress ||
         (orgProfile.city ? `${orgProfile.city}${orgProfile.pincode ? ` - ${orgProfile.pincode}` : ''}` : '') ||
-        (local.city ? `${local.city}${local.pincode ? ` - ${local.pincode}` : ''}` : '');
+        (local.city ? `${local.city}${local.pincode ? ` - ${local.pincode}` : ''}` : '') ||
+        'Commercial Center, Main Road';
 
     const phone = 
         lastOrderData?.shop_phone ||
+        shopDetails?.shop_phone ||
         shopDetails?.phone ||
         orgProfile.phone ||
         businessConfig.phone ||
@@ -43,6 +53,7 @@ const resolveShopDetails = (shopDetails, lastOrderData) => {
 
     const email = 
         lastOrderData?.shop_email ||
+        shopDetails?.shop_email ||
         shopDetails?.email ||
         orgProfile.email ||
         businessConfig.email ||
@@ -51,15 +62,17 @@ const resolveShopDetails = (shopDetails, lastOrderData) => {
 
     const gstin = 
         lastOrderData?.shop_gstin ||
+        shopDetails?.shop_gstin ||
         shopDetails?.gstin ||
         orgProfile.gstin ||
         businessConfig.gstinRef ||
         local.gstin ||
         local.gstinRef ||
-        '';
+        '33AAAAA0000A1Z5';
 
     const tagline = 
         lastOrderData?.shop_tagline ||
+        shopDetails?.shop_tagline ||
         shopDetails?.tagline ||
         businessConfig.pos_shop_tagline ||
         local.tagline ||
@@ -158,11 +171,9 @@ const POSReceiptModal = ({
                         </h4>
 
                         {/* Shop Address */}
-                        {address && (
-                            <p style={{ margin: '0 0 3px', fontSize: '0.72rem', lineHeight: '1.3', maxWidth: '270px', wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
-                                {address}
-                            </p>
-                        )}
+                        <p style={{ margin: '0 0 3px', fontSize: '0.75rem', lineHeight: '1.35', maxWidth: '270px', wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
+                            {address}
+                        </p>
 
                         {/* Shop Contact Details (Phone & Email) */}
                         {(phone || email) && (
@@ -173,12 +184,10 @@ const POSReceiptModal = ({
                             </p>
                         )}
 
-                        {/* GSTIN */}
-                        {gstin && (
-                            <p style={{ margin: '1px 0 4px', fontSize: '0.72rem', fontWeight: '700' }}>
-                                GSTIN: {gstin}
-                            </p>
-                        )}
+                        {/* GST / GSTIN */}
+                        <p style={{ margin: '1px 0 4px', fontSize: '0.76rem', fontWeight: '800', letterSpacing: '0.02em' }}>
+                            GST: {gstin}
+                        </p>
 
                         <p style={{ margin: '2px 0 8px', fontSize: '0.75rem' }}>Receipt No: {lastOrderData?.invoice_number || 'N/A'}</p>
                         
@@ -279,7 +288,8 @@ const POSReceiptModal = ({
                         )}
 
                         <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 'bold' }}>MODE: {(lastOrderData?.payment_mode || paymentMode || 'CASH').toUpperCase()}</p>
-                        <p style={{ margin: '8px 0 0', fontSize: '0.8rem', fontStyle: 'italic' }}>{tagline || `Thank you for shopping at ${shopName}! Visit again!`}</p>
+                        <p style={{ margin: '8px 0 2px', fontSize: '0.8rem', fontStyle: 'italic' }}>{tagline || `Thank you for shopping at ${shopName}! Visit again!`}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: '#475569', fontStyle: 'italic', fontWeight: '600' }}>Powered with Cliks Business by Beta</p>
                     </div>
                 </div>
 

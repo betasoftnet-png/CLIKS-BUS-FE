@@ -566,7 +566,14 @@ const BusinessPOS = () => {
         const org = customizationProfile.org || {};
         const cfg = customizationProfile.cfg || {};
 
+        const branchFullAddress = selectedPosBranch ? (
+            [selectedPosBranch.address, selectedPosBranch.city, selectedPosBranch.state, selectedPosBranch.pincode].filter(Boolean).join(', ') || selectedPosBranch.address
+        ) : null;
+
         const shopName =
+            selectedPosBranch?.name ||
+            user?.branch_name ||
+            user?.branchName ||
             org.business_name ||
             cfg.companyName ||
             userProfile.business_name ||
@@ -578,16 +585,20 @@ const BusinessPOS = () => {
             'Local Retail Store';
 
         const address =
+            branchFullAddress ||
+            selectedPosBranch?.address ||
             org.address ||
             cfg.registeredAddress ||
             userProfile.address ||
             activeConfig.registeredAddress ||
             activeConfig.pos_shop_address ||
+            user?.address ||
             (org.city ? `${org.city}${org.pincode ? ` - ${org.pincode}` : ''}` : '') ||
             (cfg.city ? `${cfg.city}${cfg.pincode ? ` - ${cfg.pincode}` : ''}` : '') ||
-            '';
+            'Commercial Center, Main Road';
 
         const phone =
+            selectedPosBranch?.phone ||
             org.phone ||
             cfg.phone ||
             userProfile.phone ||
@@ -597,6 +608,7 @@ const BusinessPOS = () => {
             '';
 
         const email =
+            selectedPosBranch?.email ||
             org.email ||
             cfg.email ||
             userProfile.email ||
@@ -606,13 +618,16 @@ const BusinessPOS = () => {
             '';
 
         const gstin =
+            selectedPosBranch?.gstin ||
             org.gstin ||
             cfg.gstinRef ||
             userProfile.gstin ||
+            userProfile.gstinRef ||
             activeConfig.gstinRef ||
             activeConfig.pos_shop_gstin ||
             user?.gstin ||
-            '';
+            user?.gstinRef ||
+            '33AAAAA0000A1Z5';
 
         const tagline =
             cfg.pos_shop_tagline ||
@@ -620,8 +635,17 @@ const BusinessPOS = () => {
             activeConfig.pos_shop_tagline ||
             'Thank you for shopping with us! Visit again!';
 
-        return { shopName, address, phone, email, gstin, tagline };
-    }, [customizationProfile, activeConfig, userProfile, user]);
+        return { 
+            shopName, 
+            address, 
+            phone, 
+            email, 
+            gstin, 
+            tagline,
+            branchId: selectedPosBranch?.id,
+            branchName: selectedPosBranch?.name
+        };
+    }, [customizationProfile, activeConfig, userProfile, user, selectedPosBranch]);
 
     // Live Warehouses database via useQuery
     const { data: dbWarehouses = [] } = useQuery({
@@ -1702,7 +1726,7 @@ const BusinessPOS = () => {
             client_phone: selectedCustomerObj?.phone_number || selectedCustomerObj?.phone || null,
             branch_id: selectedPosBranch?.id || user?.branch_id || user?.branchId || undefined,
             shop_name: selectedPosBranch?.name || user?.branch_name || user?.branchName || resolvedShopDetails?.shopName,
-            shop_address: selectedPosBranch?.address || resolvedShopDetails?.address,
+            shop_address: resolvedShopDetails?.address || selectedPosBranch?.address,
             shop_phone: selectedPosBranch?.phone || resolvedShopDetails?.phone,
             shop_email: selectedPosBranch?.email || resolvedShopDetails?.email,
             shop_gstin: selectedPosBranch?.gstin || resolvedShopDetails?.gstin,
@@ -4227,11 +4251,9 @@ const BusinessPOS = () => {
                                 </h4>
 
                                 {/* 2. Address (presented in between business name and phone number) */}
-                                {(lastOrderData?.shop_address || resolvedShopDetails.address) && (
-                                    <p style={{ margin: '0 0 3px', fontSize: '0.72rem', lineHeight: '1.3', maxWidth: '270px', wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
-                                        {lastOrderData?.shop_address || resolvedShopDetails.address}
-                                    </p>
-                                )}
+                                <p style={{ margin: '0 0 3px', fontSize: '0.75rem', lineHeight: '1.35', maxWidth: '270px', wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
+                                    {lastOrderData?.shop_address || resolvedShopDetails.address || 'Commercial Center, Main Road'}
+                                </p>
 
                                 {/* 3. Phone number and Email */}
                                 {(lastOrderData?.shop_phone || resolvedShopDetails.phone || lastOrderData?.shop_email || resolvedShopDetails.email) && (
@@ -4243,11 +4265,9 @@ const BusinessPOS = () => {
                                 )}
 
                                 {/* 4. GSTIN (after phone number and mail) */}
-                                {(lastOrderData?.shop_gstin || resolvedShopDetails.gstin) && (
-                                    <p style={{ margin: '1px 0 4px', fontSize: '0.72rem', fontWeight: '700' }}>
-                                        GSTIN: {lastOrderData?.shop_gstin || resolvedShopDetails.gstin}
-                                    </p>
-                                )}
+                                <p style={{ margin: '1px 0 4px', fontSize: '0.76rem', fontWeight: '800', letterSpacing: '0.02em' }}>
+                                    GST: {lastOrderData?.shop_gstin || resolvedShopDetails.gstin || '33AAAAA0000A1Z5'}
+                                </p>
 
                                 <p style={{ margin: '2px 0 8px', fontSize: '0.75rem' }}>Receipt No: {lastOrderData?.invoice_number || 'N/A'}</p>
 
@@ -4426,8 +4446,8 @@ const BusinessPOS = () => {
                                 <p style={{ margin: '4px 0 2px', fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
                                     Thanks for your business with {lastOrderData?.shop_name || resolvedShopDetails.shopName || 'Cliks Store'}!
                                 </p>
-                                <p style={{ margin: 0, fontSize: '0.72rem', color: '#475569', fontStyle: 'italic' }}>
-                                    Visit again! • Powered by Cliks POS
+                                <p style={{ margin: 0, fontSize: '0.72rem', color: '#475569', fontStyle: 'italic', fontWeight: '600' }}>
+                                    Visit again! • Powered with Cliks Business by Beta
                                 </p>
                             </div>
                         </div>

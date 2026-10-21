@@ -1186,7 +1186,7 @@ export const InvoiceTemplates = {
             local = JSON.parse(localStorage.getItem('cliks_pos_shop_profile') || 'null') || {};
         } catch (e) {}
 
-        const shopName = data?.shop_name || orgProfile.business_name || businessConfig.companyName || business?.business_name || business?.companyName || business?.pos_shop_name || local.shop_name || 'LOCAL RETAIL STORE';
+        const shopName = data?.shop_name || data?.branch_name || orgProfile.business_name || businessConfig.companyName || business?.business_name || business?.companyName || business?.pos_shop_name || local.shop_name || 'LOCAL RETAIL STORE';
         const shopAddress = data?.shop_address || orgProfile.address || businessConfig.registeredAddress || business?.address || business?.registeredAddress || business?.pos_shop_address || local.address || '';
         const shopPhone = data?.shop_phone || orgProfile.phone || businessConfig.phone || business?.phone || business?.pos_shop_phone || local.phone || '';
         const shopEmail = data?.shop_email || orgProfile.email || businessConfig.email || business?.email || business?.pos_shop_email || local.email || '';
@@ -1206,7 +1206,7 @@ export const InvoiceTemplates = {
             }}>
                 <div style={{ textAlign: 'center', marginBottom: '10px', borderBottom: '1px dashed #000', paddingBottom: '5px' }}>
                     <b style={{ fontSize: '15px', display: 'block', textTransform: 'uppercase', marginBottom: '2px' }}>{shopName}</b>
-                    {shopAddress && <p style={{ margin: '2px 0', fontSize: '10px', lineHeight: '1.25' }}>{shopAddress}</p>}
+                    <p style={{ margin: '2px 0', fontSize: '10px', lineHeight: '1.25' }}>{shopAddress || 'Commercial Center, Main Road'}</p>
                     {(shopPhone || shopEmail) && (
                         <p style={{ margin: '2px 0', fontSize: '10px' }}>
                             {shopPhone && <span>Ph: {shopPhone}</span>}
@@ -1214,7 +1214,7 @@ export const InvoiceTemplates = {
                             {shopEmail && <span>{shopEmail}</span>}
                         </p>
                     )}
-                    {shopGstin && <b style={{ fontSize: '10px', display: 'block', marginTop: '2px' }}>GSTIN: {shopGstin}</b>}
+                    <b style={{ fontSize: '10px', display: 'block', marginTop: '2px' }}>GST: {shopGstin || '33AAAAA0000A1Z5'}</b>
                 </div>
                 <div style={{ borderBottom: '1px dashed #000', paddingBottom: '5px', marginBottom: '5px', fontSize: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Inv: <b>#{data.invoice_number}</b></span><span>Dt: {data.due_date}</span></div>
@@ -1258,6 +1258,7 @@ export const InvoiceTemplates = {
                 <div style={{ marginTop: '10px', textAlign: 'center', fontSize: '9px', borderTop: '1px dashed #000', paddingTop: '10px' }}>
                     <span>Total Items: {items.length} | Items Qty: {items.reduce((sum, it) => sum + parseFloat(it.quantity || 0), 0)}</span>
                     <div style={{ marginTop: '8px', fontWeight: 'bold', fontSize: '10px' }}>{shopTagline}</div>
+                    <div style={{ fontSize: '9px', fontStyle: 'italic', marginTop: '2px', fontWeight: '600' }}>Powered with Cliks Business by Beta</div>
                     <div>E.& O.E.</div>
                 </div>
             </div>
