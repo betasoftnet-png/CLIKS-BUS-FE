@@ -976,7 +976,7 @@ const BusinessBilling = () => {
         return activeConfig.prefixSale || 'INV-';
     }, [activeConfig]);
     const [formData, setFormData] = useState(() => ({
-        invoice_number: `INV-${Date.now().toString().slice(-6)}`,
+        invoice_number: 'INV-000001',
         client_name: '',
         client_email: '',
         client_gstin: '',
@@ -1013,20 +1013,21 @@ const BusinessBilling = () => {
     }));
 
     React.useEffect(() => {
-        if (isModalOpen && !editingInvoice && activeConfig) {
-            const prefix = getPrefixForType('GST');
-            const defaultTaxType = activeConfig.inclusiveTax ? 'Inclusive' : 'Exclusive';
-            const defaultPayMode = activeConfig.cashSale ? 'Cash' : 'Bank';
-            setFormData(prev => ({
-                ...prev,
-                invoice_number: `${prefix}${Date.now().toString().slice(-6)}`,
-                tax_type: defaultTaxType,
-                payment_mode: defaultPayMode,
-                client_name: activeConfig.cashSale ? 'Cash Customer' : prev.client_name,
-                client_email: activeConfig.cashSale ? 'cash@customer.local' : prev.client_email
-            }));
+        if (isModalOpen && !editingInvoice) {
+            const defaultTaxType = activeConfig?.inclusiveTax ? 'Inclusive' : 'Exclusive';
+            const defaultPayMode = activeConfig?.cashSale ? 'Cash' : 'Bank';
+            billingService.getNextNumber(formData.invoice_type || 'GST').then(nextNum => {
+                setFormData(prev => ({
+                    ...prev,
+                    invoice_number: nextNum || prev.invoice_number,
+                    tax_type: defaultTaxType,
+                    payment_mode: defaultPayMode,
+                    client_name: activeConfig?.cashSale ? 'Cash Customer' : prev.client_name,
+                    client_email: activeConfig?.cashSale ? 'cash@customer.local' : prev.client_email
+                }));
+            }).catch(() => {});
         }
-    }, [isModalOpen, editingInvoice, activeConfig, getPrefixForType]);
+    }, [isModalOpen, editingInvoice, activeConfig]);
 
     const handleViewHistory = (invoice) => {
         setSelectedHistoryInvoice(invoice);
@@ -2142,10 +2143,9 @@ const BusinessBilling = () => {
         setShowLivePreview(false); // Reset live preview mode
         setSelectedCustomerObject(null);
         setFetchedLoyaltyCustomer(null);
-        const prefix = activeConfig.prefixSale || 'INV-';
         setFormData({
-            invoice_number: `${prefix}${Date.now().toString().slice(-6)}`,
-            client_name: activeConfig.cashSale ? 'Cash Customer' : '',
+            invoice_number: '',
+            client_name: activeConfig?.cashSale ? 'Cash Customer' : '',
             client_email: activeConfig.cashSale ? 'cash@customer.local' : '',
             client_gstin: '',
             billing_address: '',
@@ -2506,12 +2506,15 @@ const BusinessBilling = () => {
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Type</label>
                                     <select value={formData.invoice_type} onChange={(e) => {
                                         const nextType = e.target.value;
-                                        const nextPrefix = getPrefixForType(nextType);
                                         setFormData(prev => ({
                                             ...prev,
-                                            invoice_type: nextType,
-                                            invoice_number: `${nextPrefix}${prev.invoice_number.replace(/^[^-]+-/, '')}`
+                                            invoice_type: nextType
                                         }));
+                                        billingService.getNextNumber(nextType).then(nextNum => {
+                                            if (nextNum) {
+                                                setFormData(prev => ({ ...prev, invoice_number: nextNum }));
+                                            }
+                                        }).catch(() => {});
                                     }} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
                                         {(dropdownOptions.invoiceTypes || DEFAULT_DROPDOWNS.invoiceTypes).map((type, idx) => (
                                             <option key={idx}>{type}</option>

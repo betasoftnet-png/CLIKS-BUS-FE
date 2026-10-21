@@ -116,7 +116,7 @@ const BusinessSalesOrders = () => {
 
     // Order Form State
     const [formData, setFormData] = useState(() => ({
-        order_number: `SO-${Date.now().toString().slice(-6)}`,
+        order_number: '',
         customer: '',
         customer_phone: '',
         customer_gstin: '',
@@ -187,7 +187,7 @@ const BusinessSalesOrders = () => {
         setCustomerSearch('');
         setShowCustomerDropdown(false);
         setFormData({
-            order_number: `SO-${Date.now().toString().slice(-6)}`,
+            order_number: '',
             customer: '',
             customer_phone: '',
             customer_gstin: '',

@@ -435,7 +435,7 @@ const BusinessFinancePurchases = () => {
 const NewPurchaseForm = ({ suppliers, products, bankAccounts, onSubmit, isSubmitting, formatCurrency, currency }) => {
     const navigate = useNavigate();
     const [header, setHeader] = useState({
-        purchase_number: `BILL-${Date.now().toString().slice(-6)}`,
+        purchase_number: 'BILL-000001',
         purchase_date: new Date().toISOString().split('T')[0],
         due_date: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
         supplier_id: '',
