@@ -753,16 +753,43 @@ body.dark-theme,
     position: absolute;
     left: 0;
     top: 0;
-    width: 80mm; /* Standard 3-inch POS thermal printer roll */
+    width: 80mm; /* Default 3-inch POS thermal printer roll */
     max-width: 100%;
     margin: 0;
-    padding: 10px;
+    padding: 8px;
     background: #ffffff !important;
     color: #000000 !important;
     box-shadow: none !important;
     border: none !important;
     max-height: none !important;
     overflow: visible !important;
+  }
+
+  /* 2-Inch (58mm) Mini Thermal POS Printer */
+  #printable-pos-receipt.printer-size-2inch,
+  #thermal-receipt-pane.printer-size-2inch {
+    width: 58mm !important;
+    max-width: 58mm !important;
+    padding: 4px !important;
+    font-size: 11px !important;
+  }
+
+  /* 3-Inch (80mm) Standard Thermal POS Printer */
+  #printable-pos-receipt.printer-size-3inch,
+  #thermal-receipt-pane.printer-size-3inch {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    padding: 8px !important;
+    font-size: 12px !important;
+  }
+
+  /* 4-Inch (100mm) Wide Thermal POS Printer */
+  #printable-pos-receipt.printer-size-4inch,
+  #thermal-receipt-pane.printer-size-4inch {
+    width: 100mm !important;
+    max-width: 100mm !important;
+    padding: 10px !important;
+    font-size: 13px !important;
   }
 
   #invoice-print-area {

@@ -53,6 +53,12 @@ const resolveShopDetails = (shopDetails, lastOrderData) => {
     return { shopName, address, phone, email, gstin, tagline };
 };
 
+const PRINTER_CONFIGS = {
+    '2inch': { label: '2" (58mm)', widthMm: '58mm', cssWidth: '240px', modalWidth: '320px', className: 'printer-size-2inch' },
+    '3inch': { label: '3" (80mm)', widthMm: '80mm', cssWidth: '320px', modalWidth: '380px', className: 'printer-size-3inch' },
+    '4inch': { label: '4" (100mm)', widthMm: '100mm', cssWidth: '400px', modalWidth: '450px', className: 'printer-size-4inch' }
+};
+
 const POSReceiptModal = ({
     isOpen,
     onClose,
@@ -64,8 +70,12 @@ const POSReceiptModal = ({
     loyaltyEnabled: loyaltyEnabledProp = undefined,
     printShowLoyalty: printShowLoyaltyProp = undefined,
     printShowCredit: printShowCreditProp = undefined,
+    printShowGst: printShowGstProp = undefined,
+    receiptPrinterSize: receiptPrinterSizeProp = undefined,
     onTogglePrintShowLoyalty = undefined,
-    onTogglePrintShowCredit = undefined
+    onTogglePrintShowCredit = undefined,
+    onTogglePrintShowGst = undefined,
+    onChangeReceiptPrinterSize = undefined
 }) => {
     if (!isOpen || !lastOrderData) return null;
 
@@ -76,7 +86,7 @@ const POSReceiptModal = ({
     const { data: loyaltyProgramSettings } = useQuery({
         queryKey: ['loyalty-program-settings'],
         queryFn: loyaltyService.getProgramSettings,
-        enabled: printShowLoyaltyProp === undefined || printShowCreditProp === undefined || loyaltyEnabledProp === undefined,
+        enabled: printShowLoyaltyProp === undefined || printShowCreditProp === undefined || printShowGstProp === undefined || receiptPrinterSizeProp === undefined || loyaltyEnabledProp === undefined,
         refetchOnWindowFocus: false
     });
 
@@ -90,6 +100,8 @@ const POSReceiptModal = ({
 
     const [localPrintShowLoyalty, setLocalPrintShowLoyalty] = React.useState(null);
     const [localPrintShowCredit, setLocalPrintShowCredit] = React.useState(null);
+    const [localPrintShowGst, setLocalPrintShowGst] = React.useState(null);
+    const [localReceiptPrinterSize, setLocalReceiptPrinterSize] = React.useState(null);
 
     const printShowLoyalty = printShowLoyaltyProp !== undefined
         ? Boolean(printShowLoyaltyProp)
@@ -102,6 +114,20 @@ const POSReceiptModal = ({
         : (localPrintShowCredit !== null 
             ? localPrintShowCredit 
             : Boolean(loyaltyProgramSettings?.print_show_credit ?? loyaltyProgramSettings?.printShowCredit ?? false));
+
+    const printShowGst = printShowGstProp !== undefined
+        ? Boolean(printShowGstProp)
+        : (localPrintShowGst !== null 
+            ? localPrintShowGst 
+            : Boolean(loyaltyProgramSettings?.print_show_gst ?? loyaltyProgramSettings?.printShowGst ?? true));
+
+    const receiptPrinterSize = receiptPrinterSizeProp !== undefined
+        ? receiptPrinterSizeProp
+        : (localReceiptPrinterSize !== null 
+            ? localReceiptPrinterSize 
+            : (loyaltyProgramSettings?.receipt_printer_size || loyaltyProgramSettings?.receiptPrinterSize || '3inch'));
+
+    const activePrinterConfig = PRINTER_CONFIGS[receiptPrinterSize] || PRINTER_CONFIGS['3inch'];
 
     const handleToggleLoyalty = (checked) => {
         setLocalPrintShowLoyalty(checked);
@@ -121,6 +147,24 @@ const POSReceiptModal = ({
         }
     };
 
+    const handleToggleGst = (checked) => {
+        setLocalPrintShowGst(checked);
+        if (onTogglePrintShowGst) {
+            onTogglePrintShowGst(checked);
+        } else {
+            updateLoyaltySettingsMutation.mutate({ print_show_gst: checked ? 1 : 0 });
+        }
+    };
+
+    const handleSelectPrinterSize = (sizeKey) => {
+        setLocalReceiptPrinterSize(sizeKey);
+        if (onChangeReceiptPrinterSize) {
+            onChangeReceiptPrinterSize(sizeKey);
+        } else {
+            updateLoyaltySettingsMutation.mutate({ receipt_printer_size: sizeKey });
+        }
+    };
+
     // Determine loyalty enabled state from prop or backend settings
     const loyaltyEnabled = loyaltyEnabledProp !== undefined 
         ? Boolean(loyaltyEnabledProp)
@@ -133,14 +177,24 @@ const POSReceiptModal = ({
                 animate={{ opacity: 1, scale: 1 }}
                 style={{
                     background: 'white',
-                    width: '380px',
+                    width: activePrinterConfig.modalWidth,
+                    maxWidth: '96vw',
                     borderRadius: '20px',
                     position: 'relative',
                     boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                     display: 'flex',
-                    flexDirection: 'column'
+                    flexDirection: 'column',
+                    transition: 'width 0.25s ease'
                 }}
             >
+                {/* Dynamic Page Print CSS Rule for Target Printer Size */}
+                <style dangerouslySetInnerHTML={{ __html: `
+                    @media print {
+                        @page { size: ${activePrinterConfig.widthMm} auto; margin: 0; }
+                        #printable-pos-receipt { width: ${activePrinterConfig.widthMm} !important; }
+                    }
+                ` }} />
+
                 {/* Close (X) Icon Button */}
                 <button
                     onClick={onClose}
@@ -188,58 +242,108 @@ const POSReceiptModal = ({
                     <p style={{ margin: '3px 0 0', fontSize: '0.8rem', opacity: 0.9 }}>Order {lastOrderData?.invoice_number || ''} generated</p>
                 </div>
 
-                {/* Business Owner Print Preferences Controls (Screen-only, never printed) */}
+                {/* Business Owner Print Preferences & Customization Controls (Screen-only, never printed) */}
                 <div className="no-print" style={{ 
                     display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    gap: '16px', 
+                    flexDirection: 'column',
+                    gap: '6px',
                     padding: '8px 14px', 
                     background: '#F8FAFC', 
                     borderBottom: '1px solid #E2E8F0', 
                     fontSize: '0.74rem', 
-                    color: '#334155',
-                    flexWrap: 'wrap'
+                    color: '#334155'
                 }}>
-                    <span style={{ fontWeight: '750', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        ⚙️ Print Controls:
-                    </span>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none', fontWeight: '650' }} title="Toggle whether Loyalty Points should be printed on the receipt">
-                        <input
-                            type="checkbox"
-                            checked={printShowLoyalty}
-                            onChange={(e) => handleToggleLoyalty(e.target.checked)}
-                            style={{ cursor: 'pointer', accentColor: '#10B981', width: '14px', height: '14px' }}
-                        />
-                        Print Loyalty Points
-                    </label>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none', fontWeight: '650' }} title="Toggle whether Credit Summary should be printed on the receipt">
-                        <input
-                            type="checkbox"
-                            checked={printShowCredit}
-                            onChange={(e) => handleToggleCredit(e.target.checked)}
-                            style={{ cursor: 'pointer', accentColor: '#10B981', width: '14px', height: '14px' }}
-                        />
-                        Print Credit Option
-                    </label>
+                    {/* Row 1: Printer Paper Size Customization */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: '750', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            🖨️ Printer Size:
+                        </span>
+                        <div style={{ display: 'inline-flex', background: '#E2E8F0', borderRadius: '8px', padding: '2px', gap: '2px' }}>
+                            {Object.entries(PRINTER_CONFIGS).map(([key, config]) => (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => handleSelectPrinterSize(key)}
+                                    title={`Set printer size to ${config.label}`}
+                                    style={{
+                                        border: 'none',
+                                        background: receiptPrinterSize === key ? '#10B981' : 'transparent',
+                                        color: receiptPrinterSize === key ? '#FFFFFF' : '#475569',
+                                        fontWeight: receiptPrinterSize === key ? '750' : '600',
+                                        fontSize: '0.70rem',
+                                        padding: '3px 8px',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                >
+                                    {config.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Row 2: Print Content Toggles (Product GST, Loyalty Points, Shop Credit) */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap', paddingTop: '4px', borderTop: '1px dashed #E2E8F0' }}>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', userSelect: 'none', fontWeight: '650' }} title="Toggle whether individual product GST should be printed">
+                            <input
+                                type="checkbox"
+                                checked={printShowGst}
+                                onChange={(e) => handleToggleGst(e.target.checked)}
+                                style={{ cursor: 'pointer', accentColor: '#10B981', width: '13px', height: '13px' }}
+                            />
+                            Product GST
+                        </label>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', userSelect: 'none', fontWeight: '650' }} title="Toggle whether Loyalty Points should be printed on the receipt">
+                            <input
+                                type="checkbox"
+                                checked={printShowLoyalty}
+                                onChange={(e) => handleToggleLoyalty(e.target.checked)}
+                                style={{ cursor: 'pointer', accentColor: '#10B981', width: '13px', height: '13px' }}
+                            />
+                            Loyalty Points
+                        </label>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', userSelect: 'none', fontWeight: '650' }} title="Toggle whether Credit Summary should be printed on the receipt">
+                            <input
+                                type="checkbox"
+                                checked={printShowCredit}
+                                onChange={(e) => handleToggleCredit(e.target.checked)}
+                                style={{ cursor: 'pointer', accentColor: '#10B981', width: '13px', height: '13px' }}
+                            />
+                            Credit Option
+                        </label>
+                    </div>
                 </div>
 
                 {/* Thermal Receipt Workspace (to print) */}
-                <div id="printable-pos-receipt" className="printable-pos-receipt" style={{ padding: '1.5rem', background: '#FFFFFF', flex: 1, overflowY: 'auto', maxHeight: '400px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'monospace', color: '#000', textAlign: 'center' }}>
+                <div 
+                    id="printable-pos-receipt" 
+                    className={`printable-pos-receipt ${activePrinterConfig.className}`} 
+                    style={{ 
+                        padding: receiptPrinterSize === '2inch' ? '0.75rem 0.5rem' : '1.25rem', 
+                        background: '#FFFFFF', 
+                        flex: 1, 
+                        overflowY: 'auto', 
+                        maxHeight: '420px',
+                        width: activePrinterConfig.cssWidth,
+                        margin: '0 auto',
+                        boxSizing: 'border-box'
+                    }}
+                >
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'monospace', color: '#000', textAlign: 'center', width: '100%' }}>
                         {/* Shop / Store Name */}
-                        <h4 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: '1.25' }}>
+                        <h4 style={{ margin: '0 0 4px', fontSize: receiptPrinterSize === '2inch' ? '1rem' : '1.15rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: '1.25' }}>
                             {shopName}
                         </h4>
 
                         {/* Shop Address */}
-                        <p style={{ margin: '0 0 3px', fontSize: '0.75rem', lineHeight: '1.35', maxWidth: '270px', wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
+                        <p style={{ margin: '0 0 3px', fontSize: receiptPrinterSize === '2inch' ? '0.68rem' : '0.75rem', lineHeight: '1.35', maxWidth: '270px', wordBreak: 'break-word', whiteSpace: 'pre-line' }}>
                             {address}
                         </p>
 
                         {/* Shop Contact Details (Phone & Email) */}
                         {(phone || email) && (
-                            <p style={{ margin: '1px 0 3px', fontSize: '0.75rem', fontWeight: '600' }}>
+                            <p style={{ margin: '1px 0 3px', fontSize: receiptPrinterSize === '2inch' ? '0.68rem' : '0.75rem', fontWeight: '600' }}>
                                 {phone && <span>Ph: {phone}</span>}
                                 {phone && email && <span> | </span>}
                                 {email && <span>{email}</span>}
@@ -247,48 +351,85 @@ const POSReceiptModal = ({
                         )}
 
                         {/* GST / GSTIN */}
-                        <p style={{ margin: '1px 0 4px', fontSize: '0.76rem', fontWeight: '800', letterSpacing: '0.02em' }}>
+                        <p style={{ margin: '1px 0 4px', fontSize: receiptPrinterSize === '2inch' ? '0.70rem' : '0.76rem', fontWeight: '800', letterSpacing: '0.02em' }}>
                             GST: {gstin}
                         </p>
 
-                        <p style={{ margin: '2px 0 8px', fontSize: '0.75rem' }}>Receipt No: {lastOrderData?.invoice_number || 'N/A'}</p>
+                        <p style={{ margin: '2px 0 8px', fontSize: receiptPrinterSize === '2inch' ? '0.68rem' : '0.75rem' }}>Receipt No: {lastOrderData?.invoice_number || 'N/A'}</p>
                         
-                        <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0' }} />
+                        <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '6px 0' }} />
                         
-                        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px' }}>
+                        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: receiptPrinterSize === '2inch' ? '0.68rem' : '0.75rem', marginBottom: '4px' }}>
                             <span>Date: {lastOrderData?.created_at ? new Date(lastOrderData.created_at).toLocaleDateString() : new Date().toLocaleDateString()}</span>
                             <span>Time: {lastOrderData?.created_at ? new Date(lastOrderData.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
-                        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '8px' }}>
+                        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: receiptPrinterSize === '2inch' ? '0.68rem' : '0.75rem', marginBottom: '6px' }}>
                             <span>Customer: {lastOrderData?.client_name || 'Walk-in Customer'}</span>
-                            <span style={{ fontWeight: '700' }}>Mode: {(lastOrderData?.payment_mode || paymentMode || 'CASH').toUpperCase()}</span>
+                            <span style={{ fontWeight: '750' }}>Mode: {(lastOrderData?.payment_mode || paymentMode || 'CASH').toUpperCase()}</span>
                         </div>
 
-                        <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '4px 0 8px' }} />
+                        <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '4px 0 6px' }} />
 
-                        {/* Items Table */}
-                        <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse', fontFamily: 'monospace' }}>
+                        {/* Items Table with Individual Product GST */}
+                        <table style={{ width: '100%', fontSize: receiptPrinterSize === '2inch' ? '0.68rem' : '0.75rem', borderCollapse: 'collapse', fontFamily: 'monospace' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #000' }}>
-                                    <th style={{ textAlign: 'left', padding: '4px 0' }}>ITEM</th>
-                                    <th style={{ textAlign: 'center', padding: '4px 0' }}>QTY</th>
-                                    <th style={{ textAlign: 'right', padding: '4px 0' }}>RATE</th>
-                                    <th style={{ textAlign: 'right', padding: '4px 0' }}>AMOUNT</th>
+                                    <th style={{ width: '42%', textAlign: 'left', padding: '3px 0' }}>ITEM</th>
+                                    <th style={{ width: '18%', textAlign: 'center', padding: '3px 0' }}>QTY</th>
+                                    <th style={{ width: '20%', textAlign: 'right', padding: '3px 0' }}>RATE</th>
+                                    <th style={{ width: '20%', textAlign: 'right', padding: '3px 0' }}>AMOUNT</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {((lastOrderData?.items && (typeof lastOrderData.items === 'string' ? JSON.parse(lastOrderData.items) : lastOrderData.items)) || []).map((item, i) => (
-                                    <tr key={i}>
-                                        <td style={{ padding: '4px 0', maxWidth: '120px', overflow: 'hidden' }}>{item?.description || item?.name || 'Item'}</td>
-                                        <td style={{ padding: '4px 0', textAlign: 'center' }}>{item?.quantity || 0} {item?.unit || 'PCS'}</td>
-                                        <td style={{ padding: '4px 0', textAlign: 'right' }}>₹{item?.price || item?.unit_price || 0}/{item?.unit || 'PCS'}</td>
-                                        <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(item?.total || item?.amount || (item?.price && item?.quantity ? item.price * item.quantity : 0))}</td>
-                                    </tr>
-                                ))}
+                                {((lastOrderData?.items && (typeof lastOrderData.items === 'string' ? JSON.parse(lastOrderData.items) : lastOrderData.items)) || []).map((item, i) => {
+                                    const itemTaxRate = parseFloat(item?.tax_rate ?? item?.gst_rate ?? item?.tax_percentage ?? item?.gst_percentage ?? 0) || 0;
+                                    const itemQty = parseFloat(item?.quantity) || 0;
+                                    const itemPrice = parseFloat(item?.price || item?.unit_price || 0);
+                                    const itemTotal = parseFloat(item?.total || item?.amount || (itemQty * itemPrice)) || 0;
+                                    const itemTaxAmount = parseFloat(item?.tax_amount ?? item?.gst_amount ?? (itemTotal * (itemTaxRate / 100))) || 0;
+                                    const itemHsn = item?.hsn || item?.hsn_code || '';
+
+                                    return (
+                                        <tr key={i} style={{ borderBottom: '1px dotted #E2E8F0' }}>
+                                            <td colSpan={4} style={{ padding: '3px 0' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                                    <span style={{ width: '42%', textAlign: 'left', wordBreak: 'break-word', fontWeight: '600' }}>
+                                                        {item?.description || item?.name || 'Item'}
+                                                    </span>
+                                                    <span style={{ width: '18%', textAlign: 'center' }}>
+                                                        {itemQty} {item?.unit || 'PCS'}
+                                                    </span>
+                                                    <span style={{ width: '20%', textAlign: 'right' }}>
+                                                        ₹{itemPrice}
+                                                    </span>
+                                                    <span style={{ width: '20%', textAlign: 'right', fontWeight: '600' }}>
+                                                        {formatCurrency(itemTotal)}
+                                                    </span>
+                                                </div>
+                                                {printShowGst && (
+                                                    <div style={{ 
+                                                        fontSize: receiptPrinterSize === '2inch' ? '0.62rem' : '0.67rem', 
+                                                        color: '#334155', 
+                                                        textAlign: 'left',
+                                                        paddingLeft: '2px',
+                                                        marginTop: '1px'
+                                                    }}>
+                                                        {itemHsn ? `HSN:${itemHsn} ` : ''}
+                                                        {itemTaxRate > 0 ? (
+                                                            <span>[GST {itemTaxRate}%: {formatCurrency(itemTaxAmount)}]</span>
+                                                        ) : (
+                                                            <span style={{ color: '#64748B' }}>[GST: 0% Exempt]</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
 
-                        <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0' }} />
+                        <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '6px 0' }} />
 
                         {/* Computed Tally, Loyalty & Credit Sections */}
                         {(() => {
@@ -304,6 +445,22 @@ const POSReceiptModal = ({
                                 const total = parseFloat(it.total || it.amount) || (qty * rate);
                                 return acc + total;
                             }, 0);
+
+                            // Compute GST Breakdown groups by tax rate slab
+                            const gstSlabGroups = itemsList.reduce((acc, it) => {
+                                const rate = parseFloat(it.tax_rate ?? it.gst_rate ?? it.tax_percentage ?? 0) || 0;
+                                const qty = parseFloat(it.quantity) || 0;
+                                const price = parseFloat(it.price || it.unit_price) || 0;
+                                const total = parseFloat(it.total || it.amount) || (qty * price);
+                                const taxAmt = parseFloat(it.tax_amount ?? it.gst_amount ?? (total * (rate / 100))) || 0;
+                                if (rate > 0 || taxAmt > 0) {
+                                    if (!acc[rate]) acc[rate] = { rate, taxable: 0, taxAmount: 0 };
+                                    acc[rate].taxable += total;
+                                    acc[rate].taxAmount += taxAmt;
+                                }
+                                return acc;
+                            }, {});
+                            const gstSlabs = Object.values(gstSlabGroups);
 
                             const isWalkIn = !lastOrderData?.client_name || lastOrderData?.client_name === 'Walk-in Customer';
                             const hasLoyaltyActivity = (
@@ -324,8 +481,8 @@ const POSReceiptModal = ({
 
                             return (
                                 <>
-                                    {/* Tally */}
-                                    <div style={{ width: '100%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    {/* Tally with 3 GST Types (CGST, SGST, IGST) & Slabs */}
+                                    <div style={{ width: '100%', fontSize: receiptPrinterSize === '2inch' ? '0.72rem' : '0.78rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                             <span>SUBTOTAL:</span>
                                             <span>{formatCurrency(subtotalDisplay)}</span>
@@ -336,16 +493,61 @@ const POSReceiptModal = ({
                                                 <span>- {formatCurrency(effectiveDiscount)}</span>
                                             </div>
                                         )}
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>TAX (GST):</span>
-                                            <span>{formatCurrency(lastOrderData?.tax_amount || 0)}</span>
-                                        </div>
                                         {shouldPrintLoyalty && loyaltyDisc > 0 && (
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
                                                 <span>LOYALTY DISCOUNT:</span>
                                                 <span>- {formatCurrency(loyaltyDisc)}</span>
                                             </div>
                                         )}
+
+                                        {/* 3 GST Types Breakdown */}
+                                        {Number(lastOrderData?.igst_amount || 0) > 0 ? (
+                                            <>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: receiptPrinterSize === '2inch' ? '0.67rem' : '0.74rem' }}>
+                                                    <span>CGST (0%):</span>
+                                                    <span>{formatCurrency(0)}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: receiptPrinterSize === '2inch' ? '0.67rem' : '0.74rem' }}>
+                                                    <span>SGST (0%):</span>
+                                                    <span>{formatCurrency(0)}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: receiptPrinterSize === '2inch' ? '0.67rem' : '0.74rem' }}>
+                                                    <span>IGST:</span>
+                                                    <span>{formatCurrency(lastOrderData?.igst_amount || lastOrderData?.tax_amount || 0)}</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: receiptPrinterSize === '2inch' ? '0.67rem' : '0.74rem' }}>
+                                                    <span>CGST:</span>
+                                                    <span>{formatCurrency(lastOrderData?.cgst_amount !== undefined ? lastOrderData.cgst_amount : (Number(lastOrderData?.tax_amount || 0) / 2))}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: receiptPrinterSize === '2inch' ? '0.67rem' : '0.74rem' }}>
+                                                    <span>SGST:</span>
+                                                    <span>{formatCurrency(lastOrderData?.sgst_amount !== undefined ? lastOrderData.sgst_amount : (Number(lastOrderData?.tax_amount || 0) / 2))}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: receiptPrinterSize === '2inch' ? '0.67rem' : '0.74rem' }}>
+                                                    <span>IGST:</span>
+                                                    <span>{formatCurrency(0)}</span>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* Separate Product GST Tax Slab Breakdown */}
+                                        {printShowGst && gstSlabs.length > 0 && (
+                                            <div style={{ marginTop: '3px', marginBottom: '3px', borderTop: '1px dotted #CBD5E1', paddingTop: '3px' }}>
+                                                <div style={{ fontSize: receiptPrinterSize === '2inch' ? '0.62rem' : '0.66rem', fontWeight: '750', textAlign: 'left', marginBottom: '2px', color: '#334155' }}>
+                                                    GST TAX SLAB BREAKDOWN:
+                                                </div>
+                                                {gstSlabs.map((slab) => (
+                                                    <div key={slab.rate} style={{ display: 'flex', justifyContent: 'space-between', fontSize: receiptPrinterSize === '2inch' ? '0.62rem' : '0.66rem', color: '#475569' }}>
+                                                        <span>GST {slab.rate}% on {formatCurrency(slab.taxable)}:</span>
+                                                        <span>{formatCurrency(slab.taxAmount)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
                                         {Math.abs(lastOrderData?.round_off || 0) > 0 && (
                                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                                 <span>ROUND OFF:</span>
