@@ -2357,35 +2357,35 @@ const BusinessPOS = () => {
                             </div>
                             <div>
                                 <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em' }}>POS System</h1>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    {/* <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>Speed Checkout Terminal #1</p> */}
-                                    <span style={{ fontSize: '0.7rem', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '4px', fontWeight: '750' }}>
-                                        {userPrefix} : {displayEmail}
-                                    </span>
-
-                                    {/* Showroom Branch Indicator or Switcher */}
-                                    {(user?.is_sub_id && (user?.branch_name || user?.branchName || user?.branch_id || user?.branchId)) ? (
-                                        <span style={{ fontSize: '0.7rem', color: '#065F46', background: '#D1FAE5', border: '1px solid #6EE7B7', padding: '1px 8px', borderRadius: '4px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                            <Building size={11} />
-                                            {user?.branch_name || user?.branchName || selectedPosBranch?.name || `Branch #${user?.branch_id}`} 🔒
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                                    {/* Showroom Branch Indicator or Switcher (No User ID displayed here) */}
+                                    {(user?.is_sub_id && (user?.branch_name || user?.branchName)) ? (
+                                        <span style={{ fontSize: '0.74rem', color: '#065F46', background: '#D1FAE5', border: '1px solid #6EE7B7', padding: '1px 8px', borderRadius: '6px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <Building size={12} className="text-emerald-600" />
+                                            {user?.branch_name || user?.branchName}
                                         </span>
-                                    ) : posBranches.length > 0 ? (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#F8FAFC', border: '1px solid #CBD5E1', padding: '1px 6px', borderRadius: '4px' }}>
-                                            <Building size={11} className="text-emerald-600" />
+                                    ) : posBranches.length > 1 ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#F8FAFC', border: '1px solid #CBD5E1', padding: '1px 8px', borderRadius: '6px' }}>
+                                            <Building size={12} className="text-emerald-600" />
                                             <select
                                                 value={selectedPosBranch?.id || ''}
                                                 onChange={(e) => {
                                                     const found = posBranches.find(b => String(b.id) === e.target.value);
                                                     if (found) setSelectedPosBranch(found);
                                                 }}
-                                                style={{ fontSize: '0.7rem', fontWeight: '800', color: '#0F172A', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer' }}
+                                                style={{ fontSize: '0.74rem', fontWeight: '800', color: '#0F172A', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer' }}
                                             >
                                                 {posBranches.map(b => (
-                                                    <option key={b.id} value={b.id}>📍 {b.name} ({b.code})</option>
+                                                    <option key={b.id} value={b.id}>📍 {b.name}</option>
                                                 ))}
                                             </select>
                                         </div>
-                                    ) : null}
+                                    ) : (
+                                        <span style={{ fontSize: '0.74rem', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 8px', borderRadius: '6px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <Building size={12} className="text-emerald-600" />
+                                            {selectedPosBranch?.name || posBranches[0]?.name || user?.branch_name || user?.branchName || 'Main Branch'}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -2616,351 +2616,8 @@ const BusinessPOS = () => {
                                 )}
                             </div>
                         )}
-                        <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
-                            <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                            <input
-                                type="text"
-                                placeholder={
-                                    searchTarget === 'alphabet'
-                                        ? "Search by product name (Alphabet wise)..."
-                                        : searchTarget === 'code'
-                                            ? "Search by barcode SKU or code..."
-                                            : "Search item name, category or barcode SKU..."
-                                }
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.75rem 2.2rem 0.75rem 2.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F8FAFC', fontSize: '0.9rem', fontWeight: 500, transition: 'border-color 0.2s', height: '100%' }}
-                                onFocus={(e) => e.target.style.borderColor = '#10B981'}
-                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
-                            />
-                            {searchTerm && (
-                                <button
-                                    type="button"
-                                    onClick={() => setSearchTerm('')}
-                                    style={{
-                                        position: 'absolute',
-                                        right: '12px',
-                                        top: '50%',
-                                        transform: 'translateY(-50%)',
-                                        background: 'rgba(148, 163, 184, 0.2)',
-                                        border: 'none',
-                                        borderRadius: '50%',
-                                        width: '18px',
-                                        height: '18px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        cursor: 'pointer',
-                                        color: '#64748B'
-                                    }}
-                                    title="Clear search"
-                                >
-                                    <X size={12} strokeWidth={2.5} />
-                                </button>
-                            )}
-                        </div>
 
-                        {/* Product Filter & Sort Dropdown (Alphabet Wise / Code Wise) */}
-                        <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={sortFilterDropdownRef}>
-                            <button
-                                type="button"
-                                onClick={() => setIsSortFilterDropdownOpen(!isSortFilterDropdownOpen)}
-                                style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.45rem',
-                                    padding: '0.45rem 0.85rem',
-                                    borderRadius: '12px',
-                                    border: (productSort !== 'default' || searchTarget !== 'all') ? '1.5px solid #10B981' : '1.5px solid #000000',
-                                    background: (productSort !== 'default' || searchTarget !== 'all') ? '#ECFDF5' : '#FFFFFF',
-                                    color: (productSort !== 'default' || searchTarget !== 'all') ? '#047857' : '#0F172A',
-                                    fontSize: '0.82rem',
-                                    fontWeight: '700',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease',
-                                    whiteSpace: 'nowrap',
-                                    height: '100%',
-                                    boxShadow: isSortFilterDropdownOpen ? '0 0 0 3px rgba(16, 185, 129, 0.2)' : 'none'
-                                }}
-                                title="Filter Catalog Alphabet-wise or Code-wise"
-                            >
-                                {productSort === 'alphabet_asc' ? (
-                                    <ArrowDownAZ size={15} style={{ color: '#059669' }} />
-                                ) : productSort === 'alphabet_desc' ? (
-                                    <ArrowDownZA size={15} style={{ color: '#059669' }} />
-                                ) : productSort === 'code_asc' || productSort === 'code_desc' ? (
-                                    <Barcode size={15} style={{ color: '#059669' }} />
-                                ) : (
-                                    <SlidersHorizontal size={15} style={{ color: searchTarget !== 'all' ? '#059669' : '#0F172A' }} />
-                                )}
-
-                                <span>
-                                    {productSort === 'alphabet_asc'
-                                        ? 'Alphabet (A-Z)'
-                                        : productSort === 'alphabet_desc'
-                                            ? 'Alphabet (Z-A)'
-                                            : productSort === 'code_asc'
-                                                ? 'Code Wise (Asc)'
-                                                : productSort === 'code_desc'
-                                                    ? 'Code Wise (Desc)'
-                                                    : searchTarget === 'alphabet'
-                                                        ? 'Alphabet Filter'
-                                                        : searchTarget === 'code'
-                                                            ? 'Code Filter'
-                                                            : 'Alphabet / Code'}
-                                </span>
-
-                                {(productSort !== 'default' || searchTarget !== 'all' || alphabetLetterFilter) && (
-                                    <span
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setProductSort('default');
-                                            setSearchTarget('all');
-                                            setAlphabetLetterFilter('');
-                                        }}
-                                        title="Reset Sort & Filter to Default"
-                                        style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            width: '16px',
-                                            height: '16px',
-                                            borderRadius: '50%',
-                                            background: 'rgba(5, 150, 105, 0.2)',
-                                            marginLeft: '2px',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        <X size={11} strokeWidth={2.5} />
-                                    </span>
-                                )}
-
-                                <ChevronDown size={14} style={{ color: (productSort !== 'default' || searchTarget !== 'all') ? '#047857' : '#0F172A', transition: 'transform 0.2s', transform: isSortFilterDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
-                            </button>
-
-                            {/* Dropdown Popover */}
-                            {isSortFilterDropdownOpen && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '100%',
-                                    right: 0,
-                                    marginTop: '6px',
-                                    background: '#FFFFFF',
-                                    border: '1px solid #E2E8F0',
-                                    borderRadius: '14px',
-                                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
-                                    zIndex: 60,
-                                    minWidth: '270px',
-                                    maxWidth: '320px',
-                                    padding: '0.65rem',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '0.65rem'
-                                }}>
-                                    {/* Header */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.4rem', borderBottom: '1px solid #F1F5F9' }}>
-                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                            Product List Filter & Sort
-                                        </span>
-                                        {(productSort !== 'default' || searchTarget !== 'all' || alphabetLetterFilter) && (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setProductSort('default');
-                                                    setSearchTarget('all');
-                                                    setAlphabetLetterFilter('');
-                                                }}
-                                                style={{ border: 'none', background: 'transparent', color: '#10B981', fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer', padding: 0 }}
-                                            >
-                                                Reset Default
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {/* View List By: Alphabet or Code */}
-                                    <div>
-                                        <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
-                                            View Product List In:
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                            {/* Alphabet Wise (A to Z) */}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setProductSort(productSort === 'alphabet_asc' ? 'default' : 'alphabet_asc');
-                                                    if (productSort !== 'alphabet_asc') setAlphabetLetterFilter('');
-                                                    setIsSortFilterDropdownOpen(false);
-                                                }}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'space-between',
-                                                    padding: '0.5rem 0.65rem',
-                                                    borderRadius: '8px',
-                                                    background: productSort === 'alphabet_asc' ? '#ECFDF5' : '#F8FAFC',
-                                                    border: productSort === 'alphabet_asc' ? '1px solid #A7F3D0' : '1px solid transparent',
-                                                    cursor: 'pointer',
-                                                    textAlign: 'left',
-                                                    transition: 'all 0.15s ease'
-                                                }}
-                                            >
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <ArrowDownAZ size={16} color={productSort === 'alphabet_asc' ? '#059669' : '#475569'} />
-                                                    <div>
-                                                        <div style={{ fontSize: '0.8rem', fontWeight: productSort === 'alphabet_asc' ? '800' : '600', color: productSort === 'alphabet_asc' ? '#047857' : '#1E293B' }}>
-                                                            Alphabet Wise (A → Z)
-                                                        </div>
-                                                        <div style={{ fontSize: '0.67rem', color: '#64748B' }}>Sort products by name A to Z</div>
-                                                    </div>
-                                                </div>
-                                                {productSort === 'alphabet_asc' && <Check size={15} color="#059669" strokeWidth={2.5} />}
-                                            </button>
-
-                                            {/* Alphabet Wise (Z to A) */}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setProductSort(productSort === 'alphabet_desc' ? 'default' : 'alphabet_desc');
-                                                    if (productSort !== 'alphabet_desc') setAlphabetLetterFilter('');
-                                                    setIsSortFilterDropdownOpen(false);
-                                                }}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'space-between',
-                                                    padding: '0.5rem 0.65rem',
-                                                    borderRadius: '8px',
-                                                    background: productSort === 'alphabet_desc' ? '#ECFDF5' : '#F8FAFC',
-                                                    border: productSort === 'alphabet_desc' ? '1px solid #A7F3D0' : '1px solid transparent',
-                                                    cursor: 'pointer',
-                                                    textAlign: 'left',
-                                                    transition: 'all 0.15s ease'
-                                                }}
-                                            >
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <ArrowDownZA size={16} color={productSort === 'alphabet_desc' ? '#059669' : '#475569'} />
-                                                    <div>
-                                                        <div style={{ fontSize: '0.8rem', fontWeight: productSort === 'alphabet_desc' ? '800' : '600', color: productSort === 'alphabet_desc' ? '#047857' : '#1E293B' }}>
-                                                            Alphabet Wise (Z → A)
-                                                        </div>
-                                                        <div style={{ fontSize: '0.67rem', color: '#64748B' }}>Sort products by name Z to A</div>
-                                                    </div>
-                                                </div>
-                                                {productSort === 'alphabet_desc' && <Check size={15} color="#059669" strokeWidth={2.5} />}
-                                            </button>
-
-                                            {/* Code Wise (0 to 9, A to Z) */}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setProductSort(productSort === 'code_asc' ? 'default' : 'code_asc');
-                                                    setAlphabetLetterFilter('');
-                                                    setIsSortFilterDropdownOpen(false);
-                                                }}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'space-between',
-                                                    padding: '0.5rem 0.65rem',
-                                                    borderRadius: '8px',
-                                                    background: productSort === 'code_asc' ? '#ECFDF5' : '#F8FAFC',
-                                                    border: productSort === 'code_asc' ? '1px solid #A7F3D0' : '1px solid transparent',
-                                                    cursor: 'pointer',
-                                                    textAlign: 'left',
-                                                    transition: 'all 0.15s ease'
-                                                }}
-                                            >
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <Barcode size={16} color={productSort === 'code_asc' ? '#059669' : '#475569'} />
-                                                    <div>
-                                                        <div style={{ fontSize: '0.8rem', fontWeight: productSort === 'code_asc' ? '800' : '600', color: productSort === 'code_asc' ? '#047857' : '#1E293B' }}>
-                                                            Code Wise (0 → 9 / A → Z)
-                                                        </div>
-                                                        <div style={{ fontSize: '0.67rem', color: '#64748B' }}>Sort by SKU / Barcode / Code</div>
-                                                    </div>
-                                                </div>
-                                                {productSort === 'code_asc' && <Check size={15} color="#059669" strokeWidth={2.5} />}
-                                            </button>
-
-                                            {/* Code Wise (Descending) */}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setProductSort(productSort === 'code_desc' ? 'default' : 'code_desc');
-                                                    setAlphabetLetterFilter('');
-                                                    setIsSortFilterDropdownOpen(false);
-                                                }}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'space-between',
-                                                    padding: '0.5rem 0.65rem',
-                                                    borderRadius: '8px',
-                                                    background: productSort === 'code_desc' ? '#ECFDF5' : '#F8FAFC',
-                                                    border: productSort === 'code_desc' ? '1px solid #A7F3D0' : '1px solid transparent',
-                                                    cursor: 'pointer',
-                                                    textAlign: 'left',
-                                                    transition: 'all 0.15s ease'
-                                                }}
-                                            >
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <Barcode size={16} color={productSort === 'code_desc' ? '#059669' : '#475569'} />
-                                                    <div>
-                                                        <div style={{ fontSize: '0.8rem', fontWeight: productSort === 'code_desc' ? '800' : '600', color: productSort === 'code_desc' ? '#047857' : '#1E293B' }}>
-                                                            Code Wise (9 → 0 / Z → A)
-                                                        </div>
-                                                        <div style={{ fontSize: '0.67rem', color: '#64748B' }}>Reverse code sequence</div>
-                                                    </div>
-                                                </div>
-                                                {productSort === 'code_desc' && <Check size={15} color="#059669" strokeWidth={2.5} />}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Section 2: Search Query Field Filter */}
-                                    <div style={{ paddingTop: '0.35rem', borderTop: '1px solid #F1F5F9' }}>
-                                        <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
-                                            Search In Field:
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem' }}>
-                                            {[
-                                                { id: 'all', label: 'All Fields' },
-                                                { id: 'alphabet', label: 'Name (A-Z)' },
-                                                { id: 'code', label: 'Code / SKU' }
-                                            ].map(opt => {
-                                                const isSelected = searchTarget === opt.id;
-                                                return (
-                                                    <button
-                                                        key={opt.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setSearchTarget(opt.id);
-                                                            setIsSortFilterDropdownOpen(false);
-                                                        }}
-                                                        style={{
-                                                            padding: '0.35rem 0.25rem',
-                                                            borderRadius: '6px',
-                                                            border: isSelected ? '1.5px solid #10B981' : '1px solid #E2E8F0',
-                                                            background: isSelected ? '#ECFDF5' : '#FFFFFF',
-                                                            color: isSelected ? '#047857' : '#475569',
-                                                            fontSize: '0.72rem',
-                                                            fontWeight: isSelected ? '800' : '600',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.15s ease',
-                                                            textAlign: 'center'
-                                                        }}
-                                                    >
-                                                        {opt.label}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Category Dropdown (All Categories) */}
+                        {/* Category Dropdown (All Categories) - Placed BEFORE Search Bar */}
                         <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={categoryDropdownRef}>
                             <button
                                 type="button"
@@ -3018,7 +2675,7 @@ const BusinessPOS = () => {
                                 <div style={{
                                     position: 'absolute',
                                     top: '100%',
-                                    right: 0,
+                                    left: 0,
                                     marginTop: '6px',
                                     background: '#FFFFFF',
                                     border: '1px solid #E2E8F0',
@@ -3135,6 +2792,330 @@ const BusinessPOS = () => {
                                                 No categories match "{categorySearchQuery}"
                                             </div>
                                         )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Search Box */}
+                        <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
+                            <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                            <input
+                                type="text"
+                                placeholder={
+                                    searchTarget === 'alphabet'
+                                        ? "Search by product name (Alphabet wise)..."
+                                        : searchTarget === 'code'
+                                            ? "Search by barcode SKU or code..."
+                                            : "Search item name, category or barcode SKU..."
+                                }
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{ width: '100%', padding: '0.75rem 2.2rem 0.75rem 2.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F8FAFC', fontSize: '0.9rem', fontWeight: 500, transition: 'border-color 0.2s', height: '100%' }}
+                                onFocus={(e) => e.target.style.borderColor = '#10B981'}
+                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                            />
+                            {searchTerm && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchTerm('')}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '12px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'rgba(148, 163, 184, 0.2)',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: '18px',
+                                        height: '18px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        color: '#64748B'
+                                    }}
+                                    title="Clear search"
+                                >
+                                    <X size={12} strokeWidth={2.5} />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Product Filter & Sort / List Dropdown (Icon Only) */}
+                        <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={sortFilterDropdownRef}>
+                            <button
+                                type="button"
+                                onClick={() => setIsSortFilterDropdownOpen(!isSortFilterDropdownOpen)}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '0.55rem',
+                                    minWidth: '40px',
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '12px',
+                                    border: (productSort !== 'default' || searchTarget !== 'all') ? '1.5px solid #10B981' : '1.5px solid #000000',
+                                    background: (productSort !== 'default' || searchTarget !== 'all') ? '#ECFDF5' : '#FFFFFF',
+                                    color: (productSort !== 'default' || searchTarget !== 'all') ? '#047857' : '#0F172A',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    boxShadow: isSortFilterDropdownOpen ? '0 0 0 3px rgba(16, 185, 129, 0.2)' : 'none',
+                                    position: 'relative'
+                                }}
+                                title={
+                                    productSort === 'alphabet_asc'
+                                        ? 'List: Alphabet (A-Z)'
+                                        : productSort === 'alphabet_desc'
+                                            ? 'List: Alphabet (Z-A)'
+                                            : productSort === 'code_asc'
+                                                ? 'List: Code Wise (Asc)'
+                                                : productSort === 'code_desc'
+                                                    ? 'List: Code Wise (Desc)'
+                                                    : 'List Options (Alphabet / Code Filter)'
+                                }
+                            >
+                                {productSort === 'alphabet_asc' ? (
+                                    <ArrowDownAZ size={17} style={{ color: '#059669' }} />
+                                ) : productSort === 'alphabet_desc' ? (
+                                    <ArrowDownZA size={17} style={{ color: '#059669' }} />
+                                ) : productSort === 'code_asc' || productSort === 'code_desc' ? (
+                                    <Barcode size={17} style={{ color: '#059669' }} />
+                                ) : (
+                                    <SlidersHorizontal size={17} style={{ color: searchTarget !== 'all' ? '#059669' : '#0F172A' }} />
+                                )}
+
+                                {(productSort !== 'default' || searchTarget !== 'all' || alphabetLetterFilter) && (
+                                    <span style={{
+                                        position: 'absolute',
+                                        top: '4px',
+                                        right: '4px',
+                                        width: '7px',
+                                        height: '7px',
+                                        borderRadius: '50%',
+                                        background: '#10B981'
+                                    }} />
+                                )}
+                            </button>
+
+                            {/* Dropdown Popover */}
+                            {isSortFilterDropdownOpen && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    right: 0,
+                                    marginTop: '6px',
+                                    background: '#FFFFFF',
+                                    border: '1px solid #E2E8F0',
+                                    borderRadius: '14px',
+                                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                                    zIndex: 60,
+                                    minWidth: '270px',
+                                    maxWidth: '320px',
+                                    padding: '0.65rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.65rem'
+                                }}>
+                                    {/* Header */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.4rem', borderBottom: '1px solid #F1F5F9' }}>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                            Product List Filter & Sort
+                                        </span>
+                                        {(productSort !== 'default' || searchTarget !== 'all' || alphabetLetterFilter) && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setProductSort('default');
+                                                    setSearchTarget('all');
+                                                    setAlphabetLetterFilter('');
+                                                }}
+                                                style={{ border: 'none', background: 'transparent', color: '#10B981', fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer', padding: 0 }}
+                                            >
+                                                Reset Default
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* View List By: Alphabet or Code */}
+                                    <div>
+                                        <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
+                                            View Product List In:
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            {/* Alphabet Wise (A to Z) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setProductSort(productSort === 'alphabet_asc' ? 'default' : 'alphabet_asc');
+                                                    if (productSort !== 'alphabet_asc') setAlphabetLetterFilter('');
+                                                    setIsSortFilterDropdownOpen(false);
+                                                }}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    padding: '0.5rem 0.65rem',
+                                                    borderRadius: '8px',
+                                                    background: productSort === 'alphabet_asc' ? '#ECFDF5' : '#F8FAFC',
+                                                    border: productSort === 'alphabet_asc' ? '1px solid #A7F3D0' : '1px solid transparent',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <ArrowDownAZ size={16} color={productSort === 'alphabet_asc' ? '#059669' : '#475569'} />
+                                                    <div>
+                                                        <div style={{ fontSize: '0.8rem', fontWeight: productSort === 'alphabet_asc' ? '800' : '600', color: productSort === 'alphabet_asc' ? '#047857' : '#1E293B' }}>
+                                                            Alphabet Wise (A → Z)
+                                                        </div>
+                                                        <div style={{ fontSize: '0.67rem', color: '#64748B' }}>Sort items by name A to Z</div>
+                                                    </div>
+                                                </div>
+                                                {productSort === 'alphabet_asc' && <Check size={15} color="#059669" strokeWidth={2.5} />}
+                                            </button>
+
+                                            {/* Alphabet Wise (Z to A) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setProductSort(productSort === 'alphabet_desc' ? 'default' : 'alphabet_desc');
+                                                    if (productSort !== 'alphabet_desc') setAlphabetLetterFilter('');
+                                                    setIsSortFilterDropdownOpen(false);
+                                                }}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    padding: '0.5rem 0.65rem',
+                                                    borderRadius: '8px',
+                                                    background: productSort === 'alphabet_desc' ? '#ECFDF5' : '#F8FAFC',
+                                                    border: productSort === 'alphabet_desc' ? '1px solid #A7F3D0' : '1px solid transparent',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <ArrowDownZA size={16} color={productSort === 'alphabet_desc' ? '#059669' : '#475569'} />
+                                                    <div>
+                                                        <div style={{ fontSize: '0.8rem', fontWeight: productSort === 'alphabet_desc' ? '800' : '600', color: productSort === 'alphabet_desc' ? '#047857' : '#1E293B' }}>
+                                                            Alphabet Wise (Z → A)
+                                                        </div>
+                                                        <div style={{ fontSize: '0.67rem', color: '#64748B' }}>Sort items by name Z to A</div>
+                                                    </div>
+                                                </div>
+                                                {productSort === 'alphabet_desc' && <Check size={15} color="#059669" strokeWidth={2.5} />}
+                                            </button>
+
+                                            {/* Code Wise (0 to 9, A to Z) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setProductSort(productSort === 'code_asc' ? 'default' : 'code_asc');
+                                                    setAlphabetLetterFilter('');
+                                                    setIsSortFilterDropdownOpen(false);
+                                                }}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    padding: '0.5rem 0.65rem',
+                                                    borderRadius: '8px',
+                                                    background: productSort === 'code_asc' ? '#ECFDF5' : '#F8FAFC',
+                                                    border: productSort === 'code_asc' ? '1px solid #A7F3D0' : '1px solid transparent',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <Barcode size={16} color={productSort === 'code_asc' ? '#059669' : '#475569'} />
+                                                    <div>
+                                                        <div style={{ fontSize: '0.8rem', fontWeight: productSort === 'code_asc' ? '800' : '600', color: productSort === 'code_asc' ? '#047857' : '#1E293B' }}>
+                                                            Code Wise (0 → 9 / A → Z)
+                                                        </div>
+                                                        <div style={{ fontSize: '0.67rem', color: '#64748B' }}>Sort by SKU / Barcode / Code</div>
+                                                    </div>
+                                                </div>
+                                                {productSort === 'code_asc' && <Check size={15} color="#059669" strokeWidth={2.5} />}
+                                            </button>
+
+                                            {/* Code Wise (Descending) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setProductSort(productSort === 'code_desc' ? 'default' : 'code_desc');
+                                                    setAlphabetLetterFilter('');
+                                                    setIsSortFilterDropdownOpen(false);
+                                                }}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    padding: '0.5rem 0.65rem',
+                                                    borderRadius: '8px',
+                                                    background: productSort === 'code_desc' ? '#ECFDF5' : '#F8FAFC',
+                                                    border: productSort === 'code_desc' ? '1px solid #A7F3D0' : '1px solid transparent',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <Barcode size={16} color={productSort === 'code_desc' ? '#059669' : '#475569'} />
+                                                    <div>
+                                                        <div style={{ fontSize: '0.8rem', fontWeight: productSort === 'code_desc' ? '800' : '600', color: productSort === 'code_desc' ? '#047857' : '#1E293B' }}>
+                                                            Code Wise (9 → 0 / Z → A)
+                                                        </div>
+                                                        <div style={{ fontSize: '0.67rem', color: '#64748B' }}>Reverse code sequence</div>
+                                                    </div>
+                                                </div>
+                                                {productSort === 'code_desc' && <Check size={15} color="#059669" strokeWidth={2.5} />}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Section 2: Search Query Field Filter */}
+                                    <div style={{ paddingTop: '0.35rem', borderTop: '1px solid #F1F5F9' }}>
+                                        <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.03em' }}>
+                                            Search In Field:
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem' }}>
+                                            {[
+                                                { id: 'all', label: 'All Fields' },
+                                                { id: 'alphabet', label: 'Name (A-Z)' },
+                                                { id: 'code', label: 'Code / SKU' }
+                                            ].map(opt => {
+                                                const isSelected = searchTarget === opt.id;
+                                                return (
+                                                    <button
+                                                        key={opt.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSearchTarget(opt.id);
+                                                            setIsSortFilterDropdownOpen(false);
+                                                        }}
+                                                        style={{
+                                                            padding: '0.35rem 0.25rem',
+                                                            borderRadius: '6px',
+                                                            border: isSelected ? '1.5px solid #10B981' : '1px solid #E2E8F0',
+                                                            background: isSelected ? '#ECFDF5' : '#FFFFFF',
+                                                            color: isSelected ? '#047857' : '#475569',
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: isSelected ? '800' : '600',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.15s ease',
+                                                            textAlign: 'center'
+                                                        }}
+                                                    >
+                                                        {opt.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
                             )}
