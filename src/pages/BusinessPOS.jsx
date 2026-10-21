@@ -38,7 +38,15 @@ import {
     ArrowDownZA,
     Barcode,
     SlidersHorizontal,
-    Wallet
+    Wallet,
+    Settings,
+    Monitor,
+    Lock,
+    Unlock,
+    Bell,
+    KeyRound,
+    ShieldCheck,
+    Package
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -558,6 +566,209 @@ const BusinessPOS = () => {
     const receiptPrinterSize = localReceiptPrinterSize !== null
         ? localReceiptPrinterSize
         : String(loyaltyProgramSettings?.receipt_printer_size || loyaltyProgramSettings?.receiptPrinterSize || activeConfig?.receipt_printer_size || activeConfig?.receiptPrinterSize || '3inch').toLowerCase();
+
+    // Kiosk & Credit Settings
+    const [localPosKioskPin, setLocalPosKioskPin] = useState(null);
+    const [localPosKioskEnabled, setLocalPosKioskEnabled] = useState(null);
+    const [localPosAllowCredit, setLocalPosAllowCredit] = useState(null);
+
+    const posKioskPin = localPosKioskPin !== null
+        ? localPosKioskPin
+        : String(loyaltyProgramSettings?.pos_kiosk_pin || loyaltyProgramSettings?.posKioskPin || activeConfig?.pos_kiosk_pin || activeConfig?.posKioskPin || '1234');
+
+    const posKioskEnabled = localPosKioskEnabled !== null
+        ? localPosKioskEnabled
+        : Boolean(loyaltyProgramSettings?.pos_kiosk_enabled ?? loyaltyProgramSettings?.posKioskEnabled ?? activeConfig?.pos_kiosk_enabled ?? true);
+
+    const posAllowCredit = localPosAllowCredit !== null
+        ? localPosAllowCredit
+        : Boolean(loyaltyProgramSettings?.pos_allow_credit ?? loyaltyProgramSettings?.posAllowCredit ?? activeConfig?.pos_allow_credit ?? true);
+
+    // Modal & Kiosk Display States
+    const [showPosSettingsModal, setShowPosSettingsModal] = useState(false);
+    const [posSettingsTab, setPosSettingsTab] = useState('print'); // 'print' | 'credit' | 'kiosk'
+    const [isCustomerViewActive, setIsCustomerViewActive] = useState(false);
+    const [kioskPinUnlockModalOpen, setKioskPinUnlockModalOpen] = useState(false);
+    const [kioskPinInput, setKioskPinInput] = useState('');
+    const [kioskPinError, setKioskPinError] = useState('');
+    const [kioskOrderNotification, setKioskOrderNotification] = useState(null);
+    const [kioskCategoryFilter, setKioskCategoryFilter] = useState('ALL');
+    const [kioskSearchQuery, setKioskSearchQuery] = useState('');
+    const [kioskCart, setKioskCart] = useState([]);
+    const [kioskCustomerName, setKioskCustomerName] = useState('');
+    const [kioskCustomerPhone, setKioskCustomerPhone] = useState('');
+    const [kioskOrderSuccessInfo, setKioskOrderSuccessInfo] = useState(null);
+
+    const playKioskOrderChime = () => {
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return;
+            const audioCtx = new AudioContextClass();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+            osc.frequency.setValueAtTime(1174.66, audioCtx.currentTime + 0.22); // D6
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.65);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.7);
+        } catch (e) {
+            // Audio context silently handled
+        }
+    };
+
+    const [posSettingsSaveStatus, setPosSettingsSaveStatus] = useState(null); // 'saving' | 'saved' | 'error' | null
+    const [showKioskPinMask, setShowKioskPinMask] = useState(false);
+
+    const handleSavePosSettings = async (overrides = {}) => {
+        setPosSettingsSaveStatus('saving');
+        const payload = {
+            print_show_loyalty: overrides.print_show_loyalty !== undefined ? overrides.print_show_loyalty : printShowLoyalty,
+            print_show_credit: overrides.print_show_credit !== undefined ? overrides.print_show_credit : printShowCredit,
+            print_show_gst: overrides.print_show_gst !== undefined ? overrides.print_show_gst : printShowGst,
+            receipt_printer_size: overrides.receipt_printer_size !== undefined ? overrides.receipt_printer_size : receiptPrinterSize,
+            pos_kiosk_pin: overrides.pos_kiosk_pin !== undefined ? overrides.pos_kiosk_pin : posKioskPin,
+            pos_kiosk_enabled: overrides.pos_kiosk_enabled !== undefined ? overrides.pos_kiosk_enabled : posKioskEnabled,
+            pos_allow_credit: overrides.pos_allow_credit !== undefined ? overrides.pos_allow_credit : posAllowCredit
+        };
+
+        try {
+            await updateLoyaltySettingsMutation.mutateAsync(payload);
+            setPosSettingsSaveStatus('saved');
+            setTimeout(() => setPosSettingsSaveStatus(null), 2500);
+        } catch (err) {
+            console.error('[POS Settings Save Error]', err);
+            setPosSettingsSaveStatus('error');
+            setTimeout(() => setPosSettingsSaveStatus(null), 3000);
+        }
+    };
+
+    const handleKioskAddToCart = (prod) => {
+        const prodUnit = prod.unit || 'PCS';
+        const isUnlimited = Boolean(prod.isUnlimited === true || prod.is_unlimited === true || (parseFloat(prod.quantity) >= 999000) || (parseFloat(prod.stock) >= 999000));
+        const extractedTaxRate = parseFloat(prod.tax_percentage ?? prod.rawProduct?.tax_percentage ?? prod.rawProduct?.gst_percentage ?? prod.taxRate ?? prod.gst_percentage ?? prod.tax_rate ?? 0) || 0;
+        const price = parseFloat(prod.price || prod.sale_price || 0) || 0;
+
+        setKioskCart(prev => {
+            const existing = prev.find(item => item.id === prod.id);
+            if (existing) {
+                const newQty = existing.quantity + 1;
+                if (!isUnlimited && newQty > (parseFloat(prod.quantity) || 0)) {
+                    alert('Cannot add more than available store stock!');
+                    return prev;
+                }
+                return prev.map(item => item.id === prod.id ? { ...item, quantity: newQty, total: Math.round(newQty * price * 100) / 100 } : item);
+            }
+            return [...prev, {
+                id: prod.id,
+                name: prod.name,
+                sku: prod.sku,
+                price: price,
+                quantity: 1,
+                tax_rate: extractedTaxRate,
+                unit: prodUnit,
+                total: price,
+                source: prod.source,
+                isUnlimited: isUnlimited,
+                rawProduct: prod.rawProduct || prod
+            }];
+        });
+    };
+
+    const handleKioskUpdateQty = (itemId, delta) => {
+        setKioskCart(prev => {
+            return prev.map(item => {
+                if (item.id === itemId) {
+                    const newQty = item.quantity + delta;
+                    if (newQty <= 0) return null;
+                    if (!item.isUnlimited && delta > 0) {
+                        const originalProd = products.find(p => p.id === itemId);
+                        if (originalProd && newQty > (parseFloat(originalProd.quantity) || 0)) {
+                            alert('Cannot add more than available store stock!');
+                            return item;
+                        }
+                    }
+                    return { ...item, quantity: newQty, total: Math.round(newQty * item.price * 100) / 100 };
+                }
+                return item;
+            }).filter(Boolean);
+        });
+    };
+
+    const handleKioskSubmitOrder = () => {
+        if (!kioskCart || kioskCart.length === 0) {
+            alert('Your order is empty. Please add items before placing order.');
+            return;
+        }
+
+        const kioskOrderNum = Math.floor(1000 + Math.random() * 9000);
+        const orderIdStr = `K-${kioskOrderNum}`;
+        const totalAmount = kioskCart.reduce((acc, it) => acc + (it.total || ((it.price || 0) * (it.quantity || 1))), 0);
+        const itemsCount = kioskCart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+
+        const newHeldCart = {
+            id: Date.now(),
+            displayId: kioskOrderNum,
+            customName: `Kiosk #${orderIdStr} - ${kioskCustomerName || 'In-Store Guest'}`,
+            cart: [...kioskCart],
+            customerName: kioskCustomerName || 'In-Store Customer',
+            customerEmail: kioskCustomerPhone || '',
+            selectedCustomerObj: null,
+            discountVal: 0,
+            discountType: 'percentage',
+            taxRate: 18,
+            loyaltyPointsEarned: 0,
+            loyaltyPointsRedeemed: 0,
+            isPtsEarnedManuallyEdited: false,
+            isKioskOrder: true,
+            total: totalAmount
+        };
+
+        // Push to POS Cashier's held carts list
+        setHeldCarts(prev => [newHeldCart, ...prev]);
+
+        // Push real-time notification to Cashier
+        setKioskOrderNotification({
+            orderId: orderIdStr,
+            heldCartId: newHeldCart.id,
+            customerName: kioskCustomerName || 'In-Store Guest',
+            customerPhone: kioskCustomerPhone,
+            itemCount: itemsCount,
+            total: totalAmount
+        });
+
+        // Play pleasant chime
+        playKioskOrderChime();
+
+        // Show customer success screen
+        setKioskOrderSuccessInfo({
+            orderId: orderIdStr,
+            total: totalAmount,
+            itemsCount: itemsCount,
+            customerName: kioskCustomerName
+        });
+
+        // Reset customer form
+        setKioskCart([]);
+        setKioskCustomerName('');
+        setKioskCustomerPhone('');
+    };
+
+    const handleKioskPinUnlockSubmit = () => {
+        const correctPin = String(posKioskPin || '1234').trim();
+        if (String(kioskPinInput).trim() === correctPin) {
+            setIsCustomerViewActive(false);
+            setKioskPinUnlockModalOpen(false);
+            setKioskPinInput('');
+            setKioskPinError('');
+        } else {
+            setKioskPinError('Incorrect PIN code. Please enter the correct staff security PIN.');
+        }
+    };
 
     const PRINTER_CONFIGS = {
         '2inch': {
@@ -1651,13 +1862,21 @@ const BusinessPOS = () => {
         if (matched) {
             const freshLtp = getCustomerLtp(matched);
             const curLtp = getCustomerLtp(selectedCustomerObj);
-            if (freshLtp > curLtp || matched.name !== selectedCustomerObj.name || matched.email !== selectedCustomerObj.email) {
-                setSelectedCustomerObj(matched);
+            const freshCredit = parseFloat(matched.credit_held ?? matched.outstanding_balance ?? matched.due_balance ?? 0);
+            const curCredit = parseFloat(selectedCustomerObj.credit_held ?? selectedCustomerObj.outstanding_balance ?? selectedCustomerObj.due_balance ?? 0);
+            if (freshLtp !== curLtp || freshCredit !== curCredit || matched.name !== selectedCustomerObj.name || matched.email !== selectedCustomerObj.email) {
+                setSelectedCustomerObj(prev => ({
+                    ...(prev || {}),
+                    ...matched,
+                    credit_held: freshCredit,
+                    outstanding_balance: freshCredit,
+                    due_balance: freshCredit
+                }));
             }
         }
     }, [customers, selectedCustomerObj]);
 
-    // Live loyalty balance check directly from backend database when customer identifier/email changes
+    // Live loyalty and credit balance check directly from backend database when customer identifier/email changes
     React.useEffect(() => {
         const queryTerm = customerEmail || (selectedCustomerObj?.email || selectedCustomerObj?.phone_number || '');
         if (!queryTerm || !String(queryTerm).trim()) return;
@@ -1666,15 +1885,23 @@ const BusinessPOS = () => {
             crmService.lookupCustomerByEmail(queryTerm).then(res => {
                 if (res && res.exists) {
                     const backendLtp = parseFloat(res.loyalty_points || 0) || 0;
+                    const backendCredit = parseFloat(res.credit_held ?? res.outstanding_balance ?? res.due_balance ?? 0);
                     setSelectedCustomerObj(prev => {
                         const curLtp = prev ? getCustomerLtp(prev) : 0;
-                        if (!prev || curLtp !== backendLtp) {
+                        const curCredit = parseFloat(prev?.credit_held ?? prev?.outstanding_balance ?? prev?.due_balance ?? 0);
+                        if (!prev || curLtp !== backendLtp || backendCredit !== curCredit) {
                             return {
                                 ...(prev || {}),
                                 id: res.user_id || prev?.id,
                                 email: res.email || prev?.email,
+                                phone_number: res.phone || prev?.phone_number || prev?.phone,
                                 name: res.customer_name || prev?.name || customerName,
-                                loyalty_points: backendLtp
+                                loyalty_points: backendLtp,
+                                credit_held: backendCredit,
+                                outstanding_balance: backendCredit,
+                                due_balance: backendCredit,
+                                store_credit: res.store_credit !== undefined ? res.store_credit : (prev?.store_credit || 0),
+                                credit_limit: res.credit_limit !== undefined ? res.credit_limit : (prev?.credit_limit || 0)
                             };
                         }
                         return prev;
@@ -2221,6 +2448,57 @@ const BusinessPOS = () => {
                                 onMouseLeave={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#64748B'; }}
                             >
                                 <History size={15} strokeWidth={2.5} /> History
+                            </button>
+
+                            {/* POS Settings Button (Print, Credit, Kiosk, etc.) */}
+                            <button
+                                onClick={() => setShowPosSettingsModal(true)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    background: '#F8FAFC',
+                                    color: '#334155',
+                                    border: '1px solid #CBD5E1',
+                                    padding: '0.5rem 0.85rem',
+                                    borderRadius: '10px',
+                                    fontWeight: '800',
+                                    fontSize: '0.78rem',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#0F172A'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#334155'; }}
+                                title="POS Settings: Print, Credit, Customer View, Kiosk PIN"
+                            >
+                                <Settings size={15} strokeWidth={2.5} /> Settings
+                            </button>
+
+                            {/* Customer View / Self-Order Kiosk Mode Button */}
+                            <button
+                                onClick={() => {
+                                    setIsCustomerViewActive(true);
+                                }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    background: 'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '0.5rem 0.85rem',
+                                    borderRadius: '10px',
+                                    fontWeight: '800',
+                                    fontSize: '0.78rem',
+                                    boxShadow: '0 4px 10px rgba(79, 70, 229, 0.25)',
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.15s ease'
+                                }}
+                                onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.96)'}
+                                onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                title="Display Full Screen Product Catalog and Self-Order Kiosk for Customers in front of shop"
+                            >
+                                <Monitor size={15} strokeWidth={2.5} /> Customer View
                             </button>
 
 
@@ -3382,11 +3660,34 @@ const BusinessPOS = () => {
                                                     {(cust.phone_number || cust.phone) && <span>Phone: {cust.phone_number || cust.phone}</span>}
                                                     {cust.email && <span>Email: {cust.email}</span>}
                                                 </div>
+                                                {/* Customer Credit Held in Dropdown */}
+                                                {(() => {
+                                                    const custCredit = parseFloat(cust.credit_held ?? cust.outstanding_balance ?? cust.due_balance ?? 0);
+                                                    const custStoreCredit = parseFloat(cust.store_credit ?? 0);
+                                                    return (
+                                                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginTop: '2px', flexWrap: 'wrap' }}>
+                                                            {custCredit > 0 ? (
+                                                                <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', padding: '1px 5px', borderRadius: '4px' }}>
+                                                                    💳 Credit Held: {formatCurrency(custCredit)}
+                                                                </span>
+                                                            ) : (
+                                                                <span style={{ fontSize: '0.68rem', fontWeight: '600', color: '#64748B', background: '#F1F5F9', padding: '1px 5px', borderRadius: '4px' }}>
+                                                                    💳 Credit: {formatCurrency(0)}
+                                                                </span>
+                                                            )}
+                                                            {custStoreCredit > 0 && (
+                                                                <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#1D4ED8', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '1px 5px', borderRadius: '4px' }}>
+                                                                    🎁 Store Credit: {formatCurrency(custStoreCredit)}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                             {loyaltyEnabled && (
                                                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                                                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800' }}>
-                                                        ⭐ Loyalty Points: {getCustomerLtp(cust)}
+                                                        ⭐ LTP: {getCustomerLtp(cust)}
                                                     </span>
                                                 </div>
                                             )}
@@ -3404,20 +3705,20 @@ const BusinessPOS = () => {
 
                     {/* Selected Customer Details Banner */}
                     {selectedCustomerObj && (
-                        <div style={{ marginTop: '0.6rem', padding: '0.65rem 0.85rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.8rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'nowrap', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        <div style={{ marginTop: '0.6rem', padding: '0.65rem 0.85rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.8rem', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
                                 <span style={{ fontWeight: '850', color: '#065F46', fontSize: '0.85rem' }}>
                                     Name: <strong>{selectedCustomerObj.name}</strong>
                                 </span>
                                 <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
-                                <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '220px' }} title={selectedCustomerObj.email}>
-                                    {selectedCustomerObj.email || 'N/A'}
+                                <span style={{ color: '#047857', fontWeight: '700', fontSize: '0.8rem' }} title={selectedCustomerObj.email}>
+                                    {selectedCustomerObj.email || selectedCustomerObj.phone_number || 'N/A'}
                                 </span>
                                 {loyaltyEnabled && (
                                     <>
                                         <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
                                         <span style={{ fontWeight: '850', color: '#B45309', background: '#FFFBEB', padding: '0.1rem 0.45rem', borderRadius: '6px', border: '1px solid #FCD34D', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                                            LTP: <strong>{getCustomerLtp(selectedCustomerObj)}</strong>
+                                            ⭐ LTP: <strong>{getCustomerLtp(selectedCustomerObj)}</strong>
                                         </span>
                                     </>
                                 )}
@@ -3425,14 +3726,33 @@ const BusinessPOS = () => {
                                 <span style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '0.1rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
                                     🏪 {selectedCustomerObj.branch_name || 'Main Showroom'}
                                 </span>
-                                {parseFloat(selectedCustomerObj.store_credit) > 0 && (
-                                    <>
-                                        <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
-                                        <span style={{ background: '#ECFDF5', color: '#047857', border: '1px solid #6EE7B7', padding: '0.1rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '850', whiteSpace: 'nowrap' }}>
-                                            💳 Credit: {formatCurrency(selectedCustomerObj.store_credit)}
-                                        </span>
-                                    </>
-                                )}
+
+                                {/* Outstanding Credit Held by this Customer */}
+                                {(() => {
+                                    const creditHeld = parseFloat(selectedCustomerObj.credit_held ?? selectedCustomerObj.outstanding_balance ?? selectedCustomerObj.due_balance ?? 0);
+                                    const storeCredit = parseFloat(selectedCustomerObj.store_credit ?? 0);
+                                    const creditLimit = parseFloat(selectedCustomerObj.credit_limit ?? 0);
+                                    return (
+                                        <>
+                                            <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
+                                            {creditHeld > 0 ? (
+                                                <span style={{ background: '#FEF2F2', color: '#991B1B', border: '1.5px solid #F87171', padding: '0.12rem 0.5rem', borderRadius: '6px', fontSize: '0.76rem', fontWeight: '900', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '3px', boxShadow: '0 1px 3px rgba(239,68,68,0.1)' }}>
+                                                    💳 Credit Held: {formatCurrency(creditHeld)}
+                                                    {creditLimit > 0 && <span style={{ color: '#B91C1C', fontSize: '0.67rem', fontWeight: '700' }}>(Limit: {formatCurrency(creditLimit)})</span>}
+                                                </span>
+                                            ) : (
+                                                <span style={{ background: '#F8FAFC', color: '#334155', border: '1px solid #CBD5E1', padding: '0.12rem 0.5rem', borderRadius: '6px', fontSize: '0.74rem', fontWeight: '800', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                                    💳 Credit Held: {formatCurrency(0)}
+                                                </span>
+                                            )}
+                                            {storeCredit > 0 && (
+                                                <span style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1.5px solid #93C5FD', padding: '0.12rem 0.5rem', borderRadius: '6px', fontSize: '0.76rem', fontWeight: '900', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                                    🎁 Store Credit: {formatCurrency(storeCredit)}
+                                                </span>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
                                 {/* 1. Edit / Change Customer Icon Button */}
@@ -3484,6 +3804,78 @@ const BusinessPOS = () => {
                     )}
                 </div>
 
+                {/* Kiosk Order Real-time Notification Banner */}
+                {kioskOrderNotification && (
+                    <div style={{
+                        padding: '0.65rem 1.25rem',
+                        background: 'linear-gradient(90deg, #EFF6FF, #DBEAFE)',
+                        borderBottom: '2px solid #3B82F6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '1rem',
+                        flexShrink: 0,
+                        boxShadow: '0 2px 10px rgba(59, 130, 246, 0.15)',
+                        animation: 'fadeIn 0.25s ease-in-out'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div style={{ background: '#2563EB', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(37,99,235,0.3)' }}>
+                                <Bell size={16} />
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '0.85rem', fontWeight: '850', color: '#1E3A8A', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span>New In-Store Customer Order Received!</span>
+                                    <span style={{ fontSize: '0.72rem', background: '#1D4ED8', color: '#fff', padding: '1px 8px', borderRadius: '12px', fontWeight: '800' }}>
+                                        {kioskOrderNotification.orderId}
+                                    </span>
+                                </div>
+                                <div style={{ fontSize: '0.76rem', color: '#2563EB', fontWeight: '600', marginTop: '1px' }}>
+                                    Customer: <strong>{kioskOrderNotification.customerName || 'In-Store Guest'}</strong> {kioskOrderNotification.customerPhone ? `(${kioskOrderNotification.customerPhone})` : ''} • {kioskOrderNotification.itemCount} item(s) • Total: <strong>{formatCurrency(kioskOrderNotification.total || 0)}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                            <button
+                                onClick={() => {
+                                    restoreCart(kioskOrderNotification.heldCartId);
+                                    setKioskOrderNotification(null);
+                                }}
+                                style={{
+                                    background: '#2563EB',
+                                    color: '#fff',
+                                    border: 'none',
+                                    padding: '0.45rem 0.95rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.78rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    boxShadow: '0 2px 4px rgba(37, 99, 235, 0.25)'
+                                }}
+                            >
+                                <ShoppingCart size={13} /> Open in POS Cart
+                            </button>
+                            <button
+                                onClick={() => setKioskOrderNotification(null)}
+                                style={{
+                                    background: '#fff',
+                                    color: '#64748B',
+                                    border: '1px solid #CBD5E1',
+                                    padding: '0.45rem 0.75rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.76rem',
+                                    fontWeight: '700',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Held Carts Row */}
                 {heldCarts.length > 0 && (
                     <div style={{ padding: '0.5rem 1.25rem', background: '#FFFBEB', borderBottom: '1px solid #FEF3C7', display: 'flex', gap: '0.5rem', overflowX: 'auto', flexShrink: 0 }}>
@@ -3494,8 +3886,8 @@ const BusinessPOS = () => {
                                 <div
                                     key={hc.id}
                                     style={{
-                                        background: isActive ? '#DCFCE7' : '#FFFFFF',
-                                        border: isActive ? '1px solid #86EFAC' : '1px solid #FCD34D',
+                                        background: hc.isKioskOrder ? (isActive ? '#EFF6FF' : '#F0FDF4') : (isActive ? '#DCFCE7' : '#FFFFFF'),
+                                        border: hc.isKioskOrder ? (isActive ? '1.5px solid #3B82F6' : '1.5px solid #60A5FA') : (isActive ? '1px solid #86EFAC' : '1px solid #FCD34D'),
                                         padding: '0.3rem 0.65rem',
                                         borderRadius: '8px',
                                         display: 'flex',
@@ -3503,19 +3895,24 @@ const BusinessPOS = () => {
                                         gap: '0.5rem',
                                         fontSize: '0.75rem',
                                         fontWeight: '800',
-                                        color: isActive ? '#15803D' : '#92400E',
+                                        color: hc.isKioskOrder ? '#1D4ED8' : (isActive ? '#15803D' : '#92400E'),
                                         whiteSpace: 'nowrap',
-                                        boxShadow: isActive ? '0 2px 6px rgba(22, 163, 74, 0.15)' : 'none',
+                                        boxShadow: isActive ? '0 2px 6px rgba(22, 163, 74, 0.15)' : (hc.isKioskOrder ? '0 1px 4px rgba(59,130,246,0.15)' : 'none'),
                                         transition: 'all 0.15s ease'
                                     }}
                                 >
+                                    {hc.isKioskOrder && (
+                                        <span style={{ background: '#2563EB', color: '#FFFFFF', padding: '1px 5px', borderRadius: '4px', fontSize: '0.62rem', fontWeight: '900', letterSpacing: '0.02em' }}>
+                                            KIOSK
+                                        </span>
+                                    )}
                                     <span
                                         onClick={() => restoreCart(hc.id)}
                                         style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                                         title="Click to view/edit this held cart"
                                     >
-                                        {isActive && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16A34A', display: 'inline-block' }} />}
-                                        {hc.customName || hc.customerName || `Cart #${hc.displayId}`} ({hc.cart.length} items)
+                                        {isActive && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: hc.isKioskOrder ? '#2563EB' : '#16A34A', display: 'inline-block' }} />}
+                                        {hc.customName || hc.customerName || `Cart #${hc.displayId}`} ({hc.cart?.length || 0} items)
                                     </span>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px', borderLeft: isActive ? '1px solid #BBF7D0' : '1px solid #FEF3C7', paddingLeft: '6px' }}>
                                         <Edit
@@ -4132,6 +4529,27 @@ const BusinessPOS = () => {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Selected Customer Credit Held Summary */}
+                                    {selectedCustomerObj ? (() => {
+                                        const prevHeld = parseFloat(selectedCustomerObj.credit_held ?? selectedCustomerObj.outstanding_balance ?? selectedCustomerObj.due_balance ?? 0);
+                                        const curDue = Math.max(0, finalTotal - (parseFloat(creditReceivedAmount) || 0));
+                                        const totalAfter = prevHeld + curDue;
+                                        return (
+                                            <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '0.4rem 0.65rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem' }}>
+                                                <span style={{ color: '#991B1B', fontWeight: '750' }}>
+                                                    Previous Credit Held: <strong>{formatCurrency(prevHeld)}</strong>
+                                                </span>
+                                                <span style={{ color: '#7F1D1D', fontWeight: '900' }}>
+                                                    Total Credit After: {formatCurrency(totalAfter)}
+                                                </span>
+                                            </div>
+                                        );
+                                    })() : (
+                                        <div style={{ background: '#FFF7ED', border: '1px solid #FFEDD5', borderRadius: '8px', padding: '0.35rem 0.55rem', fontSize: '0.72rem', color: '#C2410C', fontWeight: '650' }}>
+                                            ⚠️ Notice: Select a customer above to track credit debt against their ledger account.
+                                        </div>
+                                    )}
 
                                     {/* Action Buttons */}
                                     <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
@@ -5599,6 +6017,1084 @@ const BusinessPOS = () => {
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ======================================================== */}
+            {/* POS SETTINGS MODAL (PRINT, CREDIT, CUSTOMER VIEW / KIOSK) */}
+            {/* ======================================================== */}
+            {showPosSettingsModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(15, 23, 42, 0.65)',
+                    backdropFilter: 'blur(5px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 99999,
+                    animation: 'fadeIn 0.2s ease-out'
+                }}>
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '20px',
+                        width: '92%',
+                        maxWidth: '680px',
+                        maxHeight: '88vh',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.3)',
+                        overflow: 'hidden',
+                        border: '1px solid #E2E8F0'
+                    }}>
+                        {/* Modal Header */}
+                        <div style={{
+                            padding: '1.25rem 1.5rem',
+                            borderBottom: '1px solid #E2E8F0',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            background: '#F8FAFC'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                <div style={{ background: '#EFF6FF', color: '#2563EB', padding: '0.5rem', borderRadius: '10px' }}>
+                                    <Settings size={22} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '850', color: '#0F172A' }}>
+                                        POS System Settings
+                                    </h3>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748B' }}>
+                                        Configure receipt printing, store credit rules, and in-store self-order kiosk
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowPosSettingsModal(false)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#94A3B8',
+                                    cursor: 'pointer',
+                                    padding: '0.35rem',
+                                    borderRadius: '8px'
+                                }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Settings Tabs Bar */}
+                        <div style={{
+                            display: 'flex',
+                            borderBottom: '1px solid #E2E8F0',
+                            background: '#F1F5F9',
+                            padding: '0.35rem 1rem 0',
+                            gap: '0.5rem'
+                        }}>
+                            {[
+                                { id: 'print', label: 'Receipt & Print', icon: Printer },
+                                { id: 'credit', label: 'Credit & Khata', icon: CreditCard },
+                                { id: 'kiosk', label: 'Customer View (Kiosk)', icon: Monitor }
+                            ].map(tab => {
+                                const IconComp = tab.icon;
+                                const isActive = posSettingsTab === tab.id;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setPosSettingsTab(tab.id)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.45rem',
+                                            padding: '0.65rem 1rem',
+                                            background: isActive ? '#FFFFFF' : 'transparent',
+                                            border: 'none',
+                                            borderTopLeftRadius: '10px',
+                                            borderTopRightRadius: '10px',
+                                            fontWeight: isActive ? '800' : '600',
+                                            fontSize: '0.82rem',
+                                            color: isActive ? '#2563EB' : '#64748B',
+                                            cursor: 'pointer',
+                                            boxShadow: isActive ? '0 -2px 6px rgba(0,0,0,0.04)' : 'none',
+                                            borderBottom: isActive ? '2px solid #2563EB' : '2px solid transparent',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                    >
+                                        <IconComp size={15} />
+                                        {tab.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Modal Body / Tab Contents */}
+                        <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            {/* TAB 1: RECEIPT & PRINT */}
+                            {posSettingsTab === 'print' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                    {/* Printer Paper Width Selector */}
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.5rem' }}>
+                                            Thermal Receipt Printer Paper Width:
+                                        </label>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                                            {[
+                                                { id: '2inch', title: '2 Inch (58mm)', sub: 'Compact / Mobile Bluetooth & Mini Thermal' },
+                                                { id: '3inch', title: '3 Inch (80mm)', sub: 'Standard Countertop POS (Recommended)' },
+                                                { id: '4inch', title: '4 Inch (100mm)', sub: 'Wide Thermal Format' }
+                                            ].map(opt => {
+                                                const isSel = receiptPrinterSize === opt.id;
+                                                return (
+                                                    <div
+                                                        key={opt.id}
+                                                        onClick={() => {
+                                                            setLocalReceiptPrinterSize(opt.id);
+                                                            handleSavePosSettings({ receipt_printer_size: opt.id });
+                                                        }}
+                                                        style={{
+                                                            border: isSel ? '2px solid #2563EB' : '1px solid #CBD5E1',
+                                                            background: isSel ? '#EFF6FF' : '#FAFAFA',
+                                                            padding: '0.85rem',
+                                                            borderRadius: '12px',
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            gap: '0.3rem',
+                                                            transition: 'all 0.15s ease'
+                                                        }}
+                                                    >
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span style={{ fontWeight: '850', fontSize: '0.85rem', color: isSel ? '#1E40AF' : '#1E293B' }}>{opt.title}</span>
+                                                            <div style={{
+                                                                width: '16px',
+                                                                height: '16px',
+                                                                borderRadius: '50%',
+                                                                border: isSel ? '5px solid #2563EB' : '2px solid #CBD5E1',
+                                                                background: '#FFFFFF'
+                                                            }} />
+                                                        </div>
+                                                        <span style={{ fontSize: '0.72rem', color: '#64748B', lineHeight: '1.3' }}>{opt.sub}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Print Toggles */}
+                                    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                        {/* GST Toggle */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }}>Show Itemized Product GST Breakdown</div>
+                                                <div style={{ fontSize: '0.74rem', color: '#64748B' }}>Print individual item GST rates (CGST/SGST) and tax slab summary on the bill</div>
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                checked={printShowGst}
+                                                onChange={(e) => {
+                                                    const val = e.target.checked;
+                                                    setLocalPrintShowGst(val);
+                                                    handleSavePosSettings({ print_show_gst: val });
+                                                }}
+                                                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                            />
+                                        </div>
+
+                                        <div style={{ borderTop: '1px solid #F1F5F9' }} />
+
+                                        {/* Loyalty Points Toggle */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }}>Show Customer Loyalty Points</div>
+                                                <div style={{ fontSize: '0.74rem', color: '#64748B' }}>Print points earned, redeemed, and closing LTP balance on receipt</div>
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                checked={printShowLoyalty}
+                                                onChange={(e) => {
+                                                    const val = e.target.checked;
+                                                    setLocalPrintShowLoyalty(val);
+                                                    handleSavePosSettings({ print_show_loyalty: val });
+                                                }}
+                                                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                            />
+                                        </div>
+
+                                        <div style={{ borderTop: '1px solid #F1F5F9' }} />
+
+                                        {/* Credit Held Toggle */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }}>Show Customer Credit / Due Balance</div>
+                                                <div style={{ fontSize: '0.74rem', color: '#64748B' }}>Print previous credit held, current due, and total outstanding balance</div>
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                checked={printShowCredit}
+                                                onChange={(e) => {
+                                                    const val = e.target.checked;
+                                                    setLocalPrintShowCredit(val);
+                                                    handleSavePosSettings({ print_show_credit: val });
+                                                }}
+                                                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TAB 2: CREDIT & KHATA */}
+                            {posSettingsTab === 'credit' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                    <div style={{ background: '#FFF7ED', border: '1px solid #FFEDD5', borderRadius: '12px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontSize: '0.88rem', fontWeight: '850', color: '#9A3412' }}>Allow Credit Sales in POS Checkout</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#C2410C' }}>Permit cashiers to complete invoices on credit / khata with custom partial payments</div>
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            checked={posAllowCredit}
+                                            onChange={(e) => {
+                                                const val = e.target.checked;
+                                                setLocalPosAllowCredit(val);
+                                                handleSavePosSettings({ pos_allow_credit: val });
+                                            }}
+                                            style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#EA580C' }}
+                                        />
+                                    </div>
+
+                                    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <ShieldCheck size={16} color="#2563EB" /> Customer Credit Ledger Rules
+                                        </div>
+                                        <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.76rem', color: '#475569', lineHeight: '1.6' }}>
+                                            <li>When a customer is selected, their live outstanding credit held is automatically computed from unpaid invoices.</li>
+                                            <li>Credit limits defined in customer profiles prevent over-extending unauthorized credit during billing.</li>
+                                            <li>Every credit sale automatically updates the customer's balance and displays on their statement.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TAB 3: CUSTOMER VIEW / KIOSK */}
+                            {posSettingsTab === 'kiosk' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                    <div style={{ background: '#EEF2FF', border: '1px solid #E0E7FF', borderRadius: '12px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontSize: '0.88rem', fontWeight: '850', color: '#3730A3' }}>Customer Self-Order Kiosk Mode</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#4F46E5' }}>Turn this device into a shop-front customer display where shoppers browse and place orders</div>
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            checked={posKioskEnabled}
+                                            onChange={(e) => {
+                                                const val = e.target.checked;
+                                                setLocalPosKioskEnabled(val);
+                                                handleSavePosSettings({ pos_kiosk_enabled: val });
+                                            }}
+                                            style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#4F46E5' }}
+                                        />
+                                    </div>
+
+                                    {/* Security PIN for exiting kiosk */}
+                                    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <Lock size={15} color="#4F46E5" /> Staff Security PIN (Lock Code)
+                                                </div>
+                                                <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
+                                                    4-digit password required to unlock and exit Customer View back to Cashier POS
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                            <input
+                                                type={showKioskPinMask ? 'text' : 'password'}
+                                                maxLength={6}
+                                                value={localPosKioskPin !== null ? localPosKioskPin : posKioskPin}
+                                                onChange={(e) => {
+                                                    const clean = e.target.value.replace(/\D/g, '');
+                                                    setLocalPosKioskPin(clean);
+                                                }}
+                                                placeholder="1234"
+                                                style={{
+                                                    fontSize: '1.1rem',
+                                                    fontWeight: '800',
+                                                    letterSpacing: '0.25em',
+                                                    padding: '0.55rem 0.85rem',
+                                                    borderRadius: '8px',
+                                                    border: '1.5px solid #CBD5E1',
+                                                    width: '140px',
+                                                    textAlign: 'center',
+                                                    fontFamily: 'monospace'
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowKioskPinMask(!showKioskPinMask)}
+                                                style={{
+                                                    background: '#F1F5F9',
+                                                    border: '1px solid #CBD5E1',
+                                                    padding: '0.55rem 0.75rem',
+                                                    borderRadius: '8px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: '700',
+                                                    cursor: 'pointer',
+                                                    color: '#475569'
+                                                }}
+                                            >
+                                                {showKioskPinMask ? 'Hide PIN' : 'Show PIN'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSavePosSettings({ pos_kiosk_pin: localPosKioskPin || posKioskPin })}
+                                                style={{
+                                                    background: '#4F46E5',
+                                                    border: 'none',
+                                                    color: '#FFFFFF',
+                                                    padding: '0.55rem 0.85rem',
+                                                    borderRadius: '8px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: '750',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Save PIN
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Launch Customer View Action Button */}
+                                    <div style={{ paddingTop: '0.5rem' }}>
+                                        <button
+                                            type="button"
+                                            disabled={!posKioskEnabled}
+                                            onClick={() => {
+                                                setShowPosSettingsModal(false);
+                                                setIsCustomerViewActive(true);
+                                            }}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.9rem',
+                                                borderRadius: '12px',
+                                                border: 'none',
+                                                background: posKioskEnabled ? 'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)' : '#94A3B8',
+                                                color: '#FFFFFF',
+                                                fontSize: '0.95rem',
+                                                fontWeight: '850',
+                                                cursor: posKioskEnabled ? 'pointer' : 'not-allowed',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '8px',
+                                                boxShadow: posKioskEnabled ? '0 4px 14px rgba(79, 70, 229, 0.35)' : 'none',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            <Monitor size={18} />
+                                            Launch Customer View (Full Screen Kiosk)
+                                        </button>
+                                        <p style={{ textAlign: 'center', margin: '6px 0 0', fontSize: '0.72rem', color: '#64748B' }}>
+                                            The kiosk displays a full-screen customer catalog. Cashier screen can be restored by entering PIN: <strong>{localPosKioskPin || posKioskPin || '1234'}</strong>.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div style={{
+                            padding: '1rem 1.5rem',
+                            borderTop: '1px solid #E2E8F0',
+                            background: '#F8FAFC',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}>
+                            <div style={{ fontSize: '0.78rem' }}>
+                                {posSettingsSaveStatus === 'saving' && (
+                                    <span style={{ color: '#2563EB', fontWeight: '750' }}>💾 Saving settings to database...</span>
+                                )}
+                                {posSettingsSaveStatus === 'saved' && (
+                                    <span style={{ color: '#16A34A', fontWeight: '750' }}>✓ Saved settings successfully!</span>
+                                )}
+                                {posSettingsSaveStatus === 'error' && (
+                                    <span style={{ color: '#DC2626', fontWeight: '750' }}>⚠️ Failed to save settings.</span>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.65rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => handleSavePosSettings()}
+                                    style={{
+                                        background: '#2563EB',
+                                        color: '#FFFFFF',
+                                        border: 'none',
+                                        padding: '0.55rem 1.25rem',
+                                        borderRadius: '10px',
+                                        fontSize: '0.82rem',
+                                        fontWeight: '800',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)'
+                                    }}
+                                >
+                                    Save Settings
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPosSettingsModal(false)}
+                                    style={{
+                                        background: '#FFFFFF',
+                                        color: '#64748B',
+                                        border: '1px solid #CBD5E1',
+                                        padding: '0.55rem 1rem',
+                                        borderRadius: '10px',
+                                        fontSize: '0.82rem',
+                                        fontWeight: '700',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ======================================================== */}
+            {/* CUSTOMER VIEW / IN-STORE SELF-ORDER KIOSK OVERLAY        */}
+            {/* ======================================================== */}
+            {isCustomerViewActive && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    zIndex: 99990,
+                    background: '#F8FAFC',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    fontFamily: 'inherit'
+                }}>
+                    {/* Kiosk Top Header */}
+                    <div style={{
+                        height: '68px',
+                        background: '#0F172A',
+                        color: '#FFFFFF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0 1.5rem',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        flexShrink: 0
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                            <div style={{ background: '#3B82F6', width: '38px', height: '38px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '1.2rem', color: '#fff' }}>
+                                🛍️
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '1.1rem', fontWeight: '850', letterSpacing: '0.02em', color: '#F8FAFC' }}>
+                                    {activeConfig?.business_name || 'In-Store Self-Order Kiosk'}
+                                </div>
+                                <div style={{ fontSize: '0.74rem', color: '#94A3B8', fontWeight: '500' }}>
+                                    Welcome! Browse our collection and place your order directly • Pick up at the counter
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Discreet Staff Exit Button */}
+                        <button
+                            onClick={() => {
+                                setKioskPinInput('');
+                                setKioskPinError('');
+                                setKioskPinUnlockModalOpen(true);
+                            }}
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                color: '#CBD5E1',
+                                padding: '0.45rem 0.85rem',
+                                borderRadius: '8px',
+                                fontSize: '0.75rem',
+                                fontWeight: '750',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                transition: 'all 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.16)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; }}
+                        >
+                            <Lock size={13} />
+                            <span>Staff Exit (PIN Locked)</span>
+                        </button>
+                    </div>
+
+                    {/* Kiosk Main Content: Product Catalog (Left) + Order Cart (Right) */}
+                    <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                        {/* Left Catalog Area */}
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#F8FAFC' }}>
+                            {/* Filter Bar: Search + Category Pills */}
+                            <div style={{
+                                padding: '0.85rem 1.5rem',
+                                background: '#FFFFFF',
+                                borderBottom: '1px solid #E2E8F0',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.65rem',
+                                flexShrink: 0
+                            }}>
+                                {/* Search Box */}
+                                <div style={{ position: 'relative' }}>
+                                    <Search size={17} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search products by title, code, brand or category..."
+                                        value={kioskSearchQuery}
+                                        onChange={(e) => setKioskSearchQuery(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.65rem 1rem 0.65rem 2.4rem',
+                                            borderRadius: '10px',
+                                            border: '1.5px solid #CBD5E1',
+                                            fontSize: '0.88rem',
+                                            background: '#F8FAFC',
+                                            outline: 'none',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    />
+                                </div>
+
+                                {/* Category Pills Horizontal Scroller */}
+                                <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
+                                    {['ALL', ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))].map(cat => {
+                                        const isSel = kioskCategoryFilter === cat;
+                                        return (
+                                            <button
+                                                key={cat}
+                                                onClick={() => setKioskCategoryFilter(cat)}
+                                                style={{
+                                                    padding: '0.4rem 0.85rem',
+                                                    borderRadius: '20px',
+                                                    border: isSel ? '1.5px solid #2563EB' : '1px solid #CBD5E1',
+                                                    background: isSel ? '#2563EB' : '#FFFFFF',
+                                                    color: isSel ? '#FFFFFF' : '#475569',
+                                                    fontSize: '0.78rem',
+                                                    fontWeight: '750',
+                                                    cursor: 'pointer',
+                                                    whiteSpace: 'nowrap',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {cat === 'ALL' ? '🌟 All Products' : cat}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Product Cards Grid */}
+                            <div style={{ flex: 1, padding: '1.25rem 1.5rem', overflowY: 'auto' }}>
+                                {(() => {
+                                    const filtered = products.filter(p => {
+                                        const matchesCat = kioskCategoryFilter === 'ALL' || String(p.category || '').toLowerCase() === String(kioskCategoryFilter).toLowerCase();
+                                        const q = kioskSearchQuery.toLowerCase().trim();
+                                        const matchesQ = !q || (p.name && p.name.toLowerCase().includes(q)) || (p.sku && p.sku.toLowerCase().includes(q)) || (p.category && p.category.toLowerCase().includes(q));
+                                        return matchesCat && matchesQ;
+                                    });
+
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div style={{ textAlign: 'center', padding: '4rem 1rem', color: '#94A3B8' }}>
+                                                <Package size={48} strokeWidth={1.5} style={{ marginBottom: '0.75rem', opacity: 0.6 }} />
+                                                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#475569' }}>No Products Found</div>
+                                                <div style={{ fontSize: '0.82rem', marginTop: '4px' }}>Try searching with different keywords or choosing another category</div>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+                                            gap: '1rem'
+                                        }}>
+                                            {filtered.map(prod => {
+                                                const cartItem = kioskCart.find(it => it.id === prod.id);
+                                                const inStock = prod.isUnlimited || prod.is_unlimited || (parseFloat(prod.quantity) >= 999000) || (parseFloat(prod.quantity || prod.stock || 0) > 0);
+                                                const price = parseFloat(prod.price || prod.sale_price || 0) || 0;
+                                                const gstRate = parseFloat(prod.tax_percentage ?? prod.rawProduct?.tax_percentage ?? prod.rawProduct?.gst_percentage ?? prod.taxRate ?? prod.gst_percentage ?? 0) || 0;
+
+                                                return (
+                                                    <div
+                                                        key={prod.id}
+                                                        style={{
+                                                            background: '#FFFFFF',
+                                                            borderRadius: '14px',
+                                                            border: cartItem ? '2px solid #2563EB' : '1px solid #E2E8F0',
+                                                            padding: '1rem',
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            justifyContent: 'space-between',
+                                                            boxShadow: cartItem ? '0 4px 12px rgba(37, 99, 235, 0.15)' : '0 1px 3px rgba(0,0,0,0.04)',
+                                                            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                                                            position: 'relative'
+                                                        }}
+                                                    >
+                                                        <div>
+                                                            {/* Product Image / Icon placeholder */}
+                                                            <div style={{
+                                                                height: '110px',
+                                                                background: '#F1F5F9',
+                                                                borderRadius: '10px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                marginBottom: '0.75rem',
+                                                                overflow: 'hidden'
+                                                            }}>
+                                                                {prod.image_url ? (
+                                                                    <img src={prod.image_url} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                ) : (
+                                                                    <Package size={36} color="#94A3B8" />
+                                                                )}
+                                                            </div>
+
+                                                            {/* Category Pill */}
+                                                            {prod.category && (
+                                                                <span style={{ fontSize: '0.65rem', background: '#F1F5F9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: '750', textTransform: 'uppercase' }}>
+                                                                    {prod.category}
+                                                                </span>
+                                                            )}
+
+                                                            {/* Product Name */}
+                                                            <div style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A', marginTop: '4px', minHeight: '2.4rem', lineHeight: '1.25' }}>
+                                                                {prod.name}
+                                                            </div>
+
+                                                            {/* Price & GST */}
+                                                            <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                                                                <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#2563EB' }}>
+                                                                    {formatCurrency(price)}
+                                                                </span>
+                                                                {gstRate > 0 && (
+                                                                    <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: '700', background: '#ECFDF5', padding: '1px 5px', borderRadius: '4px' }}>
+                                                                        {gstRate}% GST
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Bottom CTA / Quantity controls */}
+                                                        <div style={{ marginTop: '0.85rem' }}>
+                                                            {cartItem ? (
+                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#EFF6FF', borderRadius: '8px', padding: '3px' }}>
+                                                                    <button
+                                                                        onClick={() => handleKioskUpdateQty(prod.id, -1)}
+                                                                        style={{ width: '32px', height: '32px', background: '#FFFFFF', border: '1px solid #BFDBFE', borderRadius: '6px', fontSize: '1rem', fontWeight: '800', color: '#2563EB', cursor: 'pointer' }}
+                                                                    >
+                                                                        -
+                                                                    </button>
+                                                                    <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#1E40AF' }}>
+                                                                        {cartItem.quantity}
+                                                                    </span>
+                                                                    <button
+                                                                        onClick={() => handleKioskUpdateQty(prod.id, 1)}
+                                                                        style={{ width: '32px', height: '32px', background: '#2563EB', border: 'none', borderRadius: '6px', fontSize: '1rem', fontWeight: '800', color: '#FFFFFF', cursor: 'pointer' }}
+                                                                    >
+                                                                        +
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    disabled={!inStock}
+                                                                    onClick={() => handleKioskAddToCart(prod)}
+                                                                    style={{
+                                                                        width: '100%',
+                                                                        padding: '0.55rem',
+                                                                        background: inStock ? '#2563EB' : '#E2E8F0',
+                                                                        color: inStock ? '#FFFFFF' : '#94A3B8',
+                                                                        border: 'none',
+                                                                        borderRadius: '8px',
+                                                                        fontSize: '0.82rem',
+                                                                        fontWeight: '800',
+                                                                        cursor: inStock ? 'pointer' : 'not-allowed',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        gap: '5px'
+                                                                    }}
+                                                                >
+                                                                    {inStock ? (
+                                                                        <>
+                                                                            <Plus size={14} /> Add to Order
+                                                                        </>
+                                                                    ) : (
+                                                                        'Out of Stock'
+                                                                    )}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+
+                        {/* Right Order Cart Drawer */}
+                        <div style={{
+                            width: '390px',
+                            background: '#FFFFFF',
+                            borderLeft: '1px solid #E2E8F0',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            height: 'calc(100vh - 68px)',
+                            flexShrink: 0
+                        }}>
+                            {/* Cart Drawer Header */}
+                            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <ShoppingCart size={18} color="#2563EB" />
+                                    <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>
+                                        Your Order ({kioskCart.reduce((sum, it) => sum + (it.quantity || 1), 0)})
+                                    </span>
+                                </div>
+                                {kioskCart.length > 0 && (
+                                    <button
+                                        onClick={() => setKioskCart([])}
+                                        style={{ background: 'none', border: 'none', color: '#EF4444', fontSize: '0.74rem', fontWeight: '750', cursor: 'pointer' }}
+                                    >
+                                        Clear Cart
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Cart Items List */}
+                            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                {kioskCart.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94A3B8' }}>
+                                        <ShoppingCart size={42} strokeWidth={1.5} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
+                                        <div style={{ fontSize: '0.92rem', fontWeight: '750', color: '#475569' }}>Your Cart is Empty</div>
+                                        <div style={{ fontSize: '0.75rem', marginTop: '3px' }}>Tap "+ Add to Order" on products to build your order</div>
+                                    </div>
+                                ) : (
+                                    kioskCart.map(item => (
+                                        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+                                            <div style={{ flex: 1, paddingRight: '0.5rem' }}>
+                                                <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#0F172A' }}>{item.name}</div>
+                                                <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{formatCurrency(item.price)} each</div>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', background: '#FFFFFF', borderRadius: '6px', border: '1px solid #CBD5E1' }}>
+                                                    <button onClick={() => handleKioskUpdateQty(item.id, -1)} style={{ padding: '2px 7px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: '800' }}>-</button>
+                                                    <span style={{ fontSize: '0.82rem', fontWeight: '850', minWidth: '18px', textAlign: 'center' }}>{item.quantity}</span>
+                                                    <button onClick={() => handleKioskUpdateQty(item.id, 1)} style={{ padding: '2px 7px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: '800' }}>+</button>
+                                                </div>
+                                                <span style={{ fontSize: '0.85rem', fontWeight: '850', color: '#1E293B', minWidth: '55px', textAlign: 'right' }}>
+                                                    {formatCurrency(item.total || (item.price * item.quantity))}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            {/* Customer Contact Details (Optional) */}
+                            <div style={{ padding: '0.85rem 1rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{ fontSize: '0.74rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>
+                                    Customer Details (Optional)
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Your Name"
+                                        value={kioskCustomerName}
+                                        onChange={(e) => setKioskCustomerName(e.target.value)}
+                                        style={{ flex: 1, padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.78rem' }}
+                                    />
+                                    <input
+                                        type="tel"
+                                        placeholder="Phone Number"
+                                        value={kioskCustomerPhone}
+                                        onChange={(e) => setKioskCustomerPhone(e.target.value.replace(/\D/g, ''))}
+                                        style={{ flex: 1, padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.78rem' }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Cart Summary & Order Submit */}
+                            {(() => {
+                                const kSubtotal = kioskCart.reduce((acc, it) => acc + (it.total || (it.price * it.quantity)), 0);
+                                const kTax = kioskCart.reduce((acc, it) => {
+                                    const rate = it.tax_rate || 0;
+                                    const itTot = it.total || (it.price * it.quantity);
+                                    return acc + (itTot * rate / 100);
+                                }, 0);
+                                const kGrandTotal = kSubtotal + kTax;
+
+                                return (
+                                    <div style={{ padding: '1.25rem', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748B' }}>
+                                            <span>Subtotal</span>
+                                            <span>{formatCurrency(kSubtotal)}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748B' }}>
+                                            <span>GST & Taxes</span>
+                                            <span>{formatCurrency(kTax)}</span>
+                                        </div>
+                                        <div style={{ borderTop: '1px dashed #CBD5E1', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                            <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>Grand Total</span>
+                                            <span style={{ fontSize: '1.35rem', fontWeight: '950', color: '#2563EB' }}>{formatCurrency(kGrandTotal)}</span>
+                                        </div>
+
+                                        <button
+                                            disabled={kioskCart.length === 0}
+                                            onClick={handleKioskSubmitOrder}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.9rem',
+                                                borderRadius: '12px',
+                                                border: 'none',
+                                                background: kioskCart.length > 0 ? 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)' : '#E2E8F0',
+                                                color: kioskCart.length > 0 ? '#FFFFFF' : '#94A3B8',
+                                                fontSize: '0.95rem',
+                                                fontWeight: '900',
+                                                cursor: kioskCart.length > 0 ? 'pointer' : 'not-allowed',
+                                                boxShadow: kioskCart.length > 0 ? '0 4px 14px rgba(37, 99, 235, 0.35)' : 'none',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '8px',
+                                                marginTop: '0.35rem'
+                                            }}
+                                        >
+                                            🛍️ Place Order at Counter
+                                        </button>
+                                        <div style={{ textAlign: 'center', fontSize: '0.7rem', color: '#64748B' }}>
+                                            Collect and pay for your items at the checkout counter
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ======================================================== */}
+            {/* KIOSK ORDER PLACED SUCCESS CELEBRATION MODAL             */}
+            {/* ======================================================== */}
+            {kioskOrderSuccessInfo && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    backdropFilter: 'blur(6px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 99999,
+                    animation: 'fadeIn 0.2s ease-out'
+                }}>
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '24px',
+                        padding: '2.5rem',
+                        maxWidth: '460px',
+                        width: '90%',
+                        textAlign: 'center',
+                        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.35)',
+                        border: '1px solid #E2E8F0'
+                    }}>
+                        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', boxShadow: '0 4px 12px rgba(22, 163, 74, 0.2)' }}>
+                            <Check size={36} strokeWidth={3} />
+                        </div>
+                        <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.45rem', fontWeight: '900', color: '#0F172A' }}>
+                            Order Placed Successfully!
+                        </h2>
+                        <p style={{ margin: '0 0 1.25rem', fontSize: '0.85rem', color: '#64748B' }}>
+                            Your in-store order has been forwarded to the billing counter.
+                        </p>
+
+                        <div style={{ background: '#F8FAFC', border: '2px dashed #CBD5E1', borderRadius: '16px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                            <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Your Order Token
+                            </div>
+                            <div style={{ fontSize: '2.2rem', fontWeight: '950', color: '#2563EB', fontFamily: 'monospace', margin: '4px 0' }}>
+                                #{kioskOrderSuccessInfo.orderId}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }}>
+                                {kioskOrderSuccessInfo.itemsCount} item(s) • Total: {formatCurrency(kioskOrderSuccessInfo.total)}
+                            </div>
+                        </div>
+
+                        <p style={{ margin: '0 0 1.5rem', fontSize: '0.82rem', color: '#475569', lineHeight: '1.5' }}>
+                            Please share your Order Token <strong>#{kioskOrderSuccessInfo.orderId}</strong> at the billing counter to collect and pay for your items.
+                        </p>
+
+                        <button
+                            onClick={() => setKioskOrderSuccessInfo(null)}
+                            style={{
+                                width: '100%',
+                                padding: '0.85rem',
+                                borderRadius: '12px',
+                                border: 'none',
+                                background: '#2563EB',
+                                color: '#FFFFFF',
+                                fontSize: '0.92rem',
+                                fontWeight: '850',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                            }}
+                        >
+                            Start Next Order
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ======================================================== */}
+            {/* KIOSK PIN UNLOCK MODAL (STAFF SECURITY EXIT)             */}
+            {/* ======================================================== */}
+            {kioskPinUnlockModalOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(15, 23, 42, 0.85)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 100000,
+                    animation: 'fadeIn 0.2s ease-out'
+                }}>
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '24px',
+                        padding: '2rem',
+                        maxWidth: '380px',
+                        width: '90%',
+                        textAlign: 'center',
+                        boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.4)',
+                        border: '1px solid #CBD5E1'
+                    }}>
+                        <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#EEF2FF', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                            <Lock size={28} />
+                        </div>
+                        <h3 style={{ margin: '0 0 0.25rem', fontSize: '1.25rem', fontWeight: '900', color: '#0F172A' }}>
+                            Staff Security Unlock
+                        </h3>
+                        <p style={{ margin: '0 0 1.25rem', fontSize: '0.78rem', color: '#64748B' }}>
+                            Enter staff PIN to exit Customer View and access cashier screen
+                        </p>
+
+                        {/* PIN Display Input */}
+                        <div style={{ marginBottom: '1rem' }}>
+                            <input
+                                type="password"
+                                maxLength={6}
+                                readOnly
+                                value={kioskPinInput}
+                                placeholder="••••"
+                                style={{
+                                    width: '180px',
+                                    fontSize: '2rem',
+                                    fontWeight: '900',
+                                    letterSpacing: '0.35em',
+                                    textAlign: 'center',
+                                    padding: '0.5rem',
+                                    borderRadius: '12px',
+                                    border: kioskPinError ? '2px solid #EF4444' : '2px solid #CBD5E1',
+                                    background: '#F8FAFC',
+                                    color: '#0F172A',
+                                    fontFamily: 'monospace'
+                                }}
+                            />
+                        </div>
+
+                        {kioskPinError && (
+                            <div style={{ color: '#EF4444', fontSize: '0.76rem', fontWeight: '750', marginBottom: '0.75rem' }}>
+                                {kioskPinError}
+                            </div>
+                        )}
+
+                        {/* Onscreen Touch Keypad */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem', maxWidth: '240px', margin: '0 auto 1.25rem' }}>
+                            {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'OK'].map(key => {
+                                return (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        onClick={() => {
+                                            setKioskPinError('');
+                                            if (key === 'C') {
+                                                setKioskPinInput('');
+                                            } else if (key === 'OK') {
+                                                handleKioskPinUnlockSubmit();
+                                            } else {
+                                                if (kioskPinInput.length < 6) {
+                                                    setKioskPinInput(prev => prev + key);
+                                                }
+                                            }
+                                        }}
+                                        style={{
+                                            height: '48px',
+                                            borderRadius: '12px',
+                                            border: '1px solid #E2E8F0',
+                                            background: key === 'OK' ? '#4F46E5' : key === 'C' ? '#FEE2E2' : '#F8FAFC',
+                                            color: key === 'OK' ? '#FFFFFF' : key === 'C' ? '#DC2626' : '#1E293B',
+                                            fontSize: '1.1rem',
+                                            fontWeight: '850',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.1s ease'
+                                        }}
+                                    >
+                                        {key}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Cancel Button */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setKioskPinUnlockModalOpen(false);
+                                setKioskPinInput('');
+                                setKioskPinError('');
+                            }}
+                            style={{
+                                width: '100%',
+                                padding: '0.65rem',
+                                background: 'none',
+                                border: 'none',
+                                color: '#64748B',
+                                fontSize: '0.82rem',
+                                fontWeight: '750',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Return to Customer View
+                        </button>
                     </div>
                 </div>
             )}
