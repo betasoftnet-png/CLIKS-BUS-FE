@@ -52,6 +52,7 @@ import { warehouseService } from '../services/warehouseService';
 import { settingsService } from '../services/settingsService';
 import { profileService } from '../services/profileService';
 import { branchService } from '../services/branchService';
+import { loyaltyService } from '../services/loyaltyService';
 import '../App.css';
 import { customConfirm, customPrompt } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
@@ -520,6 +521,34 @@ const BusinessPOS = () => {
         };
     }, [userSettings, realtimeConfig]);
 
+    // Dedicated Loyalty Program Settings (sourced directly from Backend API: business_loyalty_settings)
+    const { data: loyaltyProgramSettings } = useQuery({
+        queryKey: ['loyalty-program-settings'],
+        queryFn: loyaltyService.getProgramSettings,
+        refetchOnWindowFocus: false
+    });
+
+    // Mutation to persist print preferences and loyalty controls directly to backend database
+    const updateLoyaltySettingsMutation = useMutation({
+        mutationFn: (payload) => loyaltyService.updateProgramSettings(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['loyalty-program-settings'] });
+            queryClient.invalidateQueries({ queryKey: ['settings'] });
+        }
+    });
+
+    // Business Owner Print Preferences for Receipts (sourced directly from backend database without localStorage)
+    const [localPrintShowLoyalty, setLocalPrintShowLoyalty] = useState(null);
+    const [localPrintShowCredit, setLocalPrintShowCredit] = useState(null);
+
+    const printShowLoyalty = localPrintShowLoyalty !== null
+        ? localPrintShowLoyalty
+        : Boolean(loyaltyProgramSettings?.print_show_loyalty ?? loyaltyProgramSettings?.printShowLoyalty ?? activeConfig?.print_show_loyalty ?? false);
+
+    const printShowCredit = localPrintShowCredit !== null
+        ? localPrintShowCredit
+        : Boolean(loyaltyProgramSettings?.print_show_credit ?? loyaltyProgramSettings?.printShowCredit ?? activeConfig?.print_show_credit ?? false);
+
     // Profile query for business & shop defaults
     const { data: profileData } = useQuery({
         queryKey: ['profile'],
@@ -936,6 +965,8 @@ const BusinessPOS = () => {
                 shop_gstin: resolvedShopDetails.gstin,
                 shop_tagline: resolvedShopDetails.tagline,
                 ...data,
+                discount_amount: data?.discount_amount !== undefined ? data.discount_amount : totalDiscountAmount,
+                discount: data?.discount_amount !== undefined ? data.discount_amount : totalDiscountAmount,
                 billed_by: data.billed_by || fallbackBilledBy
             } : data);
             setShowReceiptModal(true);
@@ -1585,6 +1616,35 @@ const BusinessPOS = () => {
         }
     }, [customers, selectedCustomerObj]);
 
+    // Live loyalty balance check directly from backend database when customer identifier/email changes
+    React.useEffect(() => {
+        const queryTerm = customerEmail || (selectedCustomerObj?.email || selectedCustomerObj?.phone_number || '');
+        if (!queryTerm || !String(queryTerm).trim()) return;
+
+        const timer = setTimeout(() => {
+            crmService.lookupCustomerByEmail(queryTerm).then(res => {
+                if (res && res.exists) {
+                    const backendLtp = parseFloat(res.loyalty_points || 0) || 0;
+                    setSelectedCustomerObj(prev => {
+                        const curLtp = prev ? getCustomerLtp(prev) : 0;
+                        if (!prev || curLtp !== backendLtp) {
+                            return {
+                                ...(prev || {}),
+                                id: res.user_id || prev?.id,
+                                email: res.email || prev?.email,
+                                name: res.customer_name || prev?.name || customerName,
+                                loyalty_points: backendLtp
+                            };
+                        }
+                        return prev;
+                    });
+                }
+            }).catch(() => {});
+        }, 250);
+
+        return () => clearTimeout(timer);
+    }, [customerEmail, selectedCustomerObj?.id]);
+
     // Calculations
     const subtotal = cart.reduce((acc, item) => acc + item.total, 0);
 
@@ -1633,17 +1693,19 @@ const BusinessPOS = () => {
         return acc + (discountedItemTotal * (itemTaxRate / 100));
     }, 0);
 
-    // Master Config for Loyalty (sourced directly from Backend API)
+    // Master Config for Loyalty (sourced directly from Backend API: business_loyalty_settings & users.settings)
     const loyaltyEnabled = React.useMemo(() => {
+        if (loyaltyProgramSettings?.loyaltyEnabled !== undefined) return Boolean(loyaltyProgramSettings.loyaltyEnabled);
+        if (loyaltyProgramSettings?.loyalty !== undefined) return Boolean(loyaltyProgramSettings.loyalty);
         if (activeConfig?.loyaltyEnabled !== undefined) return Boolean(activeConfig.loyaltyEnabled);
         if (activeConfig?.loyalty !== undefined) return Boolean(activeConfig.loyalty);
         if (activeConfig?.loyalty_enabled !== undefined) return Boolean(activeConfig.loyalty_enabled && activeConfig.loyalty_enabled !== 0);
         return false;
-    }, [activeConfig]);
+    }, [loyaltyProgramSettings, activeConfig]);
 
-    const ptsFor1Rs = activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100;
-    const rsPer1Point = activeConfig.loyaltyRsPer1Point !== undefined ? activeConfig.loyaltyRsPer1Point : 100;
-    const maxClaimPct = activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50;
+    const ptsFor1Rs = loyaltyProgramSettings?.loyaltyPointsPer1Rs !== undefined ? loyaltyProgramSettings.loyaltyPointsPer1Rs : (activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100);
+    const rsPer1Point = loyaltyProgramSettings?.loyaltyRsPer1Point !== undefined ? loyaltyProgramSettings.loyaltyRsPer1Point : (activeConfig.loyaltyRsPer1Point !== undefined ? activeConfig.loyaltyRsPer1Point : 100);
+    const maxClaimPct = loyaltyProgramSettings?.loyaltyMaxClaimPercent !== undefined ? loyaltyProgramSettings.loyaltyMaxClaimPercent : (activeConfig.loyaltyMaxClaimPercent !== undefined ? activeConfig.loyaltyMaxClaimPercent : 50);
 
     const availableCustomerPoints = selectedCustomerObj ? getCustomerLtp(selectedCustomerObj) : 0;
     const maxClaimablePoints = Math.floor(availableCustomerPoints * (maxClaimPct / 100));
@@ -4239,7 +4301,50 @@ const BusinessPOS = () => {
                             </div>
                             <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900' }}>Payment Successful!</h3>
                             <p style={{ margin: '3px 0 0', fontSize: '0.8rem', opacity: 0.9 }}>Order {lastOrderData?.invoice_number || ''} generated</p>
+                        </div>
 
+                        {/* Business Owner Print Preferences Controls (Screen-only, never printed) */}
+                        <div className="no-print" style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            gap: '16px', 
+                            padding: '8px 14px', 
+                            background: '#F8FAFC', 
+                            borderBottom: '1px solid #E2E8F0', 
+                            fontSize: '0.74rem', 
+                            color: '#334155',
+                            flexWrap: 'wrap'
+                        }}>
+                            <span style={{ fontWeight: '750', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                ⚙️ Print Controls:
+                            </span>
+                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none', fontWeight: '650' }} title="Toggle whether Loyalty Points should be printed on the receipt">
+                                <input
+                                    type="checkbox"
+                                    checked={printShowLoyalty}
+                                    onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setLocalPrintShowLoyalty(checked);
+                                        updateLoyaltySettingsMutation.mutate({ print_show_loyalty: checked });
+                                    }}
+                                    style={{ cursor: 'pointer', accentColor: '#10B981', width: '14px', height: '14px' }}
+                                />
+                                Print Loyalty Points
+                            </label>
+                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none', fontWeight: '650' }} title="Toggle whether Credit Summary should be printed on the receipt">
+                                <input
+                                    type="checkbox"
+                                    checked={printShowCredit}
+                                    onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setLocalPrintShowCredit(checked);
+                                        updateLoyaltySettingsMutation.mutate({ print_show_credit: checked });
+                                    }}
+                                    style={{ cursor: 'pointer', accentColor: '#10B981', width: '14px', height: '14px' }}
+                                />
+                                Print Credit Option
+                            </label>
                         </div>
 
                         {/* Thermal Receipt Workspace (to print) */}
@@ -4318,137 +4423,168 @@ const BusinessPOS = () => {
 
                                 <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0' }} />
 
-                                {/* Tally with 3 GST Types (CGST, SGST, IGST) */}
-                                <div style={{ width: '100%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span>SUBTOTAL:</span>
-                                        <span>{formatCurrency(lastOrderData?.amount || 0)}</span>
-                                    </div>
-                                    {lastOrderData?.discount_amount > 0 && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>DISCOUNT:</span>
-                                            <span>- {formatCurrency(lastOrderData.discount_amount)}</span>
-                                        </div>
-                                    )}
-                                    {loyaltyEnabled && (lastOrderData?.loyalty_discount_amount > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                                            <span>LOYALTY DISCOUNT:</span>
-                                            <span>- {formatCurrency(lastOrderData?.loyalty_discount_amount || lastOrderData?.loyalty_points_redeemed || 0)}</span>
-                                        </div>
-                                    )}
+                                {/* Computed Tally, Loyalty & Credit Sections */}
+                                {(() => {
+                                    const rawSubtotal = Number(lastOrderData?.amount ?? lastOrderData?.subtotal ?? 0);
+                                    const rawDiscount = Number(lastOrderData?.discount_amount ?? lastOrderData?.discount ?? 0);
+                                    const promoDiscount = Number(lastOrderData?.showroom_promo_discount ?? 0);
+                                    const loyaltyDisc = Number(lastOrderData?.loyalty_discount_amount ?? 0);
 
-                                    {/* 3 GST Types Breakdown */}
-                                    {Number(lastOrderData?.igst_amount || 0) > 0 ? (
+                                    const itemsList = (lastOrderData?.items && (typeof lastOrderData.items === 'string' ? JSON.parse(lastOrderData.items) : lastOrderData.items)) || [];
+                                    const itemsGrossSum = itemsList.reduce((acc, it) => {
+                                        const qty = parseFloat(it.quantity) || 0;
+                                        const rate = parseFloat(it.price || it.unit_price) || 0;
+                                        const total = parseFloat(it.total || it.amount) || (qty * rate);
+                                        return acc + total;
+                                    }, 0);
+
+                                    const isWalkIn = !lastOrderData?.client_name || lastOrderData?.client_name === 'Walk-in Customer';
+                                    const hasLoyaltyActivity = (
+                                        Number(lastOrderData?.loyalty_points_earned || 0) > 0 ||
+                                        Number(lastOrderData?.loyalty_points_redeemed || 0) > 0 ||
+                                        (Number(lastOrderData?.existing_loyalty_points || 0) > 0 && !isWalkIn)
+                                    );
+                                    const shouldPrintLoyalty = Boolean(printShowLoyalty && loyaltyEnabled && hasLoyaltyActivity);
+
+                                    const isActualCreditSale = (lastOrderData?.payment_mode?.toUpperCase() === 'CREDIT' || Number(lastOrderData?.due_amount || 0) > 0);
+                                    const shouldPrintCredit = Boolean(printShowCredit && isActualCreditSale);
+
+                                    const effectiveDiscount = rawDiscount > 0
+                                        ? rawDiscount
+                                        : (promoDiscount > 0 ? promoDiscount : (!shouldPrintLoyalty && loyaltyDisc > 0 ? loyaltyDisc : 0));
+
+                                    const subtotalDisplay = itemsGrossSum > 0 ? itemsGrossSum : (rawSubtotal > 0 ? rawSubtotal : (Number(lastOrderData?.total_amount || 0) + effectiveDiscount));
+
+                                    return (
                                         <>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                                                <span>CGST (0%):</span>
-                                                <span>{formatCurrency(0)}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                                                <span>SGST (0%):</span>
-                                                <span>{formatCurrency(0)}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                                                <span>IGST:</span>
-                                                <span>{formatCurrency(lastOrderData?.igst_amount || lastOrderData?.tax_amount || 0)}</span>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                                                <span>CGST:</span>
-                                                <span>{formatCurrency(lastOrderData?.cgst_amount !== undefined ? lastOrderData.cgst_amount : (Number(lastOrderData?.tax_amount || 0) / 2))}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                                                <span>SGST:</span>
-                                                <span>{formatCurrency(lastOrderData?.sgst_amount !== undefined ? lastOrderData.sgst_amount : (Number(lastOrderData?.tax_amount || 0) / 2))}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                                                <span>IGST:</span>
-                                                <span>{formatCurrency(0)}</span>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {Math.abs(lastOrderData?.round_off || 0) > 0 && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>ROUND OFF:</span>
-                                            <span>{lastOrderData.round_off > 0 ? '+' : ''}{formatCurrency(lastOrderData.round_off)}</span>
-                                        </div>
-                                    )}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '0.95rem', marginTop: '4px', borderTop: '1px solid #000', paddingTop: '4px' }}>
-                                        <span>GRAND TOTAL:</span>
-                                        <span>{formatCurrency(lastOrderData?.total_amount || 0)}</span>
-                                    </div>
-                                </div>
-
-                                <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '10px 0' }} />
-
-                                {/* Loyalty Points & Credit Balance Side-by-Side (Credit placed on right side of Loyalty Points) */}
-                                {((loyaltyEnabled && (lastOrderData?.existing_loyalty_points !== undefined || lastOrderData?.loyalty_points_earned > 0 || lastOrderData?.loyalty_points_redeemed > 0)) ||
-                                  (lastOrderData?.payment_mode?.toUpperCase() === 'CREDIT' || Number(lastOrderData?.due_amount || 0) > 0 || lastOrderData?.paid_amount !== undefined)) && (
-                                    <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.72rem', textAlign: 'left', marginBottom: '6px' }}>
-                                        {/* Left Side: Loyalty Points */}
-                                        <div style={{ flex: 1 }}>
-                                            {loyaltyEnabled && (lastOrderData?.existing_loyalty_points !== undefined || lastOrderData?.loyalty_points_earned > 0 || lastOrderData?.loyalty_points_redeemed > 0) ? (
-                                                <div>
-                                                    <p style={{ margin: '0 0 3px', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '0.72rem' }}>LOYALTY POINTS:</p>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <span>Existing:</span>
-                                                        <span>{lastOrderData?.existing_loyalty_points ?? 0}</span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <span>Redeemed:</span>
-                                                        <span>{lastOrderData?.loyalty_points_redeemed ?? 0}</span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <span>Earned:</span>
-                                                        <span>{lastOrderData?.loyalty_points_earned ?? 0}</span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px', borderTop: '1px dotted #000', paddingTop: '2px' }}>
-                                                        <span>Balance:</span>
-                                                        <span>{lastOrderData?.remaining_loyalty_points ?? lastOrderData?.final_loyalty_points ?? Math.max(0, (lastOrderData?.existing_loyalty_points || 0) - (lastOrderData?.loyalty_points_redeemed || 0) + (lastOrderData?.loyalty_points_earned || 0))}</span>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div style={{ opacity: 0.6, fontStyle: 'italic', fontSize: '0.7rem' }}>
-                                                    Order completed successfully.
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Right Side: Credit Option Summary (Received Amount & Credit Balance) */}
-                                        {(lastOrderData?.payment_mode?.toUpperCase() === 'CREDIT' || Number(lastOrderData?.due_amount || 0) > 0 || lastOrderData?.paid_amount !== undefined) && (
-                                            <div style={{ flex: 1, borderLeft: '1px dashed #000', paddingLeft: '8px' }}>
-                                                <p style={{ margin: '0 0 3px', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '0.72rem' }}>CREDIT SUMMARY:</p>
+                                            {/* Tally with 3 GST Types (CGST, SGST, IGST) */}
+                                            <div style={{ width: '100%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                    <span>Total:</span>
+                                                    <span>SUBTOTAL:</span>
+                                                    <span>{formatCurrency(subtotalDisplay)}</span>
+                                                </div>
+                                                {effectiveDiscount > 0 && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600' }}>
+                                                        <span>DISCOUNT:</span>
+                                                        <span>- {formatCurrency(effectiveDiscount)}</span>
+                                                    </div>
+                                                )}
+                                                {shouldPrintLoyalty && loyaltyDisc > 0 && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                                                        <span>LOYALTY DISCOUNT:</span>
+                                                        <span>- {formatCurrency(loyaltyDisc)}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* 3 GST Types Breakdown */}
+                                                {Number(lastOrderData?.igst_amount || 0) > 0 ? (
+                                                    <>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                                            <span>CGST (0%):</span>
+                                                            <span>{formatCurrency(0)}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                                            <span>SGST (0%):</span>
+                                                            <span>{formatCurrency(0)}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                                            <span>IGST:</span>
+                                                            <span>{formatCurrency(lastOrderData?.igst_amount || lastOrderData?.tax_amount || 0)}</span>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                                            <span>CGST:</span>
+                                                            <span>{formatCurrency(lastOrderData?.cgst_amount !== undefined ? lastOrderData.cgst_amount : (Number(lastOrderData?.tax_amount || 0) / 2))}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                                            <span>SGST:</span>
+                                                            <span>{formatCurrency(lastOrderData?.sgst_amount !== undefined ? lastOrderData.sgst_amount : (Number(lastOrderData?.tax_amount || 0) / 2))}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                                            <span>IGST:</span>
+                                                            <span>{formatCurrency(0)}</span>
+                                                        </div>
+                                                    </>
+                                                )}
+
+                                                {Math.abs(lastOrderData?.round_off || 0) > 0 && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                        <span>ROUND OFF:</span>
+                                                        <span>{lastOrderData.round_off > 0 ? '+' : ''}{formatCurrency(lastOrderData.round_off)}</span>
+                                                    </div>
+                                                )}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '0.95rem', marginTop: '4px', borderTop: '1px solid #000', paddingTop: '4px' }}>
+                                                    <span>GRAND TOTAL:</span>
                                                     <span>{formatCurrency(lastOrderData?.total_amount || 0)}</span>
                                                 </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                    <span>Received:</span>
-                                                    <span>{formatCurrency(lastOrderData?.paid_amount ?? 0)}</span>
-                                                </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px', borderTop: '1px dotted #000', paddingTop: '2px' }}>
-                                                    <span>Credit Bal:</span>
-                                                    <span style={{ color: Number(lastOrderData?.due_amount || 0) > 0 ? '#b91c1c' : '#000' }}>
-                                                        {formatCurrency(lastOrderData?.due_amount ?? 0)}
-                                                    </span>
-                                                </div>
                                             </div>
-                                        )}
-                                    </div>
-                                )}
 
-                                <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '6px 0 8px' }} />
+                                            {/* Optional Loyalty Points & Credit Balance (ONLY when enabled by business owner) */}
+                                            {(shouldPrintLoyalty || shouldPrintCredit) && (
+                                                <>
+                                                    <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '10px 0' }} />
+                                                    <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.72rem', textAlign: 'left', marginBottom: '6px' }}>
+                                                        {/* Left Side: Loyalty Points (Rendered ONLY if business owner enabled & customer has points) */}
+                                                        {shouldPrintLoyalty && (
+                                                            <div style={{ flex: 1 }}>
+                                                                <p style={{ margin: '0 0 3px', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '0.72rem' }}>LOYALTY POINTS:</p>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                    <span>Existing:</span>
+                                                                    <span>{lastOrderData?.existing_loyalty_points ?? 0}</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                    <span>Redeemed:</span>
+                                                                    <span>{lastOrderData?.loyalty_points_redeemed ?? 0}</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                    <span>Earned:</span>
+                                                                    <span>{lastOrderData?.loyalty_points_earned ?? 0}</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px', borderTop: '1px dotted #000', paddingTop: '2px' }}>
+                                                                    <span>Balance:</span>
+                                                                    <span>{lastOrderData?.remaining_loyalty_points ?? lastOrderData?.final_loyalty_points ?? Math.max(0, (lastOrderData?.existing_loyalty_points || 0) - (lastOrderData?.loyalty_points_redeemed || 0) + (lastOrderData?.loyalty_points_earned || 0))}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
 
-                                {/* Thanks for your business mentioning Cliks business name */}
-                                <p style={{ margin: '4px 0 2px', fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                                    Thanks for your business with {lastOrderData?.shop_name || resolvedShopDetails.shopName || 'Cliks Store'}!
-                                </p>
-                                <p style={{ margin: 0, fontSize: '0.72rem', color: '#475569', fontStyle: 'italic', fontWeight: '600' }}>
-                                    Visit again! • Powered with Cliks Business by Beta
-                                </p>
+                                                        {/* Right Side: Credit Option Summary (Rendered ONLY if business owner enabled & is actual credit) */}
+                                                        {shouldPrintCredit && (
+                                                            <div style={{ flex: 1, ...(shouldPrintLoyalty ? { borderLeft: '1px dashed #000', paddingLeft: '8px' } : {}) }}>
+                                                                <p style={{ margin: '0 0 3px', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '0.72rem' }}>CREDIT SUMMARY:</p>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                    <span>Total:</span>
+                                                                    <span>{formatCurrency(lastOrderData?.total_amount || 0)}</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                    <span>Received:</span>
+                                                                    <span>{formatCurrency(lastOrderData?.paid_amount ?? 0)}</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px', borderTop: '1px dotted #000', paddingTop: '2px' }}>
+                                                                    <span>Credit Bal:</span>
+                                                                    <span style={{ color: Number(lastOrderData?.due_amount || 0) > 0 ? '#b91c1c' : '#000' }}>
+                                                                        {formatCurrency(lastOrderData?.due_amount ?? 0)}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '6px 0 8px' }} />
+
+                                            {/* Bottom Thank You message */}
+                                            <p style={{ margin: '4px 0 2px', fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                                                Thanks for your business. Visit again.
+                                            </p>
+                                            <p style={{ margin: 0, fontSize: '0.72rem', color: '#475569', fontStyle: 'italic', fontWeight: '600' }}>
+                                                Powered with Cliks Business by Beta
+                                            </p>
+                                        </>
+                                    );
+                                })()}
                             </div>
                         </div>
 

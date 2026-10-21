@@ -60,10 +60,11 @@ export const crmService = {
         }
     },
 
-    lookupCustomerByEmail: async (email) => {
+    lookupCustomerByEmail: async (emailOrQuery) => {
         try {
-            if (!email || !String(email).trim()) return { exists: false, loyalty_points: 0 };
-            const res = await apiClient.get('/customers/lookup', { params: { email: String(email).trim() } });
+            if (!emailOrQuery || !String(emailOrQuery).trim()) return { exists: false, loyalty_points: 0 };
+            const q = String(emailOrQuery).trim();
+            const res = await apiClient.get('/customers/lookup', { params: { email: q, query: q } });
             return res.data?.data ?? res.data ?? { exists: false, loyalty_points: 0 };
         } catch (error) {
             console.error('[CRM Service Lookup Error]', error.message);

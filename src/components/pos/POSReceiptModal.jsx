@@ -1,17 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, X, Printer, Edit2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { loyaltyService } from '../../services/loyaltyService';
 
 const resolveShopDetails = (shopDetails, lastOrderData) => {
-    let orgProfile = {};
-    let businessConfig = {};
-    let local = {};
-    try {
-        orgProfile = JSON.parse(localStorage.getItem('cliks_org_profile') || 'null') || {};
-        businessConfig = JSON.parse(localStorage.getItem('cliks_business_config') || 'null') || {};
-        local = JSON.parse(localStorage.getItem('cliks_pos_shop_profile') || 'null') || {};
-    } catch (e) {}
-
     const branchFullAddress = shopDetails ? (
         [shopDetails.address, shopDetails.city, shopDetails.state, shopDetails.pincode].filter(Boolean).join(', ') || shopDetails.address
     ) : null;
@@ -21,62 +14,41 @@ const resolveShopDetails = (shopDetails, lastOrderData) => {
         shopDetails?.shop_name ||
         shopDetails?.name ||
         shopDetails?.business_name ||
-        orgProfile.business_name ||
-        businessConfig.companyName ||
-        local.shop_name ||
-        local.name ||
-        local.business_name ||
-        local.companyName ||
-        'Local Retail Store';
+        shopDetails?.companyName ||
+        'CLIKS STORE';
 
     const address = 
         lastOrderData?.shop_address ||
         shopDetails?.shop_address ||
         branchFullAddress ||
         shopDetails?.address ||
-        orgProfile.address ||
-        businessConfig.registeredAddress ||
-        local.address ||
-        local.registeredAddress ||
-        (orgProfile.city ? `${orgProfile.city}${orgProfile.pincode ? ` - ${orgProfile.pincode}` : ''}` : '') ||
-        (local.city ? `${local.city}${local.pincode ? ` - ${local.pincode}` : ''}` : '') ||
+        (shopDetails?.city ? `${shopDetails.city}${shopDetails.pincode ? ` - ${shopDetails.pincode}` : ''}` : '') ||
         'Commercial Center, Main Road';
 
     const phone = 
         lastOrderData?.shop_phone ||
         shopDetails?.shop_phone ||
         shopDetails?.phone ||
-        orgProfile.phone ||
-        businessConfig.phone ||
-        local.phone ||
+        shopDetails?.phone_number ||
         '';
 
     const email = 
         lastOrderData?.shop_email ||
         shopDetails?.shop_email ||
         shopDetails?.email ||
-        orgProfile.email ||
-        businessConfig.email ||
-        local.email ||
         '';
 
     const gstin = 
         lastOrderData?.shop_gstin ||
         shopDetails?.shop_gstin ||
         shopDetails?.gstin ||
-        orgProfile.gstin ||
-        businessConfig.gstinRef ||
-        local.gstin ||
-        local.gstinRef ||
-        '33AAAAA0000A1Z5';
+        'URP (Unregistered)';
 
     const tagline = 
         lastOrderData?.shop_tagline ||
         shopDetails?.shop_tagline ||
         shopDetails?.tagline ||
-        businessConfig.pos_shop_tagline ||
-        local.tagline ||
-        'Thank you for shopping with us! Visit again!';
+        'Thank you for your business. Visit again!';
 
     return { shopName, address, phone, email, gstin, tagline };
 };
@@ -89,16 +61,70 @@ const POSReceiptModal = ({
     formatCurrency = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
     onPrint = () => window.print(),
     shopDetails = null,
-    loyaltyEnabled: loyaltyEnabledProp = undefined
+    loyaltyEnabled: loyaltyEnabledProp = undefined,
+    printShowLoyalty: printShowLoyaltyProp = undefined,
+    printShowCredit: printShowCreditProp = undefined,
+    onTogglePrintShowLoyalty = undefined,
+    onTogglePrintShowCredit = undefined
 }) => {
     if (!isOpen || !lastOrderData) return null;
 
+    const queryClient = useQueryClient();
     const { shopName, address, phone, email, gstin, tagline } = resolveShopDetails(shopDetails, lastOrderData);
     
+    // Dedicated Loyalty Program Settings (sourced directly from Backend API: business_loyalty_settings)
+    const { data: loyaltyProgramSettings } = useQuery({
+        queryKey: ['loyalty-program-settings'],
+        queryFn: loyaltyService.getProgramSettings,
+        enabled: printShowLoyaltyProp === undefined || printShowCreditProp === undefined || loyaltyEnabledProp === undefined,
+        refetchOnWindowFocus: false
+    });
+
+    const updateLoyaltySettingsMutation = useMutation({
+        mutationFn: (payload) => loyaltyService.updateProgramSettings(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['loyalty-program-settings'] });
+            queryClient.invalidateQueries({ queryKey: ['settings'] });
+        }
+    });
+
+    const [localPrintShowLoyalty, setLocalPrintShowLoyalty] = React.useState(null);
+    const [localPrintShowCredit, setLocalPrintShowCredit] = React.useState(null);
+
+    const printShowLoyalty = printShowLoyaltyProp !== undefined
+        ? Boolean(printShowLoyaltyProp)
+        : (localPrintShowLoyalty !== null 
+            ? localPrintShowLoyalty 
+            : Boolean(loyaltyProgramSettings?.print_show_loyalty ?? loyaltyProgramSettings?.printShowLoyalty ?? false));
+
+    const printShowCredit = printShowCreditProp !== undefined
+        ? Boolean(printShowCreditProp)
+        : (localPrintShowCredit !== null 
+            ? localPrintShowCredit 
+            : Boolean(loyaltyProgramSettings?.print_show_credit ?? loyaltyProgramSettings?.printShowCredit ?? false));
+
+    const handleToggleLoyalty = (checked) => {
+        setLocalPrintShowLoyalty(checked);
+        if (onTogglePrintShowLoyalty) {
+            onTogglePrintShowLoyalty(checked);
+        } else {
+            updateLoyaltySettingsMutation.mutate({ print_show_loyalty: checked });
+        }
+    };
+
+    const handleToggleCredit = (checked) => {
+        setLocalPrintShowCredit(checked);
+        if (onTogglePrintShowCredit) {
+            onTogglePrintShowCredit(checked);
+        } else {
+            updateLoyaltySettingsMutation.mutate({ print_show_credit: checked });
+        }
+    };
+
     // Determine loyalty enabled state from prop or backend settings
     const loyaltyEnabled = loyaltyEnabledProp !== undefined 
         ? Boolean(loyaltyEnabledProp)
-        : (lastOrderData?.loyalty_discount_amount > 0 || lastOrderData?.loyalty_points_redeemed > 0 || lastOrderData?.loyalty_points_earned > 0);
+        : Boolean(loyaltyProgramSettings?.loyaltyEnabled ?? (lastOrderData?.loyalty_discount_amount > 0 || lastOrderData?.loyalty_points_redeemed > 0 || lastOrderData?.loyalty_points_earned > 0));
 
     return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1300, backdropFilter: 'blur(8px)', padding: '1rem' }}>
@@ -162,6 +188,42 @@ const POSReceiptModal = ({
                     <p style={{ margin: '3px 0 0', fontSize: '0.8rem', opacity: 0.9 }}>Order {lastOrderData?.invoice_number || ''} generated</p>
                 </div>
 
+                {/* Business Owner Print Preferences Controls (Screen-only, never printed) */}
+                <div className="no-print" style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '16px', 
+                    padding: '8px 14px', 
+                    background: '#F8FAFC', 
+                    borderBottom: '1px solid #E2E8F0', 
+                    fontSize: '0.74rem', 
+                    color: '#334155',
+                    flexWrap: 'wrap'
+                }}>
+                    <span style={{ fontWeight: '750', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        ⚙️ Print Controls:
+                    </span>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none', fontWeight: '650' }} title="Toggle whether Loyalty Points should be printed on the receipt">
+                        <input
+                            type="checkbox"
+                            checked={printShowLoyalty}
+                            onChange={(e) => handleToggleLoyalty(e.target.checked)}
+                            style={{ cursor: 'pointer', accentColor: '#10B981', width: '14px', height: '14px' }}
+                        />
+                        Print Loyalty Points
+                    </label>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none', fontWeight: '650' }} title="Toggle whether Credit Summary should be printed on the receipt">
+                        <input
+                            type="checkbox"
+                            checked={printShowCredit}
+                            onChange={(e) => handleToggleCredit(e.target.checked)}
+                            style={{ cursor: 'pointer', accentColor: '#10B981', width: '14px', height: '14px' }}
+                        />
+                        Print Credit Option
+                    </label>
+                </div>
+
                 {/* Thermal Receipt Workspace (to print) */}
                 <div id="printable-pos-receipt" className="printable-pos-receipt" style={{ padding: '1.5rem', background: '#FFFFFF', flex: 1, overflowY: 'auto', maxHeight: '400px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'monospace', color: '#000', textAlign: 'center' }}>
@@ -199,6 +261,7 @@ const POSReceiptModal = ({
                         </div>
                         <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '8px' }}>
                             <span>Customer: {lastOrderData?.client_name || 'Walk-in Customer'}</span>
+                            <span style={{ fontWeight: '700' }}>Mode: {(lastOrderData?.payment_mode || paymentMode || 'CASH').toUpperCase()}</span>
                         </div>
 
                         <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '4px 0 8px' }} />
@@ -227,69 +290,137 @@ const POSReceiptModal = ({
 
                         <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0' }} />
 
-                        {/* Tally */}
-                        <div style={{ width: '100%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span>SUBTOTAL:</span>
-                                <span>{formatCurrency(lastOrderData?.amount || 0)}</span>
-                            </div>
-                            {lastOrderData?.discount_amount > 0 && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span>DISCOUNT:</span>
-                                    <span>- {formatCurrency(lastOrderData.discount_amount)}</span>
-                                </div>
-                            )}
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span>TAX (GST):</span>
-                                <span>{formatCurrency(lastOrderData?.tax_amount || 0)}</span>
-                            </div>
-                            {loyaltyEnabled && (lastOrderData?.loyalty_discount_amount > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                                    <span>LOYALTY DISCOUNT:</span>
-                                    <span>- {formatCurrency(lastOrderData?.loyalty_discount_amount || lastOrderData?.loyalty_points_redeemed || 0)}</span>
-                                </div>
-                            )}
-                            {Math.abs(lastOrderData?.round_off || 0) > 0 && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span>ROUND OFF:</span>
-                                    <span>{lastOrderData.round_off > 0 ? '+' : ''}{formatCurrency(lastOrderData.round_off)}</span>
-                                </div>
-                            )}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '0.95rem', marginTop: '4px', borderTop: '1px solid #000', paddingTop: '4px' }}>
-                                <span>GRAND TOTAL:</span>
-                                <span>{formatCurrency(lastOrderData?.total_amount || 0)}</span>
-                            </div>
-                        </div>
+                        {/* Computed Tally, Loyalty & Credit Sections */}
+                        {(() => {
+                            const rawSubtotal = Number(lastOrderData?.amount ?? lastOrderData?.subtotal ?? 0);
+                            const rawDiscount = Number(lastOrderData?.discount_amount ?? lastOrderData?.discount ?? 0);
+                            const promoDiscount = Number(lastOrderData?.showroom_promo_discount ?? 0);
+                            const loyaltyDisc = Number(lastOrderData?.loyalty_discount_amount ?? 0);
 
-                        <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '12px 0' }} />
-                        
-                        {/* Loyalty Points Summary on Receipt */}
-                        {loyaltyEnabled && (lastOrderData?.existing_loyalty_points !== undefined || lastOrderData?.loyalty_points_earned > 0 || lastOrderData?.loyalty_points_redeemed > 0) && (
-                            <div style={{ width: '100%', fontSize: '0.75rem', textAlign: 'left', marginBottom: '6px' }}>
-                                <p style={{ margin: '0 0 4px', fontWeight: 'bold', textTransform: 'uppercase' }}>LOYALTY POINTS:</p>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span>Existing Points:</span>
-                                    <span>{lastOrderData?.existing_loyalty_points ?? 0}</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span>Points Redeemed:</span>
-                                    <span>{lastOrderData?.loyalty_points_redeemed ?? 0}</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span>Points Earned:</span>
-                                    <span>{lastOrderData?.loyalty_points_earned ?? 0}</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px', borderTop: '1px dotted #000', paddingTop: '2px' }}>
-                                    <span>Remaining Points:</span>
-                                    <span>{lastOrderData?.remaining_loyalty_points ?? lastOrderData?.final_loyalty_points ?? Math.max(0, (lastOrderData?.existing_loyalty_points || 0) - (lastOrderData?.loyalty_points_redeemed || 0) + (lastOrderData?.loyalty_points_earned || 0))}</span>
-                                </div>
-                                <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0 4px' }} />
-                            </div>
-                        )}
+                            const itemsList = (lastOrderData?.items && (typeof lastOrderData.items === 'string' ? JSON.parse(lastOrderData.items) : lastOrderData.items)) || [];
+                            const itemsGrossSum = itemsList.reduce((acc, it) => {
+                                const qty = parseFloat(it.quantity) || 0;
+                                const rate = parseFloat(it.price || it.unit_price) || 0;
+                                const total = parseFloat(it.total || it.amount) || (qty * rate);
+                                return acc + total;
+                            }, 0);
 
-                        <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 'bold' }}>MODE: {(lastOrderData?.payment_mode || paymentMode || 'CASH').toUpperCase()}</p>
-                        <p style={{ margin: '8px 0 2px', fontSize: '0.8rem', fontStyle: 'italic' }}>{tagline || `Thank you for shopping at ${shopName}! Visit again!`}</p>
-                        <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: '#475569', fontStyle: 'italic', fontWeight: '600' }}>Powered with Cliks Business by Beta</p>
+                            const isWalkIn = !lastOrderData?.client_name || lastOrderData?.client_name === 'Walk-in Customer';
+                            const hasLoyaltyActivity = (
+                                Number(lastOrderData?.loyalty_points_earned || 0) > 0 ||
+                                Number(lastOrderData?.loyalty_points_redeemed || 0) > 0 ||
+                                (Number(lastOrderData?.existing_loyalty_points || 0) > 0 && !isWalkIn)
+                            );
+                            const shouldPrintLoyalty = Boolean(printShowLoyalty && loyaltyEnabled && hasLoyaltyActivity);
+
+                            const isActualCreditSale = (lastOrderData?.payment_mode?.toUpperCase() === 'CREDIT' || Number(lastOrderData?.due_amount || 0) > 0);
+                            const shouldPrintCredit = Boolean(printShowCredit && isActualCreditSale);
+
+                            const effectiveDiscount = rawDiscount > 0
+                                ? rawDiscount
+                                : (promoDiscount > 0 ? promoDiscount : (!shouldPrintLoyalty && loyaltyDisc > 0 ? loyaltyDisc : 0));
+
+                            const subtotalDisplay = itemsGrossSum > 0 ? itemsGrossSum : (rawSubtotal > 0 ? rawSubtotal : (Number(lastOrderData?.total_amount || 0) + effectiveDiscount));
+
+                            return (
+                                <>
+                                    {/* Tally */}
+                                    <div style={{ width: '100%', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>SUBTOTAL:</span>
+                                            <span>{formatCurrency(subtotalDisplay)}</span>
+                                        </div>
+                                        {effectiveDiscount > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600' }}>
+                                                <span>DISCOUNT:</span>
+                                                <span>- {formatCurrency(effectiveDiscount)}</span>
+                                            </div>
+                                        )}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>TAX (GST):</span>
+                                            <span>{formatCurrency(lastOrderData?.tax_amount || 0)}</span>
+                                        </div>
+                                        {shouldPrintLoyalty && loyaltyDisc > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                                                <span>LOYALTY DISCOUNT:</span>
+                                                <span>- {formatCurrency(loyaltyDisc)}</span>
+                                            </div>
+                                        )}
+                                        {Math.abs(lastOrderData?.round_off || 0) > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span>ROUND OFF:</span>
+                                                <span>{lastOrderData.round_off > 0 ? '+' : ''}{formatCurrency(lastOrderData.round_off)}</span>
+                                            </div>
+                                        )}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '0.95rem', marginTop: '4px', borderTop: '1px solid #000', paddingTop: '4px' }}>
+                                            <span>GRAND TOTAL:</span>
+                                            <span>{formatCurrency(lastOrderData?.total_amount || 0)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Optional Loyalty Points & Credit Balance (ONLY when enabled by business owner) */}
+                                    {(shouldPrintLoyalty || shouldPrintCredit) && (
+                                        <>
+                                            <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '10px 0' }} />
+                                            <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.72rem', textAlign: 'left', marginBottom: '6px' }}>
+                                                {/* Loyalty Points */}
+                                                {shouldPrintLoyalty && (
+                                                    <div style={{ flex: 1 }}>
+                                                        <p style={{ margin: '0 0 3px', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '0.72rem' }}>LOYALTY POINTS:</p>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>Existing:</span>
+                                                            <span>{lastOrderData?.existing_loyalty_points ?? 0}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>Redeemed:</span>
+                                                            <span>{lastOrderData?.loyalty_points_redeemed ?? 0}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>Earned:</span>
+                                                            <span>{lastOrderData?.loyalty_points_earned ?? 0}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px', borderTop: '1px dotted #000', paddingTop: '2px' }}>
+                                                            <span>Balance:</span>
+                                                            <span>{lastOrderData?.remaining_loyalty_points ?? lastOrderData?.final_loyalty_points ?? Math.max(0, (lastOrderData?.existing_loyalty_points || 0) - (lastOrderData?.loyalty_points_redeemed || 0) + (lastOrderData?.loyalty_points_earned || 0))}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Credit Summary */}
+                                                {shouldPrintCredit && (
+                                                    <div style={{ flex: 1, ...(shouldPrintLoyalty ? { borderLeft: '1px dashed #000', paddingLeft: '8px' } : {}) }}>
+                                                        <p style={{ margin: '0 0 3px', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '0.72rem' }}>CREDIT SUMMARY:</p>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>Total:</span>
+                                                            <span>{formatCurrency(lastOrderData?.total_amount || 0)}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>Received:</span>
+                                                            <span>{formatCurrency(lastOrderData?.paid_amount ?? 0)}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px', borderTop: '1px dotted #000', paddingTop: '2px' }}>
+                                                            <span>Credit Bal:</span>
+                                                            <span style={{ color: Number(lastOrderData?.due_amount || 0) > 0 ? '#b91c1c' : '#000' }}>
+                                                                {formatCurrency(lastOrderData?.due_amount ?? 0)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div style={{ width: '100%', borderBottom: '1px dashed #000', margin: '8px 0 4px' }} />
+
+                                    <p style={{ margin: '6px 0 2px', fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                                        Thanks for your business. Visit again.
+                                    </p>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: '#475569', fontStyle: 'italic', fontWeight: '600' }}>
+                                        Powered with Cliks Business by Beta
+                                    </p>
+                                </>
+                            );
+                        })()}
                     </div>
                 </div>
 

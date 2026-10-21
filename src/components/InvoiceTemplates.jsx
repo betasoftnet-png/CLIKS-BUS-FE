@@ -1247,17 +1247,22 @@ export const InvoiceTemplates = {
                     ))}
                 </div>
                 <div style={{ textAlign: 'right', paddingRight: '2px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Sub Total:</span><span>{parseFloat(data.amount).toFixed(2)}</span></div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Total GST:</span><span>{parseFloat(data.tax_amount).toFixed(2)}</span></div>
-                    {parseFloat(data.discount_amount) > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Discount:</span><span>-{parseFloat(data.discount_amount).toFixed(2)}</span></div>}
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Sub Total:</span><span>{parseFloat(data.amount || 0).toFixed(2)}</span></div>
+                    {parseFloat(data.discount_amount || data.discount || 0) > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Discount:</span>
+                            <span>-{parseFloat(data.discount_amount || data.discount).toFixed(2)}</span>
+                        </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Total GST:</span><span>{parseFloat(data.tax_amount || 0).toFixed(2)}</span></div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #000', marginTop: '3px', paddingTop: '3px', fontSize: '14px', fontWeight: 'bold' }}>
                         <span>GRAND TOTAL</span>
-                        <span>₹{parseFloat(data.total_amount).toFixed(2)}</span>
+                        <span>₹{parseFloat(data.total_amount || 0).toFixed(2)}</span>
                     </div>
                 </div>
                 <div style={{ marginTop: '10px', textAlign: 'center', fontSize: '9px', borderTop: '1px dashed #000', paddingTop: '10px' }}>
                     <span>Total Items: {items.length} | Items Qty: {items.reduce((sum, it) => sum + parseFloat(it.quantity || 0), 0)}</span>
-                    <div style={{ marginTop: '8px', fontWeight: 'bold', fontSize: '10px' }}>{shopTagline}</div>
+                    <div style={{ marginTop: '8px', fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase' }}>Thanks for your business. Visit again.</div>
                     <div style={{ fontSize: '9px', fontStyle: 'italic', marginTop: '2px', fontWeight: '600' }}>Powered with Cliks Business by Beta</div>
                     <div>E.& O.E.</div>
                 </div>
