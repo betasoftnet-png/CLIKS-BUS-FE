@@ -34,6 +34,7 @@ import { suppliersService } from '../services/suppliersService';
 import { accountingService } from '../services/accountingService';
 import { bankAccountService } from '../services/bankAccountService';
 import { purchasesService } from '../services/purchasesService';
+import { billingService } from '../services/billingService';
 import '../App.css';
 import { useCurrency } from '../context';
 import BankStatementReconciliationModal from '../components/BankStatementReconciliationModal';
@@ -148,11 +149,17 @@ const BusinessPayments = ({
         queryFn: () => purchasesService.getPurchases().catch(() => [])
     });
 
+    const { data: invoicesList = [] } = useQuery({
+        queryKey: ['invoices'],
+        queryFn: () => billingService.getInvoices().catch(() => [])
+    });
+
     const fetchSupplierPayables = async () => {
         try {
             await Promise.all([
                 refetchReports(),
                 queryClient.invalidateQueries({ queryKey: ['paymentReports'] }),
+                queryClient.invalidateQueries({ queryKey: ['invoices'] }),
                 queryClient.invalidateQueries({ queryKey: ['purchases'] }),
                 queryClient.invalidateQueries({ queryKey: ['ledger'] }),
                 queryClient.invalidateQueries({ queryKey: ['suppliersList'] }),
@@ -256,6 +263,23 @@ const BusinessPayments = ({
 
     const activeCustomers = React.useMemo(() => {
         const list = Array.isArray(customersList) ? [...customersList] : [];
+        
+        (invoicesList || []).forEach(inv => {
+            if (inv.client_name && inv.client_name.trim()) {
+                const cTrim = inv.client_name.trim();
+                const exists = list.some(c => (c.name || c.customer_name || c.company || '').trim().toLowerCase() === cTrim.toLowerCase());
+                if (!exists) {
+                    list.push({
+                        id: inv.customer_id || `cust-inv-${inv.id}`,
+                        name: cTrim,
+                        customer_name: cTrim,
+                        invoice_id: inv.invoice_number,
+                        total_amount: inv.total_amount
+                    });
+                }
+            }
+        });
+
         const defaultNames = ['aruntest', 'vincent', 'Santhosh', 'Vincent Enterprises', 'Walk-in Customer'];
         
         defaultNames.forEach((defName, idx) => {
@@ -273,7 +297,7 @@ const BusinessPayments = ({
             }
         });
         return list;
-    }, [customersList]);
+    }, [customersList, invoicesList]);
 
     // Mutations
     const receiveMutation = useMutation({
@@ -383,84 +407,137 @@ const BusinessPayments = ({
     const dbAccounts = reportsData.accounts || [];
     const dbOverdues = reportsData.overdueInvoices || [];
 
-    const receivables = dbReceivables.map(rec => {
-        let originalTotal = 0;
-        let paidAmt = parseFloat(rec.paid_amount || rec.paidAmount || rec.amount || 0);
-        let custName = rec.party_name || rec.customerProfile || rec.customer_name || 'General Client';
-        let invId = rec.invoice_id || rec.invoiceLinkedId || `INV-REF-${rec.id}`;
+    const receivables = React.useMemo(() => {
+        const mappedDbReceivables = (dbReceivables || []).map(rec => {
+            let originalTotal = 0;
+            let paidAmt = parseFloat(rec.paid_amount || rec.paidAmount || rec.amount || 0);
+            let custName = rec.party_name || rec.customerProfile || rec.customer_name || 'General Client';
+            let invId = rec.invoice_id || rec.invoiceLinkedId || `INV-REF-${rec.id}`;
 
-        if (rec.notes) {
-            try {
-                const parsed = typeof rec.notes === 'string' ? JSON.parse(rec.notes) : rec.notes;
-                if (parsed.totalOriginalAmount !== undefined && !isNaN(parseFloat(parsed.totalOriginalAmount))) {
-                    originalTotal = parseFloat(parsed.totalOriginalAmount);
-                } else if (parsed.total_original !== undefined && !isNaN(parseFloat(parsed.total_original))) {
-                    originalTotal = parseFloat(parsed.total_original);
-                } else if (parsed.total_original_amount !== undefined && !isNaN(parseFloat(parsed.total_original_amount))) {
-                    originalTotal = parseFloat(parsed.total_original_amount);
-                } else if (parsed.original_amount !== undefined && !isNaN(parseFloat(parsed.original_amount))) {
-                    originalTotal = parseFloat(parsed.original_amount);
-                } else if (parsed.total_amount !== undefined && !isNaN(parseFloat(parsed.total_amount))) {
-                    originalTotal = parseFloat(parsed.total_amount);
-                }
+            if (rec.notes) {
+                try {
+                    const parsed = typeof rec.notes === 'string' ? JSON.parse(rec.notes) : rec.notes;
+                    if (parsed.totalOriginalAmount !== undefined && !isNaN(parseFloat(parsed.totalOriginalAmount))) {
+                        originalTotal = parseFloat(parsed.totalOriginalAmount);
+                    } else if (parsed.total_original !== undefined && !isNaN(parseFloat(parsed.total_original))) {
+                        originalTotal = parseFloat(parsed.total_original);
+                    } else if (parsed.total_original_amount !== undefined && !isNaN(parseFloat(parsed.total_original_amount))) {
+                        originalTotal = parseFloat(parsed.total_original_amount);
+                    } else if (parsed.original_amount !== undefined && !isNaN(parseFloat(parsed.original_amount))) {
+                        originalTotal = parseFloat(parsed.original_amount);
+                    } else if (parsed.total_amount !== undefined && !isNaN(parseFloat(parsed.total_amount))) {
+                        originalTotal = parseFloat(parsed.total_amount);
+                    }
 
-                if (parsed.paidAmount !== undefined && !isNaN(parseFloat(parsed.paidAmount))) {
-                    paidAmt = parseFloat(parsed.paidAmount);
-                } else if (parsed.paid_amount !== undefined && !isNaN(parseFloat(parsed.paid_amount))) {
-                    paidAmt = parseFloat(parsed.paid_amount);
-                }
+                    if (parsed.paidAmount !== undefined && !isNaN(parseFloat(parsed.paidAmount))) {
+                        paidAmt = parseFloat(parsed.paidAmount);
+                    } else if (parsed.paid_amount !== undefined && !isNaN(parseFloat(parsed.paid_amount))) {
+                        paidAmt = parseFloat(parsed.paid_amount);
+                    }
 
-                if (parsed.customerProfile) custName = parsed.customerProfile;
-                if (parsed.invoiceLinkedId) invId = parsed.invoiceLinkedId;
-            } catch (e) {}
-        }
-
-        if (!originalTotal && rec.totalOriginalAmount) {
-            originalTotal = parseFloat(rec.totalOriginalAmount);
-        }
-        if (!originalTotal && rec.total_original_amount) {
-            originalTotal = parseFloat(rec.total_original_amount);
-        }
-        if (!originalTotal && rec.total_original) {
-            originalTotal = parseFloat(rec.total_original);
-        }
-        if (!originalTotal && rec.total_amount && parseFloat(rec.total_amount) !== parseFloat(rec.amount)) {
-            originalTotal = parseFloat(rec.total_amount);
-        }
-        if (!originalTotal && dbOverdues && dbOverdues.length > 0) {
-            const matchedInv = dbOverdues.find(inv => 
-                (inv.invoice_number && String(inv.invoice_number) === String(invId)) ||
-                (inv.id && String(inv.id) === String(invId))
-            );
-            if (matchedInv) {
-                originalTotal = parseFloat(matchedInv.total_amount || matchedInv.amount || 0);
+                    if (parsed.customerProfile) custName = parsed.customerProfile;
+                    if (parsed.invoiceLinkedId) invId = parsed.invoiceLinkedId;
+                } catch (e) {}
             }
-        }
-        if (!originalTotal) {
-            originalTotal = paidAmt;
-        }
 
-        return {
-            payment_id: rec.id,
-            payment_number: `REC-${new Date(rec.created_at).getFullYear()}-${rec.id}`,
-            payment_type: 'receive',
-            payment_date: rec.created_at ? rec.created_at.split('T')[0] : 'N/A',
-            payment_status: 'completed',
-            customer_name: custName,
-            customerProfile: custName,
-            invoice_id: invId,
-            invoiceLinkedId: invId,
-            total_amount: originalTotal,
-            totalOriginalAmount: originalTotal,
-            paid_amount: paidAmt,
-            paidAmount: paidAmt,
-            pending_amount: Math.max(0, originalTotal - paidAmt),
-            payment_mode: rec.payment_mode || 'Other',
-            transaction_reference: rec.reference_number || `REF-${rec.id}`,
-            receipt_number: `RCT-${rec.id}`,
-            reconciliation_status: rec.reconciliation_status || 'matched'
-        };
-    });
+            if (!originalTotal && rec.totalOriginalAmount) originalTotal = parseFloat(rec.totalOriginalAmount);
+            if (!originalTotal && rec.total_original_amount) originalTotal = parseFloat(rec.total_original_amount);
+            if (!originalTotal && rec.total_original) originalTotal = parseFloat(rec.total_original);
+            if (!originalTotal && rec.total_amount) originalTotal = parseFloat(rec.total_amount);
+
+            if (!originalTotal && invoicesList && invoicesList.length > 0) {
+                const matchedInv = invoicesList.find(inv => 
+                    (inv.invoice_number && String(inv.invoice_number) === String(invId)) ||
+                    (inv.id && String(inv.id) === String(invId))
+                );
+                if (matchedInv) {
+                    originalTotal = parseFloat(matchedInv.total_amount || matchedInv.amount || 0);
+                }
+            }
+            if (!originalTotal) {
+                originalTotal = paidAmt;
+            }
+
+            const isMatched = paidAmt >= originalTotal && originalTotal > 0;
+            const isPartial = paidAmt > 0 && paidAmt < originalTotal;
+            const reconStatus = rec.reconciliation_status || (isMatched ? 'matched' : (isPartial ? 'partially matched' : 'unreconciled'));
+
+            let payNumber = rec.payment_number;
+            if (!payNumber) {
+                const idStr = String(invId || '');
+                if (idStr.startsWith('REC-')) {
+                    payNumber = idStr;
+                } else if (idStr.startsWith('INV-')) {
+                    payNumber = `REC-${idStr.replace(/^INV-?/i, '')}`;
+                } else if (idStr.startsWith('POS-')) {
+                    payNumber = `REC-${idStr.replace(/^POS-?/i, '')}`;
+                } else {
+                    payNumber = `REC-${new Date(rec.created_at || Date.now()).getFullYear()}-${rec.id}`;
+                }
+            }
+
+            return {
+                payment_id: rec.payment_id || rec.id,
+                payment_number: payNumber,
+                payment_type: 'receive',
+                payment_date: rec.payment_date || (rec.created_at ? rec.created_at.split('T')[0] : 'N/A'),
+                payment_status: rec.payment_status || 'completed',
+                customer_name: custName,
+                customerProfile: custName,
+                invoice_id: invId,
+                invoiceLinkedId: invId,
+                total_amount: originalTotal,
+                totalOriginalAmount: originalTotal,
+                paid_amount: paidAmt,
+                paidAmount: paidAmt,
+                pending_amount: Math.max(0, originalTotal - paidAmt),
+                payment_mode: rec.payment_mode || 'Cash',
+                transaction_reference: rec.reference_number || `REF-${rec.id}`,
+                receipt_number: rec.receipt_number || `RCT-${rec.id}`,
+                reconciliation_status: reconStatus
+            };
+        });
+
+        const seenInvKeys = new Set(
+            mappedDbReceivables.map(r => String(r.invoiceLinkedId || r.invoice_id || '').trim().toLowerCase()).filter(Boolean)
+        );
+
+        // Merge any customer invoices from invoicesList not yet represented
+        const extraInvoices = (invoicesList || []).filter(inv => {
+            const num = String(inv.invoice_number || `INV-${inv.id}`).trim().toLowerCase();
+            return !seenInvKeys.has(num);
+        }).map(inv => {
+            const tot = parseFloat(inv.total_amount ?? inv.amount ?? 0);
+            const paid = parseFloat(inv.paid_amount !== undefined && inv.paid_amount !== null ? inv.paid_amount : (inv.status && inv.status.toLowerCase() === 'paid' ? tot : 0));
+            const isMatched = paid >= tot && tot > 0;
+            const isPartial = paid > 0 && paid < tot;
+            const invNum = inv.invoice_number || `INV-${inv.id}`;
+            const payNum = invNum.startsWith('REC-') ? invNum : (invNum.startsWith('INV-') ? `REC-${invNum.replace(/^INV-?/i, '')}` : (invNum.startsWith('POS-') ? `REC-${invNum.replace(/^POS-?/i, '')}` : `REC-${invNum}`));
+
+            return {
+                payment_id: `inv-${inv.id}`,
+                payment_number: payNum,
+                payment_type: 'receive',
+                payment_date: inv.created_at ? inv.created_at.split('T')[0] : (inv.due_date || 'N/A'),
+                payment_status: inv.status?.toLowerCase() === 'paid' ? 'completed' : (inv.status || 'pending'),
+                customer_name: inv.client_name || 'General Customer',
+                customerProfile: inv.client_name || 'General Customer',
+                invoice_id: invNum,
+                invoiceLinkedId: invNum,
+                total_amount: tot,
+                totalOriginalAmount: tot,
+                paid_amount: paid,
+                paidAmount: paid,
+                pending_amount: Math.max(0, tot - paid),
+                payment_mode: inv.payment_mode || 'Cash',
+                transaction_reference: invNum,
+                receipt_number: `RCT-${inv.id}`,
+                reconciliation_status: isMatched ? 'matched' : (isPartial ? 'partially matched' : 'unreconciled')
+            };
+        });
+
+        return [...mappedDbReceivables, ...extraInvoices];
+    }, [dbReceivables, invoicesList]);
 
     const [customerReceivables, setCustomerReceivables] = useState(() => receivables);
 
@@ -468,59 +545,111 @@ const BusinessPayments = ({
         if (Array.isArray(receivables)) {
             setCustomerReceivables(receivables);
         }
-    }, [reportsData]);
+    }, [receivables]);
 
-    const payables = dbPayables.map(rec => {
-        let originalTotal = 0;
-        if (rec.notes) {
-            try {
-                const parsed = JSON.parse(rec.notes);
-                if (parsed.original_due_amount !== undefined && !isNaN(parseFloat(parsed.original_due_amount))) {
-                    originalTotal = parseFloat(parsed.original_due_amount);
-                } else if (parsed.total_original !== undefined && !isNaN(parseFloat(parsed.total_original))) {
-                    originalTotal = parseFloat(parsed.total_original);
-                }
-            } catch (e) {}
-        }
-        if (!originalTotal && rec.original_due_amount) {
-            originalTotal = parseFloat(rec.original_due_amount);
-        }
-        if (!originalTotal && rec.total_original) {
-            originalTotal = parseFloat(rec.total_original);
-        }
-        if (!originalTotal && rec.total_amount && parseFloat(rec.total_amount) !== parseFloat(rec.amount)) {
-            originalTotal = parseFloat(rec.total_amount);
-        }
-        if (!originalTotal && purchasesList && purchasesList.length > 0) {
-            const matched = purchasesList.find(p => 
-                (p.purchase_number && String(p.purchase_number) === String(rec.invoice_id)) ||
-                (p.id && String(p.id) === String(rec.invoice_id))
-            );
-            if (matched) {
-                originalTotal = parseFloat(matched.grand_total || matched.total_amount || 0);
+    const payables = React.useMemo(() => {
+        const mappedDbPayables = (dbPayables || []).map(rec => {
+            let originalTotal = 0;
+            if (rec.notes) {
+                try {
+                    const parsed = JSON.parse(rec.notes);
+                    if (parsed.original_due_amount !== undefined && !isNaN(parseFloat(parsed.original_due_amount))) {
+                        originalTotal = parseFloat(parsed.original_due_amount);
+                    } else if (parsed.total_original !== undefined && !isNaN(parseFloat(parsed.total_original))) {
+                        originalTotal = parseFloat(parsed.total_original);
+                    }
+                } catch (e) {}
             }
-        }
-        const paidAmt = parseFloat(rec.amount || rec.paid_amount || 0);
-        if (!originalTotal) {
-            originalTotal = paidAmt;
-        }
+            if (!originalTotal && rec.original_due_amount) originalTotal = parseFloat(rec.original_due_amount);
+            if (!originalTotal && rec.total_original) originalTotal = parseFloat(rec.total_original);
+            if (!originalTotal && rec.total_amount && parseFloat(rec.total_amount) !== parseFloat(rec.amount)) {
+                originalTotal = parseFloat(rec.total_amount);
+            }
+            if (!originalTotal && purchasesList && purchasesList.length > 0) {
+                const matched = purchasesList.find(p => 
+                    (p.purchase_number && String(p.purchase_number) === String(rec.invoice_id)) ||
+                    (p.id && String(p.id) === String(rec.invoice_id))
+                );
+                if (matched) {
+                    originalTotal = parseFloat(matched.grand_total || matched.total_amount || 0);
+                }
+            }
+            const paidAmt = parseFloat(rec.amount || rec.paid_amount || 0);
+            if (!originalTotal) {
+                originalTotal = paidAmt;
+            }
 
-        return {
-            payment_id: rec.id,
-            payment_number: `VCH-${new Date(rec.created_at).getFullYear()}-${rec.id}`,
-            payment_type: 'pay',
-            payment_date: rec.created_at ? rec.created_at.split('T')[0] : 'N/A',
-            payment_status: 'completed',
-            supplier_name: rec.party_name || 'General Vendor',
-            purchase_id: rec.invoice_id || `BILL-REF-${rec.id}`,
-            total_amount: originalTotal,
-            paid_amount: paidAmt,
-            pending_amount: Math.max(0, originalTotal - paidAmt),
-            payment_mode: rec.payment_mode || 'Other',
-            cheque_number: rec.reference_number || `CHQ-${rec.id}`,
-            reconciliation_status: rec.reconciliation_status || 'matched'
-        };
-    });
+            const isMatched = paidAmt >= originalTotal && originalTotal > 0;
+            const isPartial = paidAmt > 0 && paidAmt < originalTotal;
+            const reconStatus = rec.reconciliation_status || (isMatched ? 'matched' : (isPartial ? 'partially matched' : 'unreconciled'));
+            const purId = rec.invoice_id || `BILL-REF-${rec.id}`;
+
+            let payNumber = rec.payment_number;
+            if (!payNumber) {
+                const idStr = String(purId || '');
+                if (idStr.startsWith('VCH-')) {
+                    payNumber = idStr;
+                } else if (idStr.startsWith('PO-')) {
+                    payNumber = `VCH-${idStr.replace(/^PO-?/i, '')}`;
+                } else if (idStr.startsWith('BILL-')) {
+                    payNumber = `VCH-${idStr.replace(/^BILL-?/i, '')}`;
+                } else {
+                    payNumber = `VCH-${new Date(rec.created_at || Date.now()).getFullYear()}-${rec.id}`;
+                }
+            }
+
+            return {
+                payment_id: rec.payment_id || rec.id,
+                payment_number: payNumber,
+                payment_type: 'pay',
+                payment_date: rec.payment_date || (rec.created_at ? rec.created_at.split('T')[0] : 'N/A'),
+                payment_status: rec.payment_status || 'completed',
+                supplier_name: rec.party_name || rec.supplier_name || 'General Vendor',
+                purchase_id: purId,
+                total_amount: originalTotal,
+                paid_amount: paidAmt,
+                pending_amount: Math.max(0, originalTotal - paidAmt),
+                payment_mode: rec.payment_mode || 'Other',
+                cheque_number: rec.reference_number || `CHQ-${rec.id}`,
+                reconciliation_status: reconStatus
+            };
+        });
+
+        const seenPurKeys = new Set(
+            mappedDbPayables.map(p => String(p.purchase_id || '').trim().toLowerCase()).filter(Boolean)
+        );
+
+        // Merge any supplier purchases/bills from purchasesList not yet represented
+        const extraPurchases = (purchasesList || []).filter(p => {
+            const num = String(p.purchase_number || `PO-${p.id}`).trim().toLowerCase();
+            return !seenPurKeys.has(num);
+        }).map(p => {
+            const tot = parseFloat(p.grand_total || p.subtotal || p.total_amount || 0);
+            const paid = parseFloat(p.paid_amount !== undefined && p.paid_amount !== null ? p.paid_amount : (p.advance_amount || (p.status && p.status.toLowerCase() === 'paid' ? tot : 0)));
+            const isMatched = paid >= tot && tot > 0;
+            const isPartial = paid > 0 && paid < tot;
+            const purNum = p.purchase_number || `PO-${p.id}`;
+            const payNum = purNum.startsWith('VCH-') ? purNum : (purNum.startsWith('PO-') ? `VCH-${purNum.replace(/^PO-?/i, '')}` : (purNum.startsWith('BILL-') ? `VCH-${purNum.replace(/^BILL-?/i, '')}` : `VCH-${purNum}`));
+
+            return {
+                payment_id: `pur-${p.id}`,
+                payment_number: payNum,
+                payment_type: 'pay',
+                payment_date: p.purchase_date || (p.created_at ? p.created_at.split('T')[0] : 'N/A'),
+                payment_status: p.status?.toLowerCase() === 'paid' ? 'completed' : (p.status || 'pending'),
+                supplier_name: p.supplier_name || 'General Vendor',
+                purchase_id: purNum,
+                total_amount: tot,
+                paid_amount: paid,
+                pending_amount: Math.max(0, tot - paid),
+                payment_mode: p.payment_mode || 'Bank Transfer',
+                cheque_number: p.purchase_number || `CHQ-${p.id}`,
+                reconciliation_status: isMatched ? 'matched' : (isPartial ? 'partially matched' : 'unreconciled')
+            };
+        });
+
+        return [...mappedDbPayables, ...extraPurchases];
+    }, [dbPayables, purchasesList]);
 
     const [supplierPayables, setSupplierPayables] = useState(() => payables);
 
@@ -528,7 +657,7 @@ const BusinessPayments = ({
         if (Array.isArray(payables)) {
             setSupplierPayables(payables);
         }
-    }, [reportsData, purchasesList]);
+    }, [payables]);
 
     // Dynamic Cash & Bank accounts query matching /finance/accounting
     const { data: dbBankAccounts = [] } = useQuery({
@@ -714,26 +843,54 @@ const BusinessPayments = ({
         }
     };
 
-    const overdues = dbOverdues.map(inv => {
-        const totalAmt = parseFloat(inv.total_amount || inv.amount || 0);
-        const paidAmt = parseFloat(inv.paid_amount || 0);
-        const pendingAmt = Math.max(0, totalAmt - paidAmt);
-        const dueDateObj = inv.due_date ? new Date(inv.due_date) : new Date();
-        const todayObj = new Date();
-        const diffTime = Math.max(0, todayObj - dueDateObj);
-        const overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+    const overdues = React.useMemo(() => {
+        const sourceOverdues = (dbOverdues && dbOverdues.length > 0) ? [...dbOverdues] : [];
+        const existingInvNumbers = new Set(sourceOverdues.map(o => String(o.invoice_number || o.invoice_id || '').toLowerCase()));
+        
+        // Also include any customer invoices with pending balance > 0
+        (invoicesList || []).forEach(inv => {
+            const invNum = String(inv.invoice_number || `INV-${inv.id}`);
+            if (!existingInvNumbers.has(invNum.toLowerCase())) {
+                const totalAmt = parseFloat(inv.total_amount || inv.amount || 0);
+                const paidAmt = parseFloat(inv.paid_amount || 0);
+                if (totalAmt - paidAmt > 0) {
+                    sourceOverdues.push({
+                        id: inv.id,
+                        invoice_number: invNum,
+                        client_name: inv.client_name,
+                        amount: totalAmt,
+                        total_amount: totalAmt,
+                        paid_amount: paidAmt,
+                        status: inv.status || 'Pending',
+                        due_date: inv.due_date || inv.created_at,
+                        created_at: inv.created_at
+                    });
+                    existingInvNumbers.add(invNum.toLowerCase());
+                }
+            }
+        });
 
-        return {
-            invoice_id: inv.invoice_number || `INV-${inv.id}`,
-            customer_name: inv.client_name || 'General Customer',
-            total_amount: totalAmt,
-            paid_amount: paidAmt,
-            pending_amount: pendingAmt > 0 ? pendingAmt : totalAmt,
-            due_date: inv.due_date || 'N/A',
-            overdue_days: overdueDays,
-            reminder_sent: 'Not Sent'
-        };
-    });
+        return sourceOverdues.map(inv => {
+            const totalAmt = parseFloat(inv.total_amount || inv.amount || 0);
+            const paidAmt = parseFloat(inv.paid_amount || 0);
+            const pendingAmt = Math.max(0, totalAmt - paidAmt);
+            const dueDateObj = inv.due_date ? new Date(inv.due_date) : new Date();
+            const todayObj = new Date();
+            const diffTime = Math.max(0, todayObj - dueDateObj);
+            const overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+
+            return {
+                invoice_id: inv.invoice_number || `INV-${inv.id}`,
+                customer_name: inv.client_name || 'General Customer',
+                total_amount: totalAmt,
+                paid_amount: paidAmt,
+                pending_amount: pendingAmt > 0 ? pendingAmt : totalAmt,
+                due_date: inv.due_date || 'N/A',
+                overdue_days: overdueDays,
+                reminder_sent: 'Not Sent'
+            };
+        });
+    }, [dbOverdues, invoicesList]);
 
     // Forms input states
     const [customerForm, setCustomerForm] = useState({
@@ -1124,8 +1281,11 @@ const BusinessPayments = ({
         alert(`Automated WhatsApp & SMS payment reminders for ${custName} is coming soon!`);
     };
 
-    const totalOutstandingReceivables = overdues.reduce((sum, o) => sum + o.pending_amount, 0);
-    const totalDailyCollections = customerReceivables.reduce((sum, r) => sum + (r.paidAmount !== undefined ? r.paidAmount : (r.paid_amount || 0)), 0);
+    const totalOutstandingReceivables = Math.max(
+        overdues.reduce((sum, o) => sum + (parseFloat(o.pending_amount) || 0), 0),
+        customerReceivables.reduce((sum, r) => sum + (parseFloat(r.pending_amount) || 0), 0)
+    );
+    const totalDailyCollections = customerReceivables.reduce((sum, r) => sum + (r.paidAmount !== undefined ? parseFloat(r.paidAmount) : (parseFloat(r.paid_amount) || 0)), 0);
 
     const filteredReceivables = customerReceivables.filter(r => 
         (r.customerProfile || r.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1135,7 +1295,8 @@ const BusinessPayments = ({
 
     const filteredPayables = supplierPayables.filter(p => 
         (p.supplier_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.payment_number || '').toLowerCase().includes(searchTerm.toLowerCase())
+        (p.payment_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.purchase_id || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const unifiedTransactions = React.useMemo(() => {
@@ -1355,10 +1516,28 @@ const BusinessPayments = ({
                                             <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#F0FDF4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{r.payment_mode}</span>
                                         </td>
                                         <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{r.reconciliation_status.toUpperCase()}</span>
+                                            <span style={{ 
+                                                padding: '0.25rem 0.5rem', 
+                                                borderRadius: '6px', 
+                                                background: r.reconciliation_status === 'matched' ? '#EFF6FF' : (r.reconciliation_status === 'partially matched' ? '#FEF3C7' : '#F1F5F9'), 
+                                                color: r.reconciliation_status === 'matched' ? '#2563EB' : (r.reconciliation_status === 'partially matched' ? '#B45309' : '#64748B'), 
+                                                fontWeight: '800', 
+                                                fontSize: '0.75rem' 
+                                            }}>
+                                                {(r.reconciliation_status || 'MATCHED').toUpperCase()}
+                                            </span>
                                         </td>
                                     </tr>
                                 ))}
+                                {filteredReceivables.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).length === 0 && (
+                                    <tr>
+                                        <td colSpan={8} style={{ padding: '3.5rem 2rem', textAlign: 'center', color: '#94A3B8' }}>
+                                            <FileText size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
+                                            <p style={{ fontWeight: '700', fontSize: '0.95rem', color: '#64748B', margin: 0 }}>No customer bills or receivables recorded</p>
+                                            <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '0.25rem' }}>Customer invoices and POS bills will appear here automatically</p>
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -1395,9 +1574,29 @@ const BusinessPayments = ({
                                         <td style={{ padding: '1.5rem 2rem' }}>
                                             <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>{p.payment_mode}</span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem', color: '#64748B' }}>{p.cheque_number || 'N/A'}</td>
+                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                            <span style={{ 
+                                                padding: '0.25rem 0.5rem', 
+                                                borderRadius: '6px', 
+                                                background: p.reconciliation_status === 'matched' ? '#F0FDF4' : (p.reconciliation_status === 'partially matched' ? '#FEF3C7' : '#EFF6FF'), 
+                                                color: p.reconciliation_status === 'matched' ? '#1B6B3A' : (p.reconciliation_status === 'partially matched' ? '#B45309' : '#2563EB'), 
+                                                fontWeight: '800', 
+                                                fontSize: '0.75rem' 
+                                            }}>
+                                                {(p.reconciliation_status || 'MATCHED').toUpperCase()}
+                                            </span>
+                                        </td>
                                     </tr>
                                 ))}
+                                {filteredPayables.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).length === 0 && (
+                                    <tr>
+                                        <td colSpan={8} style={{ padding: '3.5rem 2rem', textAlign: 'center', color: '#94A3B8' }}>
+                                            <FileText size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
+                                            <p style={{ fontWeight: '700', fontSize: '0.95rem', color: '#64748B', margin: 0 }}>No supplier bills or payables recorded</p>
+                                            <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '0.25rem' }}>Purchases and vendor bills will appear here automatically</p>
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
