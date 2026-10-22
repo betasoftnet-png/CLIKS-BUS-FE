@@ -62,6 +62,7 @@ export default function StockItemDetailsModal({ isOpen, onClose, item, onEditSto
   };
 
   const resolvedName = item.name || item.product_name || 'PlayStation 5';
+  const resolvedSku = item.sku || item.product_id || item.item_code || item.barcode || 'N/A';
   const coordsList = [];
   if (item.rack_number && item.rack_number !== 'N/A') coordsList.push(`Rack ${item.rack_number.replace(/^Rack\s*/i, '')}`);
   if (item.shelf_number && item.shelf_number !== 'N/A') coordsList.push(`Shelf ${item.shelf_number.replace(/^Shelf\s*/i, '')}`);
