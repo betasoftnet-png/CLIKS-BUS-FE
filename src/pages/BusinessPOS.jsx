@@ -177,6 +177,7 @@ const BusinessPOS = () => {
     // Panel Expand/Collapse State
     const [isCustomerSectionExpanded, setIsCustomerSectionExpanded] = useState(true);
     const [isTotalsSectionExpanded, setIsTotalsSectionExpanded] = useState(true);
+    const [isGstBreakdownExpanded, setIsGstBreakdownExpanded] = useState(false);
 
     // Hold Cart State
     const [heldCarts, setHeldCarts] = useState(() => initialPosSession?.heldCarts || []);
@@ -2384,8 +2385,8 @@ const BusinessPOS = () => {
                             </div>
                             <div>
                                 <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>POS System</h1>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                                    {/* Showroom Branch Indicator or Switcher (No User ID displayed here) */}
+                                {/* <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+
                                     {(user?.is_sub_id && (user?.branch_name || user?.branchName)) ? (
                                         <span style={{ fontSize: '0.74rem', color: '#065F46', background: '#D1FAE5', border: '1px solid #6EE7B7', padding: '1px 8px', borderRadius: '6px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
                                             <Building size={12} className="text-emerald-600" />
@@ -2413,7 +2414,7 @@ const BusinessPOS = () => {
                                             {selectedPosBranch?.name || posBranches[0]?.name || user?.branch_name || user?.branchName || 'Main Branch'}
                                         </span>
                                     )}
-                                </div>
+                                </div> */}
                             </div>
                         </div>
 
@@ -2449,9 +2450,8 @@ const BusinessPOS = () => {
                                 <div 
                                     style={{ 
                                         display: 'flex', 
-                                        flexDirection: 'column', 
                                         alignItems: 'center', 
-                                        justifyContent: 'center', 
+                                        gap: '0.65rem', 
                                         background: '#ECFDF5', 
                                         border: '1px solid #A7F3D0', 
                                         padding: '0.2rem 0.65rem', 
@@ -2463,8 +2463,15 @@ const BusinessPOS = () => {
                                     }} 
                                     title={`Today Orders: ${todaySummary.total_orders || 0} • Total Sales: ${formatCurrency(todaySummary.total_sales || 0)}`}
                                 >
-                                    <span style={{ fontSize: '0.52rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase', lineHeight: 1 }}>Today Orders</span>
-                                    <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#065F46', lineHeight: 1.2 }}>{todaySummary.total_orders || 0}</span>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                        <span style={{ fontSize: '0.52rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase', lineHeight: 1 }}>Today Orders</span>
+                                        <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#065F46', lineHeight: 1.2 }}>{todaySummary.total_orders || 0}</span>
+                                    </div>
+                                    <div style={{ width: '1px', height: '18px', background: '#A7F3D0' }} />
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                        <span style={{ fontSize: '0.52rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase', lineHeight: 1 }}>Total Sales</span>
+                                        <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#065F46', lineHeight: 1.2 }}>{formatCurrency(todaySummary.total_sales || 0)}</span>
+                                    </div>
                                 </div>
                             )}
 
@@ -3720,7 +3727,7 @@ const BusinessPOS = () => {
                                                     {cust.email && <span>Email: {cust.email}</span>}
                                                 </div>
                                                 {/* Customer Credit Held in Dropdown */}
-                                                {(() => {
+                                                {/* {(() => {
                                                     const custCredit = parseFloat(cust.credit_held ?? cust.outstanding_balance ?? cust.due_balance ?? 0);
                                                     const custStoreCredit = parseFloat(cust.store_credit ?? 0);
                                                     return (
@@ -3741,7 +3748,7 @@ const BusinessPOS = () => {
                                                             )}
                                                         </div>
                                                     );
-                                                })()}
+                                                })()} */}
                                             </div>
                                             {loyaltyEnabled && (
                                                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -3764,8 +3771,8 @@ const BusinessPOS = () => {
 
                     {/* Selected Customer Details Banner */}
                     {selectedCustomerObj && (
-                        <div style={{ marginTop: '0.6rem', padding: '0.65rem 0.85rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.8rem', flexWrap: 'wrap' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                        <div style={{ marginTop: '0.6rem', padding: '0.5rem 0.85rem', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.8rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
                                 <span style={{ fontWeight: '850', color: '#065F46', fontSize: '0.85rem' }}>
                                     Name: <strong>{selectedCustomerObj.name}</strong>
                                 </span>
@@ -3781,57 +3788,10 @@ const BusinessPOS = () => {
                                         </span>
                                     </>
                                 )}
-                                <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
-                                <span style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '0.1rem 0.45rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800', whiteSpace: 'nowrap' }}>
-                                    🏪 {selectedCustomerObj.branch_name || 'Main Showroom'}
-                                </span>
-
-                                {/* Outstanding Credit Held by this Customer */}
-                                {(() => {
-                                    const creditHeld = parseFloat(selectedCustomerObj.credit_held ?? selectedCustomerObj.outstanding_balance ?? selectedCustomerObj.due_balance ?? 0);
-                                    const storeCredit = parseFloat(selectedCustomerObj.store_credit ?? 0);
-                                    const creditLimit = parseFloat(selectedCustomerObj.credit_limit ?? 0);
-                                    return (
-                                        <>
-                                            <span style={{ color: '#A7F3D0', fontWeight: '400' }}>|</span>
-                                            {creditHeld > 0 ? (
-                                                <span style={{ background: '#FEF2F2', color: '#991B1B', border: '1.5px solid #F87171', padding: '0.12rem 0.5rem', borderRadius: '6px', fontSize: '0.76rem', fontWeight: '900', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '3px', boxShadow: '0 1px 3px rgba(239,68,68,0.1)' }}>
-                                                    💳 Credit Held: {formatCurrency(creditHeld)}
-                                                    {creditLimit > 0 && <span style={{ color: '#B91C1C', fontSize: '0.67rem', fontWeight: '700' }}>(Limit: {formatCurrency(creditLimit)})</span>}
-                                                </span>
-                                            ) : (
-                                                <span style={{ background: '#F8FAFC', color: '#334155', border: '1px solid #CBD5E1', padding: '0.12rem 0.5rem', borderRadius: '6px', fontSize: '0.74rem', fontWeight: '800', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                                    💳 Credit Held: {formatCurrency(0)}
-                                                </span>
-                                            )}
-                                            {storeCredit > 0 && (
-                                                <span style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1.5px solid #93C5FD', padding: '0.12rem 0.5rem', borderRadius: '6px', fontSize: '0.76rem', fontWeight: '900', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                                    🎁 Store Credit: {formatCurrency(storeCredit)}
-                                                </span>
-                                            )}
-                                        </>
-                                    );
-                                })()}
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
-                                {/* 1. Edit / Change Customer Icon Button */}
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (customerInputRef.current) {
-                                            customerInputRef.current.focus();
-                                            setIsCustomerDropdownOpen(true);
-                                        }
-                                    }}
-                                    style={{ border: 'none', background: '#DCFCE7', color: '#15803D', padding: '0.35rem', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease' }}
-                                    title="Edit / Change Customer"
-                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#BBF7D0'}
-                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#DCFCE7'}
-                                >
-                                    <Edit2 size={14} />
-                                </button>
 
-                                {/* 2. Remove Customer Icon Button */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                                {/* Remove Customer Button */}
                                 <button
                                     type="button"
                                     onClick={() => { setCustomerName(''); setCustomerEmail(''); setSelectedCustomerObj(null); }}
@@ -3843,7 +3803,7 @@ const BusinessPOS = () => {
                                     <Trash2 size={14} />
                                 </button>
 
-                                {/* 3. Order History Icon Button */}
+                                {/* Order History Button */}
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -4315,6 +4275,37 @@ const BusinessPOS = () => {
                                         </div>
                                     )}
 
+                                    {/* Selected Customer Credit Held / Outstanding Due */}
+                                    {selectedCustomerObj && (() => {
+                                        const creditHeld = parseFloat(selectedCustomerObj.credit_held ?? selectedCustomerObj.outstanding_balance ?? selectedCustomerObj.due_balance ?? 0);
+                                        const creditLimit = parseFloat(selectedCustomerObj.credit_limit ?? 0);
+                                        return (
+                                            <div style={{
+                                                background: creditHeld > 0 ? '#FEF2F2' : '#F8FAFC',
+                                                padding: '0.35rem 0.5rem',
+                                                borderRadius: '8px',
+                                                border: creditHeld > 0 ? '1px solid #FECACA' : '1px solid #E2E8F0',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center'
+                                            }}>
+                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', color: creditHeld > 0 ? '#991B1B' : '#475569', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                    <CreditCard size={10} color={creditHeld > 0 ? '#DC2626' : '#64748B'} /> Credit Held
+                                                </span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <span style={{ fontSize: '0.76rem', fontWeight: '900', color: creditHeld > 0 ? '#B91C1C' : '#0F172A' }}>
+                                                        {formatCurrency(creditHeld)}
+                                                    </span>
+                                                    {creditLimit > 0 && (
+                                                        <span style={{ fontSize: '0.58rem', color: '#94A3B8', fontWeight: '700' }}>
+                                                            (Limit: {formatCurrency(creditLimit)})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
                                     {/* Showroom-Specific Promotion */}
                                     {activePromosList.length > 0 && (
                                         <div style={{ background: '#F0FDF4', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #BBF7D0', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -4435,59 +4426,86 @@ const BusinessPOS = () => {
                                             </div>
                                         )}
 
-                                        {/* Calculated GST with 3 Types (CGST, SGST, IGST) breakdown */}
-                                        <div style={{ background: '#F8FAFC', borderRadius: '6px', border: '1px solid #E2E8F0', padding: '0.3rem 0.4rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                        {/* Total GST with Click-to-Expand CGST & SGST Breakdown */}
+                                        <div 
+                                            onClick={() => setIsGstBreakdownExpanded(prev => !prev)}
+                                            style={{ 
+                                                background: '#F8FAFC', 
+                                                borderRadius: '6px', 
+                                                border: '1px solid #E2E8F0', 
+                                                padding: '0.35rem 0.5rem', 
+                                                display: 'flex', 
+                                                flexDirection: 'column', 
+                                                gap: '0.2rem',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.15s ease'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#CBD5E1'}
+                                            onMouseLeave={(e) => e.currentTarget.style.borderColor = '#E2E8F0'}
+                                            title="Click to view/hide CGST and SGST breakdown"
+                                        >
+                                            {/* Top Summary Row: Total GST */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#475569' }}>GST Breakdown</span>
-                                                <div style={{ display: 'flex', gap: '2px', background: '#E2E8F0', padding: '1px', borderRadius: '4px' }}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setGstType('intra')}
-                                                        style={{ border: 'none', background: gstType === 'intra' ? '#10B981' : 'transparent', color: gstType === 'intra' ? '#FFFFFF' : '#64748B', borderRadius: '3px', padding: '1px 5px', fontSize: '0.6rem', fontWeight: '800', cursor: 'pointer' }}
-                                                        title="Intra-State (CGST 50% + SGST 50%)"
-                                                    >
-                                                        CGST+SGST
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setGstType('inter')}
-                                                        style={{ border: 'none', background: gstType === 'inter' ? '#10B981' : 'transparent', color: gstType === 'inter' ? '#FFFFFF' : '#64748B', borderRadius: '3px', padding: '1px 5px', fontSize: '0.6rem', fontWeight: '800', cursor: 'pointer' }}
-                                                        title="Inter-State (IGST 100%)"
-                                                    >
-                                                        IGST
-                                                    </button>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569' }}>Total GST</span>
+                                                    {isGstBreakdownExpanded ? <ChevronUp size={12} color="#64748B" /> : <ChevronDown size={12} color="#64748B" />}
                                                 </div>
+                                                <span style={{ fontSize: '0.74rem', fontWeight: '800', color: '#1E293B' }}>{formatCurrency(calculatedTax)}</span>
                                             </div>
-                                            {gstType === 'intra' ? (
-                                                <>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#64748B' }}>
-                                                        <span>CGST (Central Tax)</span>
-                                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax / 2)}</span>
+
+                                            {/* Expandable Breakdown for CGST, SGST, IGST */}
+                                            {isGstBreakdownExpanded && (
+                                                <div 
+                                                    onClick={(e) => e.stopPropagation()} 
+                                                    style={{ 
+                                                        borderTop: '1px dashed #CBD5E1', 
+                                                        paddingTop: '0.3rem', 
+                                                        marginTop: '0.15rem', 
+                                                        display: 'flex', 
+                                                        flexDirection: 'column', 
+                                                        gap: '0.2rem' 
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                                                        <span style={{ fontSize: '0.62rem', fontWeight: '750', color: '#64748B', textTransform: 'uppercase' }}>Tax Type</span>
+                                                        <div style={{ display: 'flex', gap: '2px', background: '#E2E8F0', padding: '1px', borderRadius: '4px' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setGstType('intra')}
+                                                                style={{ border: 'none', background: gstType === 'intra' ? '#10B981' : 'transparent', color: gstType === 'intra' ? '#FFFFFF' : '#64748B', borderRadius: '3px', padding: '1px 5px', fontSize: '0.58rem', fontWeight: '800', cursor: 'pointer' }}
+                                                                title="Intra-State (CGST 50% + SGST 50%)"
+                                                            >
+                                                                CGST+SGST
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setGstType('inter')}
+                                                                style={{ border: 'none', background: gstType === 'inter' ? '#10B981' : 'transparent', color: gstType === 'inter' ? '#FFFFFF' : '#64748B', borderRadius: '3px', padding: '1px 5px', fontSize: '0.58rem', fontWeight: '800', cursor: 'pointer' }}
+                                                                title="Inter-State (IGST 100%)"
+                                                            >
+                                                                IGST
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#64748B' }}>
-                                                        <span>SGST (State Tax)</span>
-                                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax / 2)}</span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem', color: '#94A3B8' }}>
-                                                        <span>IGST (Integrated)</span>
-                                                        <span>{formatCurrency(0)}</span>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem', color: '#94A3B8' }}>
-                                                        <span>CGST (Central Tax)</span>
-                                                        <span>{formatCurrency(0)}</span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem', color: '#94A3B8' }}>
-                                                        <span>SGST (State Tax)</span>
-                                                        <span>{formatCurrency(0)}</span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#64748B' }}>
-                                                        <span>IGST (Integrated)</span>
-                                                        <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax)}</span>
-                                                    </div>
-                                                </>
+
+                                                    {gstType === 'intra' ? (
+                                                        <>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#64748B' }}>
+                                                                <span>CGST (Central Tax)</span>
+                                                                <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax / 2)}</span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#64748B' }}>
+                                                                <span>SGST (State Tax)</span>
+                                                                <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax / 2)}</span>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#64748B' }}>
+                                                            <span>IGST (Integrated Tax)</span>
+                                                            <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax)}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
 
