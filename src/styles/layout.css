@@ -210,3 +210,16 @@
         opacity: 1;
     }
 }
+
+.pos-header-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+    .pos-header-top-row {
+        flex-wrap: wrap !important;
+    }
+}

@@ -2377,17 +2377,17 @@ const BusinessPOS = () => {
 
                 {/* Header: Search & Summary Widget */}
                 <div style={{ padding: '1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: '1rem', flexShrink: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)' }}>
+                    <div className="pos-header-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flexShrink: 0 }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)', flexShrink: 0 }}>
                                 <ShoppingBag size={20} />
                             </div>
                             <div>
-                                <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em' }}>POS System</h1>
+                                <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>POS System</h1>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                                     {/* Showroom Branch Indicator or Switcher (No User ID displayed here) */}
                                     {(user?.is_sub_id && (user?.branch_name || user?.branchName)) ? (
-                                        <span style={{ fontSize: '0.74rem', color: '#065F46', background: '#D1FAE5', border: '1px solid #6EE7B7', padding: '1px 8px', borderRadius: '6px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <span style={{ fontSize: '0.74rem', color: '#065F46', background: '#D1FAE5', border: '1px solid #6EE7B7', padding: '1px 8px', borderRadius: '6px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
                                             <Building size={12} className="text-emerald-600" />
                                             {user?.branch_name || user?.branchName}
                                         </span>
@@ -2408,7 +2408,7 @@ const BusinessPOS = () => {
                                             </select>
                                         </div>
                                     ) : (
-                                        <span style={{ fontSize: '0.74rem', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 8px', borderRadius: '6px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <span style={{ fontSize: '0.74rem', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 8px', borderRadius: '6px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
                                             <Building size={12} className="text-emerald-600" />
                                             {selectedPosBranch?.name || posBranches[0]?.name || user?.branch_name || user?.branchName || 'Main Branch'}
                                         </span>
@@ -2417,24 +2417,27 @@ const BusinessPOS = () => {
                             </div>
                         </div>
 
-                        {/* Simple Summary Badge & Add Product CTA */}
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {/* Action buttons on the same row */}
+                        <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexShrink: 0 }}>
                             <button
                                 onClick={() => setIsAddProductModalOpen(true)}
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '0.4rem',
+                                    gap: '0.35rem',
                                     background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
                                     color: 'white',
                                     border: 'none',
-                                    padding: '0.5rem 0.85rem',
+                                    height: '36px',
+                                    padding: '0 0.8rem',
                                     borderRadius: '10px',
                                     fontWeight: '800',
                                     fontSize: '0.78rem',
                                     boxShadow: '0 4px 10px rgba(16,185,129,0.15)',
                                     cursor: 'pointer',
-                                    transition: 'transform 0.15s ease'
+                                    transition: 'transform 0.15s ease',
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0
                                 }}
                                 onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.96)'}
                                 onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
@@ -2443,15 +2446,25 @@ const BusinessPOS = () => {
                             </button>
 
                             {todaySummary && (
-                                <div style={{ display: 'flex', gap: '1.5rem', background: '#ECFDF5', border: '1px solid #D1FAE5', padding: '0.5rem 1rem', borderRadius: '12px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase' }}>Today Orders</span>
-                                        <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#065F46' }}>{todaySummary.total_orders || 0}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ fontSize: '0.6rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase' }}>Total Sales</span>
-                                        <span style={{ fontSize: '1.1rem', fontWeight: '900', color: '#065F46' }}>{formatCurrency(todaySummary.total_sales || 0)}</span>
-                                    </div>
+                                <div 
+                                    style={{ 
+                                        display: 'flex', 
+                                        flexDirection: 'column', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center', 
+                                        background: '#ECFDF5', 
+                                        border: '1px solid #A7F3D0', 
+                                        padding: '0.2rem 0.65rem', 
+                                        borderRadius: '10px', 
+                                        height: '36px', 
+                                        boxSizing: 'border-box',
+                                        flexShrink: 0,
+                                        cursor: 'default'
+                                    }} 
+                                    title={`Today Orders: ${todaySummary.total_orders || 0} • Total Sales: ${formatCurrency(todaySummary.total_sales || 0)}`}
+                                >
+                                    <span style={{ fontSize: '0.52rem', fontWeight: '800', color: '#047857', textTransform: 'uppercase', lineHeight: 1 }}>Today Orders</span>
+                                    <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#065F46', lineHeight: 1.2 }}>{todaySummary.total_orders || 0}</span>
                                 </div>
                             )}
 
@@ -2511,26 +2524,27 @@ const BusinessPOS = () => {
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '0.4rem',
+                                    gap: '0.35rem',
                                     background: 'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)',
                                     color: 'white',
                                     border: 'none',
-                                    padding: '0.5rem 0.85rem',
+                                    height: '36px',
+                                    padding: '0 0.75rem',
                                     borderRadius: '10px',
                                     fontWeight: '800',
                                     fontSize: '0.78rem',
                                     boxShadow: '0 4px 10px rgba(79, 70, 229, 0.25)',
                                     cursor: 'pointer',
-                                    transition: 'transform 0.15s ease'
+                                    transition: 'transform 0.15s ease',
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0
                                 }}
                                 onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.96)'}
                                 onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                title="Display Full Screen Product Catalog and Self-Order Kiosk for Customers in front of shop"
+                                title="Open In-Store Customer Self-Order Kiosk"
                             >
-                                <Monitor size={15} strokeWidth={2.5} /> Customer View
+                                <Monitor size={15} strokeWidth={2.5} /> Kiosk
                             </button>
-
-
                         </div>
                     </div>
 
