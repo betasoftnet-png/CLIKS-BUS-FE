@@ -2455,50 +2455,52 @@ const BusinessPOS = () => {
                                 </div>
                             )}
 
+                            {/* POS History Icon Button */}
                             <button
                                 onClick={() => setShowHistoryModal(true)}
+                                title="POS Order History"
                                 style={{
-                                    display: 'flex',
+                                    display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: '0.4rem',
+                                    justifyContent: 'center',
+                                    width: '36px',
+                                    height: '36px',
                                     background: '#F8FAFC',
                                     color: '#64748B',
                                     border: '1px solid #E2E8F0',
-                                    padding: '0.5rem 0.85rem',
                                     borderRadius: '10px',
-                                    fontWeight: '800',
-                                    fontSize: '0.78rem',
                                     cursor: 'pointer',
-                                    transition: 'all 0.2s'
+                                    transition: 'all 0.2s',
+                                    flexShrink: 0
                                 }}
                                 onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#0F172A'; }}
                                 onMouseLeave={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#64748B'; }}
                             >
-                                <History size={15} strokeWidth={2.5} /> History
+                                <History size={17} strokeWidth={2.2} />
                             </button>
 
-                            {/* POS Settings Button (Print, Credit, Kiosk, etc.) */}
+                            {/* POS Settings Icon Button (Print, Credit, Kiosk, etc.) */}
                             <button
                                 onClick={() => setShowPosSettingsModal(true)}
+                                title="POS Settings: Print, Credit, Customer View, Kiosk PIN"
                                 style={{
-                                    display: 'flex',
+                                    display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: '0.4rem',
+                                    justifyContent: 'center',
+                                    width: '36px',
+                                    height: '36px',
                                     background: '#F8FAFC',
                                     color: '#334155',
                                     border: '1px solid #CBD5E1',
-                                    padding: '0.5rem 0.85rem',
                                     borderRadius: '10px',
-                                    fontWeight: '800',
-                                    fontSize: '0.78rem',
                                     cursor: 'pointer',
-                                    transition: 'all 0.2s'
+                                    transition: 'all 0.2s',
+                                    flexShrink: 0
                                 }}
                                 onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#0F172A'; }}
                                 onMouseLeave={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#334155'; }}
-                                title="POS Settings: Print, Credit, Customer View, Kiosk PIN"
                             >
-                                <Settings size={15} strokeWidth={2.5} /> Settings
+                                <Settings size={17} strokeWidth={2.2} />
                             </button>
 
                             {/* Customer View / Self-Order Kiosk Mode Button */}
