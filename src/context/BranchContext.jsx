@@ -112,8 +112,11 @@ export const BranchProvider = ({ children }) => {
         return isNaN(parsed) ? null : parsed;
     }, [selectedBranchId]);
 
+    const hasShowrooms = Array.isArray(branches) && branches.length > 0;
+
     const value = useMemo(() => ({
         branches,
+        hasShowrooms,
         isLoading,
         isSubId,
         isLocked: isSubId && Boolean(userBranchId),
@@ -123,7 +126,7 @@ export const BranchProvider = ({ children }) => {
         activeBranchName: selectedBranch?.name || 'All Showrooms',
         switchBranch,
         refreshBranches: fetchBranches
-    }), [branches, isLoading, isSubId, userBranchId, selectedBranchId, activeBranchId, selectedBranch, switchBranch, fetchBranches]);
+    }), [branches, hasShowrooms, isLoading, isSubId, userBranchId, selectedBranchId, activeBranchId, selectedBranch, switchBranch, fetchBranches]);
 
     return (
         <BranchContext.Provider value={value}>
@@ -138,6 +141,7 @@ export const useBranch = () => {
         // Fallback gracefully if used outside provider
         return {
             branches: [],
+            hasShowrooms: false,
             isLoading: false,
             isSubId: false,
             isLocked: false,

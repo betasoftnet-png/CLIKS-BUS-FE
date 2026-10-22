@@ -32,6 +32,12 @@ export const BranchSelector = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isOpen]);
 
+    // Only display topbar showroom selection if the business owner actually has showroom(s)
+    const hasShowrooms = Array.isArray(branches) && branches.length > 0;
+    if (!hasShowrooms) {
+        return null;
+    }
+
     // If Sub-ID showroom manager (strictly locked to assigned branch)
     if (isLocked) {
         return (
