@@ -46,7 +46,8 @@ import {
     Bell,
     KeyRound,
     ShieldCheck,
-    Package
+    Package,
+    ShoppingCart
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -598,6 +599,7 @@ const BusinessPOS = () => {
     const [kioskCustomerName, setKioskCustomerName] = useState('');
     const [kioskCustomerPhone, setKioskCustomerPhone] = useState('');
     const [kioskOrderSuccessInfo, setKioskOrderSuccessInfo] = useState(null);
+    const [mobileActiveTab, setMobileActiveTab] = useState('catalog'); // 'catalog' | 'cart'
 
     const playKioskOrderChime = () => {
         try {
@@ -686,7 +688,7 @@ const BusinessPOS = () => {
                     const newQty = item.quantity + delta;
                     if (newQty <= 0) return null;
                     if (!item.isUnlimited && delta > 0) {
-                        const originalProd = products.find(p => p.id === itemId);
+                        const originalProd = inventory.find(p => p.id === itemId);
                         if (originalProd && newQty > (parseFloat(originalProd.quantity) || 0)) {
                             alert('Cannot add more than available store stock!');
                             return item;
@@ -2343,14 +2345,39 @@ const BusinessPOS = () => {
     const displayEmail = user?.email || user?.username || user?.name || 'Admin';
 
     return (
-        <div style={{ display: 'flex', height: '100%', gap: '1rem', padding: '1rem', background: '#F1F5F9', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
+        <div className="pos-billing-layout">
+
+            {/* Mobile View Switcher Tab Bar (Visible on mobile/tablet <= 992px) */}
+            <div className="pos-mobile-nav">
+                <button
+                    type="button"
+                    className={`pos-mobile-nav-btn ${mobileActiveTab === 'catalog' ? 'active' : ''}`}
+                    onClick={() => setMobileActiveTab('catalog')}
+                >
+                    <ShoppingBag size={16} />
+                    <span>Catalog ({filteredProducts.length})</span>
+                </button>
+                <button
+                    type="button"
+                    className={`pos-mobile-nav-btn ${mobileActiveTab === 'cart' ? 'active' : ''}`}
+                    onClick={() => setMobileActiveTab('cart')}
+                >
+                    <Receipt size={16} />
+                    <span>Cart ({cart.reduce((s, it) => s + (it.quantity || 1), 0)})</span>
+                    {cart.length > 0 && (
+                        <span style={{ background: mobileActiveTab === 'cart' ? 'rgba(0,0,0,0.18)' : '#ECFDF5', color: mobileActiveTab === 'cart' ? '#FFF' : '#047857', padding: '1px 6px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '850', marginLeft: '2px' }}>
+                            {formatCurrency(finalTotal)}
+                        </span>
+                    )}
+                </button>
+            </div>
 
             {/* Left Side: Product Catalog */}
-            <div style={{ flex: '0 0 calc(60% - 0.5rem)', width: 'calc(60% - 0.5rem)', minWidth: 0, background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+            <div className={`pos-left-catalog ${mobileActiveTab === 'cart' ? 'pos-mobile-hidden' : ''}`}>
 
                 {/* Header: Search & Summary Widget */}
                 <div style={{ padding: '1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', flexDirection: 'column', gap: '1rem', flexShrink: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)' }}>
                                 <ShoppingBag size={20} />
@@ -2391,7 +2418,7 @@ const BusinessPOS = () => {
                         </div>
 
                         {/* Simple Summary Badge & Add Product CTA */}
-                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                             <button
                                 onClick={() => setIsAddProductModalOpen(true)}
                                 style={{
@@ -2506,7 +2533,7 @@ const BusinessPOS = () => {
                     </div>
 
                     {/* Top Filtering Row (Warehouse, Search, Categories) */}
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                         {/* Warehouse Filter Dropdown (With Multi-Select Checkboxes) */}
                         {!isStarterPlan && (
                             <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={warehouseDropdownRef}>
@@ -2798,7 +2825,7 @@ const BusinessPOS = () => {
                         </div>
 
                         {/* Search Box */}
-                        <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
+                        <div style={{ position: 'relative', flex: '1 1 180px', minWidth: '140px' }}>
                             <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input
                                 type="text"
@@ -3498,18 +3525,42 @@ const BusinessPOS = () => {
             </div>
 
             {/* Right Side: Live Cart Workspace / Billing Box */}
-            <div style={{ flex: '0 0 calc(40% - 0.5rem)', width: 'calc(40% - 0.5rem)', minWidth: 0, background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+            <div className={`pos-right-cart ${mobileActiveTab === 'catalog' ? 'pos-mobile-hidden' : ''}`}>
 
                 {/* Customer Attachment Row */}
                 <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid #F1F5F9', background: '#FFF', flexShrink: 0 }}>
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                        {/* Mobile Back to Catalog Button */}
+                        <button
+                            type="button"
+                            className="pos-mobile-back-btn"
+                            onClick={() => setMobileActiveTab('catalog')}
+                            style={{
+                                alignItems: 'center',
+                                gap: '4px',
+                                background: '#ECFDF5',
+                                border: '1px solid #A7F3D0',
+                                borderRadius: '8px',
+                                padding: '0.25rem 0.6rem',
+                                color: '#047857',
+                                fontSize: '0.74rem',
+                                fontWeight: '800',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0
+                            }}
+                            title="Back to Product Catalog"
+                        >
+                            ← Catalog
+                        </button>
+
                         {/* Customer Info Label */}
                         <span style={{ fontSize: '0.75rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0 }}>
                             Customer Info
                         </span>
 
                         {/* Search & Actions Bar in Same Line */}
-                        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0.35rem 0.55rem' }}>
+                        <div style={{ flex: '1 1 200px', minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0.35rem 0.55rem' }}>
                             <User size={15} color="#64748B" style={{ flexShrink: 0 }} />
                             <input
                                 ref={customerInputRef}
@@ -4688,6 +4739,46 @@ const BusinessPOS = () => {
                     )}
                 </div>
             </div>
+
+            {/* Mobile View Floating Cart Bar (When in catalog tab on mobile with items in cart) */}
+            {mobileActiveTab === 'catalog' && cart.length > 0 && (
+                <div 
+                    className="pos-mobile-floating-bar" 
+                    onClick={() => setMobileActiveTab('cart')}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <ShoppingBag size={17} color="#FFF" />
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600' }}>
+                                {cart.reduce((s, it) => s + (it.quantity || 1), 0)} items in cart
+                            </div>
+                            <div style={{ fontSize: '0.95rem', fontWeight: '850', color: '#FFFFFF' }}>
+                                {formatCurrency(finalTotal)}
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        style={{
+                            background: '#10B981',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            padding: '0.45rem 0.85rem',
+                            borderRadius: '8px',
+                            fontWeight: '800',
+                            fontSize: '0.8rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        View Cart & Pay <ChevronRight size={15} />
+                    </button>
+                </div>
+            )}
 
             {/* SUCCESS RECEIPT POPUP MODAL */}
             {showReceiptModal && lastOrderData && (
@@ -6558,7 +6649,7 @@ const BusinessPOS = () => {
 
                                 {/* Category Pills Horizontal Scroller */}
                                 <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
-                                    {['ALL', ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))].map(cat => {
+                                    {['ALL', ...Array.from(new Set(inventory.map(p => p.category).filter(Boolean)))].map(cat => {
                                         const isSel = kioskCategoryFilter === cat;
                                         return (
                                             <button
@@ -6587,7 +6678,7 @@ const BusinessPOS = () => {
                             {/* Product Cards Grid */}
                             <div style={{ flex: 1, padding: '1.25rem 1.5rem', overflowY: 'auto' }}>
                                 {(() => {
-                                    const filtered = products.filter(p => {
+                                    const filtered = inventory.filter(p => {
                                         const matchesCat = kioskCategoryFilter === 'ALL' || String(p.category || '').toLowerCase() === String(kioskCategoryFilter).toLowerCase();
                                         const q = kioskSearchQuery.toLowerCase().trim();
                                         const matchesQ = !q || (p.name && p.name.toLowerCase().includes(q)) || (p.sku && p.sku.toLowerCase().includes(q)) || (p.category && p.category.toLowerCase().includes(q));
