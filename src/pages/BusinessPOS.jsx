@@ -1593,26 +1593,18 @@ const BusinessPOS = () => {
         }
     };
 
-    // Filter products with GST > 0 for POS catalog display (0% GST items are excluded)
-    const validGstProducts = React.useMemo(() => {
-        return inventory.filter(p => {
-            const gstRate = parseFloat(p.tax_percentage ?? p.rawProduct?.tax_percentage ?? p.rawProduct?.gst_percentage ?? p.taxRate ?? p.gst_percentage ?? p.tax_rate ?? 0) || 0;
-            return gstRate > 0;
-        });
-    }, [inventory]);
-
     // Derived Categories
-    const categories = React.useMemo(() => ['All', ...new Set(validGstProducts.map(i => i.category).filter(Boolean))], [validGstProducts]);
+    const categories = React.useMemo(() => ['All', ...new Set(inventory.map(i => i.category).filter(Boolean))], [inventory]);
 
     const categoryCounts = React.useMemo(() => {
-        const counts = { All: validGstProducts.length };
-        validGstProducts.forEach(i => {
+        const counts = { All: inventory.length };
+        inventory.forEach(i => {
             if (i.category) {
                 counts[i.category] = (counts[i.category] || 0) + 1;
             }
         });
         return counts;
-    }, [validGstProducts]);
+    }, [inventory]);
 
     const filteredCategories = React.useMemo(() => {
         if (!categorySearchQuery.trim()) return categories;
@@ -1624,7 +1616,7 @@ const BusinessPOS = () => {
     const filteredProducts = React.useMemo(() => {
         const lowerSearch = searchTerm.toLowerCase().trim();
 
-        const filtered = validGstProducts.filter(prod => {
+        const filtered = inventory.filter(prod => {
             // Warehouse matching logic (Multi-select)
             let matchesWarehouse = true;
             if (selectedWarehouseIds.length > 0) {
@@ -1715,7 +1707,7 @@ const BusinessPOS = () => {
         }
 
         return filtered;
-    }, [validGstProducts, searchTerm, searchTarget, selectedWarehouseIds, dbWarehouses, selectedCategory, alphabetLetterFilter, productSort]);
+    }, [inventory, searchTerm, searchTarget, selectedWarehouseIds, dbWarehouses, selectedCategory, alphabetLetterFilter, productSort]);
 
     // Handlers
     const isDecimalUnit = (unit) => {
@@ -3512,9 +3504,20 @@ const BusinessPOS = () => {
                                                             <span style={{ fontSize: cardPriceFontSz, fontWeight: '900', color: '#0F172A', lineHeight: 1.1, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
                                                                 {cardPriceStr} <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '700' }}>/</span>
                                                             </span>
-                                                            <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
-                                                                {prod.unit || 'PCS'} <span style={{ color: '#94A3B8', margin: '0 4px' }}>•</span> {prod.tax_percentage !== undefined ? prod.tax_percentage : 0}% GST
-                                                            </span>
+                                                            {(() => {
+                                                                const cardGstRate = parseFloat(prod.tax_percentage ?? prod.rawProduct?.tax_percentage ?? prod.rawProduct?.gst_percentage ?? prod.taxRate ?? prod.gst_percentage ?? prod.tax_rate ?? 0) || 0;
+                                                                return (
+                                                                    <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
+                                                                        {prod.unit || 'PCS'}
+                                                                        {cardGstRate > 0 && (
+                                                                            <>
+                                                                                <span style={{ color: '#94A3B8', margin: '0 4px' }}>•</span>
+                                                                                {cardGstRate}% GST
+                                                                            </>
+                                                                        )}
+                                                                    </span>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     );
                                                 })()}
@@ -6673,7 +6676,7 @@ const BusinessPOS = () => {
 
                                 {/* Category Pills Horizontal Scroller */}
                                 <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
-                                    {['ALL', ...Array.from(new Set(validGstProducts.map(p => p.category).filter(Boolean)))].map(cat => {
+                                    {['ALL', ...Array.from(new Set(inventory.map(p => p.category).filter(Boolean)))].map(cat => {
                                         const isSel = kioskCategoryFilter === cat;
                                         return (
                                             <button
@@ -6702,7 +6705,7 @@ const BusinessPOS = () => {
                             {/* Product Cards Grid */}
                             <div style={{ flex: 1, padding: '1.25rem 1.5rem', overflowY: 'auto' }}>
                                 {(() => {
-                                    const filtered = validGstProducts.filter(p => {
+                                    const filtered = inventory.filter(p => {
                                         const matchesCat = kioskCategoryFilter === 'ALL' || String(p.category || '').toLowerCase() === String(kioskCategoryFilter).toLowerCase();
                                         const q = kioskSearchQuery.toLowerCase().trim();
                                         const matchesQ = !q || (p.name && p.name.toLowerCase().includes(q)) || (p.sku && p.sku.toLowerCase().includes(q)) || (p.category && p.category.toLowerCase().includes(q));
