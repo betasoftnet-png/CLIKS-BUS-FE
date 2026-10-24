@@ -55,8 +55,9 @@ import {
     Clock,
     RotateCcw,
     Utensils,
-    Coffee,
-    CheckCircle2
+    CheckCircle2,
+    Maximize,
+    Minimize
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -637,7 +638,63 @@ const BusinessPOS = () => {
     // Modal & Kiosk Display States
     const [showPosSettingsModal, setShowPosSettingsModal] = useState(false);
     const [posSettingsTab, setPosSettingsTab] = useState('print'); // 'print' | 'credit' | 'kiosk'
-    const [isCustomerViewActive, setIsCustomerViewActive] = useState(false);
+    const [isCustomerViewActive, setIsCustomerViewActive] = useState(() => {
+        try {
+            return sessionStorage.getItem('pos_kiosk_active') === 'true';
+        } catch (e) {
+            return false;
+        }
+    });
+    const [isKioskFullscreen, setIsKioskFullscreen] = useState(Boolean(typeof document !== 'undefined' && (document.fullscreenElement || document.webkitFullscreenElement)));
+
+    const handleEnterKioskMode = () => {
+        setIsCustomerViewActive(true);
+        try {
+            sessionStorage.setItem('pos_kiosk_active', 'true');
+        } catch (e) {}
+        setShowPosSettingsModal(false);
+        if (typeof document !== 'undefined') {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen();
+            }
+        }
+    };
+
+    const handleExitKioskMode = () => {
+        setIsCustomerViewActive(false);
+        try {
+            sessionStorage.removeItem('pos_kiosk_active');
+        } catch (e) {}
+        if (typeof document !== 'undefined') {
+            if (document.fullscreenElement && document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+        }
+        setKioskPinUnlockModalOpen(false);
+        setKioskPinInput('');
+        setKioskPinError('');
+    };
+
+    const toggleKioskFullscreen = () => {
+        if (typeof document === 'undefined') return;
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+        }
+    };
     const [kioskPinUnlockModalOpen, setKioskPinUnlockModalOpen] = useState(false);
     const [kioskPinInput, setKioskPinInput] = useState('');
     const [kioskPinError, setKioskPinError] = useState('');
@@ -696,6 +753,70 @@ const BusinessPOS = () => {
             clearInterval(interval);
         };
     }, [isCustomerViewActive, kioskConfig.idleTimeoutSeconds]);
+
+    // Kiosk Security Lockdown: Browser History Trap, DevTools & Shortcut Block, Context Menu Block
+    useEffect(() => {
+        if (!isCustomerViewActive) return;
+
+        // Push state so back button / swipe back doesn't exit kiosk
+        try {
+            window.history.pushState({ kiosk: true }, '', window.location.href);
+        } catch (e) {}
+
+        const handlePopState = () => {
+            try {
+                window.history.pushState({ kiosk: true }, '', window.location.href);
+            } catch (e) {}
+            // Open PIN unlock modal if customer tries to navigate back
+            setKioskPinUnlockModalOpen(true);
+        };
+
+        const handleContextMenu = (e) => {
+            e.preventDefault();
+            return false;
+        };
+
+        const handleSecurityKeyDown = (e) => {
+            // Block DevTools shortcuts: F12, Ctrl+Shift+I/J/C, Cmd+Option+I/J/C, Ctrl+U (source)
+            const isInspect = (
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) ||
+                (e.metaKey && e.altKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) ||
+                (e.ctrlKey && (e.key === 'u' || e.key === 'U')) ||
+                (e.metaKey && (e.key === 'u' || e.key === 'U'))
+            );
+            if (isInspect) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+
+            // Block browser navigation keys: Alt+Left (Back), Alt+Right (Forward)
+            if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        };
+
+        const handleFullscreenChange = () => {
+            setIsKioskFullscreen(Boolean(document.fullscreenElement || document.webkitFullscreenElement));
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        window.addEventListener('contextmenu', handleContextMenu);
+        window.addEventListener('keydown', handleSecurityKeyDown, true);
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+            window.removeEventListener('contextmenu', handleContextMenu);
+            window.removeEventListener('keydown', handleSecurityKeyDown, true);
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+        };
+    }, [isCustomerViewActive]);
 
     // Order Success Auto-Reset Countdown
     useEffect(() => {
@@ -921,10 +1042,7 @@ const BusinessPOS = () => {
     const handleKioskPinUnlockSubmit = () => {
         const correctPin = String(posKioskPin || '1234').trim();
         if (String(kioskPinInput).trim() === correctPin) {
-            setIsCustomerViewActive(false);
-            setKioskPinUnlockModalOpen(false);
-            setKioskPinInput('');
-            setKioskPinError('');
+            handleExitKioskMode();
         } else {
             setKioskPinError('Incorrect PIN code. Please enter the correct staff security PIN.');
         }
@@ -2698,7 +2816,7 @@ const BusinessPOS = () => {
                             {/* Customer View / Self-Order Kiosk Mode Button */}
                             <button
                                 onClick={() => {
-                                    setIsCustomerViewActive(true);
+                                    handleEnterKioskMode();
                                 }}
                                 style={{
                                     display: 'flex',
@@ -7280,8 +7398,7 @@ const BusinessPOS = () => {
                                             type="button"
                                             disabled={!posKioskEnabled}
                                             onClick={() => {
-                                                setShowPosSettingsModal(false);
-                                                setIsCustomerViewActive(true);
+                                                handleEnterKioskMode();
                                             }}
                                             style={{
                                                 width: '100%',
@@ -7387,7 +7504,10 @@ const BusinessPOS = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     overflow: 'hidden',
-                    fontFamily: 'inherit'
+                    fontFamily: 'inherit',
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    touchAction: 'manipulation'
                 }}>
                     {/* Kiosk Top Header */}
                     <div style={{
@@ -7427,33 +7547,63 @@ const BusinessPOS = () => {
                             </div>
                         </div>
 
-                        {/* Discreet Staff Exit Button */}
-                        <button
-                            onClick={() => {
-                                setKioskPinInput('');
-                                setKioskPinError('');
-                                setKioskPinUnlockModalOpen(true);
-                            }}
-                            style={{
-                                background: 'rgba(255, 255, 255, 0.1)',
-                                border: '1px solid rgba(255, 255, 255, 0.22)',
-                                color: '#F1F5F9',
-                                padding: '0.45rem 0.85rem',
-                                borderRadius: '8px',
-                                fontSize: '0.75rem',
-                                fontWeight: '750',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                transition: 'all 0.15s ease'
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
-                        >
-                            <Lock size={13} />
-                            <span>Staff Exit (PIN Locked)</span>
-                        </button>
+                        {/* Header Action Buttons (Fullscreen + Discreet Staff Exit) */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            {/* Fullscreen Toggle Button */}
+                            <button
+                                type="button"
+                                onClick={toggleKioskFullscreen}
+                                title={isKioskFullscreen ? "Exit Fullscreen" : "Enter Fullscreen Mode"}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    border: '1px solid rgba(255, 255, 255, 0.22)',
+                                    color: '#F1F5F9',
+                                    padding: '0.45rem 0.75rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '750',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
+                            >
+                                {isKioskFullscreen ? <Minimize size={13} /> : <Maximize size={13} />}
+                                <span>{isKioskFullscreen ? 'Windowed' : 'Fullscreen'}</span>
+                            </button>
+
+                            {/* Discreet Staff Exit Button */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setKioskPinInput('');
+                                    setKioskPinError('');
+                                    setKioskPinUnlockModalOpen(true);
+                                }}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    border: '1px solid rgba(255, 255, 255, 0.22)',
+                                    color: '#F1F5F9',
+                                    padding: '0.45rem 0.85rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '750',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
+                            >
+                                <Lock size={13} />
+                                <span>Staff Exit (PIN Locked)</span>
+                            </button>
+                        </div>
                     </div>
 
                     {/* Kiosk Main Content: Product Catalog (Left) + Order Cart (Right) */}
