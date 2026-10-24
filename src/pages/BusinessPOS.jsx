@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCurrency, useAuth, useBranch } from '../context';
+import { QRCodeSVG } from 'qrcode.react';
 import {
     Search,
     Plus,
@@ -47,7 +48,15 @@ import {
     KeyRound,
     ShieldCheck,
     Package,
-    ShoppingCart
+    ShoppingCart,
+    Palette,
+    LayoutGrid,
+    QrCode,
+    Clock,
+    RotateCcw,
+    Utensils,
+    Coffee,
+    CheckCircle2
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -586,6 +595,44 @@ const BusinessPOS = () => {
         ? localPosAllowCredit
         : Boolean(loyaltyProgramSettings?.pos_allow_credit ?? loyaltyProgramSettings?.posAllowCredit ?? activeConfig?.pos_allow_credit ?? true);
 
+    // Kiosk Customization & Configuration
+    const defaultKioskConfig = useMemo(() => ({
+        brandName: '',
+        welcomeTitle: 'In-Store Self-Order Kiosk',
+        welcomeSubtitle: 'Browse our collection, add items to cart, and place your order directly',
+        bannerEmoji: '🛍️',
+        headerBgColor: '#0F172A',
+        accentColor: '#2563EB',
+        gridColumns: 'standard', // 'compact' | 'standard' | 'large'
+        showImages: true,
+        showGstBadge: false,
+        showOutOfStock: false,
+        showCategories: true,
+        orderTypeSelection: true, // Dine-in vs Takeaway
+        requirePhone: false,
+        requireName: false,
+        askTableToken: true,
+        allowNotes: true,
+        paymentMode: 'counter', // 'counter' | 'upi' | 'both'
+        upiId: '',
+        thankYouMsg: 'Please share your Order Token at the billing counter to collect and pay for your items.',
+        autoResetSeconds: 8,
+        idleTimeoutSeconds: 60
+    }), []);
+
+    const [localKioskConfig, setLocalKioskConfig] = useState(null);
+
+    const kioskConfig = useMemo(() => {
+        const raw = localKioskConfig ?? loyaltyProgramSettings?.pos_kiosk_config ?? loyaltyProgramSettings?.posKioskConfig ?? activeConfig?.pos_kiosk_config ?? activeConfig?.posKioskConfig;
+        let parsed = {};
+        if (typeof raw === 'string') {
+            try { parsed = JSON.parse(raw); } catch (e) { parsed = {}; }
+        } else if (raw && typeof raw === 'object') {
+            parsed = raw;
+        }
+        return { ...defaultKioskConfig, ...parsed };
+    }, [localKioskConfig, loyaltyProgramSettings, activeConfig, defaultKioskConfig]);
+
     // Modal & Kiosk Display States
     const [showPosSettingsModal, setShowPosSettingsModal] = useState(false);
     const [posSettingsTab, setPosSettingsTab] = useState('print'); // 'print' | 'credit' | 'kiosk'
@@ -599,8 +646,84 @@ const BusinessPOS = () => {
     const [kioskCart, setKioskCart] = useState([]);
     const [kioskCustomerName, setKioskCustomerName] = useState('');
     const [kioskCustomerPhone, setKioskCustomerPhone] = useState('');
+    const [kioskOrderType, setKioskOrderType] = useState('dine_in'); // 'dine_in' | 'takeaway'
+    const [kioskTableToken, setKioskTableToken] = useState('');
+    const [kioskOrderNotes, setKioskOrderNotes] = useState('');
     const [kioskOrderSuccessInfo, setKioskOrderSuccessInfo] = useState(null);
     const [mobileActiveTab, setMobileActiveTab] = useState('catalog'); // 'catalog' | 'cart'
+    const [kioskInactivitySeconds, setKioskInactivitySeconds] = useState(0);
+    const [kioskSuccessCountdown, setKioskSuccessCountdown] = useState(null);
+    const [kioskSettingsSubTab, setKioskSettingsSubTab] = useState('branding'); // 'branding' | 'catalog' | 'flow' | 'payment' | 'security'
+
+    // Inactivity Auto-Clear Timer for Kiosk
+    useEffect(() => {
+        if (!isCustomerViewActive || !kioskConfig.idleTimeoutSeconds || kioskConfig.idleTimeoutSeconds <= 0) {
+            return;
+        }
+
+        const handleUserActivity = () => {
+            setKioskInactivitySeconds(0);
+        };
+
+        window.addEventListener('mousemove', handleUserActivity);
+        window.addEventListener('keydown', handleUserActivity);
+        window.addEventListener('touchstart', handleUserActivity);
+        window.addEventListener('click', handleUserActivity);
+
+        const interval = setInterval(() => {
+            setKioskInactivitySeconds(prev => {
+                if (prev + 1 >= kioskConfig.idleTimeoutSeconds) {
+                    setKioskCart([]);
+                    setKioskCustomerName('');
+                    setKioskCustomerPhone('');
+                    setKioskTableToken('');
+                    setKioskOrderNotes('');
+                    setKioskCategoryFilter('ALL');
+                    setKioskSearchQuery('');
+                    setKioskOrderSuccessInfo(null);
+                    return 0;
+                }
+                return prev + 1;
+            });
+        }, 1000);
+
+        return () => {
+            window.removeEventListener('mousemove', handleUserActivity);
+            window.removeEventListener('keydown', handleUserActivity);
+            window.removeEventListener('touchstart', handleUserActivity);
+            window.removeEventListener('click', handleUserActivity);
+            clearInterval(interval);
+        };
+    }, [isCustomerViewActive, kioskConfig.idleTimeoutSeconds]);
+
+    // Order Success Auto-Reset Countdown
+    useEffect(() => {
+        if (!kioskOrderSuccessInfo) {
+            setKioskSuccessCountdown(null);
+            return;
+        }
+
+        const autoReset = Number(kioskConfig.autoResetSeconds);
+        if (!autoReset || autoReset <= 0) {
+            setKioskSuccessCountdown(null);
+            return;
+        }
+
+        setKioskSuccessCountdown(autoReset);
+        const timer = setInterval(() => {
+            setKioskSuccessCountdown(prev => {
+                if (prev === null) return null;
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    setKioskOrderSuccessInfo(null);
+                    return null;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [kioskOrderSuccessInfo, kioskConfig.autoResetSeconds]);
 
     const playKioskOrderChime = () => {
         try {
@@ -636,7 +759,8 @@ const BusinessPOS = () => {
             receipt_printer_size: overrides.receipt_printer_size !== undefined ? overrides.receipt_printer_size : receiptPrinterSize,
             pos_kiosk_pin: overrides.pos_kiosk_pin !== undefined ? overrides.pos_kiosk_pin : posKioskPin,
             pos_kiosk_enabled: overrides.pos_kiosk_enabled !== undefined ? overrides.pos_kiosk_enabled : posKioskEnabled,
-            pos_allow_credit: overrides.pos_allow_credit !== undefined ? overrides.pos_allow_credit : posAllowCredit
+            pos_allow_credit: overrides.pos_allow_credit !== undefined ? overrides.pos_allow_credit : posAllowCredit,
+            pos_kiosk_config: overrides.pos_kiosk_config !== undefined ? overrides.pos_kiosk_config : kioskConfig
         };
 
         try {
@@ -648,6 +772,12 @@ const BusinessPOS = () => {
             setPosSettingsSaveStatus('error');
             setTimeout(() => setPosSettingsSaveStatus(null), 3000);
         }
+    };
+
+    const handleUpdateKioskConfig = (patch) => {
+        const updated = { ...kioskConfig, ...patch };
+        setLocalKioskConfig(updated);
+        handleSavePosSettings({ pos_kiosk_config: updated });
     };
 
     const handleKioskAddToCart = (prod) => {
@@ -708,15 +838,28 @@ const BusinessPOS = () => {
             return;
         }
 
+        if (kioskConfig.requireName && !kioskCustomerName.trim()) {
+            alert('Please enter your name to place the order.');
+            return;
+        }
+
+        if (kioskConfig.requirePhone && (!kioskCustomerPhone || kioskCustomerPhone.replace(/\D/g, '').length < 10)) {
+            alert('Please enter a valid 10-digit mobile number to proceed.');
+            return;
+        }
+
         const kioskOrderNum = Math.floor(1000 + Math.random() * 9000);
         const orderIdStr = `K-${kioskOrderNum}`;
         const totalAmount = kioskCart.reduce((acc, it) => acc + (it.total || ((it.price || 0) * (it.quantity || 1))), 0);
         const itemsCount = kioskCart.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
+        const orderTypeLabel = kioskOrderType === 'takeaway' ? 'Takeaway' : 'Dine-In';
+        const tableLabel = kioskTableToken.trim() ? ` [Token/Table #${kioskTableToken.trim()}]` : '';
+
         const newHeldCart = {
             id: Date.now(),
             displayId: kioskOrderNum,
-            customName: `Kiosk #${orderIdStr} - ${kioskCustomerName || 'In-Store Guest'}`,
+            customName: `Kiosk #${orderIdStr} (${orderTypeLabel}${tableLabel}) - ${kioskCustomerName || 'In-Store Guest'}`,
             cart: [...kioskCart],
             customerName: kioskCustomerName || 'In-Store Customer',
             customerEmail: kioskCustomerPhone || '',
@@ -728,6 +871,9 @@ const BusinessPOS = () => {
             loyaltyPointsRedeemed: 0,
             isPtsEarnedManuallyEdited: false,
             isKioskOrder: true,
+            kioskOrderType: kioskOrderType,
+            kioskTableToken: kioskTableToken,
+            kioskOrderNotes: kioskOrderNotes,
             total: totalAmount
         };
 
@@ -740,6 +886,9 @@ const BusinessPOS = () => {
             heldCartId: newHeldCart.id,
             customerName: kioskCustomerName || 'In-Store Guest',
             customerPhone: kioskCustomerPhone,
+            orderType: orderTypeLabel,
+            tableToken: kioskTableToken,
+            orderNotes: kioskOrderNotes,
             itemCount: itemsCount,
             total: totalAmount
         });
@@ -752,13 +901,20 @@ const BusinessPOS = () => {
             orderId: orderIdStr,
             total: totalAmount,
             itemsCount: itemsCount,
-            customerName: kioskCustomerName
+            customerName: kioskCustomerName,
+            orderType: orderTypeLabel,
+            tableToken: kioskTableToken,
+            orderNotes: kioskOrderNotes,
+            paymentMode: kioskConfig.paymentMode,
+            upiId: kioskConfig.upiId
         });
 
         // Reset customer form
         setKioskCart([]);
         setKioskCustomerName('');
         setKioskCustomerPhone('');
+        setKioskTableToken('');
+        setKioskOrderNotes('');
     };
 
     const handleKioskPinUnlockSubmit = () => {
@@ -6401,10 +6557,11 @@ const BusinessPOS = () => {
                             {/* TAB 3: CUSTOMER VIEW / KIOSK */}
                             {posSettingsTab === 'kiosk' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                    <div style={{ background: '#EEF2FF', border: '1px solid #E0E7FF', borderRadius: '12px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    {/* Master Enable Card */}
+                                    <div style={{ background: '#EEF2FF', border: '1px solid #E0E7FF', borderRadius: '14px', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div>
-                                            <div style={{ fontSize: '0.88rem', fontWeight: '850', color: '#3730A3' }}>Customer Self-Order Kiosk Mode</div>
-                                            <div style={{ fontSize: '0.75rem', color: '#4F46E5' }}>Turn this device into a shop-front customer display where shoppers browse and place orders</div>
+                                            <div style={{ fontSize: '0.92rem', fontWeight: '850', color: '#3730A3' }}>Customer Self-Order Kiosk Mode</div>
+                                            <div style={{ fontSize: '0.74rem', color: '#4F46E5', marginTop: '2px' }}>Enable this device to serve as a customer self-order kiosk with live cart & instant ordering</div>
                                         </div>
                                         <input
                                             type="checkbox"
@@ -6414,78 +6571,647 @@ const BusinessPOS = () => {
                                                 setLocalPosKioskEnabled(val);
                                                 handleSavePosSettings({ pos_kiosk_enabled: val });
                                             }}
-                                            style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#4F46E5' }}
+                                            style={{ width: '22px', height: '22px', cursor: 'pointer', accentColor: '#4F46E5' }}
                                         />
                                     </div>
 
-                                    {/* Security PIN for exiting kiosk */}
-                                    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    {/* Live Interactive Header Preview */}
+                                    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div>
-                                                <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <Lock size={15} color="#4F46E5" /> Staff Security PIN (Lock Code)
+                                            <span style={{ fontSize: '0.74rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                                ✨ Live Kiosk Header Preview
+                                            </span>
+                                            <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Updates in real-time</span>
+                                        </div>
+                                        <div style={{
+                                            background: kioskConfig.headerBgColor || '#0F172A',
+                                            borderRadius: '12px',
+                                            padding: '0.85rem 1.25rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+                                            color: '#FFFFFF'
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
+                                                <div style={{
+                                                    background: kioskConfig.accentColor || '#2563EB',
+                                                    width: '36px',
+                                                    height: '36px',
+                                                    borderRadius: '10px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '1.25rem',
+                                                    flexShrink: 0
+                                                }}>
+                                                    {kioskConfig.bannerEmoji || '🛍️'}
                                                 </div>
-                                                <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
-                                                    4-digit password required to unlock and exit Customer View back to Cashier POS
+                                                <div style={{ overflow: 'hidden' }}>
+                                                    <div style={{ fontSize: '0.98rem', fontWeight: '900', color: '#F8FAFC', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                                        {kioskConfig.brandName || activeConfig?.business_name || 'In-Store Self-Order Kiosk'}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.72rem', color: '#CBD5E1', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                                        {kioskConfig.welcomeSubtitle || 'Browse our collection, add items to cart, and place your order directly'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div style={{
+                                                background: 'rgba(255, 255, 255, 0.12)',
+                                                border: '1px solid rgba(255, 255, 255, 0.25)',
+                                                borderRadius: '6px',
+                                                padding: '0.35rem 0.65rem',
+                                                fontSize: '0.7rem',
+                                                fontWeight: '750',
+                                                color: '#E2E8F0',
+                                                whiteSpace: 'nowrap',
+                                                flexShrink: 0,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px'
+                                            }}>
+                                                <Lock size={11} /> Staff Exit
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Kiosk Customization Sub-Tabs */}
+                                    <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid #E2E8F0', paddingBottom: '2px', overflowX: 'auto' }}>
+                                        {[
+                                            { id: 'branding', label: '🎨 Branding & Theme' },
+                                            { id: 'catalog', label: '🗂️ Catalog & Layout' },
+                                            { id: 'flow', label: '🛎️ Order Flow' },
+                                            { id: 'payment', label: '💳 Payment & UPI' },
+                                            { id: 'security', label: '🔒 Security & Timers' }
+                                        ].map(st => {
+                                            const isSel = kioskSettingsSubTab === st.id;
+                                            return (
+                                                <button
+                                                    key={st.id}
+                                                    type="button"
+                                                    onClick={() => setKioskSettingsSubTab(st.id)}
+                                                    style={{
+                                                        padding: '0.45rem 0.85rem',
+                                                        borderRadius: '8px',
+                                                        border: isSel ? '1.5px solid #4F46E5' : '1px solid #CBD5E1',
+                                                        background: isSel ? '#EEF2FF' : '#FFFFFF',
+                                                        color: isSel ? '#4338CA' : '#475569',
+                                                        fontSize: '0.78rem',
+                                                        fontWeight: '800',
+                                                        cursor: 'pointer',
+                                                        whiteSpace: 'nowrap',
+                                                        transition: 'all 0.15s ease'
+                                                    }}
+                                                >
+                                                    {st.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* SUB-TAB 1: BRANDING & THEME */}
+                                    {kioskSettingsSubTab === 'branding' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            {/* Store Title & Subtitle */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', marginBottom: '4px' }}>
+                                                        Store Display Name (Header Title)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={kioskConfig.brandName}
+                                                        placeholder={activeConfig?.business_name || 'My Store'}
+                                                        onChange={(e) => handleUpdateKioskConfig({ brandName: e.target.value })}
+                                                        style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #CBD5E1', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', marginBottom: '4px' }}>
+                                                        Welcome Subtitle / Tagline
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={kioskConfig.welcomeSubtitle}
+                                                        placeholder="Browse our collection, add items to cart, and place your order directly"
+                                                        onChange={(e) => handleUpdateKioskConfig({ welcomeSubtitle: e.target.value })}
+                                                        style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #CBD5E1', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Banner Emoji / Icon Selector */}
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', marginBottom: '6px' }}>
+                                                    Header Icon / Banner Emoji
+                                                </label>
+                                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                    {['🛍️', '🍽️', '🛒', '☕', '🍕', '🍦', '📱', '🌿', '✨', '⚡', '🥐', '🧁'].map(em => (
+                                                        <button
+                                                            key={em}
+                                                            type="button"
+                                                            onClick={() => handleUpdateKioskConfig({ bannerEmoji: em })}
+                                                            style={{
+                                                                width: '38px',
+                                                                height: '38px',
+                                                                borderRadius: '8px',
+                                                                border: kioskConfig.bannerEmoji === em ? '2px solid #2563EB' : '1px solid #CBD5E1',
+                                                                background: kioskConfig.bannerEmoji === em ? '#EFF6FF' : '#FFFFFF',
+                                                                fontSize: '1.2rem',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                transition: 'transform 0.1s ease'
+                                                            }}
+                                                        >
+                                                            {em}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Header Background Color Swatches */}
+                                            <div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                                    <label style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1E293B' }}>
+                                                        Header Background Color
+                                                    </label>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Custom:</span>
+                                                        <input
+                                                            type="color"
+                                                            value={kioskConfig.headerBgColor || '#0F172A'}
+                                                            onChange={(e) => handleUpdateKioskConfig({ headerBgColor: e.target.value })}
+                                                            style={{ width: '28px', height: '26px', border: 'none', cursor: 'pointer', borderRadius: '4px', background: 'transparent' }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                    {[
+                                                        { name: 'Dark Slate', hex: '#0F172A' },
+                                                        { name: 'Midnight', hex: '#1E293B' },
+                                                        { name: 'Royal Blue', hex: '#1E3A8A' },
+                                                        { name: 'Forest Emerald', hex: '#064E3B' },
+                                                        { name: 'Deep Violet', hex: '#4C1D95' },
+                                                        { name: 'Berry Crimson', hex: '#831843' },
+                                                        { name: 'Espresso', hex: '#451A03' },
+                                                        { name: 'Charcoal', hex: '#18181B' }
+                                                    ].map(clr => (
+                                                        <button
+                                                            key={clr.hex}
+                                                            type="button"
+                                                            onClick={() => handleUpdateKioskConfig({ headerBgColor: clr.hex })}
+                                                            style={{
+                                                                padding: '0.35rem 0.65rem',
+                                                                borderRadius: '8px',
+                                                                border: kioskConfig.headerBgColor === clr.hex ? '2px solid #2563EB' : '1px solid #CBD5E1',
+                                                                background: clr.hex,
+                                                                color: '#FFFFFF',
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: '750',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '5px'
+                                                            }}
+                                                        >
+                                                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#FFFFFF' }} />
+                                                            {clr.name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Brand Accent / Button Color */}
+                                            <div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                                    <label style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1E293B' }}>
+                                                        Brand Accent & Button Color
+                                                    </label>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Custom:</span>
+                                                        <input
+                                                            type="color"
+                                                            value={kioskConfig.accentColor || '#2563EB'}
+                                                            onChange={(e) => handleUpdateKioskConfig({ accentColor: e.target.value })}
+                                                            style={{ width: '28px', height: '26px', border: 'none', cursor: 'pointer', borderRadius: '4px', background: 'transparent' }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                    {[
+                                                        { name: 'Vibrant Blue', hex: '#2563EB' },
+                                                        { name: 'Emerald Green', hex: '#10B981' },
+                                                        { name: 'Purple Violet', hex: '#8B5CF6' },
+                                                        { name: 'Radiant Amber', hex: '#F59E0B' },
+                                                        { name: 'Crimson Rose', hex: '#EF4444' },
+                                                        { name: 'Cyan Ocean', hex: '#0891B2' },
+                                                        { name: 'Hot Pink', hex: '#EC4899' }
+                                                    ].map(clr => (
+                                                        <button
+                                                            key={clr.hex}
+                                                            type="button"
+                                                            onClick={() => handleUpdateKioskConfig({ accentColor: clr.hex })}
+                                                            style={{
+                                                                padding: '0.35rem 0.65rem',
+                                                                borderRadius: '8px',
+                                                                border: kioskConfig.accentColor === clr.hex ? '2px solid #0F172A' : '1px solid #CBD5E1',
+                                                                background: clr.hex,
+                                                                color: '#FFFFFF',
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: '750',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '5px'
+                                                            }}
+                                                        >
+                                                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#FFFFFF' }} />
+                                                            {clr.name}
+                                                        </button>
+                                                    ))}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                                            <input
-                                                type={showKioskPinMask ? 'text' : 'password'}
-                                                maxLength={6}
-                                                value={localPosKioskPin !== null ? localPosKioskPin : posKioskPin}
-                                                onChange={(e) => {
-                                                    const clean = e.target.value.replace(/\D/g, '');
-                                                    setLocalPosKioskPin(clean);
-                                                }}
-                                                placeholder="1234"
-                                                style={{
-                                                    fontSize: '1.1rem',
-                                                    fontWeight: '800',
-                                                    letterSpacing: '0.25em',
-                                                    padding: '0.55rem 0.85rem',
-                                                    borderRadius: '8px',
-                                                    border: '1.5px solid #CBD5E1',
-                                                    width: '140px',
-                                                    textAlign: 'center',
-                                                    fontFamily: 'monospace'
-                                                }}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowKioskPinMask(!showKioskPinMask)}
-                                                style={{
-                                                    background: '#F1F5F9',
-                                                    border: '1px solid #CBD5E1',
-                                                    padding: '0.55rem 0.75rem',
-                                                    borderRadius: '8px',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: '700',
-                                                    cursor: 'pointer',
-                                                    color: '#475569'
-                                                }}
-                                            >
-                                                {showKioskPinMask ? 'Hide PIN' : 'Show PIN'}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleSavePosSettings({ pos_kiosk_pin: localPosKioskPin || posKioskPin })}
-                                                style={{
-                                                    background: '#4F46E5',
-                                                    border: 'none',
-                                                    color: '#FFFFFF',
-                                                    padding: '0.55rem 0.85rem',
-                                                    borderRadius: '8px',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: '750',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                Save PIN
-                                            </button>
+                                    )}
+
+                                    {/* SUB-TAB 2: CATALOG & LAYOUT */}
+                                    {kioskSettingsSubTab === 'catalog' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            {/* Product Grid Density */}
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', marginBottom: '6px' }}>
+                                                    Product Catalog Grid Density
+                                                </label>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                                                    {[
+                                                        { id: 'compact', title: '📱 Compact', desc: 'Min 170px cards (Fits 4-5 items per row)' },
+                                                        { id: 'standard', title: '🖥️ Standard', desc: 'Min 215px cards (Balanced display, Recommended)' },
+                                                        { id: 'large', title: '🖼️ Large', desc: 'Min 280px cards (Prominent imagery & big buttons)' }
+                                                    ].map(gd => {
+                                                        const isSel = (kioskConfig.gridColumns || 'standard') === gd.id;
+                                                        return (
+                                                            <div
+                                                                key={gd.id}
+                                                                onClick={() => handleUpdateKioskConfig({ gridColumns: gd.id })}
+                                                                style={{
+                                                                    border: isSel ? '2px solid #2563EB' : '1px solid #CBD5E1',
+                                                                    background: isSel ? '#EFF6FF' : '#FAFAFA',
+                                                                    borderRadius: '10px',
+                                                                    padding: '0.75rem',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s ease'
+                                                                }}
+                                                            >
+                                                                <div style={{ fontSize: '0.82rem', fontWeight: '850', color: isSel ? '#1E40AF' : '#1E293B' }}>{gd.title}</div>
+                                                                <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '3px' }}>{gd.desc}</div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            {/* Catalog Toggles Card */}
+                                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                                {/* Show Product Images */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B' }}>Show Product Image Thumbnails</div>
+                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>Display product image cards on kiosk (turn off for text-only fast view)</div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={kioskConfig.showImages !== false}
+                                                        onChange={(e) => handleUpdateKioskConfig({ showImages: e.target.checked })}
+                                                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                                    />
+                                                </div>
+
+                                                <div style={{ borderTop: '1px solid #F1F5F9' }} />
+
+                                                {/* Show GST Badge */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B' }}>Display GST % Badge on Product Cards</div>
+                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>Show tax percentage badge (e.g. 18% GST) directly under price</div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={Boolean(kioskConfig.showGstBadge)}
+                                                        onChange={(e) => handleUpdateKioskConfig({ showGstBadge: e.target.checked })}
+                                                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                                    />
+                                                </div>
+
+                                                <div style={{ borderTop: '1px solid #F1F5F9' }} />
+
+                                                {/* Out of Stock Items */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B' }}>Hide Out-of-Stock Items Completely</div>
+                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>Automatically remove sold-out products from the customer kiosk catalog</div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={kioskConfig.showOutOfStock === false}
+                                                        onChange={(e) => handleUpdateKioskConfig({ showOutOfStock: !e.target.checked })}
+                                                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                                    />
+                                                </div>
+
+                                                <div style={{ borderTop: '1px solid #F1F5F9' }} />
+
+                                                {/* Show Category Filter Scroller */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B' }}>Show Category Pills Navigation Bar</div>
+                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>Horizontal scrollable category filter buttons at the top of catalog</div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={kioskConfig.showCategories !== false}
+                                                        onChange={(e) => handleUpdateKioskConfig({ showCategories: e.target.checked })}
+                                                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
+
+                                    {/* SUB-TAB 3: ORDER FLOW */}
+                                    {kioskSettingsSubTab === 'flow' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                                {/* Dine-In vs Takeaway Toggle */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B' }}>Ask Order Type (Dine-In vs Takeaway)</div>
+                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>Prompt the customer to choose between eating in or parcel takeaway</div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={kioskConfig.orderTypeSelection !== false}
+                                                        onChange={(e) => handleUpdateKioskConfig({ orderTypeSelection: e.target.checked })}
+                                                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                                    />
+                                                </div>
+
+                                                <div style={{ borderTop: '1px solid #F1F5F9' }} />
+
+                                                {/* Table / Token / Buzzer Input Toggle */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B' }}>Enable Table No. or Buzzer # Input</div>
+                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>Show Table/Buzzer number field on checkout tray for table service</div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={kioskConfig.askTableToken !== false}
+                                                        onChange={(e) => handleUpdateKioskConfig({ askTableToken: e.target.checked })}
+                                                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                                    />
+                                                </div>
+
+                                                <div style={{ borderTop: '1px solid #F1F5F9' }} />
+
+                                                {/* Customer Mobile Number Mandatory */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B' }}>Customer Mobile Number Mandatory</div>
+                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>Require customer to input a valid 10-digit mobile number before placing order</div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={Boolean(kioskConfig.requirePhone)}
+                                                        onChange={(e) => handleUpdateKioskConfig({ requirePhone: e.target.checked })}
+                                                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                                    />
+                                                </div>
+
+                                                <div style={{ borderTop: '1px solid #F1F5F9' }} />
+
+                                                {/* Customer Name Mandatory */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B' }}>Customer Name Mandatory</div>
+                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>Require customer to input their name before order can be submitted</div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={Boolean(kioskConfig.requireName)}
+                                                        onChange={(e) => handleUpdateKioskConfig({ requireName: e.target.checked })}
+                                                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                                    />
+                                                </div>
+
+                                                <div style={{ borderTop: '1px solid #F1F5F9' }} />
+
+                                                {/* Special Instructions Notes */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B' }}>Allow Cooking / Special Preparation Notes</div>
+                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>Show optional notes input for custom requests (e.g. less spicy, extra ice)</div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={kioskConfig.allowNotes !== false}
+                                                        onChange={(e) => handleUpdateKioskConfig({ allowNotes: e.target.checked })}
+                                                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* SUB-TAB 4: PAYMENT & UPI */}
+                                    {kioskSettingsSubTab === 'payment' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            {/* Payment Mode Selector */}
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', marginBottom: '6px' }}>
+                                                    Kiosk Order Payment Acceptance Mode
+                                                </label>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                                                    {[
+                                                        { id: 'counter', title: '🏷️ Pay at Counter', desc: 'Customer takes order token slip to pay cashier' },
+                                                        { id: 'upi', title: '📲 Instant UPI QR', desc: 'Dynamic QR code generated on screen to pay via GPay/PhonePe' },
+                                                        { id: 'both', title: '🔀 Counter or UPI', desc: 'Customer can pay with UPI QR on-screen or at billing counter' }
+                                                    ].map(pm => {
+                                                        const isSel = (kioskConfig.paymentMode || 'counter') === pm.id;
+                                                        return (
+                                                            <div
+                                                                key={pm.id}
+                                                                onClick={() => handleUpdateKioskConfig({ paymentMode: pm.id })}
+                                                                style={{
+                                                                    border: isSel ? '2px solid #2563EB' : '1px solid #CBD5E1',
+                                                                    background: isSel ? '#EFF6FF' : '#FAFAFA',
+                                                                    borderRadius: '10px',
+                                                                    padding: '0.75rem',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s ease'
+                                                                }}
+                                                            >
+                                                                <div style={{ fontSize: '0.82rem', fontWeight: '850', color: isSel ? '#1E40AF' : '#1E293B' }}>{pm.title}</div>
+                                                                <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '3px' }}>{pm.desc}</div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            {/* UPI ID Field (Only if UPI enabled) */}
+                                            {(kioskConfig.paymentMode === 'upi' || kioskConfig.paymentMode === 'both') && (
+                                                <div style={{ background: '#F0FDF4', border: '1px solid #DCFCE7', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                                    <div style={{ fontSize: '0.82rem', fontWeight: '850', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <QrCode size={16} /> Merchant UPI Virtual Payment Address (VPA)
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                                        <input
+                                                            type="text"
+                                                            value={kioskConfig.upiId || ''}
+                                                            placeholder="e.g. storename@okhdfcbank or merchant@upi"
+                                                            onChange={(e) => handleUpdateKioskConfig({ upiId: e.target.value.trim() })}
+                                                            style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #86EFAC', fontSize: '0.82rem', background: '#FFFFFF' }}
+                                                        />
+                                                    </div>
+                                                    <div style={{ fontSize: '0.72rem', color: '#15803D' }}>
+                                                        Dynamic QR codes with exact order total and token ID will be rendered on the kiosk for customers to scan with GPay, PhonePe, Paytm, or BHIM.
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Custom Thank You / Instructions message */}
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', marginBottom: '4px' }}>
+                                                    Order Success Message / Collection Instructions
+                                                </label>
+                                                <textarea
+                                                    rows={2}
+                                                    value={kioskConfig.thankYouMsg || ''}
+                                                    placeholder="Please share your Order Token at the billing counter to collect and pay for your items."
+                                                    onChange={(e) => handleUpdateKioskConfig({ thankYouMsg: e.target.value })}
+                                                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #CBD5E1', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                                                />
+                                            </div>
+
+                                            {/* Auto-Reset Countdown Timer */}
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', marginBottom: '4px' }}>
+                                                    Auto-Reset Timer After Order Placement
+                                                </label>
+                                                <select
+                                                    value={kioskConfig.autoResetSeconds !== undefined ? kioskConfig.autoResetSeconds : 8}
+                                                    onChange={(e) => handleUpdateKioskConfig({ autoResetSeconds: Number(e.target.value) })}
+                                                    style={{ padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #CBD5E1', fontSize: '0.82rem', background: '#FFFFFF', cursor: 'pointer' }}
+                                                >
+                                                    <option value={5}>5 Seconds (Fast turnaround)</option>
+                                                    <option value={8}>8 Seconds (Recommended)</option>
+                                                    <option value={10}>10 Seconds</option>
+                                                    <option value={15}>15 Seconds</option>
+                                                    <option value={20}>20 Seconds</option>
+                                                    <option value={0}>Manual Click Only (Never auto-close)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* SUB-TAB 5: SECURITY & TIMERS */}
+                                    {kioskSettingsSubTab === 'security' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            {/* Security PIN for exiting kiosk */}
+                                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <Lock size={15} color="#4F46E5" /> Staff Security PIN (Lock Code)
+                                                        </div>
+                                                        <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
+                                                            4-digit code required to unlock and exit Customer View back to Cashier POS
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                                    <input
+                                                        type={showKioskPinMask ? 'text' : 'password'}
+                                                        maxLength={6}
+                                                        value={localPosKioskPin !== null ? localPosKioskPin : posKioskPin}
+                                                        onChange={(e) => {
+                                                            const clean = e.target.value.replace(/\D/g, '');
+                                                            setLocalPosKioskPin(clean);
+                                                        }}
+                                                        placeholder="1234"
+                                                        style={{
+                                                            fontSize: '1.1rem',
+                                                            fontWeight: '800',
+                                                            letterSpacing: '0.25em',
+                                                            padding: '0.55rem 0.85rem',
+                                                            borderRadius: '8px',
+                                                            border: '1.5px solid #CBD5E1',
+                                                            width: '140px',
+                                                            textAlign: 'center',
+                                                            fontFamily: 'monospace'
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowKioskPinMask(!showKioskPinMask)}
+                                                        style={{
+                                                            background: '#F1F5F9',
+                                                            border: '1px solid #CBD5E1',
+                                                            padding: '0.55rem 0.75rem',
+                                                            borderRadius: '8px',
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: '700',
+                                                            cursor: 'pointer',
+                                                            color: '#475569'
+                                                        }}
+                                                    >
+                                                        {showKioskPinMask ? 'Hide PIN' : 'Show PIN'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSavePosSettings({ pos_kiosk_pin: localPosKioskPin || posKioskPin })}
+                                                        style={{
+                                                            background: '#4F46E5',
+                                                            border: 'none',
+                                                            color: '#FFFFFF',
+                                                            padding: '0.55rem 0.85rem',
+                                                            borderRadius: '8px',
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: '750',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        Save PIN
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Inactivity Auto-Clear Timeout */}
+                                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div>
+                                                    <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <Clock size={15} color="#2563EB" /> Inactivity Auto-Clear Timeout
+                                                    </div>
+                                                    <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                                                        Automatically empty abandoned customer carts and return to home catalog if idle
+                                                    </div>
+                                                </div>
+                                                <select
+                                                    value={kioskConfig.idleTimeoutSeconds !== undefined ? kioskConfig.idleTimeoutSeconds : 60}
+                                                    onChange={(e) => handleUpdateKioskConfig({ idleTimeoutSeconds: Number(e.target.value) })}
+                                                    style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1.5px solid #CBD5E1', fontSize: '0.8rem', background: '#FFFFFF', cursor: 'pointer' }}
+                                                >
+                                                    <option value={30}>30 Seconds</option>
+                                                    <option value={60}>60 Seconds (1 minute)</option>
+                                                    <option value={90}>90 Seconds (1.5 minutes)</option>
+                                                    <option value={120}>120 Seconds (2 minutes)</option>
+                                                    <option value={0}>Disabled (Never reset)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Launch Customer View Action Button */}
                                     <div style={{ paddingTop: '0.5rem' }}>
@@ -6518,7 +7244,7 @@ const BusinessPOS = () => {
                                             Launch Customer View (Full Screen Kiosk)
                                         </button>
                                         <p style={{ textAlign: 'center', margin: '6px 0 0', fontSize: '0.72rem', color: '#64748B' }}>
-                                            The kiosk displays a full-screen customer catalog. Cashier screen can be restored by entering PIN: <strong>{localPosKioskPin || posKioskPin || '1234'}</strong>.
+                                            Cashier POS screen can be restored at any time by entering PIN: <strong>{localPosKioskPin || posKioskPin || '1234'}</strong>.
                                         </p>
                                     </div>
                                 </div>
@@ -6605,7 +7331,7 @@ const BusinessPOS = () => {
                     {/* Kiosk Top Header */}
                     <div style={{
                         height: '68px',
-                        background: '#0F172A',
+                        background: kioskConfig.headerBgColor || '#0F172A',
                         color: '#FFFFFF',
                         display: 'flex',
                         alignItems: 'center',
@@ -6615,15 +7341,27 @@ const BusinessPOS = () => {
                         flexShrink: 0
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                            <div style={{ background: '#3B82F6', width: '38px', height: '38px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '1.2rem', color: '#fff' }}>
-                                🛍️
+                            <div style={{
+                                background: kioskConfig.accentColor || '#3B82F6',
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '10px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: '900',
+                                fontSize: '1.3rem',
+                                color: '#fff',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                            }}>
+                                {kioskConfig.bannerEmoji || '🛍️'}
                             </div>
                             <div>
-                                <div style={{ fontSize: '1.1rem', fontWeight: '850', letterSpacing: '0.02em', color: '#F8FAFC' }}>
-                                    {activeConfig?.business_name || 'In-Store Self-Order Kiosk'}
+                                <div style={{ fontSize: '1.15rem', fontWeight: '900', letterSpacing: '0.02em', color: '#F8FAFC' }}>
+                                    {kioskConfig.brandName || activeConfig?.business_name || 'In-Store Self-Order Kiosk'}
                                 </div>
-                                <div style={{ fontSize: '0.74rem', color: '#94A3B8', fontWeight: '500' }}>
-                                    Welcome! Browse our collection and place your order directly • Pick up at the counter
+                                <div style={{ fontSize: '0.74rem', color: '#CBD5E1', fontWeight: '500' }}>
+                                    {kioskConfig.welcomeSubtitle || 'Browse our collection, add items to cart, and place your order directly'}
                                 </div>
                             </div>
                         </div>
@@ -6636,9 +7374,9 @@ const BusinessPOS = () => {
                                 setKioskPinUnlockModalOpen(true);
                             }}
                             style={{
-                                background: 'rgba(255, 255, 255, 0.08)',
-                                border: '1px solid rgba(255, 255, 255, 0.2)',
-                                color: '#CBD5E1',
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                border: '1px solid rgba(255, 255, 255, 0.22)',
+                                color: '#F1F5F9',
                                 padding: '0.45rem 0.85rem',
                                 borderRadius: '8px',
                                 fontSize: '0.75rem',
@@ -6649,8 +7387,8 @@ const BusinessPOS = () => {
                                 gap: '6px',
                                 transition: 'all 0.15s ease'
                             }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.16)'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
                         >
                             <Lock size={13} />
                             <span>Staff Exit (PIN Locked)</span>
@@ -6692,32 +7430,35 @@ const BusinessPOS = () => {
                                     />
                                 </div>
 
-                                {/* Category Pills Horizontal Scroller */}
-                                <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
-                                    {['ALL', ...Array.from(new Set(inventory.map(p => p.category).filter(Boolean)))].map(cat => {
-                                        const isSel = kioskCategoryFilter === cat;
-                                        return (
-                                            <button
-                                                key={cat}
-                                                onClick={() => setKioskCategoryFilter(cat)}
-                                                style={{
-                                                    padding: '0.4rem 0.85rem',
-                                                    borderRadius: '20px',
-                                                    border: isSel ? '1.5px solid #2563EB' : '1px solid #CBD5E1',
-                                                    background: isSel ? '#2563EB' : '#FFFFFF',
-                                                    color: isSel ? '#FFFFFF' : '#475569',
-                                                    fontSize: '0.78rem',
-                                                    fontWeight: '750',
-                                                    cursor: 'pointer',
-                                                    whiteSpace: 'nowrap',
-                                                    transition: 'all 0.15s ease'
-                                                }}
-                                            >
-                                                {cat === 'ALL' ? '🌟 All Products' : cat}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                {/* Category Pills Horizontal Scroller (Conditionally Rendered) */}
+                                {kioskConfig.showCategories !== false && (
+                                    <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
+                                        {['ALL', ...Array.from(new Set(inventory.map(p => p.category).filter(Boolean)))].map(cat => {
+                                            const isSel = kioskCategoryFilter === cat;
+                                            const accent = kioskConfig.accentColor || '#2563EB';
+                                            return (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => setKioskCategoryFilter(cat)}
+                                                    style={{
+                                                        padding: '0.4rem 0.85rem',
+                                                        borderRadius: '20px',
+                                                        border: isSel ? `1.5px solid ${accent}` : '1px solid #CBD5E1',
+                                                        background: isSel ? accent : '#FFFFFF',
+                                                        color: isSel ? '#FFFFFF' : '#475569',
+                                                        fontSize: '0.78rem',
+                                                        fontWeight: '750',
+                                                        cursor: 'pointer',
+                                                        whiteSpace: 'nowrap',
+                                                        transition: 'all 0.15s ease'
+                                                    }}
+                                                >
+                                                    {cat === 'ALL' ? '🌟 All Products' : cat}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Product Cards Grid */}
@@ -6727,6 +7468,13 @@ const BusinessPOS = () => {
                                         const matchesCat = kioskCategoryFilter === 'ALL' || String(p.category || '').toLowerCase() === String(kioskCategoryFilter).toLowerCase();
                                         const q = kioskSearchQuery.toLowerCase().trim();
                                         const matchesQ = !q || (p.name && p.name.toLowerCase().includes(q)) || (p.sku && p.sku.toLowerCase().includes(q)) || (p.category && p.category.toLowerCase().includes(q));
+                                        
+                                        // Hide out of stock if business owner configured to hide
+                                        if (kioskConfig.showOutOfStock === false) {
+                                            const inStock = p.isUnlimited || p.is_unlimited || (parseFloat(p.quantity) >= 999000) || (parseFloat(p.quantity || p.stock || 0) > 0);
+                                            if (!inStock) return false;
+                                        }
+
                                         return matchesCat && matchesQ;
                                     });
 
@@ -6740,10 +7488,14 @@ const BusinessPOS = () => {
                                         );
                                     }
 
+                                    // Dynamic Grid Columns based on business owner settings
+                                    const gridMin = kioskConfig.gridColumns === 'compact' ? '170px' : (kioskConfig.gridColumns === 'large' ? '280px' : '215px');
+                                    const accent = kioskConfig.accentColor || '#2563EB';
+
                                     return (
                                         <div style={{
                                             display: 'grid',
-                                            gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+                                            gridTemplateColumns: `repeat(auto-fill, minmax(${gridMin}, 1fr))`,
                                             gap: '1rem'
                                         }}>
                                             {filtered.map(prod => {
@@ -6751,6 +7503,7 @@ const BusinessPOS = () => {
                                                 const inStock = prod.isUnlimited || prod.is_unlimited || (parseFloat(prod.quantity) >= 999000) || (parseFloat(prod.quantity || prod.stock || 0) > 0);
                                                 const price = parseFloat(prod.price || prod.sale_price || 0) || 0;
                                                 const gstRate = parseFloat(prod.tax_percentage ?? prod.rawProduct?.tax_percentage ?? prod.rawProduct?.gst_percentage ?? prod.taxRate ?? prod.gst_percentage ?? 0) || 0;
+                                                const showImg = kioskConfig.showImages !== false;
 
                                                 return (
                                                     <div
@@ -6758,34 +7511,36 @@ const BusinessPOS = () => {
                                                         style={{
                                                             background: '#FFFFFF',
                                                             borderRadius: '14px',
-                                                            border: cartItem ? '2px solid #2563EB' : '1px solid #E2E8F0',
+                                                            border: cartItem ? `2px solid ${accent}` : '1px solid #E2E8F0',
                                                             padding: '1rem',
                                                             display: 'flex',
                                                             flexDirection: 'column',
                                                             justifyContent: 'space-between',
-                                                            boxShadow: cartItem ? '0 4px 12px rgba(37, 99, 235, 0.15)' : '0 1px 3px rgba(0,0,0,0.04)',
+                                                            boxShadow: cartItem ? `0 4px 12px ${accent}25` : '0 1px 3px rgba(0,0,0,0.04)',
                                                             transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                                                             position: 'relative'
                                                         }}
                                                     >
                                                         <div>
                                                             {/* Product Image / Icon placeholder */}
-                                                            <div style={{
-                                                                height: '110px',
-                                                                background: '#F1F5F9',
-                                                                borderRadius: '10px',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                marginBottom: '0.75rem',
-                                                                overflow: 'hidden'
-                                                            }}>
-                                                                {prod.image_url ? (
-                                                                    <img src={prod.image_url} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                                ) : (
-                                                                    <Package size={36} color="#94A3B8" />
-                                                                )}
-                                                            </div>
+                                                            {showImg && (
+                                                                <div style={{
+                                                                    height: kioskConfig.gridColumns === 'large' ? '140px' : (kioskConfig.gridColumns === 'compact' ? '90px' : '110px'),
+                                                                    background: '#F1F5F9',
+                                                                    borderRadius: '10px',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    marginBottom: '0.75rem',
+                                                                    overflow: 'hidden'
+                                                                }}>
+                                                                    {prod.image_url ? (
+                                                                        <img src={prod.image_url} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                    ) : (
+                                                                        <Package size={36} color="#94A3B8" />
+                                                                    )}
+                                                                </div>
+                                                            )}
 
                                                             {/* Category Pill */}
                                                             {prod.category && (
@@ -6801,10 +7556,10 @@ const BusinessPOS = () => {
 
                                                             {/* Price & GST */}
                                                             <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                                                                <span style={{ fontSize: '1.15rem', fontWeight: '900', color: '#2563EB' }}>
+                                                                <span style={{ fontSize: '1.15rem', fontWeight: '900', color: accent }}>
                                                                     {formatCurrency(price)}
                                                                 </span>
-                                                                {gstRate > 0 && (
+                                                                {Boolean(kioskConfig.showGstBadge) && gstRate > 0 && (
                                                                     <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: '700', background: '#ECFDF5', padding: '1px 5px', borderRadius: '4px' }}>
                                                                         {gstRate}% GST
                                                                     </span>
@@ -6818,7 +7573,7 @@ const BusinessPOS = () => {
                                                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#EFF6FF', borderRadius: '8px', padding: '3px' }}>
                                                                     <button
                                                                         onClick={() => handleKioskUpdateQty(prod.id, -1)}
-                                                                        style={{ width: '32px', height: '32px', background: '#FFFFFF', border: '1px solid #BFDBFE', borderRadius: '6px', fontSize: '1rem', fontWeight: '800', color: '#2563EB', cursor: 'pointer' }}
+                                                                        style={{ width: '32px', height: '32px', background: '#FFFFFF', border: '1px solid #BFDBFE', borderRadius: '6px', fontSize: '1rem', fontWeight: '800', color: accent, cursor: 'pointer' }}
                                                                     >
                                                                         -
                                                                     </button>
@@ -6827,7 +7582,7 @@ const BusinessPOS = () => {
                                                                     </span>
                                                                     <button
                                                                         onClick={() => handleKioskUpdateQty(prod.id, 1)}
-                                                                        style={{ width: '32px', height: '32px', background: '#2563EB', border: 'none', borderRadius: '6px', fontSize: '1rem', fontWeight: '800', color: '#FFFFFF', cursor: 'pointer' }}
+                                                                        style={{ width: '32px', height: '32px', background: accent, border: 'none', borderRadius: '6px', fontSize: '1rem', fontWeight: '800', color: '#FFFFFF', cursor: 'pointer' }}
                                                                     >
                                                                         +
                                                                     </button>
@@ -6839,7 +7594,7 @@ const BusinessPOS = () => {
                                                                     style={{
                                                                         width: '100%',
                                                                         padding: '0.55rem',
-                                                                        background: inStock ? '#2563EB' : '#E2E8F0',
+                                                                        background: inStock ? accent : '#E2E8F0',
                                                                         color: inStock ? '#FFFFFF' : '#94A3B8',
                                                                         border: 'none',
                                                                         borderRadius: '8px',
@@ -6873,7 +7628,7 @@ const BusinessPOS = () => {
 
                         {/* Right Order Cart Drawer */}
                         <div style={{
-                            width: '390px',
+                            width: '400px',
                             background: '#FFFFFF',
                             borderLeft: '1px solid #E2E8F0',
                             display: 'flex',
@@ -6884,7 +7639,7 @@ const BusinessPOS = () => {
                             {/* Cart Drawer Header */}
                             <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <ShoppingCart size={18} color="#2563EB" />
+                                    <ShoppingCart size={18} color={kioskConfig.accentColor || '#2563EB'} />
                                     <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>
                                         Your Order ({kioskCart.reduce((sum, it) => sum + (it.quantity || 1), 0)})
                                     </span>
@@ -6899,13 +7654,47 @@ const BusinessPOS = () => {
                                 )}
                             </div>
 
+                            {/* Dine-In vs Takeaway Selector (if enabled) */}
+                            {kioskConfig.orderTypeSelection !== false && (
+                                <div style={{ padding: '0.75rem 1.25rem', background: '#FFFFFF', borderBottom: '1px solid #F1F5F9', display: 'flex', gap: '0.5rem' }}>
+                                    {[
+                                        { id: 'dine_in', label: '🍽️ Dine-In' },
+                                        { id: 'takeaway', label: '🛍️ Takeaway / Parcel' }
+                                    ].map(ot => {
+                                        const isSel = kioskOrderType === ot.id;
+                                        const accent = kioskConfig.accentColor || '#2563EB';
+                                        return (
+                                            <button
+                                                key={ot.id}
+                                                type="button"
+                                                onClick={() => setKioskOrderType(ot.id)}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '0.5rem',
+                                                    borderRadius: '8px',
+                                                    border: isSel ? `1.5px solid ${accent}` : '1px solid #CBD5E1',
+                                                    background: isSel ? `${accent}12` : '#FFFFFF',
+                                                    color: isSel ? accent : '#475569',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: '800',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {ot.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
                             {/* Cart Items List */}
                             <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                                 {kioskCart.length === 0 ? (
                                     <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94A3B8' }}>
                                         <ShoppingCart size={42} strokeWidth={1.5} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
                                         <div style={{ fontSize: '0.92rem', fontWeight: '750', color: '#475569' }}>Your Cart is Empty</div>
-                                        <div style={{ fontSize: '0.75rem', marginTop: '3px' }}>Tap "+ Add to Order" on products to build your order</div>
+                                        <div style={{ fontSize: '0.75rem', marginTop: '3px' }}>Tap "+ Add to Order" on products to build your basket</div>
                                     </div>
                                 ) : (
                                     kioskCart.map(item => (
@@ -6929,27 +7718,51 @@ const BusinessPOS = () => {
                                 )}
                             </div>
 
-                            {/* Customer Contact Details (Optional) */}
+                            {/* Customer Contact Details & Table / Token Tray */}
                             <div style={{ padding: '0.85rem 1rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 <div style={{ fontSize: '0.74rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>
-                                    Customer Details (Optional)
+                                    Guest Details
                                 </div>
+                                
+                                {/* Name and Phone inputs */}
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     <input
                                         type="text"
-                                        placeholder="Your Name"
+                                        placeholder={kioskConfig.requireName ? 'Your Name (Required) *' : 'Your Name (Optional)'}
                                         value={kioskCustomerName}
                                         onChange={(e) => setKioskCustomerName(e.target.value)}
                                         style={{ flex: 1, padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.78rem' }}
                                     />
                                     <input
                                         type="tel"
-                                        placeholder="Phone Number"
+                                        placeholder={kioskConfig.requirePhone ? 'Mobile No. (Required) *' : 'Phone Number (Optional)'}
                                         value={kioskCustomerPhone}
                                         onChange={(e) => setKioskCustomerPhone(e.target.value.replace(/\D/g, ''))}
                                         style={{ flex: 1, padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.78rem' }}
                                     />
                                 </div>
+
+                                {/* Table / Token / Buzzer Input if enabled */}
+                                {kioskConfig.askTableToken !== false && (
+                                    <input
+                                        type="text"
+                                        placeholder="Table Number / Buzzer # / Token (Optional)"
+                                        value={kioskTableToken}
+                                        onChange={(e) => setKioskTableToken(e.target.value)}
+                                        style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.78rem', boxSizing: 'border-box' }}
+                                    />
+                                )}
+
+                                {/* Special Instructions Notes if enabled */}
+                                {kioskConfig.allowNotes !== false && (
+                                    <input
+                                        type="text"
+                                        placeholder="Special preparation notes (e.g. less spicy, extra ice)"
+                                        value={kioskOrderNotes}
+                                        onChange={(e) => setKioskOrderNotes(e.target.value)}
+                                        style={{ width: '100%', padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.78rem', boxSizing: 'border-box' }}
+                                    />
+                                )}
                             </div>
 
                             {/* Cart Summary & Order Submit */}
@@ -6961,6 +7774,15 @@ const BusinessPOS = () => {
                                     return acc + (itTot * rate / 100);
                                 }, 0);
                                 const kGrandTotal = kSubtotal + kTax;
+                                const accent = kioskConfig.accentColor || '#2563EB';
+
+                                // Submit button text according to configured payment mode
+                                let submitBtnText = '🛍️ Place Order at Counter';
+                                if (kioskConfig.paymentMode === 'upi') {
+                                    submitBtnText = '📲 Pay with UPI QR';
+                                } else if (kioskConfig.paymentMode === 'both') {
+                                    submitBtnText = '🛍️ Place Order / Pay';
+                                }
 
                                 return (
                                     <div style={{ padding: '1.25rem', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
@@ -6974,7 +7796,7 @@ const BusinessPOS = () => {
                                         </div>
                                         <div style={{ borderTop: '1px dashed #CBD5E1', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                             <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>Grand Total</span>
-                                            <span style={{ fontSize: '1.35rem', fontWeight: '950', color: '#2563EB' }}>{formatCurrency(kGrandTotal)}</span>
+                                            <span style={{ fontSize: '1.35rem', fontWeight: '950', color: accent }}>{formatCurrency(kGrandTotal)}</span>
                                         </div>
 
                                         <button
@@ -6985,12 +7807,12 @@ const BusinessPOS = () => {
                                                 padding: '0.9rem',
                                                 borderRadius: '12px',
                                                 border: 'none',
-                                                background: kioskCart.length > 0 ? 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)' : '#E2E8F0',
+                                                background: kioskCart.length > 0 ? `linear-gradient(135deg, ${accent} 0%, #1D4ED8 100%)` : '#E2E8F0',
                                                 color: kioskCart.length > 0 ? '#FFFFFF' : '#94A3B8',
                                                 fontSize: '0.95rem',
                                                 fontWeight: '900',
                                                 cursor: kioskCart.length > 0 ? 'pointer' : 'not-allowed',
-                                                boxShadow: kioskCart.length > 0 ? '0 4px 14px rgba(37, 99, 235, 0.35)' : 'none',
+                                                boxShadow: kioskCart.length > 0 ? `0 4px 14px ${accent}40` : 'none',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
@@ -6998,10 +7820,12 @@ const BusinessPOS = () => {
                                                 marginTop: '0.35rem'
                                             }}
                                         >
-                                            🛍️ Place Order at Counter
+                                            {submitBtnText}
                                         </button>
                                         <div style={{ textAlign: 'center', fontSize: '0.7rem', color: '#64748B' }}>
-                                            Collect and pay for your items at the checkout counter
+                                            {kioskConfig.paymentMode === 'upi'
+                                                ? 'Scan dynamic UPI QR code on the next screen with any UPI app'
+                                                : 'Collect and pay for your items at the checkout counter'}
                                         </div>
                                     </div>
                                 );
@@ -7033,7 +7857,7 @@ const BusinessPOS = () => {
                         background: '#FFFFFF',
                         borderRadius: '24px',
                         padding: '2.5rem',
-                        maxWidth: '460px',
+                        maxWidth: '480px',
                         width: '90%',
                         textAlign: 'center',
                         boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.35)',
@@ -7046,24 +7870,52 @@ const BusinessPOS = () => {
                             Order Placed Successfully!
                         </h2>
                         <p style={{ margin: '0 0 1.25rem', fontSize: '0.85rem', color: '#64748B' }}>
-                            Your in-store order has been forwarded to the billing counter.
+                            {kioskConfig.thankYouMsg || 'Your in-store order has been forwarded to the billing counter.'}
                         </p>
 
-                        <div style={{ background: '#F8FAFC', border: '2px dashed #CBD5E1', borderRadius: '16px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                        {/* Order Token Card */}
+                        <div style={{ background: '#F8FAFC', border: '2px dashed #CBD5E1', borderRadius: '16px', padding: '1.25rem', marginBottom: '1.25rem' }}>
                             <div style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                 Your Order Token
                             </div>
-                            <div style={{ fontSize: '2.2rem', fontWeight: '950', color: '#2563EB', fontFamily: 'monospace', margin: '4px 0' }}>
+                            <div style={{ fontSize: '2.4rem', fontWeight: '950', color: kioskConfig.accentColor || '#2563EB', fontFamily: 'monospace', margin: '4px 0' }}>
                                 #{kioskOrderSuccessInfo.orderId}
                             </div>
                             <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#1E293B' }}>
                                 {kioskOrderSuccessInfo.itemsCount} item(s) • Total: {formatCurrency(kioskOrderSuccessInfo.total)}
                             </div>
+                            {kioskOrderSuccessInfo.orderType && (
+                                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', marginTop: '4px' }}>
+                                    Type: {kioskOrderSuccessInfo.orderType} {kioskOrderSuccessInfo.tableToken ? `• ${kioskOrderSuccessInfo.tableToken}` : ''}
+                                </div>
+                            )}
                         </div>
 
-                        <p style={{ margin: '0 0 1.5rem', fontSize: '0.82rem', color: '#475569', lineHeight: '1.5' }}>
-                            Please share your Order Token <strong>#{kioskOrderSuccessInfo.orderId}</strong> at the billing counter to collect and pay for your items.
-                        </p>
+                        {/* Dynamic UPI QR Code if configured */}
+                        {(kioskConfig.paymentMode === 'upi' || kioskConfig.paymentMode === 'both') && kioskConfig.upiId && (
+                            <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '16px', padding: '1.1rem', marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                                <div style={{ fontSize: '0.76rem', fontWeight: '850', color: '#166534', textTransform: 'uppercase' }}>
+                                    📲 Scan & Pay ₹{kioskOrderSuccessInfo.total.toFixed(2)} via UPI
+                                </div>
+                                <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                                    <QRCodeSVG
+                                        value={`upi://pay?pa=${encodeURIComponent(kioskConfig.upiId)}&pn=${encodeURIComponent(activeConfig?.business_name || 'Store')}&am=${kioskOrderSuccessInfo.total.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Order ' + kioskOrderSuccessInfo.orderId)}`}
+                                        size={155}
+                                        level="M"
+                                    />
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: '#15803D', fontWeight: '700' }}>
+                                    UPI ID: {kioskConfig.upiId}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Auto-Reset Countdown Notice */}
+                        {kioskSuccessCountdown !== null && (
+                            <div style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '1rem', fontWeight: '600' }}>
+                                Starting next order in <strong style={{ color: kioskConfig.accentColor || '#2563EB' }}>{kioskSuccessCountdown}s</strong>...
+                            </div>
+                        )}
 
                         <button
                             onClick={() => setKioskOrderSuccessInfo(null)}
@@ -7072,12 +7924,12 @@ const BusinessPOS = () => {
                                 padding: '0.85rem',
                                 borderRadius: '12px',
                                 border: 'none',
-                                background: '#2563EB',
+                                background: kioskConfig.accentColor || '#2563EB',
                                 color: '#FFFFFF',
                                 fontSize: '0.92rem',
                                 fontWeight: '850',
                                 cursor: 'pointer',
-                                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                                boxShadow: `0 4px 12px ${kioskConfig.accentColor || '#2563EB'}40`
                             }}
                         >
                             Start Next Order
