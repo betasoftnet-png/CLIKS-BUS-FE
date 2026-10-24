@@ -604,6 +604,7 @@ const BusinessPOS = () => {
         headerBgColor: '#0F172A',
         accentColor: '#2563EB',
         gridColumns: 'standard', // 'compact' | 'standard' | 'large'
+        categoryLayout: 'top', // 'top' | 'sidebar' | 'dropdown'
         showImages: true,
         showGstBadge: false,
         showOutOfStock: false,
@@ -1768,6 +1769,21 @@ const BusinessPOS = () => {
         const q = categorySearchQuery.toLowerCase();
         return categories.filter(cat => cat.toLowerCase().includes(q));
     }, [categories, categorySearchQuery]);
+
+    // Kiosk Categories with item counts
+    const kioskCategoriesWithCounts = React.useMemo(() => {
+        const rawCategories = Array.from(new Set(inventory.map(p => p.category).filter(Boolean)));
+        const counts = { ALL: inventory.length, All: inventory.length };
+        inventory.forEach(p => {
+            if (p.category) {
+                counts[p.category] = (counts[p.category] || 0) + 1;
+            }
+        });
+        return {
+            categories: ['ALL', ...rawCategories],
+            counts
+        };
+    }, [inventory]);
 
     // Filtered & Sorted Products Catalog
     const filteredProducts = React.useMemo(() => {
@@ -6872,8 +6888,69 @@ const BusinessPOS = () => {
                                                 </div>
                                             </div>
 
+                                            {/* Category Navigation Layout Style */}
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', marginBottom: '6px' }}>
+                                                    Category Navigation Layout Style
+                                                </label>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                                                    {[
+                                                        {
+                                                            id: 'top',
+                                                            title: '📌 Top Horizontal Bar',
+                                                            desc: 'Horizontal scrollable pills above product cards. Great for touch tablets & fewer categories.'
+                                                        },
+                                                        {
+                                                            id: 'sidebar',
+                                                            title: '📑 Left Sidebar Menu',
+                                                            desc: 'Vertical side navigation panel with category counts. Ideal for food kiosks & large retail stores.'
+                                                        },
+                                                        {
+                                                            id: 'dropdown',
+                                                            title: '🔽 Header Dropdown',
+                                                            desc: 'Compact category dropdown integrated into the search bar. Maximizes screen space for product cards.'
+                                                        }
+                                                    ].map(cl => {
+                                                        const isSel = (kioskConfig.categoryLayout || 'top') === cl.id;
+                                                        return (
+                                                            <div
+                                                                key={cl.id}
+                                                                onClick={() => handleUpdateKioskConfig({ categoryLayout: cl.id })}
+                                                                style={{
+                                                                    border: isSel ? '2px solid #2563EB' : '1px solid #CBD5E1',
+                                                                    background: isSel ? '#EFF6FF' : '#FAFAFA',
+                                                                    borderRadius: '10px',
+                                                                    padding: '0.75rem',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s ease'
+                                                                }}
+                                                            >
+                                                                <div style={{ fontSize: '0.82rem', fontWeight: '850', color: isSel ? '#1E40AF' : '#1E293B' }}>{cl.title}</div>
+                                                                <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '3px', lineHeight: 1.35 }}>{cl.desc}</div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
                                             {/* Catalog Toggles Card */}
                                             <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                                {/* Enable Category Filter Navigation */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B' }}>Enable Category Navigation</div>
+                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>Show category filters on kiosk (Top pills, Left sidebar, or Dropdown)</div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={kioskConfig.showCategories !== false}
+                                                        onChange={(e) => handleUpdateKioskConfig({ showCategories: e.target.checked })}
+                                                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                                    />
+                                                </div>
+
+                                                <div style={{ borderTop: '1px solid #F1F5F9' }} />
+
                                                 {/* Show Product Images */}
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <div>
@@ -6916,22 +6993,6 @@ const BusinessPOS = () => {
                                                         type="checkbox"
                                                         checked={kioskConfig.showOutOfStock === false}
                                                         onChange={(e) => handleUpdateKioskConfig({ showOutOfStock: !e.target.checked })}
-                                                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
-                                                    />
-                                                </div>
-
-                                                <div style={{ borderTop: '1px solid #F1F5F9' }} />
-
-                                                {/* Show Category Filter Scroller */}
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <div>
-                                                        <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B' }}>Show Category Pills Navigation Bar</div>
-                                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>Horizontal scrollable category filter buttons at the top of catalog</div>
-                                                    </div>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={kioskConfig.showCategories !== false}
-                                                        onChange={(e) => handleUpdateKioskConfig({ showCategories: e.target.checked })}
                                                         style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
                                                     />
                                                 </div>
@@ -7398,71 +7459,227 @@ const BusinessPOS = () => {
                     {/* Kiosk Main Content: Product Catalog (Left) + Order Cart (Right) */}
                     <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
                         {/* Left Catalog Area */}
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#F8FAFC' }}>
-                            {/* Filter Bar: Search + Category Pills */}
-                            <div style={{
-                                padding: '0.85rem 1.5rem',
-                                background: '#FFFFFF',
-                                borderBottom: '1px solid #E2E8F0',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '0.65rem',
-                                flexShrink: 0
-                            }}>
-                                {/* Search Box */}
-                                <div style={{ position: 'relative' }}>
-                                    <Search size={17} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
-                                    <input
-                                        type="text"
-                                        placeholder="Search products by title, code, brand or category..."
-                                        value={kioskSearchQuery}
-                                        onChange={(e) => setKioskSearchQuery(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.65rem 1rem 0.65rem 2.4rem',
-                                            borderRadius: '10px',
-                                            border: '1.5px solid #CBD5E1',
-                                            fontSize: '0.88rem',
-                                            background: '#F8FAFC',
-                                            outline: 'none',
-                                            boxSizing: 'border-box'
-                                        }}
-                                    />
-                                </div>
+                        {(() => {
+                            const isCategoriesEnabled = kioskConfig.showCategories !== false;
+                            const catLayout = kioskConfig.categoryLayout || 'top';
+                            const isSidebar = isCategoriesEnabled && catLayout === 'sidebar';
+                            const isDropdown = isCategoriesEnabled && catLayout === 'dropdown';
+                            const isTopPills = isCategoriesEnabled && catLayout === 'top';
+                            const accent = kioskConfig.accentColor || '#2563EB';
 
-                                {/* Category Pills Horizontal Scroller (Conditionally Rendered) */}
-                                {kioskConfig.showCategories !== false && (
-                                    <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
-                                        {['ALL', ...Array.from(new Set(inventory.map(p => p.category).filter(Boolean)))].map(cat => {
-                                            const isSel = kioskCategoryFilter === cat;
-                                            const accent = kioskConfig.accentColor || '#2563EB';
-                                            return (
-                                                <button
-                                                    key={cat}
-                                                    onClick={() => setKioskCategoryFilter(cat)}
+                            return (
+                                <div style={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    flexDirection: isSidebar ? 'row' : 'column',
+                                    overflow: 'hidden',
+                                    background: '#F8FAFC'
+                                }}>
+                                    {/* Sidebar Categories Panel (if categoryLayout === 'sidebar') */}
+                                    {isSidebar && (
+                                        <div style={{
+                                            width: '215px',
+                                            background: '#FFFFFF',
+                                            borderRight: '1px solid #E2E8F0',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            flexShrink: 0,
+                                            overflowY: 'auto'
+                                        }}>
+                                            <div style={{
+                                                padding: '0.85rem 1rem',
+                                                borderBottom: '1px solid #F1F5F9',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between'
+                                            }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                    Categories
+                                                </span>
+                                                <span style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '750' }}>
+                                                    {Math.max(0, kioskCategoriesWithCounts.categories.length - 1)} groups
+                                                </span>
+                                            </div>
+
+                                            <div style={{ padding: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                {kioskCategoriesWithCounts.categories.map(cat => {
+                                                    const isSel = kioskCategoryFilter === cat;
+                                                    const count = kioskCategoriesWithCounts.counts[cat] ?? 0;
+                                                    return (
+                                                        <button
+                                                            key={cat}
+                                                            onClick={() => setKioskCategoryFilter(cat)}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'space-between',
+                                                                padding: '0.65rem 0.85rem',
+                                                                borderRadius: '10px',
+                                                                border: isSel ? `1.5px solid ${accent}` : '1px solid transparent',
+                                                                background: isSel ? `${accent}15` : '#FFFFFF',
+                                                                color: isSel ? accent : '#334155',
+                                                                fontSize: '0.82rem',
+                                                                fontWeight: isSel ? '800' : '650',
+                                                                cursor: 'pointer',
+                                                                textAlign: 'left',
+                                                                transition: 'all 0.15s ease',
+                                                                boxShadow: isSel ? `0 2px 8px ${accent}20` : 'none'
+                                                            }}
+                                                        >
+                                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: '8px' }}>
+                                                                {cat === 'ALL' ? '🌟 All Items' : cat}
+                                                            </span>
+                                                            <span style={{
+                                                                fontSize: '0.68rem',
+                                                                padding: '2px 7px',
+                                                                borderRadius: '10px',
+                                                                background: isSel ? accent : '#F1F5F9',
+                                                                color: isSel ? '#FFFFFF' : '#64748B',
+                                                                fontWeight: '800',
+                                                                flexShrink: 0
+                                                            }}>
+                                                                {count}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Catalog Main Body (Search Bar + Product Grid) */}
+                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                        {/* Filter Bar */}
+                                        <div style={{
+                                            padding: '0.85rem 1.5rem',
+                                            background: '#FFFFFF',
+                                            borderBottom: '1px solid #E2E8F0',
+                                            display: 'flex',
+                                            flexDirection: isDropdown ? 'row' : 'column',
+                                            alignItems: isDropdown ? 'center' : 'stretch',
+                                            gap: '0.65rem',
+                                            flexShrink: 0
+                                        }}>
+                                            {/* Search Box */}
+                                            <div style={{ position: 'relative', flex: 1 }}>
+                                                <Search size={17} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search products by title, code, brand or category..."
+                                                    value={kioskSearchQuery}
+                                                    onChange={(e) => setKioskSearchQuery(e.target.value)}
                                                     style={{
-                                                        padding: '0.4rem 0.85rem',
-                                                        borderRadius: '20px',
-                                                        border: isSel ? `1.5px solid ${accent}` : '1px solid #CBD5E1',
-                                                        background: isSel ? accent : '#FFFFFF',
-                                                        color: isSel ? '#FFFFFF' : '#475569',
-                                                        fontSize: '0.78rem',
-                                                        fontWeight: '750',
-                                                        cursor: 'pointer',
-                                                        whiteSpace: 'nowrap',
-                                                        transition: 'all 0.15s ease'
+                                                        width: '100%',
+                                                        padding: '0.65rem 1rem 0.65rem 2.4rem',
+                                                        borderRadius: '10px',
+                                                        border: '1.5px solid #CBD5E1',
+                                                        fontSize: '0.88rem',
+                                                        background: '#F8FAFC',
+                                                        outline: 'none',
+                                                        boxSizing: 'border-box'
                                                     }}
-                                                >
-                                                    {cat === 'ALL' ? '🌟 All Products' : cat}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
+                                                />
+                                                {kioskSearchQuery && (
+                                                    <button
+                                                        onClick={() => setKioskSearchQuery('')}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            right: '10px',
+                                                            top: '50%',
+                                                            transform: 'translateY(-50%)',
+                                                            border: 'none',
+                                                            background: 'transparent',
+                                                            color: '#94A3B8',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: '800'
+                                                        }}
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                )}
+                                            </div>
 
-                            {/* Product Cards Grid */}
-                            <div style={{ flex: 1, padding: '1.25rem 1.5rem', overflowY: 'auto' }}>
+                                            {/* Category Dropdown (if categoryLayout === 'dropdown') */}
+                                            {isDropdown && (
+                                                <div style={{ position: 'relative', minWidth: '220px' }}>
+                                                    <select
+                                                        value={kioskCategoryFilter}
+                                                        onChange={(e) => setKioskCategoryFilter(e.target.value)}
+                                                        style={{
+                                                            width: '100%',
+                                                            padding: '0.65rem 2.2rem 0.65rem 1rem',
+                                                            borderRadius: '10px',
+                                                            border: '1.5px solid #CBD5E1',
+                                                            fontSize: '0.86rem',
+                                                            fontWeight: '750',
+                                                            color: '#1E293B',
+                                                            background: '#FFFFFF',
+                                                            cursor: 'pointer',
+                                                            outline: 'none',
+                                                            appearance: 'none',
+                                                            boxSizing: 'border-box'
+                                                        }}
+                                                    >
+                                                        {kioskCategoriesWithCounts.categories.map(cat => {
+                                                            const count = kioskCategoriesWithCounts.counts[cat] ?? 0;
+                                                            return (
+                                                                <option key={cat} value={cat}>
+                                                                    {cat === 'ALL' ? `🌟 All Categories (${count})` : `${cat} (${count})`}
+                                                                </option>
+                                                            );
+                                                        })}
+                                                    </select>
+                                                    <ChevronDown size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#64748B' }} />
+                                                </div>
+                                            )}
+
+                                            {/* Category Pills Horizontal Scroller (if categoryLayout === 'top') */}
+                                            {isTopPills && (
+                                                <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
+                                                    {kioskCategoriesWithCounts.categories.map(cat => {
+                                                        const isSel = kioskCategoryFilter === cat;
+                                                        const count = kioskCategoriesWithCounts.counts[cat] ?? 0;
+                                                        return (
+                                                            <button
+                                                                key={cat}
+                                                                onClick={() => setKioskCategoryFilter(cat)}
+                                                                style={{
+                                                                    padding: '0.4rem 0.85rem',
+                                                                    borderRadius: '20px',
+                                                                    border: isSel ? `1.5px solid ${accent}` : '1px solid #CBD5E1',
+                                                                    background: isSel ? accent : '#FFFFFF',
+                                                                    color: isSel ? '#FFFFFF' : '#475569',
+                                                                    fontSize: '0.78rem',
+                                                                    fontWeight: '750',
+                                                                    cursor: 'pointer',
+                                                                    whiteSpace: 'nowrap',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '6px',
+                                                                    transition: 'all 0.15s ease'
+                                                                }}
+                                                            >
+                                                                <span>{cat === 'ALL' ? '🌟 All Products' : cat}</span>
+                                                                <span style={{
+                                                                    fontSize: '0.68rem',
+                                                                    padding: '1px 5px',
+                                                                    borderRadius: '8px',
+                                                                    background: isSel ? 'rgba(255,255,255,0.25)' : '#F1F5F9',
+                                                                    color: isSel ? '#FFFFFF' : '#64748B',
+                                                                    fontWeight: '800'
+                                                                }}>
+                                                                    {count}
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Product Cards Grid */}
+                                        <div style={{ flex: 1, padding: '1.25rem 1.5rem', overflowY: 'auto' }}>
                                 {(() => {
                                     const filtered = inventory.filter(p => {
                                         const matchesCat = kioskCategoryFilter === 'ALL' || String(p.category || '').toLowerCase() === String(kioskCategoryFilter).toLowerCase();
@@ -7623,8 +7840,11 @@ const BusinessPOS = () => {
                                         </div>
                                     );
                                 })()}
-                            </div>
-                        </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })()}
 
                         {/* Right Order Cart Drawer */}
                         <div style={{
