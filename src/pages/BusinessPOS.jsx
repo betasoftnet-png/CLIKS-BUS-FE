@@ -2512,7 +2512,40 @@ const BusinessPOS = () => {
             setHoldCounter(prev => prev + 1);
         }
 
-        // Reset workspace & active held cart tracker so user can start a new order
+        // Keep cart active and update activeHeldCartInfo so the cart is NOT removed/cleared!
+        setActiveHeldCartInfo({
+            id: defaultId,
+            displayId: defaultDisplayId,
+            customName: cartEntry.customName
+        });
+    };
+
+    const startNewCart = async () => {
+        // If current cart has items and has not been held yet, auto-save to held carts so nothing is lost
+        if (cart.length > 0 && !activeHeldCartInfo) {
+            const defaultDisplayId = holdCounter;
+            const defaultId = Date.now();
+            const autoName = customerName ? `Cart - ${customerName}` : `Cart #${defaultDisplayId}`;
+            const newHeldEntry = {
+                id: defaultId,
+                displayId: defaultDisplayId,
+                customName: autoName,
+                cart: [...cart],
+                customerName,
+                customerEmail,
+                selectedCustomerObj,
+                discountVal,
+                discountType,
+                taxRate,
+                loyaltyPointsEarned,
+                loyaltyPointsRedeemed,
+                isPtsEarnedManuallyEdited
+            };
+            setHeldCarts(prev => [...prev, newHeldEntry]);
+            setHoldCounter(prev => prev + 1);
+        }
+
+        // Reset workspace to a clean, empty new cart
         setActiveHeldCartInfo(null);
         setCart([]);
         setCustomerName('');
@@ -4187,16 +4220,16 @@ const BusinessPOS = () => {
 
                 {/* Held Carts Row */}
                 {heldCarts.length > 0 && (
-                    <div style={{ padding: '0.5rem 1.25rem', background: '#FFFBEB', borderBottom: '1px solid #FEF3C7', display: 'flex', gap: '0.5rem', overflowX: 'auto', flexShrink: 0 }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B45309', alignSelf: 'center', marginRight: '0.5rem' }}>CARTS ({heldCarts.length}):</span>
-                        {heldCarts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(hc => {
+                    <div style={{ padding: '0.5rem 1.25rem', background: '#FFFBEB', borderBottom: '1px solid #FEF3C7', display: 'flex', gap: '0.5rem', alignItems: 'center', overflowX: 'auto', flexShrink: 0 }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B45309', alignSelf: 'center', marginRight: '0.25rem', whiteSpace: 'nowrap' }}>CARTS ({heldCarts.length}):</span>
+                        {heldCarts.map(hc => {
                             const isActive = activeHeldCartInfo && activeHeldCartInfo.id === hc.id;
                             return (
                                 <div
                                     key={hc.id}
                                     style={{
                                         background: hc.isKioskOrder ? (isActive ? '#EFF6FF' : '#F0FDF4') : (isActive ? '#DCFCE7' : '#FFFFFF'),
-                                        border: hc.isKioskOrder ? (isActive ? '1.5px solid #3B82F6' : '1.5px solid #60A5FA') : (isActive ? '1px solid #86EFAC' : '1px solid #FCD34D'),
+                                        border: hc.isKioskOrder ? (isActive ? '1.5px solid #3B82F6' : '1.5px solid #60A5FA') : (isActive ? '1.5px solid #16A34A' : '1px solid #FCD34D'),
                                         padding: '0.3rem 0.65rem',
                                         borderRadius: '8px',
                                         display: 'flex',
@@ -4240,32 +4273,81 @@ const BusinessPOS = () => {
                                 </div>
                             );
                         })}
+                        <button
+                            type="button"
+                            onClick={startNewCart}
+                            style={{
+                                background: '#FFFFFF',
+                                border: '1px dashed #CBD5E1',
+                                padding: '0.3rem 0.65rem',
+                                borderRadius: '8px',
+                                fontSize: '0.74rem',
+                                fontWeight: '750',
+                                color: '#475569',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                            }}
+                            title="Start a new empty cart"
+                        >
+                            + New Cart
+                        </button>
                     </div>
                 )}
 
                 {/* Cart Control Header Action Row */}
                 <div style={{ padding: '0.65rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', flexShrink: 0 }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
-                        CART {cart.length > 0 ? `(${cart.length})` : ''}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
+                            CART {cart.length > 0 ? `(${cart.length})` : ''}
+                        </span>
+                        {activeHeldCartInfo && (
+                            <span style={{ background: '#DCFCE7', color: '#15803D', border: '1px solid #86EFAC', padding: '1px 6px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: '850', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#16A34A' }} />
+                                {activeHeldCartInfo.customName || `Cart #${activeHeldCartInfo.displayId}`}
+                            </span>
+                        )}
+                    </div>
                     <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        {(heldCarts.length > 0 || cart.length > 0) && (
+                            <button
+                                type="button"
+                                onClick={startNewCart}
+                                style={{
+                                    background: '#F1F5F9',
+                                    border: '1px solid #CBD5E1',
+                                    padding: '0.25rem 0.65rem',
+                                    borderRadius: '6px',
+                                    color: '#334155',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer'
+                                }}
+                                title="Start a new empty cart (held carts remain saved)"
+                            >
+                                + New Cart
+                            </button>
+                        )}
+
                         <button
                             type="button"
                             onClick={holdCart}
                             disabled={cart.length === 0}
                             style={{
-                                background: '#F8FAFC',
-                                border: '1px solid #E2E8F0',
+                                background: activeHeldCartInfo ? '#ECFDF5' : '#F8FAFC',
+                                border: activeHeldCartInfo ? '1px solid #A7F3D0' : '1px solid #E2E8F0',
                                 padding: '0.25rem 0.65rem',
                                 borderRadius: '6px',
-                                color: '#334155',
+                                color: activeHeldCartInfo ? '#065F46' : '#334155',
                                 fontSize: '0.75rem',
                                 fontWeight: '800',
                                 cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
                                 opacity: cart.length === 0 ? 0.5 : 1
                             }}
                         >
-                            Hold Cart
+                            {activeHeldCartInfo ? 'Held (Update)' : 'Hold Cart'}
                         </button>
 
                         <button
@@ -4301,7 +4383,7 @@ const BusinessPOS = () => {
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <AnimatePresence initial={false}>
-                                {cart.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(item => (
+                                {cart.map(item => (
                                     <motion.div
                                         key={item.id}
                                         initial={{ opacity: 0, height: 0 }}
