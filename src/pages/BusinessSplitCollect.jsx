@@ -31,7 +31,10 @@ import {
     ShieldCheck,
     Mail,
     Clock,
-    Send
+    Send,
+    Crown,
+    Eye,
+    Shield
 } from 'lucide-react';
 import '../App.css';
 import splitExpenseService from '../services/splitExpenseService';
@@ -1911,18 +1914,23 @@ const BusinessSplitCollect = () => {
                                             });
                                             const isPendingInvite = myMember && getParticipantStatus(myMember) === 'pending';
                                             const isOwner = (s.user_id && user?.id && String(s.user_id) === String(user.id)) || (myMember && isParticipantAdmin(myMember));
-                                            const roleLabel = isOwner ? '👑 Admin' : (getParticipantRole(myMember) === 'editor' ? '✏️ Editor' : '👁️ Viewer');
+                                            const memberRole = getParticipantRole(myMember);
 
                                             return (
                                                 <div 
                                                     key={s.id} 
-                                                    onClick={() => setSelectedSplitId(s.id)}
+                                                    onClick={() => {
+                                                        if (isPendingInvite) {
+                                                            return; // Cannot enter split until accepted!
+                                                        }
+                                                        setSelectedSplitId(s.id);
+                                                    }}
                                                     style={{ 
                                                         background: 'white', 
                                                         borderRadius: '20px', 
                                                         border: isPendingInvite ? '2px solid #F59E0B' : '1.5px solid #E2E8F0', 
                                                         padding: '1.5rem', 
-                                                        cursor: 'pointer',
+                                                        cursor: isPendingInvite ? 'default' : 'pointer',
                                                         boxShadow: isPendingInvite ? '0 4px 12px rgba(245, 158, 11, 0.1)' : '0 4px 6px -1px rgba(0,0,0,0.02)',
                                                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                                                         position: 'relative',
@@ -1930,13 +1938,13 @@ const BusinessSplitCollect = () => {
                                                     }}
                                                     onMouseOver={(e) => {
                                                         e.currentTarget.style.borderColor = isPendingInvite ? '#D97706' : '#1B6B3A';
-                                                        e.currentTarget.style.transform = 'translateY(-2px)';
-                                                        e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)';
+                                                        e.currentTarget.style.transform = isPendingInvite ? 'none' : 'translateY(-2px)';
+                                                        e.currentTarget.style.boxShadow = isPendingInvite ? '0 4px 12px rgba(245, 158, 11, 0.15)' : '0 10px 15px -3px rgba(0,0,0,0.05)';
                                                     }}
                                                     onMouseOut={(e) => {
                                                         e.currentTarget.style.borderColor = isPendingInvite ? '#F59E0B' : '#E2E8F0';
                                                         e.currentTarget.style.transform = 'translateY(0)';
-                                                        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.02)';
+                                                        e.currentTarget.style.boxShadow = isPendingInvite ? '0 4px 12px rgba(245, 158, 11, 0.1)' : '0 4px 6px -1px rgba(0,0,0,0.02)';
                                                     }}
                                                 >
                                                     {/* Card Header */}
@@ -1955,13 +1963,22 @@ const BusinessSplitCollect = () => {
                                                                 <span style={{ 
                                                                     fontSize: '0.65rem', 
                                                                     fontWeight: '800', 
-                                                                    background: isOwner ? '#F5F3FF' : (getParticipantRole(myMember) === 'editor' ? '#EFF6FF' : '#FFFBEB'),
-                                                                    color: isOwner ? '#7C3AED' : (getParticipantRole(myMember) === 'editor' ? '#2563EB' : '#D97706'),
-                                                                    border: isOwner ? '1px solid #DDD6FE' : (getParticipantRole(myMember) === 'editor' ? '1px solid #BFDBFE' : '1px solid #FDE68A'),
+                                                                    background: isOwner ? '#F5F3FF' : (memberRole === 'editor' ? '#EFF6FF' : '#FFFBEB'),
+                                                                    color: isOwner ? '#7C3AED' : (memberRole === 'editor' ? '#2563EB' : '#D97706'),
+                                                                    border: isOwner ? '1px solid #DDD6FE' : (memberRole === 'editor' ? '1px solid #BFDBFE' : '1px solid #FDE68A'),
                                                                     padding: '2px 8px', 
-                                                                    borderRadius: '6px' 
+                                                                    borderRadius: '6px',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '4px'
                                                                 }}>
-                                                                    {roleLabel}
+                                                                    {isOwner ? (
+                                                                        <><Crown size={11} strokeWidth={2.5} /> Admin</>
+                                                                    ) : memberRole === 'editor' ? (
+                                                                        <><Pencil size={11} strokeWidth={2.5} /> Editor</>
+                                                                    ) : (
+                                                                        <><Eye size={11} strokeWidth={2.5} /> Viewer</>
+                                                                    )}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -2119,17 +2136,21 @@ const BusinessSplitCollect = () => {
                                                                     }}
                                                                     style={{
                                                                         flex: 1,
-                                                                        padding: '5px 8px',
+                                                                        padding: '6px 10px',
                                                                         borderRadius: '8px',
                                                                         background: '#1B6B3A',
                                                                         color: 'white',
                                                                         border: 'none',
                                                                         fontWeight: '850',
-                                                                        fontSize: '0.74rem',
-                                                                        cursor: 'pointer'
+                                                                        fontSize: '0.75rem',
+                                                                        cursor: 'pointer',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        gap: '4px'
                                                                     }}
                                                                 >
-                                                                    ✓ Accept & Join
+                                                                    <Check size={13} strokeWidth={3} /> Accept & Join
                                                                 </button>
                                                                 <button
                                                                     onClick={(e) => {
@@ -2182,171 +2203,270 @@ const BusinessSplitCollect = () => {
                             exit={{ opacity: 0, y: -10 }}
                             style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '1.25rem' }}
                         >
-                            {/* Back and Action Panel */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-                                <button 
-                                    onClick={() => setSelectedSplitId(null)}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', border: 'none', background: 'transparent', color: '#064E3B', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', padding: 0 }}
-                                >
-                                    <ChevronLeft size={18} strokeWidth={2.5} /> Back to all tickets
-                                </button>
+                            {currentUserStatus === 'pending' && !isSplitAdmin ? (
+                                /* Invitation Pending Gate: members cannot enter into the split until they accept or decline */
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '640px', margin: '2rem auto' }}>
+                                    <button 
+                                        onClick={() => setSelectedSplitId(null)}
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', background: 'transparent', color: '#064E3B', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', padding: 0, alignSelf: 'flex-start' }}
+                                    >
+                                        <ChevronLeft size={18} strokeWidth={2.5} /> Back to all tickets
+                                    </button>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                    {isSplitAdmin && (
-                                        <button 
-                                            onClick={() => {
-                                                setInviteMemberEmail('');
-                                                setInviteMemberName('');
-                                                setInviteMemberRole('viewer');
-                                                setInviteError('');
-                                                setIsInviteModalOpen(true);
-                                            }}
-                                            style={{ 
-                                                display: 'flex', alignItems: 'center', gap: '0.4rem', 
-                                                padding: '0.6rem 1.1rem', borderRadius: '12px', 
-                                                background: '#ECFDF5', color: '#065F46', border: '1.5px solid #A7F3D0', 
-                                                fontWeight: '850', fontSize: '0.82rem', cursor: 'pointer',
-                                                boxShadow: '0 2px 6px rgba(6, 78, 59, 0.06)'
-                                            }}
-                                        >
-                                            <UserPlus size={15} />
-                                            + Invite Member
-                                        </button>
-                                    )}
-
-                                    {canRecordExpense ? (
-                                        <button 
-                                            onClick={openAddExpenseModal}
-                                            style={{ 
-                                                display: 'flex', alignItems: 'center', gap: '0.4rem', 
-                                                padding: '0.6rem 1.15rem', borderRadius: '12px', 
-                                                background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
-                                                fontWeight: '850', fontSize: '0.82rem', cursor: 'pointer',
-                                                boxShadow: '0 4px 12px rgba(27, 107, 58, 0.15)'
-                                            }}
-                                        >
-                                            <Plus size={16} strokeWidth={3} />
-                                            Add Expense
-                                        </button>
-                                    ) : (
-                                        <button 
-                                            type="button"
-                                            onClick={() => alert('You have View-Only access to this split. Only the Admin and members with Edit Access can record expenses.')}
-                                            style={{ 
-                                                display: 'flex', alignItems: 'center', gap: '0.4rem', 
-                                                padding: '0.6rem 1.15rem', borderRadius: '12px', 
-                                                background: '#F1F5F9', color: '#64748B', border: '1.5px solid #CBD5E1', 
-                                                fontWeight: '850', fontSize: '0.82rem', cursor: 'not-allowed'
-                                            }}
-                                            title="View-Only Access: Only Admin and Editors can record expenses"
-                                        >
-                                            <Lock size={15} />
-                                            View-Only Mode
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Toast Notification Banner */}
-                            {inviteSuccessToast && (
-                                <div style={{ background: '#ECFDF5', border: '1.5px solid #34D399', borderRadius: '14px', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#065F46', fontWeight: '800', fontSize: '0.82rem' }}>
-                                    <Check size={16} strokeWidth={3} />
-                                    <span>{inviteSuccessToast}</span>
-                                </div>
-                            )}
-
-                            {/* Pending Invitation Banner for Current User */}
-                            {currentUserStatus === 'pending' && (
-                                <div style={{
-                                    background: 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)',
-                                    border: '1.5px solid #F59E0B',
-                                    borderRadius: '18px',
-                                    padding: '1.1rem 1.4rem',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    boxShadow: '0 4px 14px rgba(245, 158, 11, 0.12)',
-                                    flexWrap: 'wrap',
-                                    gap: '1rem'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                                        <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#FEF3C7', border: '1.5px solid #FDE68A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706', flexShrink: 0 }}>
-                                            <Mail size={22} />
+                                    <div style={{
+                                        background: 'white',
+                                        borderRadius: '24px',
+                                        border: '2px solid #FCD34D',
+                                        padding: '2.5rem 2rem',
+                                        boxShadow: '0 12px 32px rgba(245, 158, 11, 0.12)',
+                                        textAlign: 'center',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '1.25rem'
+                                    }}>
+                                        <div style={{
+                                            width: '64px',
+                                            height: '64px',
+                                            borderRadius: '20px',
+                                            background: '#FEF3C7',
+                                            border: '2px solid #FDE68A',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#D97706'
+                                        }}>
+                                            <Mail size={32} />
                                         </div>
+
                                         <div>
-                                            <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: '900', color: '#92400E' }}>
-                                                You've Been Invited to this Split Ticket
-                                            </h4>
-                                            <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.82rem', color: '#B45309', fontWeight: '600' }}>
-                                                Access permission: <strong>{currentUserRole === 'editor' ? '✏️ Edit Access (Can record expenses)' : '👁️ View-Only Access (View expenses only)'}</strong>. Accept to join and view balances.
+                                            <span style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '5px',
+                                                fontSize: '0.72rem',
+                                                fontWeight: '850',
+                                                textTransform: 'uppercase',
+                                                background: '#FEF3C7',
+                                                color: '#B45309',
+                                                border: '1px solid #FCD34D',
+                                                padding: '3px 10px',
+                                                borderRadius: '9999px',
+                                                marginBottom: '0.75rem'
+                                            }}>
+                                                <Clock size={12} /> Invitation Pending
+                                            </span>
+                                            <h3 style={{ margin: '0.5rem 0 0.35rem 0', fontSize: '1.5rem', fontWeight: '900', color: '#0F172A' }}>
+                                                {activeSplit.title}
+                                            </h3>
+                                            {activeSplit.description && (
+                                                <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748B' }}>
+                                                    {activeSplit.description}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div style={{
+                                            background: '#F8FAFC',
+                                            border: '1px solid #E2E8F0',
+                                            borderRadius: '16px',
+                                            padding: '1.1rem 1.25rem',
+                                            width: '100%',
+                                            maxWidth: '460px',
+                                            textAlign: 'left',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '0.5rem'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#64748B' }}>Designated Role</span>
+                                                <span style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px',
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: '850',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '6px',
+                                                    background: currentUserRole === 'editor' ? '#EFF6FF' : '#FFFBEB',
+                                                    color: currentUserRole === 'editor' ? '#2563EB' : '#D97706',
+                                                    border: currentUserRole === 'editor' ? '1px solid #BFDBFE' : '1px solid #FDE68A'
+                                                }}>
+                                                    {currentUserRole === 'editor' ? (
+                                                        <><Pencil size={11} strokeWidth={2.5} /> Edit Access</>
+                                                    ) : (
+                                                        <><Eye size={11} strokeWidth={2.5} /> View Only</>
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <p style={{ margin: 0, fontSize: '0.78rem', color: '#475569', lineHeight: 1.45 }}>
+                                                {currentUserRole === 'editor' 
+                                                    ? 'With Edit Access, you will be able to record new expenses, view participants and balances once you accept.'
+                                                    : 'With View-Only Access, you can view expenses and balance calculations once you accept.'}
                                             </p>
                                         </div>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.65rem' }}>
-                                        <button
-                                            onClick={() => handleRespondInvite(activeSplit.id, 'accepted')}
-                                            style={{
-                                                display: 'flex', alignItems: 'center', gap: '6px',
-                                                padding: '0.6rem 1.15rem', borderRadius: '12px',
-                                                background: '#1B6B3A', color: 'white', border: 'none',
-                                                fontWeight: '850', fontSize: '0.82rem', cursor: 'pointer',
-                                                boxShadow: '0 3px 8px rgba(27, 107, 58, 0.25)'
-                                            }}
-                                        >
-                                            <Check size={15} strokeWidth={3} /> Accept & Join Split
-                                        </button>
-                                        <button
-                                            onClick={() => handleRespondInvite(activeSplit.id, 'rejected')}
-                                            style={{
-                                                padding: '0.6rem 1rem', borderRadius: '12px',
-                                                background: 'white', color: '#DC2626', border: '1.5px solid #FCA5A5',
-                                                fontWeight: '800', fontSize: '0.82rem', cursor: 'pointer'
-                                            }}
-                                        >
-                                            Decline
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
 
-                            {/* Split Banner Header */}
-                            <div style={{ background: 'white', borderRadius: '24px', border: '1.5px solid #E2E8F0', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                        <span style={{ fontSize: '0.62rem', color: '#1B6B3A', fontWeight: '850', textTransform: 'uppercase', background: '#ECFDF5', padding: '2px 8px', borderRadius: '6px', border: '1px solid #D1FAE5' }}>
-                                            {activeSplit.currency} Group
-                                        </span>
-                                        {isSplitAdmin ? (
-                                            <span style={{ fontSize: '0.62rem', color: '#7C3AED', fontWeight: '850', textTransform: 'uppercase', background: '#F5F3FF', padding: '2px 8px', borderRadius: '6px', border: '1px solid #DDD6FE' }}>
-                                                👑 Admin / Creator
-                                            </span>
-                                        ) : currentUserRole === 'editor' ? (
-                                            <span style={{ fontSize: '0.62rem', color: '#2563EB', fontWeight: '850', textTransform: 'uppercase', background: '#EFF6FF', padding: '2px 8px', borderRadius: '6px', border: '1px solid #BFDBFE' }}>
-                                                ✏️ Edit Access (Can Record)
-                                            </span>
-                                        ) : (
-                                            <span style={{ fontSize: '0.62rem', color: '#D97706', fontWeight: '850', textTransform: 'uppercase', background: '#FFFBEB', padding: '2px 8px', borderRadius: '6px', border: '1px solid #FDE68A' }}>
-                                                👁️ View Only Mode
-                                            </span>
-                                        )}
-                                        {currentUserStatus === 'pending' && (
-                                            <span style={{ fontSize: '0.62rem', color: '#DC2626', fontWeight: '850', textTransform: 'uppercase', background: '#FEF2F2', padding: '2px 8px', borderRadius: '6px', border: '1px solid #FECACA' }}>
-                                                ⏳ Pending Acceptance
-                                            </span>
-                                        )}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#92400E', fontSize: '0.82rem', fontWeight: '700' }}>
+                                            <Lock size={15} />
+                                            <span>You must accept or decline the invite to enter into this split.</span>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '0.75rem', width: '100%', maxWidth: '380px' }}>
+                                            <button
+                                                onClick={() => handleRespondInvite(activeSplit.id, 'accepted')}
+                                                style={{
+                                                    flex: 1,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '6px',
+                                                    padding: '0.75rem 1.25rem',
+                                                    borderRadius: '14px',
+                                                    background: '#1B6B3A',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    fontWeight: '850',
+                                                    fontSize: '0.85rem',
+                                                    cursor: 'pointer',
+                                                    boxShadow: '0 4px 12px rgba(27, 107, 58, 0.25)'
+                                                }}
+                                            >
+                                                <Check size={16} strokeWidth={3} /> Accept & Join Split
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    handleRespondInvite(activeSplit.id, 'rejected');
+                                                    setSelectedSplitId(null);
+                                                }}
+                                                style={{
+                                                    padding: '0.75rem 1.25rem',
+                                                    borderRadius: '14px',
+                                                    background: 'white',
+                                                    color: '#DC2626',
+                                                    border: '1.5px solid #FCA5A5',
+                                                    fontWeight: '800',
+                                                    fontSize: '0.85rem',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Decline
+                                            </button>
+                                        </div>
                                     </div>
-                                    <h2 style={{ margin: '0.35rem 0 0.15rem 0', fontSize: '1.4rem', fontWeight: '900', color: '#0F172A' }}>{activeSplit.title}</h2>
-                                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748B', fontWeight: '500' }}>{activeSplit.description}</p>
                                 </div>
-                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <span style={{ display: 'block', fontSize: '0.6rem', color: '#64748B', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Group Outlay</span>
-                                        <span style={{ fontSize: '1.5rem', fontWeight: '950', color: '#064E3B', letterSpacing: '-0.02em' }}>
-                                            {activeSplit.currencySymbol}{calculatedBalances.totalSpent.toLocaleString()}
-                                        </span>
+                            ) : (
+                                <>
+                                    {/* Back and Action Panel */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                                        <button 
+                                            onClick={() => setSelectedSplitId(null)}
+                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', border: 'none', background: 'transparent', color: '#064E3B', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', padding: 0 }}
+                                        >
+                                            <ChevronLeft size={18} strokeWidth={2.5} /> Back to all tickets
+                                        </button>
+
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                            {isSplitAdmin && (
+                                                <button 
+                                                    onClick={() => {
+                                                        setInviteMemberEmail('');
+                                                        setInviteMemberName('');
+                                                        setInviteMemberRole('viewer');
+                                                        setInviteError('');
+                                                        setIsInviteModalOpen(true);
+                                                    }}
+                                                    style={{ 
+                                                        display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                                                        padding: '0.6rem 1.1rem', borderRadius: '12px', 
+                                                        background: '#ECFDF5', color: '#065F46', border: '1.5px solid #A7F3D0', 
+                                                        fontWeight: '850', fontSize: '0.82rem', cursor: 'pointer',
+                                                        boxShadow: '0 2px 6px rgba(6, 78, 59, 0.06)'
+                                                    }}
+                                                >
+                                                    <UserPlus size={15} />
+                                                    + Invite Member
+                                                </button>
+                                            )}
+
+                                            {canRecordExpense ? (
+                                                <button 
+                                                    onClick={openAddExpenseModal}
+                                                    style={{ 
+                                                        display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                                                        padding: '0.6rem 1.15rem', borderRadius: '12px', 
+                                                        background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
+                                                        fontWeight: '850', fontSize: '0.82rem', cursor: 'pointer',
+                                                        boxShadow: '0 4px 12px rgba(27, 107, 58, 0.15)'
+                                                    }}
+                                                >
+                                                    <Plus size={16} strokeWidth={3} />
+                                                    Add Expense
+                                                </button>
+                                            ) : (
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => alert('You have View-Only access to this split. Only the Admin and members with Edit Access can record expenses.')}
+                                                    style={{ 
+                                                        display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                                                        padding: '0.6rem 1.15rem', borderRadius: '12px', 
+                                                        background: '#F1F5F9', color: '#64748B', border: '1.5px solid #CBD5E1', 
+                                                        fontWeight: '850', fontSize: '0.82rem', cursor: 'not-allowed'
+                                                    }}
+                                                    title="View-Only Access: Only Admin and Editors can record expenses"
+                                                >
+                                                    <Lock size={15} />
+                                                    View-Only Mode
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
+
+                                    {/* Toast Notification Banner */}
+                                    {inviteSuccessToast && (
+                                        <div style={{ background: '#ECFDF5', border: '1.5px solid #34D399', borderRadius: '14px', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#065F46', fontWeight: '800', fontSize: '0.82rem' }}>
+                                            <Check size={16} strokeWidth={3} />
+                                            <span>{inviteSuccessToast}</span>
+                                        </div>
+                                    )}
+
+                                    {/* Split Banner Header */}
+                                    <div style={{ background: 'white', borderRadius: '24px', border: '1.5px solid #E2E8F0', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                                <span style={{ fontSize: '0.62rem', color: '#1B6B3A', fontWeight: '850', textTransform: 'uppercase', background: '#ECFDF5', padding: '2px 8px', borderRadius: '6px', border: '1px solid #D1FAE5' }}>
+                                                    {activeSplit.currency} Group
+                                                </span>
+                                                {isSplitAdmin ? (
+                                                    <span style={{ fontSize: '0.62rem', color: '#7C3AED', fontWeight: '850', textTransform: 'uppercase', background: '#F5F3FF', padding: '2px 8px', borderRadius: '6px', border: '1px solid #DDD6FE', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Crown size={11} strokeWidth={2.5} /> Admin / Creator
+                                                    </span>
+                                                ) : currentUserRole === 'editor' ? (
+                                                    <span style={{ fontSize: '0.62rem', color: '#2563EB', fontWeight: '850', textTransform: 'uppercase', background: '#EFF6FF', padding: '2px 8px', borderRadius: '6px', border: '1px solid #BFDBFE', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Pencil size={11} strokeWidth={2.5} /> Edit Access (Can Record)
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ fontSize: '0.62rem', color: '#D97706', fontWeight: '850', textTransform: 'uppercase', background: '#FFFBEB', padding: '2px 8px', borderRadius: '6px', border: '1px solid #FDE68A', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Eye size={11} strokeWidth={2.5} /> View Only Mode
+                                                    </span>
+                                                )}
+                                                {currentUserStatus === 'pending' && (
+                                                    <span style={{ fontSize: '0.62rem', color: '#DC2626', fontWeight: '850', textTransform: 'uppercase', background: '#FEF2F2', padding: '2px 8px', borderRadius: '6px', border: '1px solid #FECACA', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Clock size={10} /> Pending Acceptance
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <h2 style={{ margin: '0.35rem 0 0.15rem 0', fontSize: '1.4rem', fontWeight: '900', color: '#0F172A' }}>{activeSplit.title}</h2>
+                                            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748B', fontWeight: '500' }}>{activeSplit.description}</p>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <span style={{ display: 'block', fontSize: '0.6rem', color: '#64748B', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Group Outlay</span>
+                                                <span style={{ fontSize: '1.5rem', fontWeight: '950', color: '#064E3B', letterSpacing: '-0.02em' }}>
+                                                    {activeSplit.currencySymbol}{calculatedBalances.totalSpent.toLocaleString()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
 
                             {/* ── 2-COLUMN SPLIT LAYOUT ── */}
                             {(() => {
@@ -2810,7 +2930,7 @@ const BusinessSplitCollect = () => {
                                                                         {sessionBalances.debts.length === 0 ? (
                                                                             <div style={{ textAlign: 'center', padding: '0.75rem 0' }}>
                                                                                 <Check size={22} color="#34D399" style={{ marginBottom: '0.35rem' }} />
-                                                                                <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600' }}>✓ All accounts completely settled!</p>
+                                                                                <p style={{ margin: 0, fontSize: '0.78rem', color: '#94A3B8', fontWeight: '600' }}>All accounts completely settled!</p>
                                                                             </div>
                                                                         ) : (
                                                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
@@ -3199,6 +3319,7 @@ const BusinessSplitCollect = () => {
                                                             const mIsAdmin = isParticipantAdmin(m);
 
                                                             const primaryExpenses = allExpenses.filter(item => isPrimaryExpense(item));
+                                                            const hasRecordedExpenses = primaryExpenses.length > 0;
 
                                                             // Initial Audit Totals (Primary non-settlement expenses)
                                                             const paid = primaryExpenses
@@ -3223,8 +3344,10 @@ const BusinessSplitCollect = () => {
                                                                 ? calculatedBalances.members[mName] 
                                                                 : (mEmail && calculatedBalances.members[mEmail] !== undefined ? calculatedBalances.members[mEmail] : (paid - charged));
                                                             const rawNet = memberNetLookup !== undefined ? memberNetLookup : 0;
-                                                            const isSettled = Math.abs(rawNet) < 0.01;
-                                                            const net = isSettled ? 0 : rawNet;
+                                                            const isZero = Math.abs(rawNet) < 0.01;
+                                                            // CRITICAL FIX: Only marked as Settled if there are recorded primary expenses AND the member has accepted AND net balance is zero!
+                                                            const isSettled = hasRecordedExpenses && mStatus === 'accepted' && isZero;
+                                                            const net = isZero ? 0 : rawNet;
                                                             const isPositive = net > 0.001;
 
                                                             return (
@@ -3249,46 +3372,70 @@ const BusinessSplitCollect = () => {
                                                                             </span>
                                                                             
                                                                             {mIsAdmin ? (
-                                                                                <span style={{ background: '#047857', color: 'white', fontSize: '0.65rem', fontWeight: '850', padding: '1px 6px', borderRadius: '6px' }}>
-                                                                                    👑 Admin
+                                                                                <span style={{ background: '#047857', color: 'white', fontSize: '0.65rem', fontWeight: '850', padding: '2px 7px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                                                    <Crown size={11} strokeWidth={2.5} /> Admin
                                                                                 </span>
                                                                             ) : (
                                                                                 <>
                                                                                     {/* Role Selector for Admin or static badge */}
                                                                                     {isSplitAdmin ? (
-                                                                                        <select
-                                                                                            value={mRole}
-                                                                                            onChange={(e) => handleUpdateMemberRole(mEmail, e.target.value)}
-                                                                                            onClick={(e) => e.stopPropagation()}
-                                                                                            style={{
-                                                                                                fontSize: '0.72rem',
-                                                                                                fontWeight: '800',
-                                                                                                borderRadius: '6px',
-                                                                                                padding: '2px 6px',
-                                                                                                border: mRole === 'editor' ? '1px solid #93C5FD' : '1px solid #FDE68A',
-                                                                                                background: mRole === 'editor' ? '#EFF6FF' : '#FFFBEB',
-                                                                                                color: mRole === 'editor' ? '#1D4ED8' : '#B45309',
-                                                                                                outline: 'none',
-                                                                                                cursor: 'pointer'
-                                                                                            }}
-                                                                                            title="Change Member Access Role"
-                                                                                        >
-                                                                                            <option value="editor">✏️ Edit Access</option>
-                                                                                            <option value="viewer">👁️ View Only</option>
-                                                                                        </select>
+                                                                                        <div style={{
+                                                                                            display: 'inline-flex',
+                                                                                            alignItems: 'center',
+                                                                                            gap: '4px',
+                                                                                            fontSize: '0.72rem',
+                                                                                            fontWeight: '800',
+                                                                                            borderRadius: '6px',
+                                                                                            padding: '2px 6px',
+                                                                                            border: mRole === 'editor' ? '1px solid #93C5FD' : '1px solid #FDE68A',
+                                                                                            background: mRole === 'editor' ? '#EFF6FF' : '#FFFBEB',
+                                                                                            color: mRole === 'editor' ? '#1D4ED8' : '#B45309'
+                                                                                        }}>
+                                                                                            {mRole === 'editor' ? (
+                                                                                                <Pencil size={11} strokeWidth={2.5} style={{ color: '#1D4ED8' }} />
+                                                                                            ) : (
+                                                                                                <Eye size={11} strokeWidth={2.5} style={{ color: '#B45309' }} />
+                                                                                            )}
+                                                                                            <select
+                                                                                                value={mRole}
+                                                                                                onChange={(e) => handleUpdateMemberRole(mEmail, e.target.value)}
+                                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                                style={{
+                                                                                                    fontSize: '0.72rem',
+                                                                                                    fontWeight: '800',
+                                                                                                    border: 'none',
+                                                                                                    background: 'transparent',
+                                                                                                    color: mRole === 'editor' ? '#1D4ED8' : '#B45309',
+                                                                                                    outline: 'none',
+                                                                                                    cursor: 'pointer',
+                                                                                                    padding: 0
+                                                                                                }}
+                                                                                                title="Change Member Access Role"
+                                                                                            >
+                                                                                                <option value="editor">Edit Access</option>
+                                                                                                <option value="viewer">View Only</option>
+                                                                                            </select>
+                                                                                        </div>
                                                                                     ) : (
                                                                                         <span
                                                                                             style={{
+                                                                                                display: 'inline-flex',
+                                                                                                alignItems: 'center',
+                                                                                                gap: '4px',
                                                                                                 fontSize: '0.68rem',
                                                                                                 fontWeight: '800',
                                                                                                 background: mRole === 'editor' ? '#EFF6FF' : '#FFFBEB',
                                                                                                 color: mRole === 'editor' ? '#2563EB' : '#D97706',
                                                                                                 border: mRole === 'editor' ? '1px solid #BFDBFE' : '1px solid #FDE68A',
-                                                                                                padding: '1px 6px',
+                                                                                                padding: '2px 6px',
                                                                                                 borderRadius: '6px'
                                                                                             }}
                                                                                         >
-                                                                                            {mRole === 'editor' ? '✏️ Edit Access' : '👁️ View Only'}
+                                                                                            {mRole === 'editor' ? (
+                                                                                                <><Pencil size={11} strokeWidth={2.5} /> Edit Access</>
+                                                                                            ) : (
+                                                                                                <><Eye size={11} strokeWidth={2.5} /> View Only</>
+                                                                                            )}
                                                                                         </span>
                                                                                     )}
                                                                                 </>
@@ -3365,6 +3512,9 @@ const BusinessSplitCollect = () => {
                                                                                     type="button"
                                                                                     onClick={() => handleAcceptOnBehalf(mEmail)}
                                                                                     style={{
+                                                                                        display: 'inline-flex',
+                                                                                        alignItems: 'center',
+                                                                                        gap: '3px',
                                                                                         border: 'none',
                                                                                         background: '#ECFDF5',
                                                                                         color: '#047857',
@@ -3375,7 +3525,7 @@ const BusinessSplitCollect = () => {
                                                                                         cursor: 'pointer'
                                                                                     }}
                                                                                 >
-                                                                                    ✓ Accept on Behalf
+                                                                                    <Check size={11} strokeWidth={2.5} /> Accept on Behalf
                                                                                 </button>
                                                                                 <button
                                                                                     type="button"
@@ -3422,9 +3572,9 @@ const BusinessSplitCollect = () => {
                                                                         <span style={{
                                                                             fontSize: '1rem',
                                                                             fontWeight: '950',
-                                                                            color: isSettled ? '#64748B' : (isPositive ? '#059669' : '#DC2626')
+                                                                            color: isZero ? '#64748B' : (isPositive ? '#059669' : '#DC2626')
                                                                         }}>
-                                                                            {isSettled ? `${currSym}0.00` : `${isPositive ? '+' : '-'}${currSym}${Math.abs(net).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                                                            {isZero ? `${currSym}0.00` : `${isPositive ? '+' : '-'}${currSym}${Math.abs(net).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                                                         </span>
                                                                     </div>
                                                                 </div>
@@ -3467,7 +3617,7 @@ const BusinessSplitCollect = () => {
                                                             className="text-sm font-bold text-slate-300 m-0"
                                                             style={{ margin: 0, fontSize: '0.85rem', color: '#CBD5E1', fontWeight: '750' }}
                                                         >
-                                                            ✓ All accounts completely settled!
+                                                            {primaryExpenses.length === 0 ? 'No expenses recorded yet' : 'All accounts completely settled!'}
                                                         </p>
                                                     </div>
                                                 ) : (
@@ -3695,6 +3845,8 @@ const BusinessSplitCollect = () => {
                                     </div>
                                 );
                             })()}
+                                </>
+                            )}
                         </Motion.div>
                     )}
                 </AnimatePresence>
@@ -3822,8 +3974,8 @@ const BusinessSplitCollect = () => {
                                                 cursor: 'pointer'
                                             }}
                                         >
-                                            <option value="editor">✏️ Edit Access</option>
-                                            <option value="viewer">👁️ View Only</option>
+                                            <option value="editor">Edit Access</option>
+                                            <option value="viewer">View Only</option>
                                         </select>
                                         <button 
                                             type="button"
@@ -3850,8 +4002,8 @@ const BusinessSplitCollect = () => {
 
                                     {/* Inline Error for Email Domain Guard */}
                                     {emailError && (
-                                        <div style={{ color: '#EF4444', fontSize: '0.74rem', fontWeight: '750', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px', background: '#FEF2F2', padding: '4px 8px', borderRadius: '6px' }}>
-                                            <span>⚠️</span>
+                                        <div style={{ color: '#EF4444', fontSize: '0.74rem', fontWeight: '750', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px', background: '#FEF2F2', padding: '4px 8px', borderRadius: '6px' }}>
+                                            <AlertCircle size={14} />
                                             <span>{emailError}</span>
                                         </div>
                                     )}
@@ -3891,8 +4043,8 @@ const BusinessSplitCollect = () => {
 
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                                                         {pIsAdmin ? (
-                                                            <span style={{ background: '#047857', color: 'white', fontSize: '0.65rem', fontWeight: '850', padding: '2px 6px', borderRadius: '6px' }}>
-                                                                👑 Admin
+                                                            <span style={{ background: '#047857', color: 'white', fontSize: '0.65rem', fontWeight: '850', padding: '2px 6px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                                <Crown size={10} strokeWidth={2.5} /> Admin
                                                             </span>
                                                         ) : (
                                                             <>
@@ -3908,13 +4060,20 @@ const BusinessSplitCollect = () => {
                                                                         fontWeight: '800',
                                                                         padding: '2px 6px',
                                                                         borderRadius: '6px',
-                                                                        cursor: 'pointer'
+                                                                        cursor: 'pointer',
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '4px'
                                                                     }}
                                                                 >
-                                                                    {pRole === 'editor' ? '✏️ Edit Access' : '👁️ View Only'}
+                                                                    {pRole === 'editor' ? (
+                                                                        <><Pencil size={10} strokeWidth={2.5} /> Edit Access</>
+                                                                    ) : (
+                                                                        <><Eye size={10} strokeWidth={2.5} /> View Only</>
+                                                                    )}
                                                                 </button>
-                                                                <span style={{ color: '#94A3B8', fontSize: '0.65rem', fontWeight: '600' }}>
-                                                                    ⏳ Pending Invite
+                                                                <span style={{ color: '#94A3B8', fontSize: '0.65rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                                                    <Clock size={10} /> Pending Invite
                                                                 </span>
                                                                 <button 
                                                                     type="button" 
@@ -4021,8 +4180,9 @@ const BusinessSplitCollect = () => {
                                                 padding: '0.75rem', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s'
                                             }}
                                         >
-                                            <div style={{ fontSize: '0.82rem', fontWeight: '850', color: inviteMemberRole === 'editor' ? '#166534' : '#334155' }}>
-                                                ✏️ Edit Access
+                                            <div style={{ fontSize: '0.82rem', fontWeight: '850', color: inviteMemberRole === 'editor' ? '#166534' : '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Pencil size={14} strokeWidth={2.5} />
+                                                <span>Edit Access</span>
                                             </div>
                                             <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>
                                                 Can record and add expenses in this split
@@ -4037,8 +4197,9 @@ const BusinessSplitCollect = () => {
                                                 padding: '0.75rem', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s'
                                             }}
                                         >
-                                            <div style={{ fontSize: '0.82rem', fontWeight: '850', color: inviteMemberRole === 'viewer' ? '#166534' : '#334155' }}>
-                                                👁️ View Only
+                                            <div style={{ fontSize: '0.82rem', fontWeight: '850', color: inviteMemberRole === 'viewer' ? '#166534' : '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Eye size={14} strokeWidth={2.5} />
+                                                <span>View Only</span>
                                             </div>
                                             <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>
                                                 Can only view expenses and balances
@@ -4048,8 +4209,9 @@ const BusinessSplitCollect = () => {
                                 </div>
 
                                 {inviteError && (
-                                    <div style={{ color: '#EF4444', fontSize: '0.75rem', fontWeight: '750', background: '#FEF2F2', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #FECACA' }}>
-                                        ⚠️ {inviteError}
+                                    <div style={{ color: '#EF4444', fontSize: '0.75rem', fontWeight: '750', background: '#FEF2F2', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #FECACA', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <AlertCircle size={15} />
+                                        <span>{inviteError}</span>
                                     </div>
                                 )}
 
