@@ -23,7 +23,11 @@ import {
     Pin,
     MoreVertical,
     Share2,
-    Tag
+    Tag,
+    Clock,
+    Check,
+    UserPlus,
+    AlertCircle
 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
 import { apiClient as api } from '../api/client';
@@ -167,6 +171,25 @@ const BusinessPeople = () => {
     const { data: peopleRes = [], isLoading: isPeopleLoading } = useQuery({
         queryKey: ['people-list', searchTerm],
         queryFn: () => peopleService.getPeople({ search: searchTerm }),
+    });
+
+    // ── Incoming Connection Requests ─────────────────────────────────────────
+    const { data: incomingRequests = [], refetch: refetchIncomingRequests } = useQuery({
+        queryKey: ['people-incoming-requests'],
+        queryFn: () => peopleService.getIncomingRequests(),
+    });
+
+    const respondRequestMutation = useMutation({
+        mutationFn: ({ id, action }) => peopleService.respondToRequest(id, action),
+        onSuccess: (res, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['people-incoming-requests'] });
+            queryClient.invalidateQueries({ queryKey: ['people-list'] });
+            alert(`Connection request ${variables.action === 'accept' ? 'accepted! Contact added to your network.' : 'declined.'}`);
+        },
+        onError: (err) => {
+            const msg = err?.response?.data?.message || err?.message || 'Failed to respond to connection request.';
+            alert(msg);
+        }
     });
 
     const { data: transactionsRes = [], isLoading: isTxLoading } = useQuery({
@@ -397,14 +420,14 @@ const BusinessPeople = () => {
             setContactForm({ name: '', role_type: 'friend', phone: '', email: '', company: '', relationship: '', contact_info: '' });
             setContactEmailError('');
             setContactPhoneError('');
-            alert('Contact added to your network.');
+            alert('Contact added and invitation request sent.');
         },
         onError: (err) => {
             const errMsg = err?.response?.data?.message || err?.response?.data?.error?.message || err?.message || '';
-            if (errMsg.toLowerCase().includes('phone') || err?.response?.status === 409) {
+            if (errMsg.toLowerCase().includes('phone') || (err?.response?.status === 409 && errMsg.toLowerCase().includes('mobile'))) {
                 setContactPhoneError('A contact with this mobile number already exists.');
-            } else if (errMsg.toLowerCase().includes('bnxmail')) {
-                setContactEmailError('Only official @bnxmail.com domain emails are permitted.');
+            } else if (errMsg.toLowerCase().includes('bnxmail') || errMsg.toLowerCase().includes('email')) {
+                setContactEmailError(errMsg || 'Only official @bnxmail.com domain emails are permitted.');
             } else {
                 alert(errMsg || 'Failed to create contact.');
             }
@@ -626,28 +649,38 @@ const BusinessPeople = () => {
             }
         }
 
-        // BNXMAIL Email Domain Enforcement
-        if (contactForm.email && contactForm.email.trim()) {
-            const cleanEmail = contactForm.email.trim();
-            const bnxmailRegex = /^[a-zA-Z0-9._%+-]+@bnxmail\.com$/i;
-            if (!bnxmailRegex.test(cleanEmail)) {
-                setContactEmailError('Only official @bnxmail.com domain emails are permitted.');
-                return;
-            }
+        // BNXMAIL Email Domain Enforcement & Requirement
+        const cleanEmail = contactForm.email ? contactForm.email.trim() : '';
+        if (!cleanEmail) {
+            setContactEmailError('Email is required. Only official @bnxmail.com domain emails are accepted.');
+            return;
+        }
 
-            // Unique Email Validation (Case-insensitive & ignoring extra spaces)
-            const lowerEmail = cleanEmail.toLowerCase();
-            const exists = people.some(p => {
-                if (editingContactId && String(p.id) === String(editingContactId)) {
-                    return false;
-                }
-                return p.email && p.email.trim().toLowerCase() === lowerEmail;
-            });
+        const bnxmailRegex = /^[a-zA-Z0-9._%+-]+@bnxmail\.com$/i;
+        if (!bnxmailRegex.test(cleanEmail)) {
+            setContactEmailError('Only official @bnxmail.com domain emails are permitted.');
+            return;
+        }
 
-            if (exists) {
-                setContactEmailError('A contact with this email address already exists.');
-                return;
+        // Prevent self connection request
+        const myEmail = (userProfile?.email || '').trim().toLowerCase();
+        if (myEmail && cleanEmail.toLowerCase() === myEmail) {
+            setContactEmailError('You cannot add your own @bnxmail.com address as a contact.');
+            return;
+        }
+
+        // Unique Email Validation (Case-insensitive & ignoring extra spaces)
+        const lowerEmail = cleanEmail.toLowerCase();
+        const exists = people.some(p => {
+            if (editingContactId && String(p.id) === String(editingContactId)) {
+                return false;
             }
+            return p.email && p.email.trim().toLowerCase() === lowerEmail;
+        });
+
+        if (exists) {
+            setContactEmailError('A contact with this email address already exists in your network.');
+            return;
         }
 
         const meta = getContactMeta(contactForm.contact_info);
@@ -1111,28 +1144,145 @@ const BusinessPeople = () => {
                 </div>
             </div>
 
+            {/* Incoming Connection Requests Banner */}
+            {incomingRequests && incomingRequests.length > 0 && activeTab !== 'requests' && (
+                <div style={{
+                    marginBottom: '1.25rem',
+                    padding: '1.25rem',
+                    borderRadius: '18px',
+                    background: 'linear-gradient(135deg, #EFF6FF 0%, #F8FAFC 100%)',
+                    border: '1.5px solid #BFDBFE',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.08)'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#DBEAFE', color: '#1D4ED8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <UserPlus size={18} />
+                            </div>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '850', color: '#1E3A8A' }}>
+                                    Incoming Connection Requests ({incomingRequests.length})
+                                </h4>
+                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>
+                                    Accept connection requests sent to your @bnxmail.com address to connect and view contacts.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setActiveTab('requests')}
+                            style={{
+                                border: 'none',
+                                background: '#DBEAFE',
+                                color: '#1E40AF',
+                                padding: '0.35rem 0.85rem',
+                                borderRadius: '999px',
+                                fontSize: '0.75rem',
+                                fontWeight: '800',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            View All ({incomingRequests.length})
+                        </button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.85rem' }}>
+                        {incomingRequests.slice(0, 3).map(req => (
+                            <div key={req.id} style={{
+                                background: '#FFFFFF',
+                                border: '1px solid #E2E8F0',
+                                borderRadius: '14px',
+                                padding: '0.85rem 1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '0.75rem',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#004aad', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.85rem', flexShrink: 0 }}>
+                                        {(req.requester_username || req.requester_business_name || 'U').charAt(0).toUpperCase()}
+                                    </div>
+                                    <div style={{ minWidth: 0 }}>
+                                        <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {req.requester_username || req.requester_business_name || 'Network Contact'}
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <Mail size={11} /> {req.requester_email}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                                    <button
+                                        onClick={() => respondRequestMutation.mutate({ id: req.id, action: 'accept' })}
+                                        disabled={respondRequestMutation.isPending}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            border: 'none',
+                                            background: '#10B981',
+                                            color: '#FFFFFF',
+                                            padding: '0.45rem 0.75rem',
+                                            borderRadius: '8px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: '750',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <Check size={13} /> Accept
+                                    </button>
+                                    <button
+                                        onClick={() => respondRequestMutation.mutate({ id: req.id, action: 'reject' })}
+                                        disabled={respondRequestMutation.isPending}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            border: '1px solid #E2E8F0',
+                                            background: '#FFFFFF',
+                                            color: '#EF4444',
+                                            padding: '0.45rem 0.65rem',
+                                            borderRadius: '8px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: '700',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <X size={13} /> Decline
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Tabs Row & Global Tools */}
-            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                     {[
                         { id: 'contacts', label: 'Active Directory', icon: Users },
-                        { id: 'transactions', label: 'Global Ledger Ledger', icon: ArrowLeftRight },
+                        { id: 'requests', label: `Requests ${incomingRequests && incomingRequests.length > 0 ? `(${incomingRequests.length})` : ''}`, icon: UserPlus, badge: incomingRequests?.length || 0 },
+                        { id: 'transactions', label: 'Global Ledger', icon: ArrowLeftRight },
                         { id: 'reminders', label: 'Repayment Alerts', icon: Bell }
                     ].map(tab => (
                         <button 
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             style={{ 
-                                padding: '0.85rem 1.75rem', borderRadius: '14px', 
+                                padding: '0.85rem 1.5rem', borderRadius: '14px', 
                                 background: activeTab === tab.id ? '#064E3B' : 'white', 
                                 color: activeTab === tab.id ? 'white' : '#475569',
                                 border: '1px solid #E2E8F0', fontWeight: '700', cursor: 'pointer',
                                 display: 'flex', alignItems: 'center', gap: '0.6rem',
                                 boxShadow: activeTab === tab.id ? '0 8px 16px rgba(6, 78, 59, 0.15)' : 'none',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.2s',
+                                position: 'relative'
                             }}
                         >
                             <tab.icon size={18} /> {tab.label}
+                            {tab.badge > 0 && activeTab !== tab.id && (
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', position: 'absolute', top: '10px', right: '10px' }} />
+                            )}
                         </button>
                     ))}
                 </div>
@@ -1239,7 +1389,7 @@ const BusinessPeople = () => {
                                         const meta = getContactMeta(p.contact_info);
                                         return {
                                             ...p,
-                                            status: meta.status,
+                                            status: p.status || meta.status || 'accepted',
                                             loyalty_points: meta.loyalty_points,
                                             phone_email: `${p.phone || ''} ${p.email || ''}`
                                         };
@@ -1251,7 +1401,7 @@ const BusinessPeople = () => {
                                         const meta = getContactMeta(p.contact_info);
                                         return {
                                             ...p,
-                                            status: meta.status,
+                                            status: p.status || meta.status || 'accepted',
                                             loyalty_points: meta.loyalty_points,
                                             phone_email: `${p.phone || ''} ${p.email || ''}`
                                         };
@@ -1290,13 +1440,30 @@ const BusinessPeople = () => {
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-black text-gray-900" style={{ fontWeight: '900', color: '#111827', fontSize: '0.875rem', margin: 0 }}>{p.name}</p>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                                            <p className="text-sm font-black text-gray-900" style={{ fontWeight: '900', color: '#111827', fontSize: '0.875rem', margin: 0 }}>{p.name}</p>
+                                                            {p.status === 'pending' && (
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEF3C7', color: '#B45309', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '800' }}>
+                                                                    <Clock size={10} /> Pending Request
+                                                                </span>
+                                                            )}
+                                                            {p.status === 'accepted' && (
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#ECFDF5', color: '#047857', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '800' }}>
+                                                                    <Check size={10} /> Connected
+                                                                </span>
+                                                            )}
+                                                            {p.status === 'rejected' && (
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#FEE2E2', color: '#DC2626', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '800' }}>
+                                                                    <X size={10} /> Declined
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         {activeConfig.payReminder && netBal !== 0 && (
                                                             <button 
                                                                 onClick={(e) => { e.stopPropagation(); handleSendWhatsAppReminder(p, netBal); }}
                                                                 style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', border: 'none', background: '#ECFDF5', color: '#047857', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: '750', marginTop: '4px', cursor: 'pointer' }}
                                                             >
-                                                                Send Reminder 💬
+                                                                <MessageSquare size={11} /> Send Reminder
                                                             </button>
                                                         )}
                                                     </div>
@@ -1464,6 +1631,118 @@ const BusinessPeople = () => {
                                 })}
                             </tbody>
                         </table>
+                    )}
+
+                    {/* TAB: Connection Requests */}
+                    {activeTab === 'requests' && (
+                        <div style={{ padding: '2rem' }}>
+                            <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900', color: '#0F172A' }}>Incoming Connection Requests</h3>
+                                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: '#64748B' }}>
+                                        Users who sent an invitation request to your @bnxmail.com address. Accept to establish mutual connection.
+                                    </p>
+                                </div>
+                                <span style={{ padding: '0.35rem 0.85rem', borderRadius: '999px', background: '#DBEAFE', color: '#1D4ED8', fontWeight: '800', fontSize: '0.8rem' }}>
+                                    {incomingRequests.length} Pending
+                                </span>
+                            </div>
+
+                            {incomingRequests.length === 0 ? (
+                                <div style={{ padding: '4rem 2rem', textAlign: 'center', background: '#F8FAFC', borderRadius: '20px', border: '1px dashed #CBD5E1' }}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: '#E2E8F0', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                                        <UserPlus size={24} />
+                                    </div>
+                                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#334155' }}>No Pending Requests</h4>
+                                    <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: '#94A3B8' }}>
+                                        When someone adds your @bnxmail.com address, you can accept or decline their request here.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
+                                    {incomingRequests.map((req) => (
+                                        <div key={req.id} style={{
+                                            background: '#FFFFFF',
+                                            borderRadius: '18px',
+                                            border: '1.5px solid #E2E8F0',
+                                            padding: '1.5rem',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            justifyContent: 'space-between',
+                                            gap: '1rem'
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                                                <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: '#004aad', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '1.1rem', flexShrink: 0 }}>
+                                                    {(req.requester_username || req.requester_business_name || 'U').charAt(0).toUpperCase()}
+                                                </div>
+                                                <div style={{ minWidth: 0, flex: 1 }}>
+                                                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#0F172A' }}>
+                                                        {req.requester_username || req.requester_business_name || 'Network Member'}
+                                                    </h4>
+                                                    <p style={{ margin: '0.2rem 0', fontSize: '0.8rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                        <Mail size={12} /> {req.requester_email}
+                                                    </p>
+                                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                                                        <span style={{ padding: '0.2rem 0.55rem', borderRadius: '6px', background: '#EFF6FF', color: '#1E40AF', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>
+                                                            {req.role_type || 'Contact'}
+                                                        </span>
+                                                        <span style={{ padding: '0.2rem 0.55rem', borderRadius: '6px', background: '#FEF3C7', color: '#92400E', fontSize: '0.7rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                            <Clock size={10} /> Pending
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
+                                                <button
+                                                    onClick={() => respondRequestMutation.mutate({ id: req.id, action: 'accept' })}
+                                                    disabled={respondRequestMutation.isPending}
+                                                    style={{
+                                                        flex: 1,
+                                                        padding: '0.65rem 1rem',
+                                                        borderRadius: '10px',
+                                                        background: '#10B981',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        fontWeight: '800',
+                                                        fontSize: '0.85rem',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '6px',
+                                                        boxShadow: '0 2px 6px rgba(16, 185, 129, 0.2)'
+                                                    }}
+                                                >
+                                                    <Check size={14} /> Accept Request
+                                                </button>
+                                                <button
+                                                    onClick={() => respondRequestMutation.mutate({ id: req.id, action: 'reject' })}
+                                                    disabled={respondRequestMutation.isPending}
+                                                    style={{
+                                                        padding: '0.65rem 1rem',
+                                                        borderRadius: '10px',
+                                                        background: '#FFFFFF',
+                                                        color: '#EF4444',
+                                                        border: '1.5px solid #FECACA',
+                                                        fontWeight: '800',
+                                                        fontSize: '0.85rem',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '6px'
+                                                    }}
+                                                >
+                                                    <X size={14} /> Decline
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     {/* TAB 2: Transactions Ledger */}
@@ -1659,9 +1938,12 @@ const BusinessPeople = () => {
                                         )}
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>E-Mail Address</label>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                            E-Mail Address (bnxmail) <span style={{ color: '#EF4444' }}>*</span>
+                                        </label>
                                         <input 
-                                            placeholder="user@bnxmail.com" 
+                                            required
+                                            placeholder="username@bnxmail.com" 
                                             type="email" 
                                             value={contactForm.email} 
                                             onChange={(e) => {
@@ -1698,6 +1980,9 @@ const BusinessPeople = () => {
                                             }}
                                             style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: contactEmailError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} 
                                         />
+                                        <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '0.35rem' }}>
+                                            <Mail size={12} /> Only @bnxmail.com accepted. Request will be sent for approval.
+                                        </span>
                                         {contactEmailError && (
                                             <span style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: '700', marginTop: '0.3rem', display: 'block' }}>
                                                 {contactEmailError}
@@ -1968,7 +2253,7 @@ const BusinessPeople = () => {
                                                         onClick={() => handleSendWhatsAppReminder(personDetails, computedNetBalance)}
                                                         style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: 'none', background: computedNetBalance >= 0 ? '#D1FAE5' : '#FEE2E2', color: computedNetBalance >= 0 ? '#065F46' : '#991B1B', padding: '0.4rem 0.8rem', borderRadius: '10px', fontSize: '0.75rem', fontWeight: '800', marginTop: '0.75rem', cursor: 'pointer' }}
                                                     >
-                                                        Send Payment Reminder 💬
+                                                        <MessageSquare size={13} /> Send Payment Reminder
                                                     </button>
                                                 )}
                                             </div>
@@ -2422,8 +2707,8 @@ const BusinessPeople = () => {
                                                                     <input required type="date" value={inlineRemForm.due_date} onChange={(e) => setInlineRemForm({ ...inlineRemForm, due_date: e.target.value })} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #FCD34D', outline: 'none', fontSize: '0.85rem' }} />
                                                                 </div>
                                                             </div>
-                                                            <button type="submit" disabled={createReminderMutation.isPending || updateReminderMutation.isPending} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', marginTop: '0.5rem' }}>
-                                                                {createReminderMutation.isPending || updateReminderMutation.isPending ? 'Saving...' : editingRemId ? 'Update Alarm' : 'Enable Alarm 🔔'}
+                                                            <button type="submit" disabled={createReminderMutation.isPending || updateReminderMutation.isPending} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.9rem', cursor: 'pointer', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                                <Bell size={16} /> {createReminderMutation.isPending || updateReminderMutation.isPending ? 'Saving...' : editingRemId ? 'Update Alarm' : 'Enable Alarm'}
                                                             </button>
                                                         </form>
                                                     </Motion.div>
@@ -2642,12 +2927,12 @@ const BusinessPeople = () => {
                                         'text/plain': new Blob([whatsappMsg], { type: 'text/plain' })
                                     });
                                     await navigator.clipboard.write([clipboardItem]);
-                                    alert('📋 Screenshot card and text statement both copied to clipboard! Paste it directly (Cmd+V) in WhatsApp.');
+                                    alert('Screenshot card and text statement both copied to clipboard! Paste it directly (Cmd+V) in WhatsApp.');
                                 } catch (err) {
                                     console.error('Unified clipboard copy failed, falling back to text:', err);
                                     // Fallback to text if mixed copy is blocked
                                     await navigator.clipboard.writeText(whatsappMsg);
-                                    alert('📋 Ledger statement text copied to clipboard! (Image copy was restricted by browser/context).');
+                                    alert('Ledger statement text copied to clipboard! (Image copy was restricted by browser/context).');
                                 }
                             }, 'image/png');
                         } catch (err) {

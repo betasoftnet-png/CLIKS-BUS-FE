@@ -10,6 +10,10 @@ export const peopleService = {
     updatePerson: async (id, data) => await apiClient.patch(`/people/${id}`, data).then(res => res.data.data || res.data),
     deletePerson: async (id) => await apiClient.delete(`/people/${id}`).then(res => res.data.data || res.data),
 
+    // Connection Requests Workflow
+    getIncomingRequests: async () => await apiClient.get('/people/requests/incoming').then(res => res.data.data || res.data),
+    respondToRequest: async (requestId, action) => await apiClient.patch(`/people/requests/${requestId}/respond`, { action }).then(res => res.data.data || res.data),
+
     // Global aggregated views
     getAllTransactions: async () => await apiClient.get('/people/transactions').then(res => res.data.data || res.data),
     getAllReminders: async () => await apiClient.get('/people/reminders').then(res => res.data.data || res.data),
