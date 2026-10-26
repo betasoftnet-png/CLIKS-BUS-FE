@@ -2471,6 +2471,7 @@ const BusinessSplitCollect = () => {
                             {/* ── 2-COLUMN SPLIT LAYOUT ── */}
                             {(() => {
                                 const allExpenses = activeSplit.expenses || [];
+                                const groupPrimaryExpenses = allExpenses.filter(item => isPrimaryExpense(item));
                                 const splitSettlements = allExpenses.filter(item => !isPrimaryExpense(item));
                                 const totalSettledAmount = splitSettlements.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
                                 const currSym = activeSplit.currencySymbol || '₹';
@@ -3617,7 +3618,7 @@ const BusinessSplitCollect = () => {
                                                             className="text-sm font-bold text-slate-300 m-0"
                                                             style={{ margin: 0, fontSize: '0.85rem', color: '#CBD5E1', fontWeight: '750' }}
                                                         >
-                                                            {primaryExpenses.length === 0 ? 'No expenses recorded yet' : 'All accounts completely settled!'}
+                                                            {groupPrimaryExpenses.length === 0 ? 'No expenses recorded yet' : 'All accounts completely settled!'}
                                                         </p>
                                                     </div>
                                                 ) : (
