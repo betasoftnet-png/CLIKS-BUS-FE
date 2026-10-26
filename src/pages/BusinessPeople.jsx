@@ -27,7 +27,12 @@ import {
     Clock,
     Check,
     UserPlus,
-    AlertCircle
+    AlertCircle,
+    FolderKanban,
+    ShieldCheck,
+    Wallet,
+    PieChart,
+    Layers
 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
 import { apiClient as api } from '../api/client';
@@ -107,6 +112,33 @@ const BusinessPeople = () => {
     const [shareModalData, setShareModalData] = useState(null); // { person, balance }
     const [shareAmount, setShareAmount] = useState('');
     const [shareDate, setShareDate] = useState(new Date().toISOString().split('T')[0]);
+
+    // Financial Groups State
+    const [selectedGroupId, setSelectedGroupId] = useState(null);
+    const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
+    const [isAddGroupTxModalOpen, setIsAddGroupTxModalOpen] = useState(false);
+    const [isInviteMemberModalOpen, setIsInviteMemberModalOpen] = useState(false);
+    const [groupActiveSubTab, setGroupActiveSubTab] = useState('balances'); // 'balances', 'transactions', 'members'
+    const [newGroupForm, setNewGroupForm] = useState({
+        name: '',
+        description: '',
+        group_type: 'syndicate',
+        target_amount: '',
+        currency: 'INR',
+        members: []
+    });
+    const [tempMemberInput, setTempMemberInput] = useState({ name: '', email: '', role: 'member' });
+    const [tempMemberEmailError, setTempMemberEmailError] = useState('');
+    const [groupTxForm, setGroupTxForm] = useState({
+        type: 'expense',
+        amount: '',
+        title: '',
+        category: 'General',
+        notes: '',
+        date: new Date().toISOString().split('T')[0]
+    });
+    const [inviteMemberForm, setInviteMemberForm] = useState({ name: '', email: '', role: 'member' });
+    const [inviteMemberEmailError, setInviteMemberEmailError] = useState('');
 
     React.useEffect(() => {
         if (shareModalData) {
@@ -189,6 +221,91 @@ const BusinessPeople = () => {
         onError: (err) => {
             const msg = err?.response?.data?.message || err?.message || 'Failed to respond to connection request.';
             alert(msg);
+        }
+    });
+
+    // ── Financial Groups Queries & Mutations ─────────────────────────────────
+    const { data: groupsList = [], isLoading: isGroupsLoading } = useQuery({
+        queryKey: ['people-groups-list'],
+        queryFn: () => peopleService.getGroups(),
+    });
+
+    const { data: groupIncomingRequests = [], refetch: refetchGroupIncomingRequests } = useQuery({
+        queryKey: ['people-group-incoming-requests'],
+        queryFn: () => peopleService.getGroupIncomingRequests(),
+    });
+
+    const { data: selectedGroupDetails, isLoading: isGroupDetailsLoading } = useQuery({
+        queryKey: ['people-group-details', selectedGroupId],
+        queryFn: () => peopleService.getGroupDetails(selectedGroupId),
+        enabled: !!selectedGroupId
+    });
+
+    const createGroupMutation = useMutation({
+        mutationFn: (data) => peopleService.createGroup(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['people-groups-list'] });
+            setIsCreateGroupModalOpen(false);
+            setNewGroupForm({ name: '', description: '', group_type: 'syndicate', target_amount: '', currency: 'INR', members: [] });
+            setTempMemberInput({ name: '', email: '', role: 'member' });
+            setTempMemberEmailError('');
+            alert('Financial group created and invitations dispatched!');
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || err?.message || 'Failed to create financial group.');
+        }
+    });
+
+    const respondGroupRequestMutation = useMutation({
+        mutationFn: ({ membershipId, action }) => peopleService.respondToGroupRequest(membershipId, action),
+        onSuccess: (_, vars) => {
+            queryClient.invalidateQueries({ queryKey: ['people-group-incoming-requests'] });
+            queryClient.invalidateQueries({ queryKey: ['people-groups-list'] });
+            alert(`Group invitation ${vars.action === 'accept' ? 'accepted! You now have access to the group ledger.' : 'declined.'}`);
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || err?.message || 'Failed to respond to group invitation.');
+        }
+    });
+
+    const addGroupTxMutation = useMutation({
+        mutationFn: (data) => peopleService.addGroupTransaction(selectedGroupId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['people-group-details', selectedGroupId] });
+            queryClient.invalidateQueries({ queryKey: ['people-groups-list'] });
+            setIsAddGroupTxModalOpen(false);
+            setGroupTxForm({ type: 'expense', amount: '', title: '', category: 'General', notes: '', date: new Date().toISOString().split('T')[0] });
+            alert('Transaction recorded in group ledger!');
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || err?.message || 'Failed to add transaction.');
+        }
+    });
+
+    const inviteMemberMutation = useMutation({
+        mutationFn: (data) => peopleService.inviteGroupMember(selectedGroupId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['people-group-details', selectedGroupId] });
+            queryClient.invalidateQueries({ queryKey: ['people-groups-list'] });
+            setIsInviteMemberModalOpen(false);
+            setInviteMemberForm({ name: '', email: '', role: 'member' });
+            setInviteMemberEmailError('');
+            alert('Invitation sent to @bnxmail.com member!');
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || err?.message || 'Failed to invite member.');
+        }
+    });
+
+    const deleteGroupMutation = useMutation({
+        mutationFn: (groupId) => peopleService.deleteGroup(groupId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['people-groups-list'] });
+            setSelectedGroupId(null);
+            alert('Financial group deleted.');
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || err?.message || 'Failed to delete group.');
         }
     });
 
@@ -1144,8 +1261,8 @@ const BusinessPeople = () => {
                 </div>
             </div>
 
-            {/* Incoming Connection Requests Banner */}
-            {incomingRequests && incomingRequests.length > 0 && activeTab !== 'requests' && (
+            {/* Incoming Connection & Financial Group Requests Banner */}
+            {((incomingRequests && incomingRequests.length > 0) || (groupIncomingRequests && groupIncomingRequests.length > 0)) && activeTab !== 'requests' && (
                 <div style={{
                     marginBottom: '1.25rem',
                     padding: '1.25rem',
@@ -1161,10 +1278,12 @@ const BusinessPeople = () => {
                             </div>
                             <div>
                                 <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '850', color: '#1E3A8A' }}>
-                                    Incoming Connection Requests ({incomingRequests.length})
+                                    Pending Invitations ({((incomingRequests?.length || 0) + (groupIncomingRequests?.length || 0))})
                                 </h4>
                                 <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>
-                                    Accept connection requests sent to your @bnxmail.com address to connect and view contacts.
+                                    {incomingRequests.length > 0 ? `${incomingRequests.length} contact request(s)` : ''}
+                                    {incomingRequests.length > 0 && groupIncomingRequests.length > 0 ? ' and ' : ''}
+                                    {groupIncomingRequests.length > 0 ? `${groupIncomingRequests.length} financial group invitation(s)` : ''} sent to your @bnxmail.com address.
                                 </p>
                             </div>
                         </div>
@@ -1181,12 +1300,13 @@ const BusinessPeople = () => {
                                 cursor: 'pointer'
                             }}
                         >
-                            View All ({incomingRequests.length})
+                            Review All ({((incomingRequests?.length || 0) + (groupIncomingRequests?.length || 0))})
                         </button>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.85rem' }}>
-                        {incomingRequests.slice(0, 3).map(req => (
-                            <div key={req.id} style={{
+                        {/* Direct Contacts requests */}
+                        {incomingRequests.slice(0, 2).map(req => (
+                            <div key={`contact-${req.id}`} style={{
                                 background: '#FFFFFF',
                                 border: '1px solid #E2E8F0',
                                 borderRadius: '14px',
@@ -1252,6 +1372,80 @@ const BusinessPeople = () => {
                                 </div>
                             </div>
                         ))}
+
+                        {/* Group invitations */}
+                        {groupIncomingRequests.slice(0, 2).map(req => (
+                            <div key={`group-${req.membership_id}`} style={{
+                                background: '#FFFFFF',
+                                border: '1.5px solid #E0E7FF',
+                                borderRadius: '14px',
+                                padding: '0.85rem 1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '0.75rem',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#4F46E5', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.85rem', flexShrink: 0 }}>
+                                        <FolderKanban size={18} />
+                                    </div>
+                                    <div style={{ minWidth: 0 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {req.group_name}
+                                            </p>
+                                            <span style={{ padding: '0.1rem 0.4rem', borderRadius: '4px', background: '#EEF2FF', color: '#4338CA', fontSize: '0.65rem', fontWeight: '800', textTransform: 'capitalize' }}>
+                                                {req.group_type || 'Group'}
+                                            </span>
+                                        </div>
+                                        <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748B' }}>
+                                            Invited by {req.inviter_business_name || req.inviter_username || req.inviter_email}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                                    <button
+                                        onClick={() => respondGroupRequestMutation.mutate({ membershipId: req.membership_id, action: 'accept' })}
+                                        disabled={respondGroupRequestMutation.isPending}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            border: 'none',
+                                            background: '#4F46E5',
+                                            color: '#FFFFFF',
+                                            padding: '0.45rem 0.75rem',
+                                            borderRadius: '8px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: '750',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <Check size={13} /> Join
+                                    </button>
+                                    <button
+                                        onClick={() => respondGroupRequestMutation.mutate({ membershipId: req.membership_id, action: 'reject' })}
+                                        disabled={respondGroupRequestMutation.isPending}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            border: '1px solid #E2E8F0',
+                                            background: '#FFFFFF',
+                                            color: '#EF4444',
+                                            padding: '0.45rem 0.65rem',
+                                            borderRadius: '8px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: '700',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <X size={13} /> Decline
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
@@ -1261,7 +1455,13 @@ const BusinessPeople = () => {
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                     {[
                         { id: 'contacts', label: 'Active Directory', icon: Users },
-                        { id: 'requests', label: `Requests ${incomingRequests && incomingRequests.length > 0 ? `(${incomingRequests.length})` : ''}`, icon: UserPlus, badge: incomingRequests?.length || 0 },
+                        { id: 'groups', label: `Financial Groups ${groupsList && groupsList.length > 0 ? `(${groupsList.length})` : ''}`, icon: FolderKanban },
+                        { 
+                            id: 'requests', 
+                            label: `Requests ${((incomingRequests?.length || 0) + (groupIncomingRequests?.length || 0)) > 0 ? `(${((incomingRequests?.length || 0) + (groupIncomingRequests?.length || 0))})` : ''}`, 
+                            icon: UserPlus, 
+                            badge: ((incomingRequests?.length || 0) + (groupIncomingRequests?.length || 0)) 
+                        },
                         { id: 'transactions', label: 'Global Ledger', icon: ArrowLeftRight },
                         { id: 'reminders', label: 'Repayment Alerts', icon: Bell }
                     ].map(tab => (
@@ -1288,6 +1488,15 @@ const BusinessPeople = () => {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    {activeTab === 'groups' && (
+                        <button 
+                            onClick={() => setIsCreateGroupModalOpen(true)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.25rem', borderRadius: '12px', background: '#064E3B', color: 'white', border: 'none', fontWeight: '750', cursor: 'pointer', flexShrink: 0, boxShadow: '0 4px 10px rgba(6, 78, 59, 0.2)' }}
+                        >
+                            <Plus size={16} /> New Financial Group
+                        </button>
+                    )}
+
                     {activeTab === 'contacts' && activeConfig.partyGroup && (
                         <select 
                             value={groupFilter} 
@@ -1334,7 +1543,7 @@ const BusinessPeople = () => {
                         />
                         <input 
                             type="text" 
-                            placeholder={`Lookup ${activeTab === 'contacts' ? 'contacts...' : activeTab === 'transactions' ? 'transactions...' : 'reminders...'}`} 
+                            placeholder={`Lookup ${activeTab === 'contacts' ? 'contacts...' : activeTab === 'groups' ? 'groups...' : activeTab === 'transactions' ? 'transactions...' : 'reminders...'}`} 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             style={{ 
@@ -1633,115 +1842,435 @@ const BusinessPeople = () => {
                         </table>
                     )}
 
-                    {/* TAB: Connection Requests */}
+                    {/* TAB: Financial Groups */}
+                    {activeTab === 'groups' && (
+                        <div style={{ padding: '2rem' }}>
+                            <div style={{ marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <FolderKanban size={22} style={{ color: '#064E3B' }} /> Financial Groups & Syndicates
+                                    </h3>
+                                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: '#64748B' }}>
+                                        Collaborative ledgers, joint business pools, and shared credit circles with verified @bnxmail.com partners.
+                                    </p>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                    <button
+                                        onClick={() => setIsCreateGroupModalOpen(true)}
+                                        style={{
+                                            padding: '0.65rem 1.25rem',
+                                            borderRadius: '12px',
+                                            background: '#064E3B',
+                                            color: 'white',
+                                            border: 'none',
+                                            fontWeight: '800',
+                                            fontSize: '0.85rem',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            boxShadow: '0 4px 12px rgba(6, 78, 59, 0.2)'
+                                        }}
+                                    >
+                                        <Plus size={16} /> Create Group
+                                    </button>
+                                </div>
+                            </div>
+
+                            {groupsList.length === 0 ? (
+                                <div style={{ padding: '4rem 2rem', textAlign: 'center', background: '#F8FAFC', borderRadius: '24px', border: '1.5px dashed #CBD5E1' }}>
+                                    <div style={{ width: '56px', height: '56px', borderRadius: '20px', background: '#ECFDF5', color: '#065F46', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+                                        <FolderKanban size={28} />
+                                    </div>
+                                    <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#1E293B' }}>No Financial Groups Yet</h4>
+                                    <p style={{ margin: '0.5rem 0 1.5rem', fontSize: '0.85rem', color: '#64748B', maxWidth: '420px', marginLeft: 'auto', marginRight: 'auto' }}>
+                                        Create a joint syndicate, savings circle, or project outlay pool. Invite partners using their @bnxmail.com address.
+                                    </p>
+                                    <button
+                                        onClick={() => setIsCreateGroupModalOpen(true)}
+                                        style={{
+                                            padding: '0.75rem 1.5rem',
+                                            borderRadius: '12px',
+                                            background: '#064E3B',
+                                            color: 'white',
+                                            border: 'none',
+                                            fontWeight: '800',
+                                            fontSize: '0.85rem',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        <Plus size={16} /> Create Your First Group
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.5rem' }}>
+                                    {groupsList.map(group => {
+                                        const typeColor = 
+                                            group.group_type === 'syndicate' ? { bg: '#EFF6FF', text: '#1E40AF', border: '#DBEAFE' } :
+                                            group.group_type === 'pool' ? { bg: '#ECFDF5', text: '#065F46', border: '#A7F3D0' } :
+                                            group.group_type === 'credit' ? { bg: '#FEF3C7', text: '#92400E', border: '#FDE68A' } :
+                                            { bg: '#F5F3FF', text: '#5B21B6', border: '#DDD6FE' };
+
+                                        const progressPercent = group.target_amount > 0 
+                                            ? Math.min(100, Math.round((group.total_contributed / group.target_amount) * 100))
+                                            : null;
+
+                                        return (
+                                            <div key={group.id} style={{
+                                                background: '#FFFFFF',
+                                                borderRadius: '20px',
+                                                border: '1.5px solid #E2E8F0',
+                                                padding: '1.5rem',
+                                                boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                justifyContent: 'space-between',
+                                                gap: '1.25rem',
+                                                transition: 'all 0.2s',
+                                                position: 'relative'
+                                            }}>
+                                                <div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                                                        <span style={{
+                                                            padding: '0.25rem 0.65rem',
+                                                            borderRadius: '8px',
+                                                            background: typeColor.bg,
+                                                            color: typeColor.text,
+                                                            border: `1px solid ${typeColor.border}`,
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: '800',
+                                                            textTransform: 'uppercase'
+                                                        }}>
+                                                            {group.group_type === 'syndicate' ? 'Business Syndicate' :
+                                                             group.group_type === 'pool' ? 'Contribution Pool' :
+                                                             group.group_type === 'credit' ? 'Credit Circle' : 'Project Outlays'}
+                                                        </span>
+                                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            <Users size={12} /> {group.member_count} active
+                                                            {group.pending_member_count > 0 && (
+                                                                <span style={{ color: '#D97706', marginLeft: '4px' }}>
+                                                                    ({group.pending_member_count} pending)
+                                                                </span>
+                                                            )}
+                                                        </span>
+                                                    </div>
+
+                                                    <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900', color: '#0F172A' }}>
+                                                        {group.name}
+                                                    </h4>
+                                                    {group.description && (
+                                                        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.8rem', color: '#64748B', lineHeight: '1.3' }}>
+                                                            {group.description}
+                                                        </p>
+                                                    )}
+
+                                                    {/* Progress bar for pools */}
+                                                    {progressPercent !== null && (
+                                                        <div style={{ marginTop: '1rem', padding: '0.85rem', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #F1F5F9' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>
+                                                                <span>Pool Goal ({formatCurr(group.target_amount)})</span>
+                                                                <span style={{ color: '#065F46' }}>{progressPercent}%</span>
+                                                            </div>
+                                                            <div style={{ width: '100%', height: '6px', background: '#E2E8F0', borderRadius: '999px', overflow: 'hidden' }}>
+                                                                <div style={{ width: `${progressPercent}%`, height: '100%', background: '#10B981', borderRadius: '999px' }} />
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Metrics breakdown */}
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
+                                                        <div style={{ padding: '0.65rem 0.85rem', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                                            <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Contributed</p>
+                                                            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', fontWeight: '900', color: '#065F46' }}>{formatCurr(group.total_contributed)}</p>
+                                                        </div>
+                                                        <div style={{ padding: '0.65rem 0.85rem', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                                            <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Expenses</p>
+                                                            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.9rem', fontWeight: '900', color: '#991B1B' }}>{formatCurr(group.total_expenses)}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedGroupId(group.id);
+                                                            setGroupActiveSubTab('balances');
+                                                        }}
+                                                        style={{
+                                                            flex: 1,
+                                                            padding: '0.65rem 1rem',
+                                                            borderRadius: '10px',
+                                                            background: '#064E3B',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            fontWeight: '800',
+                                                            fontSize: '0.85rem',
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '6px'
+                                                        }}
+                                                    >
+                                                        <FolderKanban size={14} /> Open Ledger
+                                                    </button>
+                                                    {group.my_role === 'admin' && (
+                                                        <button
+                                                            onClick={() => {
+                                                                if (window.confirm(`Delete "${group.name}"? All group records and balances will be removed.`)) {
+                                                                    deleteGroupMutation.mutate(group.id);
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                padding: '0.65rem',
+                                                                borderRadius: '10px',
+                                                                background: '#FFF',
+                                                                color: '#EF4444',
+                                                                border: '1.5px solid #FECACA',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center'
+                                                            }}
+                                                            title="Delete Group"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* TAB: Connection & Financial Group Requests */}
                     {activeTab === 'requests' && (
                         <div style={{ padding: '2rem' }}>
                             <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900', color: '#0F172A' }}>Incoming Connection Requests</h3>
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900', color: '#0F172A' }}>Incoming Requests & Invitations</h3>
                                     <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: '#64748B' }}>
-                                        Users who sent an invitation request to your @bnxmail.com address. Accept to establish mutual connection.
+                                        Contact connections and financial group invitations sent to your @bnxmail.com address.
                                     </p>
                                 </div>
                                 <span style={{ padding: '0.35rem 0.85rem', borderRadius: '999px', background: '#DBEAFE', color: '#1D4ED8', fontWeight: '800', fontSize: '0.8rem' }}>
-                                    {incomingRequests.length} Pending
+                                    {incomingRequests.length + groupIncomingRequests.length} Pending
                                 </span>
                             </div>
 
-                            {incomingRequests.length === 0 ? (
-                                <div style={{ padding: '4rem 2rem', textAlign: 'center', background: '#F8FAFC', borderRadius: '20px', border: '1px dashed #CBD5E1' }}>
-                                    <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: '#E2E8F0', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-                                        <UserPlus size={24} />
-                                    </div>
-                                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#334155' }}>No Pending Requests</h4>
-                                    <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: '#94A3B8' }}>
-                                        When someone adds your @bnxmail.com address, you can accept or decline their request here.
-                                    </p>
-                                </div>
-                            ) : (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
-                                    {incomingRequests.map((req) => (
-                                        <div key={req.id} style={{
-                                            background: '#FFFFFF',
-                                            borderRadius: '18px',
-                                            border: '1.5px solid #E2E8F0',
-                                            padding: '1.5rem',
-                                            boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            justifyContent: 'space-between',
-                                            gap: '1rem'
-                                        }}>
-                                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                                                <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: '#004aad', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '1.1rem', flexShrink: 0 }}>
-                                                    {(req.requester_username || req.requester_business_name || 'U').charAt(0).toUpperCase()}
-                                                </div>
-                                                <div style={{ minWidth: 0, flex: 1 }}>
-                                                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#0F172A' }}>
-                                                        {req.requester_username || req.requester_business_name || 'Network Member'}
-                                                    </h4>
-                                                    <p style={{ margin: '0.2rem 0', fontSize: '0.8rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                        <Mail size={12} /> {req.requester_email}
-                                                    </p>
-                                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                                                        <span style={{ padding: '0.2rem 0.55rem', borderRadius: '6px', background: '#EFF6FF', color: '#1E40AF', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>
-                                                            {req.role_type || 'Contact'}
-                                                        </span>
-                                                        <span style={{ padding: '0.2rem 0.55rem', borderRadius: '6px', background: '#FEF3C7', color: '#92400E', fontSize: '0.7rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                                            <Clock size={10} /> Pending
-                                                        </span>
+                            {/* Section 1: Financial Group Invitations */}
+                            {groupIncomingRequests && groupIncomingRequests.length > 0 && (
+                                <div style={{ marginBottom: '2.5rem' }}>
+                                    <h4 style={{ fontSize: '0.95rem', fontWeight: '850', color: '#1E3A8A', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <FolderKanban size={18} /> Financial Group Invitations ({groupIncomingRequests.length})
+                                    </h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
+                                        {groupIncomingRequests.map((req) => (
+                                            <div key={`group-invite-${req.membership_id}`} style={{
+                                                background: '#FFFFFF',
+                                                borderRadius: '18px',
+                                                border: '1.5px solid #BFDBFE',
+                                                padding: '1.5rem',
+                                                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.05)',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                justifyContent: 'space-between',
+                                                gap: '1rem'
+                                            }}>
+                                                <div>
+                                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                                                        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#4F46E5', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                            <FolderKanban size={24} />
+                                                        </div>
+                                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                                <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '900', color: '#0F172A' }}>
+                                                                    {req.group_name}
+                                                                </h4>
+                                                                <span style={{ padding: '0.15rem 0.5rem', borderRadius: '6px', background: '#EEF2FF', color: '#4338CA', fontSize: '0.68rem', fontWeight: '800', textTransform: 'capitalize' }}>
+                                                                    {req.group_type || 'Syndicate'}
+                                                                </span>
+                                                            </div>
+                                                            {req.group_description && (
+                                                                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: '#64748B' }}>
+                                                                    {req.group_description}
+                                                                </p>
+                                                            )}
+                                                            <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.78rem', color: '#475569' }}>
+                                                                Invited by: <strong>{req.inviter_business_name || req.inviter_username || 'Admin'}</strong> ({req.inviter_email})
+                                                            </p>
+                                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                                                                <span style={{ padding: '0.2rem 0.55rem', borderRadius: '6px', background: '#F1F5F9', color: '#334155', fontSize: '0.7rem', fontWeight: '800' }}>
+                                                                    Role: {req.invited_role?.toUpperCase()}
+                                                                </span>
+                                                                {req.target_amount > 0 && (
+                                                                    <span style={{ padding: '0.2rem 0.55rem', borderRadius: '6px', background: '#ECFDF5', color: '#065F46', fontSize: '0.7rem', fontWeight: '800' }}>
+                                                                        Pool Goal: {formatCurr(req.target_amount)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
 
-                                            <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
-                                                <button
-                                                    onClick={() => respondRequestMutation.mutate({ id: req.id, action: 'accept' })}
-                                                    disabled={respondRequestMutation.isPending}
-                                                    style={{
-                                                        flex: 1,
-                                                        padding: '0.65rem 1rem',
-                                                        borderRadius: '10px',
-                                                        background: '#10B981',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        fontWeight: '800',
-                                                        fontSize: '0.85rem',
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        gap: '6px',
-                                                        boxShadow: '0 2px 6px rgba(16, 185, 129, 0.2)'
-                                                    }}
-                                                >
-                                                    <Check size={14} /> Accept Request
-                                                </button>
-                                                <button
-                                                    onClick={() => respondRequestMutation.mutate({ id: req.id, action: 'reject' })}
-                                                    disabled={respondRequestMutation.isPending}
-                                                    style={{
-                                                        padding: '0.65rem 1rem',
-                                                        borderRadius: '10px',
-                                                        background: '#FFFFFF',
-                                                        color: '#EF4444',
-                                                        border: '1.5px solid #FECACA',
-                                                        fontWeight: '800',
-                                                        fontSize: '0.85rem',
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        gap: '6px'
-                                                    }}
-                                                >
-                                                    <X size={14} /> Decline
-                                                </button>
+                                                <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
+                                                    <button
+                                                        onClick={() => respondGroupRequestMutation.mutate({ membershipId: req.membership_id, action: 'accept' })}
+                                                        disabled={respondGroupRequestMutation.isPending}
+                                                        style={{
+                                                            flex: 1,
+                                                            padding: '0.65rem 1rem',
+                                                            borderRadius: '10px',
+                                                            background: '#4F46E5',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            fontWeight: '800',
+                                                            fontSize: '0.85rem',
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '6px'
+                                                        }}
+                                                    >
+                                                        <Check size={14} /> Join Group
+                                                    </button>
+                                                    <button
+                                                        onClick={() => respondGroupRequestMutation.mutate({ membershipId: req.membership_id, action: 'reject' })}
+                                                        disabled={respondGroupRequestMutation.isPending}
+                                                        style={{
+                                                            padding: '0.65rem 1rem',
+                                                            borderRadius: '10px',
+                                                            background: '#FFFFFF',
+                                                            color: '#EF4444',
+                                                            border: '1.5px solid #FECACA',
+                                                            fontWeight: '800',
+                                                            fontSize: '0.85rem',
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '6px'
+                                                        }}
+                                                    >
+                                                        <X size={14} /> Decline
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             )}
+
+                            {/* Section 2: Direct Contact Requests */}
+                            <div>
+                                <h4 style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <UserPlus size={18} /> Direct Contact Requests ({incomingRequests.length})
+                                </h4>
+
+                                {incomingRequests.length === 0 && groupIncomingRequests.length === 0 ? (
+                                    <div style={{ padding: '4rem 2rem', textAlign: 'center', background: '#F8FAFC', borderRadius: '20px', border: '1px dashed #CBD5E1' }}>
+                                        <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: '#E2E8F0', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                                            <UserPlus size={24} />
+                                        </div>
+                                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '800', color: '#334155' }}>No Pending Requests</h4>
+                                        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: '#94A3B8' }}>
+                                            When someone adds your @bnxmail.com address or invites you to a financial group, you can accept or decline here.
+                                        </p>
+                                    </div>
+                                ) : incomingRequests.length === 0 ? (
+                                    <p style={{ fontSize: '0.85rem', color: '#94A3B8', margin: 0 }}>No direct contact requests pending.</p>
+                                ) : (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
+                                        {incomingRequests.map((req) => (
+                                            <div key={req.id} style={{
+                                                background: '#FFFFFF',
+                                                borderRadius: '18px',
+                                                border: '1.5px solid #E2E8F0',
+                                                padding: '1.5rem',
+                                                boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                justifyContent: 'space-between',
+                                                gap: '1rem'
+                                            }}>
+                                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                                                    <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: '#004aad', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '1.1rem', flexShrink: 0 }}>
+                                                        {(req.requester_username || req.requester_business_name || 'U').charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#0F172A' }}>
+                                                            {req.requester_username || req.requester_business_name || 'Network Member'}
+                                                        </h4>
+                                                        <p style={{ margin: '0.2rem 0', fontSize: '0.8rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                            <Mail size={12} /> {req.requester_email}
+                                                        </p>
+                                                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                                                            <span style={{ padding: '0.2rem 0.55rem', borderRadius: '6px', background: '#EFF6FF', color: '#1E40AF', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>
+                                                                {req.role_type || 'Contact'}
+                                                            </span>
+                                                            <span style={{ padding: '0.2rem 0.55rem', borderRadius: '6px', background: '#FEF3C7', color: '#92400E', fontSize: '0.7rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                                <Clock size={10} /> Pending
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
+                                                    <button
+                                                        onClick={() => respondRequestMutation.mutate({ id: req.id, action: 'accept' })}
+                                                        disabled={respondRequestMutation.isPending}
+                                                        style={{
+                                                            flex: 1,
+                                                            padding: '0.65rem 1rem',
+                                                            borderRadius: '10px',
+                                                            background: '#10B981',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            fontWeight: '800',
+                                                            fontSize: '0.85rem',
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '6px',
+                                                            boxShadow: '0 2px 6px rgba(16, 185, 129, 0.2)'
+                                                        }}
+                                                    >
+                                                        <Check size={14} /> Accept Request
+                                                    </button>
+                                                    <button
+                                                        onClick={() => respondRequestMutation.mutate({ id: req.id, action: 'reject' })}
+                                                        disabled={respondRequestMutation.isPending}
+                                                        style={{
+                                                            padding: '0.65rem 1rem',
+                                                            borderRadius: '10px',
+                                                            background: '#FFFFFF',
+                                                            color: '#EF4444',
+                                                            border: '1.5px solid #FECACA',
+                                                            fontWeight: '800',
+                                                            fontSize: '0.85rem',
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '6px'
+                                                        }}
+                                                    >
+                                                        <X size={14} /> Decline
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -3223,6 +3752,706 @@ const BusinessPeople = () => {
                                     {deleteReminderMutation.isPending ? 'Deleting...' : 'Confirm Delete'}
                                 </button>
                             </div>
+                        </Motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal: Create Financial Group */}
+            <AnimatePresence>
+                {isCreateGroupModalOpen && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                        <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} style={{ background: 'white', width: '100%', maxWidth: '580px', borderRadius: '28px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: '#ECFDF5', color: '#065F46', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <FolderKanban size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#0F172A' }}>New Financial Group</h3>
+                                        <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B' }}>Create a shared syndicate or pool with verified @bnxmail.com partners</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setIsCreateGroupModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer' }}>
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                if (!newGroupForm.name.trim()) return alert('Please enter a group name');
+                                createGroupMutation.mutate({
+                                    ...newGroupForm,
+                                    target_amount: Number(newGroupForm.target_amount) || 0
+                                });
+                            }} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Group Title <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        placeholder="e.g. Q4 Inventory Syndicate or Retail Expansion Pool" 
+                                        type="text" 
+                                        value={newGroupForm.name} 
+                                        onChange={(e) => setNewGroupForm({ ...newGroupForm, name: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem' }} 
+                                    />
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Group Financial Model</label>
+                                        <select 
+                                            value={newGroupForm.group_type} 
+                                            onChange={(e) => setNewGroupForm({ ...newGroupForm, group_type: e.target.value })} 
+                                            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem', fontWeight: '700' }}
+                                        >
+                                            <option value="syndicate">Business Syndicate</option>
+                                            <option value="pool">Savings & Contribution Pool</option>
+                                            <option value="project">Project Expenses</option>
+                                            <option value="credit">Lending & Credit Circle</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Target Pool Amount (Optional)</label>
+                                        <input 
+                                            placeholder="e.g. 500000" 
+                                            type="number" 
+                                            value={newGroupForm.target_amount} 
+                                            onChange={(e) => setNewGroupForm({ ...newGroupForm, target_amount: e.target.value })} 
+                                            style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem' }} 
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Description & Purpose</label>
+                                    <textarea 
+                                        placeholder="Outline capital objectives, expense boundaries, or settlement frequency..." 
+                                        rows={2}
+                                        value={newGroupForm.description} 
+                                        onChange={(e) => setNewGroupForm({ ...newGroupForm, description: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }} 
+                                    />
+                                </div>
+
+                                {/* Member Invitations Sub-Section */}
+                                <div style={{ padding: '1rem', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                        <label style={{ fontSize: '0.78rem', fontWeight: '850', color: '#1E293B' }}>
+                                            Invite Group Partners (Strictly @bnxmail.com)
+                                        </label>
+                                        <span style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                                            {newGroupForm.members.length} invited
+                                        </span>
+                                    </div>
+
+                                    {/* Partner Input Row */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                                        <input 
+                                            placeholder="Name" 
+                                            value={tempMemberInput.name} 
+                                            onChange={(e) => setTempMemberInput({ ...tempMemberInput, name: e.target.value })}
+                                            style={{ padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.8rem', outline: 'none' }} 
+                                        />
+                                        <input 
+                                            placeholder="partner@bnxmail.com" 
+                                            value={tempMemberInput.email} 
+                                            onChange={(e) => {
+                                                setTempMemberInput({ ...tempMemberInput, email: e.target.value });
+                                                setTempMemberEmailError('');
+                                            }}
+                                            style={{ padding: '0.6rem 0.75rem', borderRadius: '8px', border: tempMemberEmailError ? '1.5px solid #EF4444' : '1px solid #CBD5E1', fontSize: '0.8rem', outline: 'none' }} 
+                                        />
+                                        <select 
+                                            value={tempMemberInput.role} 
+                                            onChange={(e) => setTempMemberInput({ ...tempMemberInput, role: e.target.value })}
+                                            style={{ padding: '0.6rem 0.5rem', borderRadius: '8px', border: '1px solid #CBD5E1', background: 'white', fontSize: '0.75rem', fontWeight: '700' }}
+                                        >
+                                            <option value="member">Member</option>
+                                            <option value="manager">Manager</option>
+                                            <option value="auditor">Auditor</option>
+                                        </select>
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                const email = (tempMemberInput.email || '').trim().toLowerCase();
+                                                const bnxRegex = /^[a-zA-Z0-9._%+-]+@bnxmail\.com$/i;
+                                                if (!email) {
+                                                    setTempMemberEmailError('Email required');
+                                                    return;
+                                                }
+                                                if (!bnxRegex.test(email)) {
+                                                    setTempMemberEmailError('Only @bnxmail.com allowed');
+                                                    return;
+                                                }
+                                                if (newGroupForm.members.some(m => m.email === email)) {
+                                                    setTempMemberEmailError('Already added');
+                                                    return;
+                                                }
+                                                setNewGroupForm({
+                                                    ...newGroupForm,
+                                                    members: [...newGroupForm.members, {
+                                                        name: (tempMemberInput.name || email.split('@')[0]).trim(),
+                                                        email,
+                                                        role: tempMemberInput.role
+                                                    }]
+                                                });
+                                                setTempMemberInput({ name: '', email: '', role: 'member' });
+                                                setTempMemberEmailError('');
+                                            }}
+                                            style={{ padding: '0.6rem 0.85rem', borderRadius: '8px', background: '#064E3B', color: 'white', border: 'none', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer' }}
+                                        >
+                                            Add
+                                        </button>
+                                    </div>
+                                    {tempMemberEmailError && (
+                                        <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.72rem', color: '#EF4444', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <AlertCircle size={12} /> {tempMemberEmailError}
+                                        </p>
+                                    )}
+
+                                    {/* Invited Members Badges List */}
+                                    {newGroupForm.members.length > 0 && (
+                                        <div style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                            {newGroupForm.members.map((m, idx) => (
+                                                <div key={idx} style={{ background: '#FFFFFF', padding: '0.35rem 0.65rem', borderRadius: '8px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem' }}>
+                                                    <span style={{ fontWeight: '800', color: '#1E293B' }}>{m.name}</span>
+                                                    <span style={{ color: '#64748B' }}>({m.email})</span>
+                                                    <span style={{ padding: '0.1rem 0.35rem', borderRadius: '4px', background: '#ECFDF5', color: '#065F46', fontSize: '0.65rem', fontWeight: '800' }}>{m.role}</span>
+                                                    <X 
+                                                        size={12} 
+                                                        style={{ cursor: 'pointer', color: '#EF4444' }} 
+                                                        onClick={() => {
+                                                            setNewGroupForm({
+                                                                ...newGroupForm,
+                                                                members: newGroupForm.members.filter((_, i) => i !== idx)
+                                                            });
+                                                        }} 
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsCreateGroupModalOpen(false)} 
+                                        style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', background: 'white', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer' }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        disabled={createGroupMutation.isPending}
+                                        style={{ flex: 2, padding: '0.75rem', borderRadius: '12px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                                    >
+                                        {createGroupMutation.isPending ? 'Dispatching Invites...' : 'Create Group & Send Invites'}
+                                    </button>
+                                </div>
+                            </form>
+                        </Motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal: Full Group Details & Financial Ledger */}
+            <AnimatePresence>
+                {selectedGroupId && selectedGroupDetails && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+                        <Motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} style={{ background: '#FFFFFF', width: '100%', maxWidth: '960px', height: '88vh', borderRadius: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            {/* Header */}
+                            <div style={{ padding: '1.5rem 2rem', background: '#064E3B', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <FolderKanban size={24} />
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: '900', color: 'white' }}>{selectedGroupDetails.name}</h3>
+                                            <span style={{ padding: '0.2rem 0.6rem', borderRadius: '6px', background: 'rgba(255,255,255,0.2)', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>
+                                                {selectedGroupDetails.group_type}
+                                            </span>
+                                        </div>
+                                        {selectedGroupDetails.description && (
+                                            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#A7F3D0' }}>{selectedGroupDetails.description}</p>
+                                        )}
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <button 
+                                        onClick={() => setIsAddGroupTxModalOpen(true)}
+                                        style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: '#10B981', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    >
+                                        <Plus size={14} /> Record Entry
+                                    </button>
+                                    <button 
+                                        onClick={() => setIsInviteMemberModalOpen(true)}
+                                        style={{ padding: '0.6rem 1rem', borderRadius: '10px', background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.25)', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    >
+                                        <UserPlus size={14} /> Invite Member
+                                    </button>
+                                    <button onClick={() => setSelectedGroupId(null)} style={{ border: 'none', background: 'rgba(255,255,255,0.15)', color: 'white', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}>
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Subtab Navigator */}
+                            <div style={{ display: 'flex', borderBottom: '1px solid #E2E8F0', padding: '0 2rem', background: '#F8FAFC' }}>
+                                {[
+                                    { id: 'balances', label: 'Net Balances & Overview', icon: PieChart },
+                                    { id: 'transactions', label: `Transactions (${selectedGroupDetails.transactions?.length || 0})`, icon: ArrowLeftRight },
+                                    { id: 'members', label: `Members (${selectedGroupDetails.members?.length || 0})`, icon: Users }
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setGroupActiveSubTab(tab.id)}
+                                        style={{
+                                            padding: '1rem 1.5rem',
+                                            border: 'none',
+                                            background: 'none',
+                                            borderBottom: groupActiveSubTab === tab.id ? '3px solid #064E3B' : '3px solid transparent',
+                                            color: groupActiveSubTab === tab.id ? '#064E3B' : '#64748B',
+                                            fontWeight: groupActiveSubTab === tab.id ? '850' : '650',
+                                            fontSize: '0.85rem',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        <tab.icon size={16} /> {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Modal Content Body */}
+                            <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
+                                {/* SUBTAB 1: Net Balances & Summary */}
+                                {groupActiveSubTab === 'balances' && (
+                                    <div>
+                                        {/* Financial Highlights */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+                                            <div style={{ padding: '1.25rem', background: '#F0FDF4', borderRadius: '18px', border: '1px solid #BBF7D0' }}>
+                                                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: '#166534', textTransform: 'uppercase' }}>Total Contributed</p>
+                                                <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#065F46' }}>
+                                                    {formatCurr(selectedGroupDetails.summary?.total_contributed || 0)}
+                                                </h3>
+                                            </div>
+                                            <div style={{ padding: '1.25rem', background: '#FEF2F2', borderRadius: '18px', border: '1px solid #FECACA' }}>
+                                                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: '#991B1B', textTransform: 'uppercase' }}>Total Expenses</p>
+                                                <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#991B1B' }}>
+                                                    {formatCurr(selectedGroupDetails.summary?.total_expenses || 0)}
+                                                </h3>
+                                            </div>
+                                            <div style={{ padding: '1.25rem', background: '#EFF6FF', borderRadius: '18px', border: '1px solid #BFDBFE' }}>
+                                                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: '#1E40AF', textTransform: 'uppercase' }}>Net Fund In Hand</p>
+                                                <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#1D4ED8' }}>
+                                                    {formatCurr(Math.max(0, (selectedGroupDetails.summary?.total_contributed || 0) - (selectedGroupDetails.summary?.total_expenses || 0)))}
+                                                </h3>
+                                            </div>
+                                            <div style={{ padding: '1.25rem', background: '#F8FAFC', borderRadius: '18px', border: '1px solid #E2E8F0' }}>
+                                                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Target Pool</p>
+                                                <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#1E293B' }}>
+                                                    {selectedGroupDetails.target_amount > 0 ? formatCurr(selectedGroupDetails.target_amount) : 'Open Pool'}
+                                                </h3>
+                                            </div>
+                                        </div>
+
+                                        {/* Member Ledger Matrix */}
+                                        <h4 style={{ fontSize: '1rem', fontWeight: '850', color: '#0F172A', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <ShieldCheck size={18} style={{ color: '#064E3B' }} /> Member Financial Positions & Net Dues
+                                        </h4>
+                                        <div style={{ background: 'white', borderRadius: '18px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                                <thead>
+                                                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                                                        <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Member</th>
+                                                        <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Role / Status</th>
+                                                        <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textAlign: 'right' }}>Total Paid</th>
+                                                        <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textAlign: 'right' }}>Contributed</th>
+                                                        <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textAlign: 'right' }}>Owed</th>
+                                                        <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textAlign: 'right' }}>Net Balance</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {(selectedGroupDetails.balances || []).map(b => (
+                                                        <tr key={b.member_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                            <td style={{ padding: '1rem 1.25rem' }}>
+                                                                <p style={{ margin: 0, fontWeight: '800', fontSize: '0.85rem', color: '#0F172A' }}>{b.name}</p>
+                                                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>{b.email}</p>
+                                                            </td>
+                                                            <td style={{ padding: '1rem 1.25rem' }}>
+                                                                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                                                    <span style={{ padding: '0.15rem 0.45rem', borderRadius: '4px', background: '#F1F5F9', color: '#334155', fontSize: '0.68rem', fontWeight: '800' }}>{b.role}</span>
+                                                                    <span style={{ padding: '0.15rem 0.45rem', borderRadius: '4px', background: b.status === 'accepted' ? '#ECFDF5' : '#FEF3C7', color: b.status === 'accepted' ? '#065F46' : '#92400E', fontSize: '0.68rem', fontWeight: '800' }}>
+                                                                        {b.status === 'accepted' ? 'Active' : 'Pending Invite'}
+                                                                    </span>
+                                                                </div>
+                                                            </td>
+                                                            <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>
+                                                                {formatCurr(b.total_paid)}
+                                                            </td>
+                                                            <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '750', color: '#065F46', fontSize: '0.85rem' }}>
+                                                                {formatCurr(b.total_contributed)}
+                                                            </td>
+                                                            <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '750', color: '#991B1B', fontSize: '0.85rem' }}>
+                                                                {formatCurr(b.total_owed)}
+                                                            </td>
+                                                            <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
+                                                                <span style={{
+                                                                    fontWeight: '900',
+                                                                    fontSize: '0.9rem',
+                                                                    color: b.net_balance > 0 ? '#10B981' : b.net_balance < 0 ? '#EF4444' : '#64748B'
+                                                                }}>
+                                                                    {b.net_balance > 0 ? `+${formatCurr(b.net_balance)}` : b.net_balance < 0 ? `-${formatCurr(Math.abs(b.net_balance))}` : formatCurr(0)}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* SUBTAB 2: Group Transactions */}
+                                {groupActiveSubTab === 'transactions' && (
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '850', color: '#0F172A' }}>Shared Financial Entries</h4>
+                                            <button 
+                                                onClick={() => setIsAddGroupTxModalOpen(true)}
+                                                style={{ padding: '0.55rem 0.95rem', borderRadius: '10px', background: '#064E3B', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            >
+                                                <Plus size={14} /> Record Entry
+                                            </button>
+                                        </div>
+
+                                        {selectedGroupDetails.transactions?.length === 0 ? (
+                                            <div style={{ padding: '3rem 1rem', textAlign: 'center', background: '#F8FAFC', borderRadius: '18px', border: '1px dashed #CBD5E1' }}>
+                                                <p style={{ margin: 0, color: '#64748B', fontSize: '0.85rem' }}>No financial transactions logged yet. Click "Record Entry" to log contributions, expenditures, or settlements.</p>
+                                            </div>
+                                        ) : (
+                                            <div style={{ background: 'white', borderRadius: '18px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                                    <thead>
+                                                        <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                                                            <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Date</th>
+                                                            <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Type</th>
+                                                            <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Title & Category</th>
+                                                            <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Recorded By / Payer</th>
+                                                            <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textAlign: 'right' }}>Amount</th>
+                                                            <th style={{ padding: '1rem 1.25rem', width: '50px' }}></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {selectedGroupDetails.transactions?.map(tx => (
+                                                            <tr key={tx.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                <td style={{ padding: '1rem 1.25rem', fontSize: '0.8rem', color: '#64748B', fontWeight: '700' }}>
+                                                                    {String(tx.date || tx.created_at).slice(0, 10)}
+                                                                </td>
+                                                                <td style={{ padding: '1rem 1.25rem' }}>
+                                                                    <span style={{
+                                                                        padding: '0.2rem 0.55rem',
+                                                                        borderRadius: '6px',
+                                                                        background: tx.type === 'contribution' ? '#ECFDF5' : tx.type === 'expense' ? '#FEF2F2' : '#EFF6FF',
+                                                                        color: tx.type === 'contribution' ? '#065F46' : tx.type === 'expense' ? '#991B1B' : '#1E40AF',
+                                                                        fontSize: '0.7rem',
+                                                                        fontWeight: '800',
+                                                                        textTransform: 'uppercase'
+                                                                    }}>
+                                                                        {tx.type}
+                                                                    </span>
+                                                                </td>
+                                                                <td style={{ padding: '1rem 1.25rem' }}>
+                                                                    <p style={{ margin: 0, fontWeight: '800', fontSize: '0.85rem', color: '#0F172A' }}>{tx.title}</p>
+                                                                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748B' }}>{tx.category || 'General'}</p>
+                                                                </td>
+                                                                <td style={{ padding: '1rem 1.25rem', fontSize: '0.85rem', color: '#334155' }}>
+                                                                    {tx.paid_by_name || 'Group'}
+                                                                </td>
+                                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'right', fontWeight: '900', fontSize: '0.9rem', color: tx.type === 'contribution' ? '#065F46' : '#991B1B' }}>
+                                                                    {formatCurr(tx.amount)}
+                                                                </td>
+                                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            if (window.confirm('Delete this entry?')) {
+                                                                                await peopleService.deleteGroupTransaction(selectedGroupId, tx.id);
+                                                                                refetchGroupDetails();
+                                                                            }
+                                                                        }}
+                                                                        style={{ border: 'none', background: 'none', color: '#94A3B8', cursor: 'pointer' }}
+                                                                    >
+                                                                        <Trash2 size={15} />
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* SUBTAB 3: Members & Invitations */}
+                                {groupActiveSubTab === 'members' && (
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '850', color: '#0F172A' }}>Group Governance & Participants</h4>
+                                            <button 
+                                                onClick={() => setIsInviteMemberModalOpen(true)}
+                                                style={{ padding: '0.55rem 0.95rem', borderRadius: '10px', background: '#064E3B', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                            >
+                                                <UserPlus size={14} /> Invite Partner
+                                            </button>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                                            {selectedGroupDetails.members?.map(m => (
+                                                <div key={m.id} style={{ padding: '1.25rem', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '0.85rem' }}>
+                                                    <div>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
+                                                            <h5 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>{m.name}</h5>
+                                                            <span style={{ padding: '0.15rem 0.45rem', borderRadius: '4px', background: '#E2E8F0', color: '#334155', fontSize: '0.68rem', fontWeight: '800', textTransform: 'uppercase' }}>
+                                                                {m.role}
+                                                            </span>
+                                                        </div>
+                                                        <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            <Mail size={12} /> {m.email}
+                                                        </p>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid #E2E8F0' }}>
+                                                        <span style={{
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: '800',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px',
+                                                            color: m.status === 'accepted' ? '#065F46' : m.status === 'pending' ? '#92400E' : '#991B1B'
+                                                        }}>
+                                                            {m.status === 'accepted' && <Check size={12} />}
+                                                            {m.status === 'pending' && <Clock size={12} />}
+                                                            {m.status === 'rejected' && <X size={12} />}
+                                                            {m.status === 'accepted' ? 'Active Member' : m.status === 'pending' ? 'Pending Invite' : 'Declined'}
+                                                        </span>
+                                                        {selectedGroupDetails.my_membership?.role === 'admin' && m.role !== 'admin' && (
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (window.confirm(`Remove ${m.name} from this group?`)) {
+                                                                        await peopleService.removeGroupMember(selectedGroupId, m.id);
+                                                                        refetchGroupDetails();
+                                                                    }
+                                                                }}
+                                                                style={{ border: 'none', background: 'none', color: '#EF4444', fontSize: '0.75rem', fontWeight: '750', cursor: 'pointer' }}
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </Motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal: Add Group Transaction Entry */}
+            <AnimatePresence>
+                {isAddGroupTxModalOpen && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1150, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                        <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} style={{ background: 'white', width: '100%', maxWidth: '460px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900', color: '#0F172A' }}>Record Group Transaction</h3>
+                                <button onClick={() => setIsAddGroupTxModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer' }}>
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                if (!groupTxForm.title.trim() || !groupTxForm.amount) return alert('Please enter title and amount');
+                                addGroupTxMutation.mutate(groupTxForm);
+                            }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Entry Type</label>
+                                        <select 
+                                            value={groupTxForm.type} 
+                                            onChange={(e) => setGroupTxForm({ ...groupTxForm, type: e.target.value })} 
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem', fontWeight: '700' }}
+                                        >
+                                            <option value="expense">Group Expense</option>
+                                            <option value="contribution">Member Deposit</option>
+                                            <option value="loan">Member Loan</option>
+                                            <option value="settlement">Settlement</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Amount <span style={{ color: '#EF4444' }}>*</span></label>
+                                        <input 
+                                            required 
+                                            type="number" 
+                                            placeholder="0.00" 
+                                            value={groupTxForm.amount} 
+                                            onChange={(e) => setGroupTxForm({ ...groupTxForm, amount: e.target.value })} 
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem' }} 
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Title / Description <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required 
+                                        placeholder="e.g. Supplier Batch Payment or Initial Capital" 
+                                        value={groupTxForm.title} 
+                                        onChange={(e) => setGroupTxForm({ ...groupTxForm, title: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }} 
+                                    />
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Category</label>
+                                        <input 
+                                            placeholder="Inventory, Rent, Equipment..." 
+                                            value={groupTxForm.category} 
+                                            onChange={(e) => setGroupTxForm({ ...groupTxForm, category: e.target.value })} 
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }} 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Date</label>
+                                        <input 
+                                            type="date" 
+                                            value={groupTxForm.date} 
+                                            onChange={(e) => setGroupTxForm({ ...groupTxForm, date: e.target.value })} 
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }} 
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsAddGroupTxModalOpen(false)} 
+                                        style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', background: 'white', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer' }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        disabled={addGroupTxMutation.isPending}
+                                        style={{ flex: 2, padding: '0.75rem', borderRadius: '12px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' }}
+                                    >
+                                        {addGroupTxMutation.isPending ? 'Logging...' : 'Save Entry'}
+                                    </button>
+                                </div>
+                            </form>
+                        </Motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal: Invite Member to Existing Group */}
+            <AnimatePresence>
+                {isInviteMemberModalOpen && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1150, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                        <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900', color: '#0F172A' }}>Invite Partner to Group</h3>
+                                <button onClick={() => setIsInviteMemberModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer' }}>
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                const email = (inviteMemberForm.email || '').trim().toLowerCase();
+                                const bnxRegex = /^[a-zA-Z0-9._%+-]+@bnxmail\.com$/i;
+                                if (!email) {
+                                    setInviteMemberEmailError('Email address is required');
+                                    return;
+                                }
+                                if (!bnxRegex.test(email)) {
+                                    setInviteMemberEmailError('Only official @bnxmail.com domain addresses are accepted');
+                                    return;
+                                }
+                                inviteMemberMutation.mutate({
+                                    name: (inviteMemberForm.name || email.split('@')[0]).trim(),
+                                    email,
+                                    role: inviteMemberForm.role
+                                });
+                            }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Partner Name</label>
+                                    <input 
+                                        placeholder="e.g. Ramesh Patel" 
+                                        value={inviteMemberForm.name} 
+                                        onChange={(e) => setInviteMemberForm({ ...inviteMemberForm, name: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }} 
+                                    />
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Partner @bnxmail.com Email <span style={{ color: '#EF4444' }}>*</span></label>
+                                    <input 
+                                        required
+                                        placeholder="partner@bnxmail.com" 
+                                        value={inviteMemberForm.email} 
+                                        onChange={(e) => {
+                                            setInviteMemberForm({ ...inviteMemberForm, email: e.target.value });
+                                            setInviteMemberEmailError('');
+                                        }} 
+                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: inviteMemberEmailError ? '1.5px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }} 
+                                    />
+                                    {inviteMemberEmailError ? (
+                                        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.72rem', color: '#EF4444', fontWeight: '700' }}>{inviteMemberEmailError}</p>
+                                    ) : (
+                                        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.72rem', color: '#64748B' }}>Only official @bnxmail.com accounts can receive financial invitations</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Assigned Access Role</label>
+                                    <select 
+                                        value={inviteMemberForm.role} 
+                                        onChange={(e) => setInviteMemberForm({ ...inviteMemberForm, role: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem', fontWeight: '700' }}
+                                    >
+                                        <option value="member">Member (Can view ledger & contribute)</option>
+                                        <option value="manager">Manager (Can record & edit transactions)</option>
+                                        <option value="auditor">Auditor (Read-only financial auditor)</option>
+                                    </select>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsInviteMemberModalOpen(false)} 
+                                        style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', background: 'white', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer' }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        disabled={inviteMemberMutation.isPending}
+                                        style={{ flex: 2, padding: '0.75rem', borderRadius: '12px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' }}
+                                    >
+                                        {inviteMemberMutation.isPending ? 'Sending...' : 'Dispatch Invitation'}
+                                    </button>
+                                </div>
+                            </form>
                         </Motion.div>
                     </div>
                 )}

@@ -14,6 +14,19 @@ export const peopleService = {
     getIncomingRequests: async () => await apiClient.get('/people/requests/incoming').then(res => res.data.data || res.data),
     respondToRequest: async (requestId, action) => await apiClient.patch(`/people/requests/${requestId}/respond`, { action }).then(res => res.data.data || res.data),
 
+    // Financial Groups Workflow
+    getGroups: async () => await apiClient.get('/people/groups').then(res => res.data.data || res.data),
+    createGroup: async (data) => await apiClient.post('/people/groups', data).then(res => res.data.data || res.data),
+    getGroupDetails: async (id) => await apiClient.get(`/people/groups/${id}`).then(res => res.data.data || res.data),
+    updateGroup: async (id, data) => await apiClient.put(`/people/groups/${id}`, data).then(res => res.data.data || res.data),
+    deleteGroup: async (id) => await apiClient.delete(`/people/groups/${id}`).then(res => res.data.data || res.data),
+    inviteGroupMember: async (groupId, data) => await apiClient.post(`/people/groups/${groupId}/members`, data).then(res => res.data.data || res.data),
+    removeGroupMember: async (groupId, memberId) => await apiClient.delete(`/people/groups/${groupId}/members/${memberId}`).then(res => res.data.data || res.data),
+    getGroupIncomingRequests: async () => await apiClient.get('/people/groups/requests/incoming').then(res => res.data.data || res.data),
+    respondToGroupRequest: async (membershipId, action) => await apiClient.post(`/people/groups/requests/${membershipId}/respond`, { action }).then(res => res.data.data || res.data),
+    addGroupTransaction: async (groupId, data) => await apiClient.post(`/people/groups/${groupId}/transactions`, data).then(res => res.data.data || res.data),
+    deleteGroupTransaction: async (groupId, txId) => await apiClient.delete(`/people/groups/${groupId}/transactions/${txId}`).then(res => res.data.data || res.data),
+
     // Global aggregated views
     getAllTransactions: async () => await apiClient.get('/people/transactions').then(res => res.data.data || res.data),
     getAllReminders: async () => await apiClient.get('/people/reminders').then(res => res.data.data || res.data),
