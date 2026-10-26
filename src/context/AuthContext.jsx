@@ -51,12 +51,19 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('books_auth_token');
         localStorage.removeItem('bnx_auth_token');
         
-        // Clear all local storage keys to prevent data leakage across accounts
+        // Clear all local and session storage keys to prevent data leakage across accounts
         Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('cliks_') || key.startsWith('books_')) {
+            if (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_')) {
                 localStorage.removeItem(key);
             }
         });
+        try {
+            Object.keys(sessionStorage).forEach(key => {
+                if (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_')) {
+                    sessionStorage.removeItem(key);
+                }
+            });
+        } catch (e) {}
 
         setToken(null);
         setUser(null);
@@ -280,12 +287,19 @@ export const AuthProvider = ({ children }) => {
             } catch (e) {}
         }
 
-        // Clear all previous local storage keys before logging in a new user
+        // Clear all previous local and session storage keys before logging in a new user
         Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('cliks_') || key.startsWith('books_')) {
+            if (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_')) {
                 localStorage.removeItem(key);
             }
         });
+        try {
+            Object.keys(sessionStorage).forEach(key => {
+                if (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_')) {
+                    sessionStorage.removeItem(key);
+                }
+            });
+        } catch (e) {}
 
         localStorage.setItem('books_auth_token', accessToken);
         localStorage.setItem('bnx_auth_token', bnxToken);
