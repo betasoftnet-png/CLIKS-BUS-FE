@@ -641,46 +641,109 @@ const BusinessPayments = ({
         }
     }, [payables]);
 
-    // Dynamic Cash & Bank accounts query matching Books/Billing module (/bank-accounts)
+    // Dynamic Cash & Bank accounts query matching Books/Billing module
     const { data: dbBankAccounts = [] } = useQuery({
         queryKey: ['cash-bank-accounts'],
         queryFn: async () => {
+            const list = [];
+            const seen = new Set();
+
+            // 1. Fetch from accountingService (Books / Accounting module)
             try {
-                const res = await paymentsStore.getBankAccounts();
-                if (Array.isArray(res) && res.length > 0) return res;
-                const fallback = await bankAccountService.getBankAccounts();
-                return Array.isArray(fallback) ? fallback : [];
-            } catch (e) {
-                try {
-                    const fallback2 = await accountingService.getBankAccounts();
-                    return Array.isArray(fallback2) ? fallback2 : (fallback2?.data || []);
-                } catch (err) {
-                    return [];
-                }
-            }
+                const resAcc = await accountingService.getBankAccounts();
+                const arrAcc = Array.isArray(resAcc) ? resAcc : (resAcc?.data || []);
+                arrAcc.forEach(a => {
+                    const name = a.account_name || a.bank_account_name || a.bank_name || '';
+                    if (!name.toLowerCase().includes('cash in hand') && !name.toLowerCase().includes('cash register')) {
+                        const id = a.id || a.bank_account_id;
+                        if (id) seen.add(String(id));
+                        list.push({
+                            id: a.id || a.bank_account_id,
+                            bank_account_id: a.id || a.bank_account_id,
+                            bank_account_name: name || 'Bank Account',
+                            bank_name: a.bank_name || a.account_name || 'Bank',
+                            account_number: a.account_number || a.account_no || '',
+                            ifsc_code: a.ifsc_code || a.ifsc || '',
+                            branch_name: a.branch_name || a.branch || '',
+                            current_balance: parseFloat(a.balance ?? a.current_balance ?? 0) || 0,
+                            status: a.status || 'Active',
+                            type: 'bank'
+                        });
+                    }
+                });
+            } catch (e) {}
+
+            // 2. Fetch from paymentsStore / bankAccountService
+            try {
+                const resStore = await paymentsStore.getBankAccounts();
+                const arrStore = Array.isArray(resStore) ? resStore : (resStore?.data || []);
+                arrStore.forEach(a => {
+                    const name = a.account_name || a.bank_account_name || a.bank_name || '';
+                    if (!name.toLowerCase().includes('cash in hand') && !name.toLowerCase().includes('cash register')) {
+                        const id = a.id || a.bank_account_id;
+                        const accNo = a.account_number || a.account_no || '';
+                        const exists = list.some(item => 
+                            (id && String(item.id) === String(id)) || 
+                            (accNo && item.account_number && item.account_number === accNo)
+                        );
+                        if (!exists) {
+                            list.push({
+                                id: a.id || a.bank_account_id || `store-${list.length + 1}`,
+                                bank_account_id: a.id || a.bank_account_id || `store-${list.length + 1}`,
+                                bank_account_name: name || 'Bank Account',
+                                bank_name: a.bank_name || a.account_holder || 'Bank',
+                                account_number: accNo,
+                                ifsc_code: a.ifsc || a.ifsc_code || '',
+                                branch_name: a.branch || a.branch_name || '',
+                                current_balance: parseFloat(a.current_balance ?? a.balance ?? a.opening_balance ?? 0) || 0,
+                                status: a.status || 'Active',
+                                type: 'bank'
+                            });
+                        }
+                    }
+                });
+            } catch (e) {}
+
+            return list;
         }
     });
 
     const accounts = React.useMemo(() => {
-        // Collect real accounts from reportsData.accounts (which computes real cash sales + bank accounts)
-        // and dbBankAccounts (which queries /bank-accounts configured in the Books / Billing module)
         const fetchedFromStore = Array.isArray(dbBankAccounts) ? dbBankAccounts : [];
         const reportsAccounts = Array.isArray(dbAccounts) ? dbAccounts : [];
 
         const combined = [];
-        const seenIds = new Set();
+        const seenKeys = new Set();
 
-        // 1. Process reports accounts (includes real Cash Register based on cash billing + real bank accounts)
+        // 1. Always include Cash Register (Cash in Hand) with real cash from cash billing
+        const cashFromReports = reportsAccounts.find(a => (a.type || '').toLowerCase() === 'cash' || String(a.bank_account_id).includes('cash'));
+        combined.push({
+            id: 'cash-register-primary',
+            bank_account_id: 'cash-register-primary',
+            bank_account_name: 'Cash Register (Cash in Hand)',
+            bank_name: 'Cash Register',
+            account_number: 'CASH-REG-01',
+            type: 'cash',
+            current_balance: cashFromReports ? parseFloat(cashFromReports.current_balance || 0) : 0,
+            status: 'Active'
+        });
+        seenKeys.add('cash-register-primary');
+        seenKeys.add('cash-register');
+        seenKeys.add('cash in hand');
+
+        // 2. Add bank accounts from reportsData
         reportsAccounts.forEach(a => {
             const accId = a.bank_account_id || a.id;
-            if (accId && !seenIds.has(String(accId))) {
-                seenIds.add(String(accId));
+            const isCash = (a.type || '').toLowerCase() === 'cash' || String(accId).includes('cash') || String(a.bank_account_name || '').toLowerCase().includes('cash');
+            const key = String(a.account_number || accId || '').trim().toLowerCase();
+            if (!isCash && key && !seenKeys.has(key)) {
+                seenKeys.add(key);
                 combined.push({
                     id: accId,
                     bank_account_id: accId,
-                    bank_account_name: a.bank_account_name || a.account_name || a.name || (a.type === 'cash' ? 'Cash Register (Cash in Hand)' : 'Bank Account'),
+                    bank_account_name: a.bank_account_name || a.account_name || a.bank_name || 'Bank Account',
                     current_balance: parseFloat(a.current_balance ?? a.balance ?? 0) || 0,
-                    type: a.type || a.account_type || 'bank',
+                    type: 'bank',
                     account_number: a.account_number || a.account_no || '',
                     bank_name: a.bank_name || '',
                     ifsc_code: a.ifsc_code || a.ifsc || '',
@@ -690,46 +753,27 @@ const BusinessPayments = ({
             }
         });
 
-        // 2. Merge bank accounts from Books (/bank-accounts)
+        // 3. Add bank accounts from dbBankAccounts (from Books / Accounting & Billing modules)
         fetchedFromStore.forEach(a => {
             const accId = a.bank_account_id || a.id;
-            const normalizedName = (a.account_name || a.bank_account_name || a.name || '').toLowerCase().trim();
-            const alreadyExists = combined.some(c => 
-                String(c.bank_account_id) === String(accId) || 
-                (c.account_number && a.account_number && c.account_number === a.account_number) ||
-                (normalizedName && c.bank_account_name.toLowerCase().trim() === normalizedName)
-            );
-            if (!alreadyExists) {
-                if (accId) seenIds.add(String(accId));
+            const isCash = (a.type || '').toLowerCase() === 'cash' || String(a.bank_account_name || '').toLowerCase().includes('cash');
+            const key = String(a.account_number || accId || '').trim().toLowerCase();
+            if (!isCash && key && !seenKeys.has(key)) {
+                seenKeys.add(key);
                 combined.push({
                     id: accId || `bank-${combined.length + 1}`,
                     bank_account_id: accId || `bank-${combined.length + 1}`,
-                    bank_account_name: a.account_name || a.bank_account_name || a.bank_name || a.name || 'Bank Account',
+                    bank_account_name: a.bank_account_name || a.account_name || a.bank_name || 'Bank Account',
                     current_balance: parseFloat(a.current_balance ?? a.balance ?? a.opening_balance ?? 0) || 0,
-                    type: a.account_type || a.bank_type || a.type || 'bank',
+                    type: 'bank',
                     account_number: a.account_number || a.account_no || '',
                     bank_name: a.bank_name || '',
-                    ifsc_code: a.ifsc || a.ifsc_code || '',
-                    branch_name: a.branch || a.branch_name || '',
+                    ifsc_code: a.ifsc_code || a.ifsc || '',
+                    branch_name: a.branch_name || a.branch || '',
                     status: a.status || 'Active'
                 });
             }
         });
-
-        // 3. Ensure a real Cash Register card is always present (represents cash in hand from billing)
-        const hasCash = combined.some(a => (a.type || '').toLowerCase() === 'cash' || String(a.bank_account_id).includes('cash'));
-        if (!hasCash) {
-            combined.unshift({
-                id: 'cash-register-primary',
-                bank_account_id: 'cash-register-primary',
-                bank_account_name: 'Cash Register (Cash in Hand)',
-                bank_name: 'Cash Register',
-                account_number: 'CASH-REG-01',
-                type: 'cash',
-                current_balance: 0,
-                status: 'Active'
-            });
-        }
 
         // Apply deletion filter and edited field overrides
         return combined
@@ -1293,7 +1337,23 @@ const BusinessPayments = ({
         overdues.reduce((sum, o) => sum + (parseFloat(o.pending_amount) || 0), 0),
         customerReceivables.reduce((sum, r) => sum + (parseFloat(r.pending_amount) || 0), 0)
     );
-    const totalDailyCollections = customerReceivables.reduce((sum, r) => sum + (r.paidAmount !== undefined ? parseFloat(r.paidAmount) : (parseFloat(r.paid_amount) || 0)), 0);
+
+    const todayISO = new Date().toISOString().split('T')[0];
+    const todayLocal = new Date().toLocaleDateString('en-CA');
+    const isToday = (dateVal) => {
+        if (!dateVal || dateVal === 'N/A') return false;
+        const dStr = String(dateVal).split('T')[0].split(' ')[0];
+        return dStr === todayISO || dStr === todayLocal;
+    };
+
+    const totalDailyCollections = customerReceivables
+        .filter(r => isToday(r.payment_date || r.date || r.created_at))
+        .reduce((sum, r) => sum + (r.paidAmount !== undefined ? parseFloat(r.paidAmount) : (parseFloat(r.paid_amount) || 0)), 0);
+
+    const totalCollected = customerReceivables.reduce((sum, r) => sum + (parseFloat(r.paidAmount !== undefined ? r.paidAmount : (r.paid_amount || 0)) || 0), 0);
+    const totalBilled = customerReceivables.reduce((sum, r) => sum + (parseFloat(r.totalOriginalAmount !== undefined ? r.totalOriginalAmount : (r.total_amount || 0)) || 0), 0);
+    const efficiencyRateNum = totalBilled > 0 ? (totalCollected / totalBilled) * 100 : 100;
+    const efficiencyValue = isNaN(efficiencyRateNum) ? '100%' : `${Math.min(100, Math.max(0, efficiencyRateNum)).toFixed(1)}%`;
 
     const filteredReceivables = customerReceivables.filter(r => 
         (r.customerProfile || r.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1410,7 +1470,7 @@ const BusinessPayments = ({
                     { label: 'Outstanding Receivables', value: formatCurrency(totalOutstandingReceivables), icon: TrendingUp, color: '#EF4444', bg: '#FEE2E2' },
                     { label: 'Daily Collections', value: formatCurrency(totalDailyCollections), icon: ArrowDownRight, color: '#1B6B3A', bg: '#DCF2E4' },
                     { label: 'Combined Balances', value: formatCurrency(accounts.reduce((sum, a) => sum + (parseFloat(a.current_balance) || 0), 0)), icon: Wallet, color: '#3B82F6', bg: '#DBEAFE' },
-                    { label: 'Efficiency Rate', value: '94.2%', icon: CheckCircle2, color: '#0D9488', bg: '#CCFBF1' }
+                    { label: 'Efficiency Rate', value: efficiencyValue, icon: CheckCircle2, color: '#0D9488', bg: '#CCFBF1' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
