@@ -1263,7 +1263,7 @@ export const InvoiceTemplates = {
                 <div style={{ marginTop: '10px', textAlign: 'center', fontSize: '9px', borderTop: '1px dashed #000', paddingTop: '10px' }}>
                     <span>Total Items: {items.length} | Items Qty: {items.reduce((sum, it) => sum + parseFloat(it.quantity || 0), 0)}</span>
                     <div style={{ marginTop: '8px', fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase' }}>Thanks for your business. Visit again.</div>
-                    <div style={{ fontSize: '9px', fontStyle: 'italic', marginTop: '2px', fontWeight: '600' }}>Powered with Cliks Business by Beta</div>
+                    <div style={{ fontSize: '9px', fontStyle: 'italic', marginTop: '2px', fontWeight: '600' }}>Powered with Cliks Business by BETA</div>
                     <div>E.& O.E.</div>
                 </div>
             </div>

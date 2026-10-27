@@ -618,7 +618,7 @@ const POSReceiptModal = ({
                                         Thanks for your business. Visit again.
                                     </p>
                                     <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: '#475569', fontStyle: 'italic', fontWeight: '600' }}>
-                                        Powered with Cliks Business by Beta
+                                        Powered with Cliks Business by BETA
                                     </p>
                                 </>
                             );

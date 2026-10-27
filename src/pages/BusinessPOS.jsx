@@ -1454,9 +1454,87 @@ const BusinessPOS = () => {
     // 4. Fetch Order History
     const { data: orderHistory = [], isLoading: isHistoryLoading } = useQuery({
         queryKey: ['pos-order-history'],
-        queryFn: () => posService.getOrders({ limit: 50 }),
+        queryFn: () => posService.getOrders({ limit: 200 }),
         enabled: showHistoryModal
     });
+
+    const todayDateStr = useMemo(() => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }, []);
+
+    const matchesHistoryDay = (dateStr, targetDateStr) => {
+        if (!targetDateStr) return true;
+        if (!dateStr) return false;
+        if (dateStr.startsWith(targetDateStr)) return true;
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return false;
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}` === targetDateStr;
+        } catch {
+            return false;
+        }
+    };
+
+    const historyTodayStats = useMemo(() => {
+        if (!orderHistory || !Array.isArray(orderHistory)) return { count: 0, total: 0 };
+        const todayOrders = orderHistory.filter(o => matchesHistoryDay(o.created_at, todayDateStr));
+        const count = todayOrders.length;
+        const total = todayOrders.reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0);
+        return { count, total };
+    }, [orderHistory, todayDateStr]);
+
+    const historySelectedDayStats = useMemo(() => {
+        if (!historyDate || !orderHistory || !Array.isArray(orderHistory)) return null;
+        const dayOrders = orderHistory.filter(o => matchesHistoryDay(o.created_at, historyDate));
+        const count = dayOrders.length;
+        const total = dayOrders.reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0);
+
+        const cash = dayOrders.filter(o => (o.payment_mode || '').toLowerCase() === 'cash').reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0);
+        const upi = dayOrders.filter(o => (o.payment_mode || '').toLowerCase() === 'upi').reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0);
+        const card = dayOrders.filter(o => (o.payment_mode || '').toLowerCase() === 'card').reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0);
+        const credit = dayOrders.filter(o => (o.payment_mode || '').toLowerCase() === 'credit').reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0);
+
+        const isToday = historyDate === todayDateStr;
+        let formattedDate = historyDate;
+        try {
+            const [y, m, d] = historyDate.split('-');
+            const dateObj = new Date(Number(y), Number(m) - 1, Number(d));
+            formattedDate = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        } catch {}
+
+        return {
+            count,
+            total,
+            cash,
+            upi,
+            card,
+            credit,
+            isToday,
+            formattedDate
+        };
+    }, [historyDate, orderHistory, todayDateStr]);
+
+    const filteredOrderHistory = useMemo(() => {
+        if (!orderHistory || !Array.isArray(orderHistory)) return [];
+        return orderHistory.filter(order => {
+            const matchesSearch =
+                !historySearch ||
+                (order.invoice_number || '').toLowerCase().includes(historySearch.toLowerCase()) ||
+                (order.client_name || '').toLowerCase().includes(historySearch.toLowerCase());
+
+            const matchesDate = !historyDate || matchesHistoryDay(order.created_at, historyDate);
+            const matchesMode = historyPaymentMode === 'All' || order.payment_mode === historyPaymentMode;
+
+            return matchesSearch && matchesDate && matchesMode;
+        });
+    }, [orderHistory, historySearch, historyDate, historyPaymentMode]);
 
     // 4b. Fetch Customer Specific Order History
     const [isCustomerHistoryModalOpen, setIsCustomerHistoryModalOpen] = useState(false);
@@ -5873,7 +5951,7 @@ const BusinessPOS = () => {
                                                 Thanks for your business. Visit again.
                                             </p>
                                             <p style={{ margin: 0, fontSize: '0.72rem', color: '#475569', fontStyle: 'italic', fontWeight: '600' }}>
-                                                Powered with Cliks Business by Beta
+                                                Powered with Cliks Business by BETA
                                             </p>
                                         </>
                                     );
@@ -5954,8 +6032,8 @@ const BusinessPOS = () => {
                         </div>
 
                         {/* Filter Bar */}
-                        <div style={{ padding: '0.75rem 2rem', background: '#FFF', borderBottom: '1px solid #F1F5F9', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                            <div style={{ position: 'relative', flex: 1 }}>
+                        <div style={{ padding: '0.75rem 2rem', background: '#FFF', borderBottom: '1px solid #F1F5F9', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
                                 <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                                 <input
                                     type="text"
@@ -5965,16 +6043,66 @@ const BusinessPOS = () => {
                                     style={{ width: '100%', padding: '0.5rem 0.5rem 0.5rem 2rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }}
                                 />
                             </div>
-                            <input
-                                type="date"
-                                value={historyDate}
-                                onChange={(e) => setHistoryDate(e.target.value)}
-                                style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem', color: '#64748B' }}
-                            />
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setHistoryDate(prev => prev === todayDateStr ? '' : todayDateStr)}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        padding: '0.45rem 0.75rem',
+                                        borderRadius: '8px',
+                                        border: historyDate === todayDateStr ? '1.5px solid #10B981' : '1px solid #CBD5E1',
+                                        background: historyDate === todayDateStr ? '#ECFDF5' : '#FFFFFF',
+                                        color: historyDate === todayDateStr ? '#047857' : '#334155',
+                                        fontSize: '0.78rem',
+                                        fontWeight: '800',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                    title={historyDate === todayDateStr ? "Click to clear date filter" : "Select Today's Date"}
+                                >
+                                    <Calendar size={13} />
+                                    Today
+                                </button>
+
+                                <input
+                                    type="date"
+                                    value={historyDate}
+                                    onChange={(e) => setHistoryDate(e.target.value)}
+                                    style={{ padding: '0.45rem 0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem', color: '#334155' }}
+                                />
+
+                                {historyDate && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setHistoryDate('')}
+                                        style={{
+                                            border: 'none',
+                                            background: '#F1F5F9',
+                                            color: '#64748B',
+                                            borderRadius: '6px',
+                                            padding: '0.45rem 0.6rem',
+                                            cursor: 'pointer',
+                                            fontSize: '0.72rem',
+                                            fontWeight: '700',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '3px'
+                                        }}
+                                        title="Clear Date"
+                                    >
+                                        <X size={12} /> Clear
+                                    </button>
+                                )}
+                            </div>
+
                             <select
                                 value={historyPaymentMode}
                                 onChange={(e) => setHistoryPaymentMode(e.target.value)}
-                                style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem', color: '#64748B' }}
+                                style={{ padding: '0.45rem 0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.8rem', color: '#64748B' }}
                             >
                                 <option value="All">All Payments</option>
                                 <option value="Cash">Cash</option>
@@ -5984,40 +6112,121 @@ const BusinessPOS = () => {
                             </select>
                         </div>
 
+                        {/* Selected Day / Today Sales & Orders Summary Banner */}
+                        {historySelectedDayStats ? (
+                            <div style={{
+                                padding: '0.65rem 2rem',
+                                background: historySelectedDayStats.isToday ? 'linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)' : '#F8FAFC',
+                                borderBottom: '1px solid #E2E8F0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '0.65rem'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    <div style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        padding: '3px 8px',
+                                        borderRadius: '6px',
+                                        background: historySelectedDayStats.isToday ? '#10B981' : '#334155',
+                                        color: '#FFFFFF',
+                                        fontSize: '0.7rem',
+                                        fontWeight: '800',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.03em'
+                                    }}>
+                                        <Calendar size={12} />
+                                        {historySelectedDayStats.isToday ? "Today's Summary" : `${historySelectedDayStats.formattedDate} Summary`}
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.82rem' }}>
+                                        <span style={{ color: '#334155', fontWeight: '700' }}>
+                                            Orders: <strong style={{ color: '#0F172A', fontWeight: '900' }}>{historySelectedDayStats.count}</strong>
+                                        </span>
+                                        <span style={{ color: '#CBD5E1' }}>•</span>
+                                        <span style={{ color: '#334155', fontWeight: '700' }}>
+                                            Total Sales: <strong style={{ color: '#047857', fontWeight: '950', fontSize: '0.92rem' }}>{formatCurrency(historySelectedDayStats.total)}</strong>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {historySelectedDayStats.count > 0 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.68rem', fontWeight: '800' }}>
+                                        {historySelectedDayStats.cash > 0 && (
+                                            <span style={{ background: '#FFFFFF', padding: '2px 7px', borderRadius: '5px', border: '1px solid #D1FAE5', color: '#047857' }}>
+                                                Cash: {formatCurrency(historySelectedDayStats.cash)}
+                                            </span>
+                                        )}
+                                        {historySelectedDayStats.upi > 0 && (
+                                            <span style={{ background: '#FFFFFF', padding: '2px 7px', borderRadius: '5px', border: '1px solid #E0E7FF', color: '#4338CA' }}>
+                                                UPI: {formatCurrency(historySelectedDayStats.upi)}
+                                            </span>
+                                        )}
+                                        {historySelectedDayStats.card > 0 && (
+                                            <span style={{ background: '#FFFFFF', padding: '2px 7px', borderRadius: '5px', border: '1px solid #FEF3C7', color: '#D97706' }}>
+                                                Card: {formatCurrency(historySelectedDayStats.card)}
+                                            </span>
+                                        )}
+                                        {historySelectedDayStats.credit > 0 && (
+                                            <span style={{ background: '#FFFFFF', padding: '2px 7px', borderRadius: '5px', border: '1px solid #FEE2E2', color: '#DC2626' }}>
+                                                Credit: {formatCurrency(historySelectedDayStats.credit)}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div style={{
+                                padding: '0.5rem 2rem',
+                                background: '#F8FAFC',
+                                borderBottom: '1px solid #F1F5F9',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                fontSize: '0.74rem'
+                            }}>
+                                <span style={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <Clock size={12} color="#10B981" /> Today's Snapshot: <strong style={{ color: '#0F172A' }}>{historyTodayStats.count} orders</strong> ({formatCurrency(historyTodayStats.total)} sales)
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setHistoryDate(todayDateStr)}
+                                    style={{
+                                        border: 'none',
+                                        background: '#ECFDF5',
+                                        color: '#047857',
+                                        padding: '2px 8px',
+                                        borderRadius: '6px',
+                                        fontWeight: '750',
+                                        fontSize: '0.7rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '3px'
+                                    }}
+                                >
+                                    Filter Today &rarr;
+                                </button>
+                            </div>
+                        )}
+
                         {/* Modal Body */}
                         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem', background: '#F8FAFC' }}>
                             {isHistoryLoading ? (
                                 <div style={{ height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#64748B' }}>
                                     <span>Loading archive...</span>
                                 </div>
-                            ) : orderHistory.filter(order => {
-                                const matchesSearch =
-                                    (order.invoice_number || '').toLowerCase().includes(historySearch.toLowerCase()) ||
-                                    (order.client_name || '').toLowerCase().includes(historySearch.toLowerCase());
-
-                                const matchesDate = !historyDate || order.created_at.startsWith(historyDate);
-                                const matchesMode = historyPaymentMode === 'All' || order.payment_mode === historyPaymentMode;
-
-                                return matchesSearch && matchesDate && matchesMode;
-                            }).length === 0 ? (
+                            ) : filteredOrderHistory.length === 0 ? (
                                 <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#94A3B8', gap: '1rem' }}>
                                     <History size={48} opacity={0.2} />
                                     <span>No history records found</span>
                                 </div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    {orderHistory
-                                        .filter(order => {
-                                            const matchesSearch =
-                                                (order.invoice_number || '').toLowerCase().includes(historySearch.toLowerCase()) ||
-                                                (order.client_name || '').toLowerCase().includes(historySearch.toLowerCase());
-
-                                            const matchesDate = !historyDate || order.created_at.startsWith(historyDate);
-                                            const matchesMode = historyPaymentMode === 'All' || order.payment_mode === historyPaymentMode;
-
-                                            return matchesSearch && matchesDate && matchesMode;
-                                        })
-                                        .map(order => (
+                                    {filteredOrderHistory.map(order => (
                                             <div
                                                 key={order.id}
                                                 style={{ background: '#FFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
