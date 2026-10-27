@@ -947,7 +947,7 @@ const BusinessPOS = () => {
             print_show_credit: overrides.print_show_credit !== undefined ? overrides.print_show_credit : printShowCredit,
             print_show_gst: overrides.print_show_gst !== undefined ? overrides.print_show_gst : printShowGst,
             receipt_printer_size: overrides.receipt_printer_size !== undefined ? overrides.receipt_printer_size : receiptPrinterSize,
-            pos_kiosk_pin: overrides.pos_kiosk_pin !== undefined ? overrides.pos_kiosk_pin : posKioskPin,
+            pos_kiosk_pin: overrides.pos_kiosk_pin !== undefined ? overrides.pos_kiosk_pin : (localPosKioskPin !== null ? localPosKioskPin : posKioskPin),
             pos_kiosk_enabled: overrides.pos_kiosk_enabled !== undefined ? overrides.pos_kiosk_enabled : posKioskEnabled,
             pos_allow_credit: overrides.pos_allow_credit !== undefined ? overrides.pos_allow_credit : posAllowCredit,
             pos_kiosk_config: overrides.pos_kiosk_config !== undefined ? overrides.pos_kiosk_config : kioskConfig
@@ -967,7 +967,6 @@ const BusinessPOS = () => {
     const handleUpdateKioskConfig = (patch) => {
         const updated = { ...kioskConfig, ...patch };
         setLocalKioskConfig(updated);
-        handleSavePosSettings({ pos_kiosk_config: updated });
     };
 
     const handleKioskAddToCart = (prod) => {
@@ -7055,7 +7054,6 @@ const BusinessPOS = () => {
                                                         key={opt.id}
                                                         onClick={() => {
                                                             setLocalReceiptPrinterSize(opt.id);
-                                                            handleSavePosSettings({ receipt_printer_size: opt.id });
                                                         }}
                                                         style={{
                                                             border: isSel ? '2px solid #2563EB' : '1px solid #CBD5E1',
@@ -7098,9 +7096,7 @@ const BusinessPOS = () => {
                                                 type="checkbox"
                                                 checked={printShowGst}
                                                 onChange={(e) => {
-                                                    const val = e.target.checked;
-                                                    setLocalPrintShowGst(val);
-                                                    handleSavePosSettings({ print_show_gst: val });
+                                                    setLocalPrintShowGst(e.target.checked);
                                                 }}
                                                 style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
                                             />
@@ -7118,9 +7114,7 @@ const BusinessPOS = () => {
                                                 type="checkbox"
                                                 checked={printShowLoyalty}
                                                 onChange={(e) => {
-                                                    const val = e.target.checked;
-                                                    setLocalPrintShowLoyalty(val);
-                                                    handleSavePosSettings({ print_show_loyalty: val });
+                                                    setLocalPrintShowLoyalty(e.target.checked);
                                                 }}
                                                 style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
                                             />
@@ -7138,9 +7132,7 @@ const BusinessPOS = () => {
                                                 type="checkbox"
                                                 checked={printShowCredit}
                                                 onChange={(e) => {
-                                                    const val = e.target.checked;
-                                                    setLocalPrintShowCredit(val);
-                                                    handleSavePosSettings({ print_show_credit: val });
+                                                    setLocalPrintShowCredit(e.target.checked);
                                                 }}
                                                 style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
                                             />
@@ -7161,9 +7153,7 @@ const BusinessPOS = () => {
                                             type="checkbox"
                                             checked={posAllowCredit}
                                             onChange={(e) => {
-                                                const val = e.target.checked;
-                                                setLocalPosAllowCredit(val);
-                                                handleSavePosSettings({ pos_allow_credit: val });
+                                                setLocalPosAllowCredit(e.target.checked);
                                             }}
                                             style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#EA580C' }}
                                         />
@@ -7195,9 +7185,7 @@ const BusinessPOS = () => {
                                             type="checkbox"
                                             checked={posKioskEnabled}
                                             onChange={(e) => {
-                                                const val = e.target.checked;
-                                                setLocalPosKioskEnabled(val);
-                                                handleSavePosSettings({ pos_kiosk_enabled: val });
+                                                setLocalPosKioskEnabled(e.target.checked);
                                             }}
                                             style={{ width: '22px', height: '22px', cursor: 'pointer', accentColor: '#4F46E5' }}
                                         />
@@ -7813,11 +7801,6 @@ const BusinessPOS = () => {
                                                             const clean = e.target.value.replace(/\D/g, '');
                                                             setLocalPosKioskPin(clean);
                                                         }}
-                                                        onBlur={() => {
-                                                            if (localPosKioskPin !== null && localPosKioskPin !== posKioskPin && localPosKioskPin.length >= 4) {
-                                                                handleSavePosSettings({ pos_kiosk_pin: localPosKioskPin });
-                                                            }
-                                                        }}
                                                         placeholder="1234"
                                                         style={{
                                                             fontSize: '1.1rem',
@@ -7940,12 +7923,12 @@ const BusinessPOS = () => {
                             <div style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 {posSettingsSaveStatus === 'saving' && (
                                     <span style={{ color: '#2563EB', fontWeight: '750', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <Loader2 size={15} className="animate-spin" /> Saving changes...
+                                        <Loader2 size={15} className="animate-spin" /> Saving settings...
                                     </span>
                                 )}
                                 {posSettingsSaveStatus === 'saved' && (
                                     <span style={{ color: '#16A34A', fontWeight: '750', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <Check size={15} /> All changes saved automatically
+                                        <Check size={15} /> Settings saved successfully!
                                     </span>
                                 )}
                                 {posSettingsSaveStatus === 'error' && (
@@ -7954,29 +7937,55 @@ const BusinessPOS = () => {
                                     </span>
                                 )}
                                 {!posSettingsSaveStatus && (
-                                    <span style={{ color: '#64748B', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <Check size={14} style={{ color: '#10B981' }} /> Settings save automatically on change
+                                    <span style={{ color: '#64748B', fontWeight: '600', fontSize: '0.76rem' }}>
+                                        Review your configuration and click Save Settings below
                                     </span>
                                 )}
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setShowPosSettingsModal(false)}
-                                style={{
-                                    background: '#0F172A',
-                                    color: '#FFFFFF',
-                                    border: 'none',
-                                    padding: '0.55rem 1.35rem',
-                                    borderRadius: '10px',
-                                    fontSize: '0.82rem',
-                                    fontWeight: '750',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.15)',
-                                    transition: 'all 0.15s ease'
-                                }}
-                            >
-                                Close
-                            </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPosSettingsModal(false)}
+                                    style={{
+                                        background: '#FFFFFF',
+                                        color: '#475569',
+                                        border: '1px solid #CBD5E1',
+                                        padding: '0.55rem 1.15rem',
+                                        borderRadius: '10px',
+                                        fontSize: '0.82rem',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={posSettingsSaveStatus === 'saving'}
+                                    onClick={() => handleSavePosSettings()}
+                                    style={{
+                                        background: posSettingsSaveStatus === 'saving' 
+                                            ? '#94A3B8' 
+                                            : 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                                        color: '#FFFFFF',
+                                        border: 'none',
+                                        padding: '0.55rem 1.45rem',
+                                        borderRadius: '10px',
+                                        fontSize: '0.82rem',
+                                        fontWeight: '800',
+                                        cursor: posSettingsSaveStatus === 'saving' ? 'not-allowed' : 'pointer',
+                                        boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                >
+                                    <Check size={15} strokeWidth={2.5} />
+                                    Save Settings
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
