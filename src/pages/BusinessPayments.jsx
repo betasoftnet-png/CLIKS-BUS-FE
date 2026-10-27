@@ -35,6 +35,7 @@ import { accountingService } from '../services/accountingService';
 import { bankAccountService } from '../services/bankAccountService';
 import { purchasesService } from '../services/purchasesService';
 import { billingService } from '../services/billingService';
+import { paymentsStore } from '../lib/paymentsStore';
 import '../App.css';
 import { useCurrency } from '../context';
 import BankStatementReconciliationModal from '../components/BankStatementReconciliationModal';
@@ -188,16 +189,14 @@ const BusinessPayments = ({
     const cashLedgerData = React.useMemo(() => {
         const cashTxs = (Array.isArray(dbLedger) ? dbLedger : [])
             .filter(tx => {
-                const targetName = selectedLedgerAccount ? selectedLedgerAccount.bank_account_name.toLowerCase() : 'cash';
+                const targetName = selectedLedgerAccount ? String(selectedLedgerAccount.bank_account_name || '').toLowerCase() : 'cash';
+                const bankName = selectedLedgerAccount ? String(selectedLedgerAccount.bank_name || '').toLowerCase() : '';
+                const accNo = selectedLedgerAccount ? String(selectedLedgerAccount.account_number || '').toLowerCase() : '';
                 const m = String(tx.mode || tx.payment_mode || tx.category || tx.notes || '').trim().toLowerCase();
                 if (!selectedLedgerAccount || targetName.includes('cash')) {
                     return m === 'cash' || m.includes('cash in hand') || m.includes('hand') || !tx.mode;
                 }
-                if (targetName.includes('hdfc')) return m.includes('hdfc') || m.includes('bank');
-                if (targetName.includes('sbi')) return m.includes('sbi') || m.includes('bank');
-                if (targetName.includes('icici')) return m.includes('icici') || m.includes('bank');
-                if (targetName.includes('razorpay') || targetName.includes('upi')) return m.includes('upi') || m.includes('razorpay');
-                return m.includes(targetName) || m.includes('bank');
+                return m.includes(targetName) || (bankName && m.includes(bankName)) || (accNo && m.includes(accNo)) || m.includes('bank');
             })
             .sort((a, b) => (new Date(a.date || a.created_at) - new Date(b.date || b.created_at)) || (a.id - b.id));
 
@@ -277,23 +276,6 @@ const BusinessPayments = ({
                         total_amount: inv.total_amount
                     });
                 }
-            }
-        });
-
-        const defaultNames = ['aruntest', 'vincent', 'Santhosh', 'Vincent Enterprises', 'Walk-in Customer'];
-        
-        defaultNames.forEach((defName, idx) => {
-            const exists = list.some(c => 
-                (c.name || c.customer_name || c.company || '').trim().toLowerCase() === defName.toLowerCase()
-            );
-            if (!exists) {
-                list.push({
-                    id: `def-${idx + 1}`,
-                    name: defName,
-                    customer_name: defName,
-                    invoice_id: `INV-2026-${101 + idx}`,
-                    total_amount: defName === 'Vincent Enterprises' ? 10000 : (10000 + idx * 2500)
-                });
             }
         });
         return list;
@@ -659,17 +641,19 @@ const BusinessPayments = ({
         }
     }, [payables]);
 
-    // Dynamic Cash & Bank accounts query matching /finance/accounting
+    // Dynamic Cash & Bank accounts query matching Books/Billing module (/bank-accounts)
     const { data: dbBankAccounts = [] } = useQuery({
         queryKey: ['cash-bank-accounts'],
         queryFn: async () => {
             try {
-                const res = await accountingService.getBankAccounts();
-                return Array.isArray(res) ? res : (res?.data || []);
+                const res = await paymentsStore.getBankAccounts();
+                if (Array.isArray(res) && res.length > 0) return res;
+                const fallback = await bankAccountService.getBankAccounts();
+                return Array.isArray(fallback) ? fallback : [];
             } catch (e) {
                 try {
-                    const fallback = await apiClient.get('/accounting/cash-bank');
-                    return fallback?.data?.data || fallback?.data || [];
+                    const fallback2 = await accountingService.getBankAccounts();
+                    return Array.isArray(fallback2) ? fallback2 : (fallback2?.data || []);
                 } catch (err) {
                     return [];
                 }
@@ -678,51 +662,77 @@ const BusinessPayments = ({
     });
 
     const accounts = React.useMemo(() => {
-        const fetched = Array.isArray(dbBankAccounts) ? dbBankAccounts : [];
-        const normalizedFetched = fetched.map(a => ({
-            id: a.id || a.bank_account_id,
-            bank_account_id: a.id || a.bank_account_id,
-            bank_account_name: a.account_name || a.bank_account_name || a.name || 'Account',
-            current_balance: parseFloat(a.balance ?? a.current_balance ?? 0) || 0,
-            type: a.account_type || a.bank_type || a.type || 'bank',
-            account_number: a.account_number || a.account_no || '',
-            bank_name: a.bank_name || '',
-            ifsc_code: a.ifsc || a.ifsc_code || '',
-            branch_name: a.branch || a.branch_name || '',
-            status: a.status || 'Active'
-        }));
+        // Collect real accounts from reportsData.accounts (which computes real cash sales + bank accounts)
+        // and dbBankAccounts (which queries /bank-accounts configured in the Books / Billing module)
+        const fetchedFromStore = Array.isArray(dbBankAccounts) ? dbBankAccounts : [];
+        const reportsAccounts = Array.isArray(dbAccounts) ? dbAccounts : [];
 
-        // Standard registered cash & bank profiles matching /finance/accounting under "Cash & Bank"
-        const standardProfiles = [
-            { id: 11, bank_account_id: 11, bank_account_name: 'Cash in Hand', current_balance: 25000, type: 'cash', account_number: 'N/A', status: 'Active' },
-            { id: 12, bank_account_id: 12, bank_account_name: 'HDFC Bank Account', current_balance: 150000, type: 'bank', account_number: '501002938128', bank_name: 'HDFC Bank', ifsc_code: 'HDFC0000001', branch_name: 'Main Branch', status: 'Active' },
-            { id: 13, bank_account_id: 13, bank_account_name: 'SBI Current Account', current_balance: 75000, type: 'bank', account_number: '30291823901', bank_name: 'State Bank of India', ifsc_code: 'SBIN0001234', branch_name: 'Corporate Branch', status: 'Active' },
-            { id: 14, bank_account_id: 14, bank_account_name: 'ICICI Bank Account', current_balance: 50000, type: 'bank', account_number: '001205001234', bank_name: 'ICICI Bank', ifsc_code: 'ICIC0000012', branch_name: 'Commercial Branch', status: 'Active' },
-            { id: 15, bank_account_id: 15, bank_account_name: 'UPI / Razorpay', current_balance: 12000, type: 'wallet', account_number: 'business@okhdfcbank', bank_name: 'Razorpay UPI', status: 'Active' }
-        ];
+        const combined = [];
+        const seenIds = new Set();
 
-        let baseList = [];
-        if (normalizedFetched.length === 0) {
-            if (dbAccounts && dbAccounts.length > 0) {
-                baseList = dbAccounts.map(a => ({
-                    ...a,
-                    account_number: a.account_number || a.account_no || 'N/A'
-                }));
-            } else {
-                baseList = standardProfiles;
+        // 1. Process reports accounts (includes real Cash Register based on cash billing + real bank accounts)
+        reportsAccounts.forEach(a => {
+            const accId = a.bank_account_id || a.id;
+            if (accId && !seenIds.has(String(accId))) {
+                seenIds.add(String(accId));
+                combined.push({
+                    id: accId,
+                    bank_account_id: accId,
+                    bank_account_name: a.bank_account_name || a.account_name || a.name || (a.type === 'cash' ? 'Cash Register (Cash in Hand)' : 'Bank Account'),
+                    current_balance: parseFloat(a.current_balance ?? a.balance ?? 0) || 0,
+                    type: a.type || a.account_type || 'bank',
+                    account_number: a.account_number || a.account_no || '',
+                    bank_name: a.bank_name || '',
+                    ifsc_code: a.ifsc_code || a.ifsc || '',
+                    branch_name: a.branch_name || a.branch || '',
+                    status: a.status || 'Active'
+                });
             }
-        } else {
-            const existingNames = new Set(normalizedFetched.map(a => a.bank_account_name.toLowerCase().trim()));
-            baseList = [...normalizedFetched];
-            for (const std of standardProfiles) {
-                if (!existingNames.has(std.bank_account_name.toLowerCase().trim())) {
-                    baseList.push(std);
-                }
+        });
+
+        // 2. Merge bank accounts from Books (/bank-accounts)
+        fetchedFromStore.forEach(a => {
+            const accId = a.bank_account_id || a.id;
+            const normalizedName = (a.account_name || a.bank_account_name || a.name || '').toLowerCase().trim();
+            const alreadyExists = combined.some(c => 
+                String(c.bank_account_id) === String(accId) || 
+                (c.account_number && a.account_number && c.account_number === a.account_number) ||
+                (normalizedName && c.bank_account_name.toLowerCase().trim() === normalizedName)
+            );
+            if (!alreadyExists) {
+                if (accId) seenIds.add(String(accId));
+                combined.push({
+                    id: accId || `bank-${combined.length + 1}`,
+                    bank_account_id: accId || `bank-${combined.length + 1}`,
+                    bank_account_name: a.account_name || a.bank_account_name || a.bank_name || a.name || 'Bank Account',
+                    current_balance: parseFloat(a.current_balance ?? a.balance ?? a.opening_balance ?? 0) || 0,
+                    type: a.account_type || a.bank_type || a.type || 'bank',
+                    account_number: a.account_number || a.account_no || '',
+                    bank_name: a.bank_name || '',
+                    ifsc_code: a.ifsc || a.ifsc_code || '',
+                    branch_name: a.branch || a.branch_name || '',
+                    status: a.status || 'Active'
+                });
             }
+        });
+
+        // 3. Ensure a real Cash Register card is always present (represents cash in hand from billing)
+        const hasCash = combined.some(a => (a.type || '').toLowerCase() === 'cash' || String(a.bank_account_id).includes('cash'));
+        if (!hasCash) {
+            combined.unshift({
+                id: 'cash-register-primary',
+                bank_account_id: 'cash-register-primary',
+                bank_account_name: 'Cash Register (Cash in Hand)',
+                bank_name: 'Cash Register',
+                account_number: 'CASH-REG-01',
+                type: 'cash',
+                current_balance: 0,
+                status: 'Active'
+            });
         }
 
         // Apply deletion filter and edited field overrides
-        return baseList
+        return combined
             .filter(a => !deletedAccountIds.has(a.bank_account_id) && !deletedAccountIds.has(a.id))
             .map(a => {
                 const override = editedAccounts[a.bank_account_id] || editedAccounts[a.id];
@@ -847,20 +857,26 @@ const BusinessPayments = ({
         const sourceOverdues = (dbOverdues && dbOverdues.length > 0) ? [...dbOverdues] : [];
         const existingInvNumbers = new Set(sourceOverdues.map(o => String(o.invoice_number || o.invoice_id || '').toLowerCase()));
         
-        // Also include any customer invoices with pending balance > 0
+        // Also include any customer invoices with credit/pending balance > 0 from Books / Billing
         (invoicesList || []).forEach(inv => {
             const invNum = String(inv.invoice_number || `INV-${inv.id}`);
             if (!existingInvNumbers.has(invNum.toLowerCase())) {
                 const totalAmt = parseFloat(inv.total_amount || inv.amount || 0);
                 const paidAmt = parseFloat(inv.paid_amount || 0);
-                if (totalAmt - paidAmt > 0) {
+                const dueAmt = parseFloat(inv.due_amount !== undefined && inv.due_amount !== null ? inv.due_amount : Math.max(0, totalAmt - paidAmt));
+                const isCredit = String(inv.payment_mode || '').toLowerCase() === 'credit';
+                
+                if (dueAmt > 0 || (totalAmt > 0 && totalAmt > paidAmt) || isCredit) {
                     sourceOverdues.push({
                         id: inv.id,
                         invoice_number: invNum,
-                        client_name: inv.client_name,
+                        client_name: inv.client_name || inv.customer_name,
+                        client_phone: inv.client_phone || inv.phone || '',
                         amount: totalAmt,
                         total_amount: totalAmt,
                         paid_amount: paidAmt,
+                        due_amount: dueAmt,
+                        payment_mode: inv.payment_mode || (isCredit ? 'Credit' : 'Invoice'),
                         status: inv.status || 'Pending',
                         due_date: inv.due_date || inv.created_at,
                         created_at: inv.created_at
@@ -870,50 +886,61 @@ const BusinessPayments = ({
             }
         });
 
-        return sourceOverdues.map(inv => {
-            const totalAmt = parseFloat(inv.total_amount || inv.amount || 0);
-            const paidAmt = parseFloat(inv.paid_amount || 0);
-            const pendingAmt = Math.max(0, totalAmt - paidAmt);
-            const dueDateObj = inv.due_date ? new Date(inv.due_date) : new Date();
-            const todayObj = new Date();
-            const diffTime = Math.max(0, todayObj - dueDateObj);
-            const overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+        return sourceOverdues
+            .map(inv => {
+                const totalAmt = parseFloat(inv.total_amount || inv.amount || 0);
+                const paidAmt = parseFloat(inv.paid_amount || 0);
+                const pendingAmt = parseFloat(inv.due_amount !== undefined && inv.due_amount !== null ? inv.due_amount : Math.max(0, totalAmt - paidAmt));
+                
+                // If bill has 0 due and paid >= total and not credit, exclude
+                if (pendingAmt <= 0 && totalAmt > 0 && paidAmt >= totalAmt && String(inv.payment_mode || '').toLowerCase() !== 'credit') {
+                    return null;
+                }
 
-            return {
-                invoice_id: inv.invoice_number || `INV-${inv.id}`,
-                customer_name: inv.client_name || 'General Customer',
-                total_amount: totalAmt,
-                paid_amount: paidAmt,
-                pending_amount: pendingAmt > 0 ? pendingAmt : totalAmt,
-                due_date: inv.due_date || 'N/A',
-                overdue_days: overdueDays,
-                reminder_sent: 'Not Sent'
-            };
-        });
+                const dueDateObj = inv.due_date ? new Date(inv.due_date) : (inv.created_at ? new Date(inv.created_at) : new Date());
+                const todayObj = new Date();
+                const diffTime = todayObj - dueDateObj;
+                const overdueDays = diffTime > 0 ? Math.ceil(diffTime / (1000 * 60 * 60 * 24)) : 0;
+
+                return {
+                    id: inv.id,
+                    invoice_id: inv.invoice_number || `INV-${inv.id}`,
+                    customer_name: inv.client_name || inv.customer_name || 'Customer',
+                    client_phone: inv.client_phone || inv.phone || '',
+                    total_amount: totalAmt,
+                    paid_amount: paidAmt,
+                    pending_amount: pendingAmt,
+                    payment_mode: inv.payment_mode || 'Credit',
+                    due_date: inv.due_date ? String(inv.due_date).slice(0, 10) : (inv.created_at ? String(inv.created_at).slice(0, 10) : 'N/A'),
+                    overdue_days: overdueDays,
+                    reminder_sent: 'Not Sent'
+                };
+            })
+            .filter(Boolean);
     }, [dbOverdues, invoicesList]);
 
     // Forms input states
     const [customerForm, setCustomerForm] = useState({
-        customer_name: 'aruntest',
-        customerProfile: 'aruntest',
-        invoice_id: 'INV-2026-101',
-        invoiceLinkedId: 'INV-2026-101',
-        total_amount: '12500',
-        totalOriginalAmount: '12500',
+        customer_name: '',
+        customerProfile: '',
+        invoice_id: '',
+        invoiceLinkedId: '',
+        total_amount: '',
+        totalOriginalAmount: '',
         paid_amount: '',
         paidAmount: '',
-        payment_mode: 'UPI',
-        transaction_reference: 'UPI-9092210A'
+        payment_mode: 'Cash',
+        transaction_reference: ''
     });
 
     const [supplierForm, setSupplierForm] = useState({
-        supplier_name: 'vincent shop',
-        purchase_id: 'BILL-77091',
-        total_amount: '5310010',
+        supplier_name: '',
+        purchase_id: '',
+        total_amount: '',
         paid_amount: '',
         paidAmount: '',
-        payment_mode: 'Bank Transfer',
-        transaction_reference: 'REF-88910B'
+        payment_mode: 'Cash',
+        transaction_reference: ''
     });
 
     const [transferForm, setTransferForm] = useState({
@@ -988,8 +1015,8 @@ const BusinessPayments = ({
     const getCustomerAutoFill = (customerName) => {
         if (!customerName) {
             return {
-                invoice_id: 'INV-2026-104',
-                total_amount: '10000'
+                invoice_id: '',
+                total_amount: ''
             };
         }
 
@@ -1001,8 +1028,8 @@ const BusinessPayments = ({
         );
         if (matchedOverdue) {
             return {
-                invoice_id: matchedOverdue.invoice_id || `INV-${matchedOverdue.id || '2026-104'}`,
-                total_amount: String(matchedOverdue.total_amount || matchedOverdue.pending_amount || '10000')
+                invoice_id: matchedOverdue.invoice_id || (matchedOverdue.id ? `INV-${matchedOverdue.id}` : ''),
+                total_amount: String(matchedOverdue.total_amount || matchedOverdue.pending_amount || '')
             };
         }
 
@@ -1024,38 +1051,29 @@ const BusinessPayments = ({
             }
         }
 
-        // 3. Known profiles lookup matching active customers
-        if (cLower.includes('aruntest')) {
-            return { invoice_id: 'INV-2026-101', total_amount: '12500' };
-        }
-        if (cLower === 'vincent') {
-            return { invoice_id: 'INV-2026-102', total_amount: '8500' };
-        }
-        if (cLower.includes('santhosh')) {
-            return { invoice_id: 'INV-2026-103', total_amount: '15000' };
-        }
-        if (cLower.includes('vincent enterprises')) {
-            return { invoice_id: 'INV-2026-104', total_amount: '10000' };
-        }
-        if (cLower.includes('walk-in') || cLower.includes('walkin')) {
-            return { invoice_id: 'INV-2026-105', total_amount: '5000' };
+        // 3. Check matched invoice directly in invoicesList
+        const matchedInv = (invoicesList || []).find(inv => 
+            (inv.client_name && inv.client_name.trim().toLowerCase() === cLower)
+        );
+        if (matchedInv) {
+            return {
+                invoice_id: matchedInv.invoice_number || `INV-${matchedInv.id}`,
+                total_amount: String(matchedInv.total_amount || matchedInv.amount || '')
+            };
         }
 
-        // 4. Fallback with consistent sequence
-        let hash = 0;
-        for (let i = 0; i < cLower.length; i++) hash = (hash * 31 + cLower.charCodeAt(i)) % 900;
         return {
-            invoice_id: `INV-2026-${100 + Math.abs(hash % 800)}`,
-            total_amount: '10000'
+            invoice_id: '',
+            total_amount: ''
         };
     };
 
     const getSupplierAutoFill = (supplierName) => {
         if (!supplierName) {
             return {
-                purchase_id: 'BILL-77091',
-                total_amount: '5310010',
-                transaction_reference: 'REF-88910B'
+                purchase_id: '',
+                total_amount: '',
+                transaction_reference: ''
             };
         }
 
@@ -1073,17 +1091,11 @@ const BusinessPayments = ({
             (matchedSupplier?.id && (p.supplier_id === matchedSupplier.id || p.supplierId === matchedSupplier.id))
         );
 
-        // 1. Linked Purchase Bill ID: supplier's pending bill ID or BILL-77091
         let purchaseId = '';
         if (matchedPurchase && (matchedPurchase.purchase_number || matchedPurchase.id)) {
             purchaseId = matchedPurchase.purchase_number || `BILL-${matchedPurchase.id}`;
-        } else if (matchedSupplier?.id) {
-            purchaseId = `BILL-${77090 + (Number(matchedSupplier.id) % 1000)}`;
-        } else {
-            purchaseId = 'BILL-77091';
         }
 
-        // 2. Original Due Amount: e.g. 5310010 or supplier balance
         let originalDue = '';
         if (matchedSupplier) {
             const raw = matchedSupplier.running_payable !== undefined && matchedSupplier.running_payable !== null
@@ -1106,15 +1118,11 @@ const BusinessPayments = ({
                 originalDue = String(grandTotal);
             }
         }
-        if (!originalDue || originalDue === '0') {
-            originalDue = '5310010';
-        }
 
-        // 3. Cheque / Ref No: e.g. REF-88910B or generated reference sequence
-        let refNo = 'REF-88910B';
+        let refNo = '';
         if (matchedSupplier?.id) {
             const idPad = String(matchedSupplier.id).padStart(2, '0');
-            refNo = `REF-889${idPad}B`;
+            refNo = `REF-${idPad}`;
         }
 
         return {
@@ -1129,13 +1137,10 @@ const BusinessPayments = ({
         if (suppliersList && suppliersList.length > 0) {
             const exists = suppliersList.find(s => (s.name || s.company_name) === currentSupplierName);
             if (!exists) {
-                currentSupplierName = suppliersList[0].name || suppliersList[0].company_name || currentSupplierName;
+                currentSupplierName = suppliersList[0].name || suppliersList[0].company_name || '';
             }
         }
-        if (!currentSupplierName) {
-            currentSupplierName = 'vincent shop';
-        }
-        const autoFilled = getSupplierAutoFill(currentSupplierName);
+        const autoFilled = currentSupplierName ? getSupplierAutoFill(currentSupplierName) : { purchase_id: '', total_amount: '', transaction_reference: '' };
         setSupplierForm(prev => ({
             ...prev,
             supplier_name: currentSupplierName,
@@ -1153,13 +1158,10 @@ const BusinessPayments = ({
         if (activeCustomers && activeCustomers.length > 0) {
             const exists = activeCustomers.find(c => (c.name || c.customer_name || c.company) === currentCustomerName);
             if (!exists) {
-                currentCustomerName = activeCustomers[0].name || activeCustomers[0].customer_name || activeCustomers[0].company || currentCustomerName;
+                currentCustomerName = activeCustomers[0].name || activeCustomers[0].customer_name || activeCustomers[0].company || '';
             }
         }
-        if (!currentCustomerName) {
-            currentCustomerName = 'aruntest';
-        }
-        const autoFilled = getCustomerAutoFill(currentCustomerName);
+        const autoFilled = currentCustomerName ? getCustomerAutoFill(currentCustomerName) : { invoice_id: '', total_amount: '' };
         setCustomerForm(prev => ({
             ...prev,
             customer_name: currentCustomerName,
@@ -1176,8 +1178,8 @@ const BusinessPayments = ({
 
     React.useEffect(() => {
         if (isSupplierModalOpen) {
-            const currentName = supplierForm.supplier_name || (suppliersList[0]?.name || suppliersList[0]?.company_name) || 'vincent shop';
-            if (!supplierForm.purchase_id || !supplierForm.total_amount || !supplierForm.transaction_reference) {
+            const currentName = supplierForm.supplier_name || (suppliersList[0]?.name || suppliersList[0]?.company_name) || '';
+            if (currentName && (!supplierForm.purchase_id || !supplierForm.total_amount)) {
                 const autoFilled = getSupplierAutoFill(currentName);
                 setSupplierForm(prev => ({
                     ...prev,
@@ -1277,8 +1279,14 @@ const BusinessPayments = ({
         });
     };
 
-    const sendWhatsAppReminder = (custName) => {
-        alert(`Automated WhatsApp & SMS payment reminders for ${custName} is coming soon!`);
+    const sendWhatsAppReminder = (ov) => {
+        const custName = typeof ov === 'string' ? ov : (ov?.customer_name || 'Customer');
+        const invId = typeof ov === 'object' ? (ov?.invoice_id || '') : '';
+        const dueAmt = typeof ov === 'object' ? formatCurrency(ov?.pending_amount) : '';
+        const phone = typeof ov === 'object' && ov?.client_phone ? String(ov.client_phone).replace(/\D/g, '') : '';
+        const message = `Dear ${custName}, this is a payment reminder for invoice ${invId}. Outstanding credit balance is ${dueAmt}. Please arrange the payment at your earliest convenience. Thank you!`;
+        const waUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}` : `https://wa.me/?text=${encodeURIComponent(message)}`;
+        window.open(waUrl, '_blank');
     };
 
     const totalOutstandingReceivables = Math.max(
@@ -1755,8 +1763,18 @@ const BusinessPayments = ({
                                             </div>
                                         </div>
 
-                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.5rem' }}>{acc.bank_account_name}</h3>
-                                    <p style={{ color: '#64748B', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Account No: {acc.account_number || acc.bank_account_id}</p>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.35rem' }}>{acc.bank_account_name}</h3>
+                                    <p style={{ color: '#64748B', fontSize: '0.85rem', marginBottom: '0.25rem' }}>
+                                        {acc.type === 'cash' ? 'Type: Cash Register (Cash in Hand)' : `Account No: ${acc.account_number || acc.bank_account_id}`}
+                                    </p>
+                                    {acc.bank_name && acc.type !== 'cash' && (
+                                        <p style={{ color: '#94A3B8', fontSize: '0.78rem', marginBottom: '1.25rem' }}>
+                                            Bank: {acc.bank_name} {acc.branch_name ? `• Branch: ${acc.branch_name}` : ''} {acc.ifsc_code ? `• IFSC: ${acc.ifsc_code}` : ''}
+                                        </p>
+                                    )}
+                                    {(!acc.bank_name || acc.type === 'cash') && (
+                                        <div style={{ marginBottom: '1.25rem' }} />
+                                    )}
 
                                     <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748B' }}>Current Balance:</span>
@@ -1765,6 +1783,15 @@ const BusinessPayments = ({
                                 </div>
                             );
                         })}
+                        {accounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).length === 0 && (
+                            <div style={{ gridColumn: '1 / -1', background: 'white', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '3.5rem 2rem', textAlign: 'center' }}>
+                                <Wallet size={40} style={{ margin: '0 auto 0.75rem', color: '#94A3B8' }} />
+                                <h4 style={{ fontWeight: '850', color: '#1E293B', fontSize: '1.1rem', marginBottom: '0.4rem' }}>No Bank Accounts Registered</h4>
+                                <p style={{ color: '#64748B', fontSize: '0.875rem', margin: 0 }}>
+                                    Configure your bank accounts in the Books / Billing module or Bank Accounts section to manage registers here.
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Relocated Transaction Ledger */}
@@ -1854,11 +1881,12 @@ const BusinessPayments = ({
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
                                 { key: 'customer_name', label: 'Customer Name', placeholder: 'Name' },
-                                { key: 'invoice_id', label: 'Invoice Linked ID', placeholder: 'e.g. INV-101' },
-                                { key: 'pending_amount', label: 'Overdue Balance', placeholder: 'Amount' },
+                                { key: 'invoice_id', label: 'Invoice / Bill No', placeholder: 'e.g. INV-101' },
+                                { key: 'total_amount', label: 'Total Bill', placeholder: 'Total' },
+                                { key: 'paid_amount', label: 'Paid Amount', placeholder: 'Paid' },
+                                { key: 'pending_amount', label: 'Credit Due Balance', placeholder: 'Due' },
                                 { key: 'due_date', label: 'Due Date', placeholder: 'YYYY-MM-DD' },
-                                { key: 'overdue_days', label: 'Overdue Period', placeholder: 'Days' },
-                                { key: 'reminder_sent', label: 'Reminder Status', placeholder: 'Status' },
+                                { key: 'overdue_days', label: 'Status', placeholder: 'Status' },
                                 { 
                                     key: 'actions', 
                                     label: 'Actions', 
@@ -1873,60 +1901,53 @@ const BusinessPayments = ({
                                     <tr key={ov.invoice_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1rem', fontWeight: '800', color: '#1E293B' }}>{ov.customer_name}</td>
                                         <td style={{ padding: '1rem', color: '#475569', fontWeight: '700' }}>{ov.invoice_id}</td>
-                                        <td style={{ padding: '1rem', fontWeight: '850', color: '#EF4444' }}>{formatCurrency(ov.pending_amount)}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '700', color: '#1E293B' }}>{formatCurrency(ov.total_amount)}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '700', color: '#16A34A' }}>{formatCurrency(ov.paid_amount)}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '850', color: '#DC2626' }}>{formatCurrency(ov.pending_amount)}</td>
                                         <td style={{ padding: '1rem', color: '#64748B' }}>{ov.due_date}</td>
                                         <td style={{ padding: '1rem' }}>
-                                            <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>{ov.overdue_days} Days Overdue</span>
+                                            {ov.overdue_days > 0 ? (
+                                                <span style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>
+                                                    {ov.overdue_days} Days Overdue
+                                                </span>
+                                            ) : (
+                                                <span style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', background: '#FFFBEB', color: '#D97706', fontWeight: '800', fontSize: '0.75rem' }}>
+                                                    Credit Due
+                                                </span>
+                                            )}
                                         </td>
-                                        <td style={{ padding: '1rem', color: '#64748B', fontWeight: '700' }}>{ov.reminder_sent}</td>
                                         <td className="whitespace-nowrap text-right" style={{ padding: '1rem', textAlign: 'right', whiteSpace: 'nowrap', minWidth: '170px' }}>
                                             <button 
                                                 type="button"
-                                                onClick={() => sendWhatsAppReminder(ov.customer_name)}
-                                                title="Automated WhatsApp & SMS Reminders - Coming Soon"
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200 transition-all hover:bg-gray-200 whitespace-nowrap"
+                                                onClick={() => sendWhatsAppReminder(ov)}
+                                                title="Send reminder via WhatsApp"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-all hover:bg-emerald-100 whitespace-nowrap"
                                                 style={{ 
                                                     display: 'inline-flex', 
                                                     alignItems: 'center', 
                                                     gap: '0.375rem', 
-                                                    padding: '0.35rem 0.75rem', 
+                                                    padding: '0.4rem 0.85rem', 
                                                     borderRadius: '9999px', 
-                                                    background: '#F1F5F9', 
-                                                    color: '#64748B', 
-                                                    border: '1px solid #E2E8F0', 
-                                                    fontWeight: '600', 
+                                                    background: '#ECFDF5', 
+                                                    color: '#059669', 
+                                                    border: '1px solid #A7F3D0', 
+                                                    fontWeight: '700', 
                                                     fontSize: '0.75rem', 
                                                     cursor: 'pointer',
                                                     whiteSpace: 'nowrap',
                                                     flexShrink: 0
                                                 }}
                                             >
-                                                <Send size={12} className="text-gray-400 flex-shrink-0" style={{ color: '#94A3B8', flexShrink: 0 }} />
+                                                <Send size={12} className="text-emerald-600 flex-shrink-0" style={{ color: '#059669', flexShrink: 0 }} />
                                                 <span style={{ whiteSpace: 'nowrap' }}>Send Reminder</span>
-                                                <span 
-                                                    className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-200 text-gray-600 uppercase tracking-wider whitespace-nowrap"
-                                                    style={{ 
-                                                        fontSize: '0.62rem', 
-                                                        background: '#E2E8F0', 
-                                                        padding: '1px 5px', 
-                                                        borderRadius: '4px', 
-                                                        color: '#475569',
-                                                        fontWeight: '750',
-                                                        textTransform: 'uppercase',
-                                                        letterSpacing: '0.04em',
-                                                        whiteSpace: 'nowrap'
-                                                    }}
-                                                >
-                                                    Soon
-                                                </span>
                                             </button>
                                         </td>
                                     </tr>
                                 ))}
                                 {overdues.length === 0 && (
                                     <tr>
-                                        <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>
-                                            No overdue collections found at this time. All customer invoices are current!
+                                        <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>
+                                            No overdue credit collections found. All customer credit bills are settled!
                                         </td>
                                     </tr>
                                 )}
@@ -2224,14 +2245,8 @@ const BusinessPayments = ({
                                             {sup.name || sup.company_name}
                                         </option>
                                     ))}
-                                    {!suppliersList.some(s => (s.name || s.company_name || '').toLowerCase().includes('vincent')) && (
-                                        <option value="vincent shop">vincent shop</option>
-                                    )}
                                     {suppliersList.length === 0 && (
-                                        <>
-                                            <option value="Delhi Distributors Ltd.">Delhi Distributors Ltd.</option>
-                                            <option value="Global Trading Corp">Global Trading Corp</option>
-                                        </>
+                                        <option value="">No suppliers available</option>
                                     )}
                                 </select>
                             </div>
