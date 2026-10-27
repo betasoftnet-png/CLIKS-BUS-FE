@@ -32,7 +32,8 @@ import {
     ShieldCheck,
     Wallet,
     PieChart,
-    Layers
+    Layers,
+    Lock
 } from 'lucide-react';
 import { peopleService } from '../services/peopleService';
 import { apiClient as api } from '../api/client';
@@ -139,6 +140,8 @@ const BusinessPeople = () => {
     });
     const [inviteMemberForm, setInviteMemberForm] = useState({ name: '', email: '', role: 'member' });
     const [inviteMemberEmailError, setInviteMemberEmailError] = useState('');
+    const [privateNoteModalData, setPrivateNoteModalData] = useState(null);
+    const [privateNoteForm, setPrivateNoteForm] = useState({ amount: '', notes: '' });
 
     React.useEffect(() => {
         if (shareModalData) {
@@ -306,6 +309,30 @@ const BusinessPeople = () => {
         },
         onError: (err) => {
             alert(err?.response?.data?.message || err?.message || 'Failed to delete group.');
+        }
+    });
+
+    const setPrivateNoteMutation = useMutation({
+        mutationFn: ({ memberId, amount, notes }) => peopleService.setMemberPrivateNote(selectedGroupId, memberId, { amount, notes }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['people-group-details', selectedGroupId] });
+            setPrivateNoteModalData(null);
+            setPrivateNoteForm({ amount: '', notes: '' });
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || err?.message || 'Failed to save private note.');
+        }
+    });
+
+    const deletePrivateNoteMutation = useMutation({
+        mutationFn: (memberId) => peopleService.deleteMemberPrivateNote(selectedGroupId, memberId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['people-group-details', selectedGroupId] });
+            setPrivateNoteModalData(null);
+            setPrivateNoteForm({ amount: '', notes: '' });
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || err?.message || 'Failed to delete private note.');
         }
     });
 
@@ -4033,7 +4060,7 @@ const BusinessPeople = () => {
                                 {groupActiveSubTab === 'balances' && (
                                     <div>
                                         {/* Financial Highlights */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
                                             <div style={{ padding: '1.25rem', background: '#F0FDF4', borderRadius: '18px', border: '1px solid #BBF7D0' }}>
                                                 <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: '#166534', textTransform: 'uppercase' }}>Total Contributed</p>
                                                 <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#065F46' }}>
@@ -4058,6 +4085,17 @@ const BusinessPeople = () => {
                                                     {selectedGroupDetails.target_amount > 0 ? formatCurr(selectedGroupDetails.target_amount) : 'Open Pool'}
                                                 </h3>
                                             </div>
+                                            <div style={{ padding: '1.25rem', background: '#F0FDF4', borderRadius: '18px', border: '1.5px solid #86EFAC' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                    <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: '850', color: '#166534', textTransform: 'uppercase' }}>To Give (Private)</p>
+                                                    <span style={{ fontSize: '0.65rem', fontWeight: '800', background: '#DCFCE7', color: '#15803D', padding: '2px 6px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                        <Lock size={10} /> Only You
+                                                    </span>
+                                                </div>
+                                                <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#14532D' }}>
+                                                    {formatCurr(selectedGroupDetails.summary?.total_private_commitments || 0)}
+                                                </h3>
+                                            </div>
                                         </div>
 
                                         {/* Member Ledger Matrix */}
@@ -4074,6 +4112,11 @@ const BusinessPeople = () => {
                                                         <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textAlign: 'right' }}>Contributed</th>
                                                         <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textAlign: 'right' }}>Owed</th>
                                                         <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textAlign: 'right' }}>Net Balance</th>
+                                                        <th style={{ padding: '1rem 1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#047857', textAlign: 'right' }}>
+                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                                <Lock size={11} /> Money to Give
+                                                            </span>
+                                                        </th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -4108,6 +4151,51 @@ const BusinessPeople = () => {
                                                                 }}>
                                                                     {b.net_balance > 0 ? `+${formatCurr(b.net_balance)}` : b.net_balance < 0 ? `-${formatCurr(Math.abs(b.net_balance))}` : formatCurr(0)}
                                                                 </span>
+                                                            </td>
+                                                            <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
+                                                                {b.private_note ? (
+                                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                                                                        <span style={{ fontWeight: '900', fontSize: '0.9rem', color: '#047857' }}>
+                                                                            {formatCurr(b.private_note.amount)}
+                                                                        </span>
+                                                                        {b.private_note.notes && (
+                                                                            <span style={{ fontSize: '0.7rem', color: '#64748B', maxWidth: '140px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={b.private_note.notes}>
+                                                                                {b.private_note.notes}
+                                                                            </span>
+                                                                        )}
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setPrivateNoteModalData({ member_id: b.member_id, name: b.name, email: b.email });
+                                                                                setPrivateNoteForm({ amount: b.private_note.amount || '', notes: b.private_note.notes || '' });
+                                                                            }}
+                                                                            style={{ border: 'none', background: 'none', color: '#059669', fontSize: '0.7rem', fontWeight: '750', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                                                                        >
+                                                                            Edit Note
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setPrivateNoteModalData({ member_id: b.member_id, name: b.name, email: b.email });
+                                                                            setPrivateNoteForm({ amount: '', notes: '' });
+                                                                        }}
+                                                                        style={{
+                                                                            display: 'inline-flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '3px',
+                                                                            padding: '0.35rem 0.65rem',
+                                                                            borderRadius: '8px',
+                                                                            border: '1px dashed #86EFAC',
+                                                                            background: '#F0FDF4',
+                                                                            color: '#15803D',
+                                                                            fontSize: '0.72rem',
+                                                                            fontWeight: '750',
+                                                                            cursor: 'pointer'
+                                                                        }}
+                                                                    >
+                                                                        <Plus size={11} /> Note to Give
+                                                                    </button>
+                                                                )}
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -4224,6 +4312,40 @@ const BusinessPeople = () => {
                                                         <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                             <Mail size={12} /> {m.email}
                                                         </p>
+                                                    </div>
+
+                                                    {/* Private Commitment Note (Only visible to authenticated user) */}
+                                                    <div style={{ padding: '0.65rem 0.85rem', background: '#F0FDF4', borderRadius: '12px', border: '1px solid #BBF7D0' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span style={{ fontSize: '0.7rem', fontWeight: '850', color: '#065F46', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                <Lock size={11} /> My Private Note (Only for me)
+                                                            </span>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setPrivateNoteModalData({ member_id: m.id, name: m.name, email: m.email });
+                                                                    setPrivateNoteForm({ amount: m.private_note?.amount || '', notes: m.private_note?.notes || '' });
+                                                                }}
+                                                                style={{ border: 'none', background: 'none', color: '#059669', fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer', padding: 0 }}
+                                                            >
+                                                                {m.private_note ? 'Edit' : '+ Note to Give'}
+                                                            </button>
+                                                        </div>
+                                                        {m.private_note ? (
+                                                            <div style={{ marginTop: '4px' }}>
+                                                                <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: '900', color: '#064E3B' }}>
+                                                                    I will give: {formatCurr(m.private_note.amount)}
+                                                                </p>
+                                                                {m.private_note.notes && (
+                                                                    <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: '#047857', fontStyle: 'italic' }}>
+                                                                        "{m.private_note.notes}"
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: '#059669' }}>
+                                                                No private commitment set yet
+                                                            </p>
+                                                        )}
                                                     </div>
 
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid #E2E8F0' }}>
@@ -4449,6 +4571,110 @@ const BusinessPeople = () => {
                                         style={{ flex: 2, padding: '0.75rem', borderRadius: '12px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' }}
                                     >
                                         {inviteMemberMutation.isPending ? 'Sending...' : 'Dispatch Invitation'}
+                                    </button>
+                                </div>
+                            </form>
+                        </Motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal: Set Private Note / Money to Give */}
+            <AnimatePresence>
+                {privateNoteModalData && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(8px)', padding: '1rem' }}>
+                        <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ECFDF5', color: '#065F46', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Lock size={18} />
+                                    </div>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900', color: '#0F172A' }}>Private Member Note</h3>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#059669', fontWeight: '750' }}>Only visible to you</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setPrivateNoteModalData(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer' }}>
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <div style={{ padding: '0.75rem 1rem', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0', marginBottom: '1.25rem' }}>
+                                <p style={{ margin: 0, fontSize: '0.72rem', color: '#64748B', textTransform: 'uppercase', fontWeight: '800' }}>Target Member</p>
+                                <p style={{ margin: '2px 0 0', fontSize: '0.92rem', fontWeight: '900', color: '#0F172A' }}>{privateNoteModalData.name}</p>
+                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>{privateNoteModalData.email}</p>
+                            </div>
+
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                setPrivateNoteMutation.mutate({
+                                    memberId: privateNoteModalData.member_id,
+                                    amount: Number(privateNoteForm.amount) || 0,
+                                    notes: privateNoteForm.notes
+                                });
+                            }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>
+                                        How much money will you give? <span style={{ color: '#EF4444' }}>*</span>
+                                    </label>
+                                    <input 
+                                        required 
+                                        type="number" 
+                                        placeholder="e.g. 5000" 
+                                        value={privateNoteForm.amount} 
+                                        onChange={(e) => setPrivateNoteForm({ ...privateNoteForm, amount: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.95rem', fontWeight: '750' }} 
+                                    />
+                                </div>
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>
+                                        Private Memo / Reason (Optional)
+                                    </label>
+                                    <textarea 
+                                        rows={2} 
+                                        placeholder="e.g. For raw materials share, to be settled next Tuesday..." 
+                                        value={privateNoteForm.notes} 
+                                        onChange={(e) => setPrivateNoteForm({ ...privateNoteForm, notes: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }} 
+                                    />
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0.5rem 0.75rem', background: '#ECFDF5', borderRadius: '10px', border: '1px solid #A7F3D0' }}>
+                                    <Lock size={14} style={{ color: '#065F46', flexShrink: 0 }} />
+                                    <span style={{ fontSize: '0.72rem', color: '#065F46', fontWeight: '750' }}>
+                                        This note and amount will NEVER be visible to any other group member or admin.
+                                    </span>
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                    {selectedGroupDetails?.members?.find(m => m.id === privateNoteModalData.member_id)?.private_note && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => {
+                                                if (window.confirm('Remove this private note?')) {
+                                                    deletePrivateNoteMutation.mutate(privateNoteModalData.member_id);
+                                                }
+                                            }} 
+                                            disabled={deletePrivateNoteMutation.isPending}
+                                            style={{ padding: '0.75rem 1rem', borderRadius: '12px', border: '1.5px solid #FECACA', background: '#FFFFFF', color: '#EF4444', fontWeight: '800', fontSize: '0.82rem', cursor: 'pointer' }}
+                                        >
+                                            Remove
+                                        </button>
+                                    )}
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setPrivateNoteModalData(null)} 
+                                        style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', background: 'white', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer' }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        disabled={setPrivateNoteMutation.isPending}
+                                        style={{ flex: 2, padding: '0.75rem', borderRadius: '12px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer' }}
+                                    >
+                                        {setPrivateNoteMutation.isPending ? 'Saving...' : 'Save Private Note'}
                                     </button>
                                 </div>
                             </form>

@@ -26,6 +26,8 @@ export const peopleService = {
     respondToGroupRequest: async (membershipId, action) => await apiClient.post(`/people/groups/requests/${membershipId}/respond`, { action }).then(res => res.data.data || res.data),
     addGroupTransaction: async (groupId, data) => await apiClient.post(`/people/groups/${groupId}/transactions`, data).then(res => res.data.data || res.data),
     deleteGroupTransaction: async (groupId, txId) => await apiClient.delete(`/people/groups/${groupId}/transactions/${txId}`).then(res => res.data.data || res.data),
+    setMemberPrivateNote: async (groupId, memberId, data) => await apiClient.post(`/people/groups/${groupId}/members/${memberId}/private-note`, data).then(res => res.data.data || res.data),
+    deleteMemberPrivateNote: async (groupId, memberId) => await apiClient.delete(`/people/groups/${groupId}/members/${memberId}/private-note`).then(res => res.data.data || res.data),
 
     // Global aggregated views
     getAllTransactions: async () => await apiClient.get('/people/transactions').then(res => res.data.data || res.data),
