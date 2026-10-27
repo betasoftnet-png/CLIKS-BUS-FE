@@ -57,7 +57,8 @@ import {
     Utensils,
     CheckCircle2,
     Maximize,
-    Minimize
+    Minimize,
+    Loader2
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -182,6 +183,9 @@ const BusinessPOS = () => {
     const [discountType, setDiscountType] = useState('percentage'); // 'percentage' | 'flat'
     const [discountVal, setDiscountVal] = useState(0);
     const [taxRate, setTaxRate] = useState(18); // Default GST
+    const [customTaxAmount, setCustomTaxAmount] = useState(null);
+    const [isTaxManuallyEdited, setIsTaxManuallyEdited] = useState(false);
+    const [isEditingTaxInSummary, setIsEditingTaxInSummary] = useState(false);
     const [paymentMode] = useState('Cash');
     const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(0);
     const [loyaltyPointsRedeemed, setLoyaltyPointsRedeemed] = useState(0);
@@ -653,6 +657,12 @@ const BusinessPOS = () => {
     const posAllowCredit = localPosAllowCredit !== null
         ? localPosAllowCredit
         : Boolean(loyaltyProgramSettings?.pos_allow_credit ?? loyaltyProgramSettings?.posAllowCredit ?? activeConfig?.pos_allow_credit ?? true);
+
+    useEffect(() => {
+        if (!posAllowCredit && isCreditMode) {
+            setIsCreditMode(false);
+        }
+    }, [posAllowCredit, isCreditMode]);
 
     // Kiosk Customization & Configuration
     const defaultKioskConfig = useMemo(() => ({
@@ -1623,6 +1633,9 @@ const BusinessPOS = () => {
             setActiveHeldCartInfo(null);
             setIsCreditMode(false);
             setCreditReceivedAmount('');
+            setCustomTaxAmount(null);
+            setIsTaxManuallyEdited(false);
+            setIsEditingTaxInSummary(false);
 
             // Refetch to reflect updated inventory, customers & stats
             queryClient.invalidateQueries({ queryKey: ['business-customers'] });
@@ -2316,6 +2329,11 @@ const BusinessPOS = () => {
         return acc + (discountedItemTotal * (itemTaxRate / 100));
     }, 0);
 
+    // Effective tax: owner's custom override or auto-calculated from items
+    const effectiveTax = isTaxManuallyEdited && customTaxAmount !== null
+        ? Math.max(0, parseFloat(customTaxAmount) || 0)
+        : calculatedTax;
+
     // Master Config for Loyalty (sourced directly from Backend API: business_loyalty_settings & users.settings)
     const loyaltyEnabled = React.useMemo(() => {
         if (loyaltyProgramSettings?.loyaltyEnabled !== undefined) return Boolean(loyaltyProgramSettings.loyaltyEnabled);
@@ -2332,7 +2350,7 @@ const BusinessPOS = () => {
 
     const availableCustomerPoints = selectedCustomerObj ? getCustomerLtp(selectedCustomerObj) : 0;
     const maxClaimablePoints = Math.floor(availableCustomerPoints * (maxClaimPct / 100));
-    const maxPointsForBill = ptsFor1Rs > 0 ? Math.floor((discountedTotal + calculatedTax) * ptsFor1Rs) : 0;
+    const maxPointsForBill = ptsFor1Rs > 0 ? Math.floor((discountedTotal + effectiveTax) * ptsFor1Rs) : 0;
     const maxRedeemablePoints = loyaltyEnabled ? Math.min(maxClaimablePoints, maxPointsForBill) : 0;
 
     const effectivePointsRedeemed = (loyaltyEnabled && selectedCustomerObj) ? Math.max(0, Math.min(maxRedeemablePoints, parseFloat(loyaltyPointsRedeemed) || 0)) : 0;
@@ -2340,10 +2358,10 @@ const BusinessPOS = () => {
 
     // Cross-Branch Store Credit Redemption calculation
     const availableStoreCredit = selectedCustomerObj ? (parseFloat(selectedCustomerObj.store_credit) || 0) : 0;
-    const maxRedeemableCredit = Math.min(availableStoreCredit, Math.max(0, discountedTotal + calculatedTax - loyaltyDiscountAmount));
+    const maxRedeemableCredit = Math.min(availableStoreCredit, Math.max(0, discountedTotal + effectiveTax - loyaltyDiscountAmount));
     const effectiveStoreCreditRedeemed = selectedCustomerObj ? Math.max(0, Math.min(maxRedeemableCredit, parseFloat(storeCreditToRedeem) || 0)) : 0;
 
-    const totalBeforeRound = Math.max(0, discountedTotal + calculatedTax - loyaltyDiscountAmount - effectiveStoreCreditRedeemed);
+    const totalBeforeRound = Math.max(0, discountedTotal + effectiveTax - loyaltyDiscountAmount - effectiveStoreCreditRedeemed);
     const finalTotal = activeConfig.roundOff !== false ? Math.max(0, Math.round(totalBeforeRound)) : Math.max(0, totalBeforeRound);
     const roundOff = finalTotal - totalBeforeRound;
     const hasValidCartItems = cart.some(item => (parseFloat(item.quantity) || 0) > 0);
@@ -2400,9 +2418,9 @@ const BusinessPOS = () => {
             : finalTotal;
         const due = isCredit ? Math.max(0, finalTotal - received) : 0;
 
-        const cgst = gstType === 'intra' ? (calculatedTax / 2) : 0;
-        const sgst = gstType === 'intra' ? (calculatedTax / 2) : 0;
-        const igst = gstType === 'inter' ? calculatedTax : 0;
+        const cgst = gstType === 'intra' ? (effectiveTax / 2) : 0;
+        const sgst = gstType === 'intra' ? (effectiveTax / 2) : 0;
+        const igst = gstType === 'inter' ? effectiveTax : 0;
 
         const payload = {
             customer_id: selectedCustomerObj?.id || null,
@@ -2428,7 +2446,7 @@ const BusinessPOS = () => {
             remaining_loyalty_points: loyaltyEnabled ? remainingPts : 0,
             final_loyalty_points: loyaltyEnabled ? remainingPts : 0,
             amount: subtotal,
-            tax_amount: calculatedTax,
+            tax_amount: effectiveTax,
             gst_type: gstType,
             cgst_amount: cgst,
             sgst_amount: sgst,
@@ -2535,6 +2553,9 @@ const BusinessPOS = () => {
             setIsPtsEarnedManuallyEdited(false);
             setDiscountVal(0);
             setActiveHeldCartInfo(null);
+            setCustomTaxAmount(null);
+            setIsTaxManuallyEdited(false);
+            setIsEditingTaxInSummary(false);
         }
     };
 
@@ -4713,7 +4734,7 @@ const BusinessPOS = () => {
                                     )}
 
                                     {/* Selected Customer Credit Held / Outstanding Due */}
-                                    {selectedCustomerObj && (() => {
+                                    {posAllowCredit && selectedCustomerObj && (() => {
                                         const creditHeld = parseFloat(selectedCustomerObj.credit_held ?? selectedCustomerObj.outstanding_balance ?? selectedCustomerObj.due_balance ?? 0);
                                         const creditLimit = parseFloat(selectedCustomerObj.credit_limit ?? 0);
                                         return (
@@ -4863,31 +4884,95 @@ const BusinessPOS = () => {
                                             </div>
                                         )}
 
-                                        {/* Total GST with Click-to-Expand CGST & SGST Breakdown */}
+                                        {/* Total GST with Click-to-Expand CGST & SGST Breakdown and Owner Edit */}
                                         <div 
-                                            onClick={() => setIsGstBreakdownExpanded(prev => !prev)}
                                             style={{ 
                                                 background: '#F8FAFC', 
                                                 borderRadius: '6px', 
-                                                border: '1px solid #E2E8F0', 
+                                                border: isTaxManuallyEdited ? '1px solid #93C5FD' : '1px solid #E2E8F0', 
                                                 padding: '0.35rem 0.5rem', 
                                                 display: 'flex', 
                                                 flexDirection: 'column', 
                                                 gap: '0.2rem',
-                                                cursor: 'pointer',
                                                 transition: 'all 0.15s ease'
                                             }}
-                                            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#CBD5E1'}
-                                            onMouseLeave={(e) => e.currentTarget.style.borderColor = '#E2E8F0'}
-                                            title="Click to view/hide CGST and SGST breakdown"
                                         >
-                                            {/* Top Summary Row: Total GST */}
+                                            {/* Top Summary Row: Total GST with Owner Edit */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <div 
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} 
+                                                    onClick={() => setIsGstBreakdownExpanded(prev => !prev)}
+                                                    title="Click to view/hide CGST and SGST breakdown"
+                                                >
                                                     <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569' }}>Total GST</span>
+                                                    {isTaxManuallyEdited && (
+                                                        <span style={{ fontSize: '0.55rem', fontWeight: '800', background: '#FEF3C7', color: '#B45309', padding: '1px 4px', borderRadius: '4px' }}>
+                                                            Custom
+                                                        </span>
+                                                    )}
                                                     {isGstBreakdownExpanded ? <ChevronUp size={12} color="#64748B" /> : <ChevronDown size={12} color="#64748B" />}
                                                 </div>
-                                                <span style={{ fontSize: '0.74rem', fontWeight: '800', color: '#1E293B' }}>{formatCurrency(calculatedTax)}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    {isEditingTaxInSummary ? (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }} onClick={(e) => e.stopPropagation()}>
+                                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>{currency.symbol}</span>
+                                                            <input
+                                                                type="number"
+                                                                step="any"
+                                                                min="0"
+                                                                value={customTaxAmount !== null ? customTaxAmount : effectiveTax}
+                                                                onChange={(e) => {
+                                                                    const val = Math.max(0, parseFloat(e.target.value) || 0);
+                                                                    setCustomTaxAmount(val);
+                                                                    setIsTaxManuallyEdited(true);
+                                                                }}
+                                                                style={{ width: '68px', padding: '1px 4px', fontSize: '0.76rem', fontWeight: '800', border: '1.5px solid #2563EB', borderRadius: '4px', outline: 'none', background: '#FFFFFF' }}
+                                                                autoFocus
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setIsEditingTaxInSummary(false)}
+                                                                title="Done editing tax"
+                                                                style={{ border: 'none', background: '#10B981', color: 'white', padding: '2px 5px', borderRadius: '4px', fontSize: '0.62rem', fontWeight: '800', cursor: 'pointer' }}
+                                                            >
+                                                                <Check size={11} />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setCustomTaxAmount(null);
+                                                                    setIsTaxManuallyEdited(false);
+                                                                    setIsEditingTaxInSummary(false);
+                                                                }}
+                                                                title="Reset to auto-calculated GST"
+                                                                style={{ border: 'none', background: '#E2E8F0', color: '#475569', padding: '2px 5px', borderRadius: '4px', fontSize: '0.62rem', fontWeight: '750', cursor: 'pointer' }}
+                                                            >
+                                                                Auto
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                            <span 
+                                                                onClick={() => setIsEditingTaxInSummary(true)} 
+                                                                title="Click to edit Total GST"
+                                                                style={{ fontSize: '0.74rem', fontWeight: '800', color: isTaxManuallyEdited ? '#2563EB' : '#1E293B', cursor: 'pointer', textDecoration: isTaxManuallyEdited ? 'underline solid #2563EB' : 'underline dotted #94A3B8' }}
+                                                            >
+                                                                {formatCurrency(effectiveTax)}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setIsEditingTaxInSummary(true);
+                                                                }}
+                                                                title="Owner Edit Total GST"
+                                                                style={{ border: 'none', background: '#EFF6FF', padding: '2px 5px', borderRadius: '4px', cursor: 'pointer', color: '#2563EB', display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.62rem', fontWeight: '750' }}
+                                                            >
+                                                                <Edit2 size={10} /> Edit
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             {/* Expandable Breakdown for CGST, SGST, IGST */}
@@ -4929,17 +5014,17 @@ const BusinessPOS = () => {
                                                         <>
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#64748B' }}>
                                                                 <span>CGST (Central Tax)</span>
-                                                                <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax / 2)}</span>
+                                                                <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(effectiveTax / 2)}</span>
                                                             </div>
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#64748B' }}>
                                                                 <span>SGST (State Tax)</span>
-                                                                <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax / 2)}</span>
+                                                                <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(effectiveTax / 2)}</span>
                                                             </div>
                                                         </>
                                                     ) : (
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#64748B' }}>
                                                             <span>IGST (Integrated Tax)</span>
-                                                            <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(calculatedTax)}</span>
+                                                            <span style={{ fontWeight: '700', color: '#1E293B' }}>{formatCurrency(effectiveTax)}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -4997,7 +5082,7 @@ const BusinessPOS = () => {
                             </div>
 
                             {/* Credit Mode Details Panel (When Credit is selected) */}
-                            {isCreditMode ? (
+                            {isCreditMode && posAllowCredit ? (
                                 <div style={{ background: '#FFFBEB', border: '1.5px solid #FCD34D', borderRadius: '10px', padding: '0.6rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.45rem', marginTop: '2px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span style={{ fontSize: '0.78rem', fontWeight: '850', color: '#92400E', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -5061,7 +5146,7 @@ const BusinessPOS = () => {
                                         );
                                     })() : (
                                         <div style={{ background: '#FFF7ED', border: '1px solid #FFEDD5', borderRadius: '8px', padding: '0.35rem 0.55rem', fontSize: '0.72rem', color: '#C2410C', fontWeight: '650' }}>
-                                            ⚠️ Notice: Select a customer above to track credit debt against their ledger account.
+                                            Notice: Select a customer above to track credit debt against their ledger account.
                                         </div>
                                     )}
 
@@ -5099,8 +5184,13 @@ const BusinessPOS = () => {
                                     </div>
                                 </div>
                             ) : (
-                                /* Checkout Payment Action Matrix: Cash, UPI, Card, Credit (Without F1, F2, F3) */
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.35rem', marginTop: '2px' }}>
+                                /* Checkout Payment Action Matrix: Cash, UPI, Card, Credit */
+                                <div style={{ 
+                                    display: 'grid', 
+                                    gridTemplateColumns: posAllowCredit ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', 
+                                    gap: '0.35rem', 
+                                    marginTop: '2px' 
+                                }}>
                                     <button
                                         disabled={!hasValidCartItems || isCheckingOut}
                                         onClick={() => handleCheckout('Cash')}
@@ -5185,36 +5275,38 @@ const BusinessPOS = () => {
                                         Card
                                     </button>
 
-                                    <button
-                                        disabled={!hasValidCartItems || isCheckingOut}
-                                        onClick={() => {
-                                            setIsCreditMode(true);
-                                            setCreditReceivedAmount('0');
-                                        }}
-                                        style={{
-                                            padding: '0.45rem 0.2rem',
-                                            borderRadius: '8px',
-                                            background: 'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)',
-                                            color: '#FFFFFF',
-                                            border: 'none',
-                                            fontWeight: '800',
-                                            fontSize: '0.75rem',
-                                            cursor: !hasValidCartItems ? 'not-allowed' : 'pointer',
-                                            display: 'flex',
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '3px',
-                                            opacity: !hasValidCartItems ? 0.5 : 1,
-                                            boxShadow: hasValidCartItems ? '0 3px 8px rgba(234, 88, 12, 0.2)' : 'none',
-                                            transition: 'transform 0.1s'
-                                        }}
-                                        onMouseDown={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(0.97)')}
-                                        onMouseUp={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(1)')}
-                                    >
-                                        <Wallet size={13} />
-                                        Credit
-                                    </button>
+                                    {posAllowCredit && (
+                                        <button
+                                            disabled={!hasValidCartItems || isCheckingOut}
+                                            onClick={() => {
+                                                setIsCreditMode(true);
+                                                setCreditReceivedAmount('0');
+                                            }}
+                                            style={{
+                                                padding: '0.45rem 0.2rem',
+                                                borderRadius: '8px',
+                                                background: 'linear-gradient(135deg, #EA580C 0%, #C2410C 100%)',
+                                                color: '#FFFFFF',
+                                                border: 'none',
+                                                fontWeight: '800',
+                                                fontSize: '0.75rem',
+                                                cursor: !hasValidCartItems ? 'not-allowed' : 'pointer',
+                                                display: 'flex',
+                                                flexDirection: 'row',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '3px',
+                                                opacity: !hasValidCartItems ? 0.5 : 1,
+                                                boxShadow: hasValidCartItems ? '0 3px 8px rgba(234, 88, 12, 0.2)' : 'none',
+                                                transition: 'transform 0.1s'
+                                            }}
+                                            onMouseDown={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(0.97)')}
+                                            onMouseUp={(e) => hasValidCartItems && (e.currentTarget.style.transform = 'scale(1)')}
+                                        >
+                                            <Wallet size={13} />
+                                            Credit
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </>
@@ -5424,6 +5516,52 @@ const BusinessPOS = () => {
                                     />
                                     Credit Option
                                 </label>
+                            </div>
+
+                            {/* Row 3: Owner Editable Bill Total GST for Print */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', paddingTop: '4px', borderTop: '1px dashed #CBD5E1' }}>
+                                <span style={{ fontWeight: '750', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem' }}>
+                                    <Edit2 size={12} color="#10B981" /> Bill Total GST:
+                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B' }}>{currency.symbol}</span>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        min="0"
+                                        value={lastOrderData?.tax_amount !== undefined ? lastOrderData.tax_amount : 0}
+                                        onChange={(e) => {
+                                            const newTax = Math.max(0, parseFloat(e.target.value) || 0);
+                                            const subtot = Number(lastOrderData?.amount ?? lastOrderData?.subtotal ?? 0);
+                                            const disc = Number(lastOrderData?.discount_amount ?? lastOrderData?.discount ?? 0);
+                                            const round = Number(lastOrderData?.round_off ?? 0);
+                                            const newTotal = Math.max(0, subtot - disc + newTax + round);
+                                            setLastOrderData(prev => ({
+                                                ...prev,
+                                                tax_amount: newTax,
+                                                cgst_amount: prev?.gst_type === 'inter' ? 0 : (newTax / 2),
+                                                sgst_amount: prev?.gst_type === 'inter' ? 0 : (newTax / 2),
+                                                igst_amount: prev?.gst_type === 'inter' ? newTax : 0,
+                                                total_amount: newTotal,
+                                                paid_amount: prev?.payment_mode === 'Credit' ? prev?.paid_amount : newTotal
+                                            }));
+                                        }}
+                                        style={{
+                                            width: '85px',
+                                            padding: '2px 6px',
+                                            fontSize: '0.78rem',
+                                            fontWeight: '800',
+                                            border: '1.5px solid #10B981',
+                                            borderRadius: '6px',
+                                            outline: 'none',
+                                            background: '#FFFFFF',
+                                            color: '#0F172A'
+                                        }}
+                                    />
+                                    <span style={{ fontSize: '0.66rem', color: '#059669', fontWeight: '700' }}>
+                                        (Live updates receipt)
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -7466,6 +7604,11 @@ const BusinessPOS = () => {
                                                             const clean = e.target.value.replace(/\D/g, '');
                                                             setLocalPosKioskPin(clean);
                                                         }}
+                                                        onBlur={() => {
+                                                            if (localPosKioskPin !== null && localPosKioskPin !== posKioskPin && localPosKioskPin.length >= 4) {
+                                                                handleSavePosSettings({ pos_kiosk_pin: localPosKioskPin });
+                                                            }
+                                                        }}
                                                         placeholder="1234"
                                                         style={{
                                                             fontSize: '1.1rem',
@@ -7585,52 +7728,46 @@ const BusinessPOS = () => {
                             justifyContent: 'space-between',
                             alignItems: 'center'
                         }}>
-                            <div style={{ fontSize: '0.78rem' }}>
+                            <div style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 {posSettingsSaveStatus === 'saving' && (
-                                    <span style={{ color: '#2563EB', fontWeight: '750' }}>💾 Saving settings to database...</span>
+                                    <span style={{ color: '#2563EB', fontWeight: '750', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Loader2 size={15} className="animate-spin" /> Saving changes...
+                                    </span>
                                 )}
                                 {posSettingsSaveStatus === 'saved' && (
-                                    <span style={{ color: '#16A34A', fontWeight: '750' }}>✓ Saved settings successfully!</span>
+                                    <span style={{ color: '#16A34A', fontWeight: '750', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Check size={15} /> All changes saved automatically
+                                    </span>
                                 )}
                                 {posSettingsSaveStatus === 'error' && (
-                                    <span style={{ color: '#DC2626', fontWeight: '750' }}>⚠️ Failed to save settings.</span>
+                                    <span style={{ color: '#DC2626', fontWeight: '750', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <CircleAlert size={15} /> Failed to save settings
+                                    </span>
+                                )}
+                                {!posSettingsSaveStatus && (
+                                    <span style={{ color: '#64748B', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Check size={14} style={{ color: '#10B981' }} /> Settings save automatically on change
+                                    </span>
                                 )}
                             </div>
-                            <div style={{ display: 'flex', gap: '0.65rem' }}>
-                                <button
-                                    type="button"
-                                    onClick={() => handleSavePosSettings()}
-                                    style={{
-                                        background: '#2563EB',
-                                        color: '#FFFFFF',
-                                        border: 'none',
-                                        padding: '0.55rem 1.25rem',
-                                        borderRadius: '10px',
-                                        fontSize: '0.82rem',
-                                        fontWeight: '800',
-                                        cursor: 'pointer',
-                                        boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)'
-                                    }}
-                                >
-                                    Save Settings
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPosSettingsModal(false)}
-                                    style={{
-                                        background: '#FFFFFF',
-                                        color: '#64748B',
-                                        border: '1px solid #CBD5E1',
-                                        padding: '0.55rem 1rem',
-                                        borderRadius: '10px',
-                                        fontSize: '0.82rem',
-                                        fontWeight: '700',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Close
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowPosSettingsModal(false)}
+                                style={{
+                                    background: '#0F172A',
+                                    color: '#FFFFFF',
+                                    border: 'none',
+                                    padding: '0.55rem 1.35rem',
+                                    borderRadius: '10px',
+                                    fontSize: '0.82rem',
+                                    fontWeight: '750',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.15)',
+                                    transition: 'all 0.15s ease'
+                                }}
+                            >
+                                Close
+                            </button>
                         </div>
                     </div>
                 </div>
