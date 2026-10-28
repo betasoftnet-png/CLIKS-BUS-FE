@@ -357,10 +357,12 @@ const BusinessPOS = () => {
     const [productAnalyticsData, setProductAnalyticsData] = useState(null);
     const [isLoadingProductAnalytics, setIsLoadingProductAnalytics] = useState(false);
     const [infoModalActiveTab, setInfoModalActiveTab] = useState('customers'); // 'customers' | 'transactions'
+    const [isOrdersDropdownOpen, setIsOrdersDropdownOpen] = useState(false);
 
     React.useEffect(() => {
         const handleGlobalClick = () => {
             setActiveProductMenuId(null);
+            setIsOrdersDropdownOpen(false);
         };
         window.addEventListener('click', handleGlobalClick);
         return () => window.removeEventListener('click', handleGlobalClick);
@@ -4264,20 +4266,9 @@ const BusinessPOS = () => {
                                                             <span style={{ fontSize: cardPriceFontSz, fontWeight: '900', color: '#0F172A', lineHeight: 1.1, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
                                                                 {cardPriceStr} <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '700' }}>/</span>
                                                             </span>
-                                                            {(() => {
-                                                                const cardGstRate = parseFloat(prod.tax_percentage ?? prod.rawProduct?.tax_percentage ?? prod.rawProduct?.gst_percentage ?? prod.taxRate ?? prod.gst_percentage ?? prod.tax_rate ?? 0) || 0;
-                                                                return (
-                                                                    <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
-                                                                        {prod.unit || 'PCS'}
-                                                                        {cardGstRate > 0 && (
-                                                                            <>
-                                                                                <span style={{ color: '#94A3B8', margin: '0 4px' }}>•</span>
-                                                                                {cardGstRate}% GST
-                                                                            </>
-                                                                        )}
-                                                                    </span>
-                                                                );
-                                                            })()}
+                                                            <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
+                                                                {prod.unit || 'PCS'}
+                                                            </span>
                                                         </div>
                                                     );
                                                 })()}
@@ -4341,13 +4332,8 @@ const BusinessPOS = () => {
                             ← Catalog
                         </button>
 
-                        {/* Customer Info Label */}
-                        <span style={{ fontSize: '0.75rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            Customer Info
-                        </span>
-
-                        {/* Search & Actions Bar in Same Line */}
-                        <div style={{ flex: '1 1 200px', minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0.35rem 0.55rem' }}>
+                        {/* Customer Search Bar (In position of removed Customer Info heading) */}
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.35rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0.35rem 0.55rem' }}>
                             <User size={15} color="#64748B" style={{ flexShrink: 0 }} />
                             <input
                                 ref={customerInputRef}
@@ -4396,32 +4382,89 @@ const BusinessPOS = () => {
                                 <span>List ({customers.length})</span>
                                 <ChevronDown size={13} style={{ transform: isCustomerDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                             </button>
+                        </div>
 
-                            {/* Add Customer Button on Right Side */}
+                        {/* Add Customer Button (Moved Outside Search Bar) */}
+                        <button
+                            type="button"
+                            onClick={() => setIsAddCustomerModalOpen(true)}
+                            title="Add New Customer"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '0.38rem 0.65rem',
+                                borderRadius: '8px',
+                                border: '1px solid #A7F3D0',
+                                background: '#ECFDF5',
+                                color: '#047857',
+                                fontWeight: '750',
+                                fontSize: '0.75rem',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.15s ease',
+                                flexShrink: 0,
+                                boxShadow: '0 1px 2px rgba(4, 120, 87, 0.08)'
+                            }}
+                        >
+                            <UserPlus size={14} />
+                            <span>Add</span>
+                        </button>
+
+                        {/* Orders Dropdown Button (Placed Next to Add Button) */}
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
                             <button
                                 type="button"
-                                onClick={() => setIsAddCustomerModalOpen(true)}
-                                title="Add New Customer"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsOrdersDropdownOpen(prev => !prev);
+                                }}
+                                title="Orders Menu"
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '4px',
-                                    padding: '0.3rem 0.55rem',
+                                    padding: '0.38rem 0.65rem',
                                     borderRadius: '8px',
-                                    border: 'none',
-                                    background: '#ECFDF5',
-                                    color: '#047857',
+                                    border: '1px solid #E2E8F0',
+                                    background: isOrdersDropdownOpen ? '#F1F5F9' : '#FFFFFF',
+                                    color: '#334155',
                                     fontWeight: '750',
                                     fontSize: '0.75rem',
                                     cursor: 'pointer',
                                     whiteSpace: 'nowrap',
                                     transition: 'all 0.15s ease',
-                                    flexShrink: 0
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
                                 }}
                             >
-                                <UserPlus size={14} />
-                                <span>Add</span>
+                                <ShoppingBag size={14} color="#475569" />
+                                <span>Orders</span>
+                                <ChevronDown size={13} style={{ transform: isOrdersDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                             </button>
+
+                            {isOrdersDropdownOpen && (
+                                <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                        position: 'absolute',
+                                        top: '100%',
+                                        right: 0,
+                                        marginTop: '6px',
+                                        background: '#FFFFFF',
+                                        border: '1px solid #E2E8F0',
+                                        borderRadius: '10px',
+                                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)',
+                                        zIndex: 40,
+                                        minWidth: '150px',
+                                        padding: '0.35rem 0',
+                                        overflow: 'hidden'
+                                    }}
+                                >
+                                    <div style={{ padding: '0.45rem 0.75rem', fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>
+                                        Orders Options
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Dropdown autocomplete / list for Customers */}
@@ -4833,27 +4876,11 @@ const BusinessPOS = () => {
                                         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', paddingRight: '0.2rem' }}>
                                             <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
                                             {(() => {
-                                                const catItem = inventory.find(p => p.id === item.id || (p.sku && item.sku && p.sku === item.sku));
-                                                const itemTaxRate = parseFloat(item.tax_rate !== undefined && item.tax_rate !== null && !isNaN(parseFloat(item.tax_rate)) ? item.tax_rate : (catItem?.tax_percentage || 0)) || 0;
                                                 const cartPriceStr = `${formatCurrency(item.price)} / ${item.unit || 'PCS'}`;
                                                 const cartPriceFontSz = cartPriceStr.length > 22 ? '0.66rem' : '0.75rem';
                                                 return (
                                                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem', fontSize: cartPriceFontSz, color: '#64748B', marginTop: '2px', wordBreak: 'break-word' }}>
                                                         <span>{cartPriceStr}</span>
-                                                        <span style={{ color: '#94A3B8' }}>•</span>
-                                                        <span style={{
-                                                            display: 'inline-flex',
-                                                            alignItems: 'center',
-                                                            background: '#F0FDFA',
-                                                            color: '#0F766E',
-                                                            border: '1px solid #CCFBF1',
-                                                            padding: '0.5px 5px',
-                                                            borderRadius: '4px',
-                                                            fontSize: '0.68rem',
-                                                            fontWeight: '800'
-                                                        }}>
-                                                            {itemTaxRate}% GST
-                                                        </span>
                                                     </div>
                                                 );
                                             })()}
@@ -4909,9 +4936,14 @@ const BusinessPOS = () => {
                                             return (
                                                 <div style={{ flexShrink: 0, textAlign: 'right', paddingLeft: '0.2rem', minWidth: '70px' }}>
                                                     <span style={{ fontSize: totalFontSz, fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap', display: 'block' }}>{totalStr}</span>
-                                                    <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#0D9488', whiteSpace: 'nowrap', display: 'block', marginTop: '1px' }}>
-                                                        +{formatCurrency(itemGstAmt)} GST
-                                                    </span>
+                                                    {itemTaxRate > 0 && itemGstAmt > 0 && (
+                                                        <span
+                                                            title={`${itemTaxRate}% GST`}
+                                                            style={{ fontSize: '0.68rem', fontWeight: '700', color: '#0D9488', whiteSpace: 'nowrap', display: 'block', marginTop: '1px' }}
+                                                        >
+                                                            +{formatCurrency(itemGstAmt)} GST
+                                                        </span>
+                                                    )}
                                                 </div>
                                             );
                                         })()}
