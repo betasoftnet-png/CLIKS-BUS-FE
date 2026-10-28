@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency, useLanguage, useAuth, useBranch } from '../context';
 import {
@@ -36,8 +36,8 @@ import {
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
-import { reportsService, expensesService, purchasesService } from '../services';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { reportsService, expensesService, purchasesService, settingsService } from '../services';
 import { accountingService } from '../services/accountingService';
 import '../App.css';
 
@@ -98,41 +98,92 @@ const BusinessDashboard = () => {
     const [hoveredSalesPoint, setHoveredSalesPoint] = useState(null);
     const [hoveredDonutSegment, setHoveredDonutSegment] = useState(null);
     
+    const queryClient = useQueryClient();
+
+    // Query permanent user settings from cloud database
+    const { data: userSettingsData } = useQuery({
+        queryKey: ['userSettings'],
+        queryFn: () => settingsService.getSettings(),
+        staleTime: 5 * 60 * 1000
+    });
+
     const [selectedShortcuts, setSelectedShortcuts] = useState(() => {
         const validIds = MASTER_SHORTCUTS.map(s => s.id);
         const saved = localStorage.getItem('cliks_dashboard_shortcuts');
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                return parsed.filter(id => validIds.includes(id));
+                if (Array.isArray(parsed)) {
+                    return parsed.filter(id => validIds.includes(id));
+                }
             } catch(e) {}
         }
         return validIds;
     });
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalSelectedShortcuts, setModalSelectedShortcuts] = useState(selectedShortcuts);
+    const [isSavingShortcuts, setIsSavingShortcuts] = useState(false);
 
-    const toggleShortcut = (id) => {
-        setSelectedShortcuts(prev => {
-            const next = prev.includes(id)
+    // Sync from database whenever settings are fetched
+    useEffect(() => {
+        const cloudShortcuts = userSettingsData?.data?.dashboard_shortcuts ?? 
+                               userSettingsData?.dashboard_shortcuts ?? 
+                               userSettingsData?.data?.dashboardShortcuts ?? 
+                               userSettingsData?.dashboardShortcuts;
+        if (Array.isArray(cloudShortcuts)) {
+            const validIds = MASTER_SHORTCUTS.map(s => s.id);
+            const filtered = cloudShortcuts.filter(id => validIds.includes(id));
+            setSelectedShortcuts(filtered);
+            setModalSelectedShortcuts(filtered);
+            try {
+                localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(filtered));
+            } catch (e) {}
+        }
+    }, [userSettingsData]);
+
+    const handleOpenModal = () => {
+        setModalSelectedShortcuts([...selectedShortcuts]);
+        setIsModalOpen(true);
+    };
+
+    const toggleModalShortcut = (id) => {
+        setModalSelectedShortcuts(prev => {
+            return prev.includes(id)
                 ? prev.filter(s => s !== id)
                 : [...prev, id];
-            localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(next));
-            return next;
         });
     };
 
     const allShortcutIds = MASTER_SHORTCUTS.map(s => s.id);
-    const isAllSelected = MASTER_SHORTCUTS.length > 0 && selectedShortcuts.length === MASTER_SHORTCUTS.length;
+    const isAllModalSelected = MASTER_SHORTCUTS.length > 0 && modalSelectedShortcuts.length === MASTER_SHORTCUTS.length;
 
-    const handleToggleSelectAll = () => {
-        const next = isAllSelected ? [] : allShortcutIds;
-        setSelectedShortcuts(next);
-        localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(next));
+    const handleToggleSelectAllModal = () => {
+        const next = isAllModalSelected ? [] : allShortcutIds;
+        setModalSelectedShortcuts(next);
     };
 
-    const handleSaveConfiguration = () => {
-        localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(selectedShortcuts));
-        setIsModalOpen(false);
+    const handleSaveConfiguration = async () => {
+        setIsSavingShortcuts(true);
+        const toSave = [...modalSelectedShortcuts];
+        setSelectedShortcuts(toSave);
+        try {
+            // Instantly save to localStorage
+            localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(toSave));
+            
+            // Persist permanently to backend database
+            await settingsService.updateSettings({
+                dashboard_shortcuts: toSave,
+                dashboardShortcuts: toSave
+            });
+            
+            // Invalidate query to refresh cached settings
+            queryClient.invalidateQueries(['userSettings']);
+        } catch (err) {
+            console.warn('[Dashboard] Failed to save shortcuts to cloud settings:', err);
+        } finally {
+            setIsSavingShortcuts(false);
+            setIsModalOpen(false);
+        }
     };
 
     // Analytics Queries
@@ -293,7 +344,7 @@ const BusinessDashboard = () => {
 
 
                     <button
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={handleOpenModal}
                         style={{
                             padding: '0.65rem 1.5rem',
                             borderRadius: '12px',
@@ -385,7 +436,7 @@ const BusinessDashboard = () => {
 
                         {/* Add/Manage Button Card */}
                         <button
-                            onClick={() => setIsModalOpen(true)}
+                            onClick={handleOpenModal}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -820,15 +871,15 @@ const BusinessDashboard = () => {
                                 marginBottom: '1.15rem'
                             }}>
                                 <span style={{ fontSize: '0.82rem', fontWeight: '700', color: '#475569' }}>
-                                    {selectedShortcuts.length} of {MASTER_SHORTCUTS.length} shortcuts active
+                                    {modalSelectedShortcuts.length} of {MASTER_SHORTCUTS.length} shortcuts active
                                 </span>
                                 <button
                                     type="button"
-                                    onClick={handleToggleSelectAll}
+                                    onClick={handleToggleSelectAllModal}
                                     style={{
-                                        background: isAllSelected ? '#FEF2F2' : '#EFF6FF',
-                                        color: isAllSelected ? '#DC2626' : '#2563EB',
-                                        border: `1px solid ${isAllSelected ? '#FECACA' : '#BFDBFE'}`,
+                                        background: isAllModalSelected ? '#FEF2F2' : '#EFF6FF',
+                                        color: isAllModalSelected ? '#DC2626' : '#2563EB',
+                                        border: `1px solid ${isAllModalSelected ? '#FECACA' : '#BFDBFE'}`,
                                         borderRadius: '8px',
                                         padding: '4px 12px',
                                         fontSize: '0.8rem',
@@ -847,18 +898,18 @@ const BusinessDashboard = () => {
                                     }}
                                 >
                                     <CheckCheck size={14} />
-                                    {isAllSelected ? 'Deselect All' : 'Select All'}
+                                    {isAllModalSelected ? 'Deselect All' : 'Select All'}
                                 </button>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '360px', overflowY: 'auto', paddingRight: '4px', marginBottom: '1.75rem' }}>
                                 {MASTER_SHORTCUTS.map(shortcut => {
                                     const Icon = shortcut.icon;
-                                    const isActive = selectedShortcuts.includes(shortcut.id);
+                                    const isActive = modalSelectedShortcuts.includes(shortcut.id);
                                     return (
                                         <div
                                             key={shortcut.id}
-                                            onClick={() => toggleShortcut(shortcut.id)}
+                                            onClick={() => toggleModalShortcut(shortcut.id)}
                                             style={{
                                                 display: 'flex',
                                                 alignItems: 'center',
@@ -919,6 +970,7 @@ const BusinessDashboard = () => {
 
                             <button
                                 onClick={handleSaveConfiguration}
+                                disabled={isSavingShortcuts}
                                 style={{
                                     width: '100%',
                                     padding: '1rem',
@@ -928,12 +980,14 @@ const BusinessDashboard = () => {
                                     fontWeight: '850',
                                     fontSize: '0.95rem',
                                     border: 'none',
-                                    cursor: 'pointer',
+                                    cursor: isSavingShortcuts ? 'not-allowed' : 'pointer',
                                     boxShadow: '0 10px 20px -5px rgba(27, 107, 58, 0.35)',
-                                    letterSpacing: '0.2px'
+                                    letterSpacing: '0.2px',
+                                    opacity: isSavingShortcuts ? 0.75 : 1,
+                                    transition: 'all 0.15s ease'
                                 }}
                             >
-                                Save Configuration
+                                {isSavingShortcuts ? 'Saving Configuration...' : 'Save Configuration'}
                             </button>
                         </motion.div>
                     </motion.div>

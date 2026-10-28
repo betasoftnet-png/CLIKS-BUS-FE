@@ -3211,34 +3211,36 @@ const BusinessPOS = () => {
                             </button>
 
                             {/* Customer View / Self-Order Kiosk Mode Button */}
-                            <button
-                                onClick={() => {
-                                    handleEnterKioskMode();
-                                }}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.35rem',
-                                    background: 'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)',
-                                    color: 'white',
-                                    border: 'none',
-                                    height: '36px',
-                                    padding: '0 0.75rem',
-                                    borderRadius: '10px',
-                                    fontWeight: '800',
-                                    fontSize: '0.78rem',
-                                    boxShadow: '0 4px 10px rgba(79, 70, 229, 0.25)',
-                                    cursor: 'pointer',
-                                    transition: 'transform 0.15s ease',
-                                    whiteSpace: 'nowrap',
-                                    flexShrink: 0
-                                }}
-                                onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.96)'}
-                                onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                title="Open In-Store Customer Self-Order Kiosk"
-                            >
-                                <Monitor size={15} strokeWidth={2.5} /> Kiosk
-                            </button>
+                            {Boolean(posKioskEnabled) && (
+                                <button
+                                    onClick={() => {
+                                        handleEnterKioskMode();
+                                    }}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.35rem',
+                                        background: 'linear-gradient(135deg, #4F46E5 0%, #4338CA 100%)',
+                                        color: 'white',
+                                        border: 'none',
+                                        height: '36px',
+                                        padding: '0 0.75rem',
+                                        borderRadius: '10px',
+                                        fontWeight: '800',
+                                        fontSize: '0.78rem',
+                                        boxShadow: '0 4px 10px rgba(79, 70, 229, 0.25)',
+                                        cursor: 'pointer',
+                                        transition: 'transform 0.15s ease',
+                                        whiteSpace: 'nowrap',
+                                        flexShrink: 0
+                                    }}
+                                    onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.96)'}
+                                    onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                    title="Open In-Store Customer Self-Order Kiosk"
+                                >
+                                    <Monitor size={15} strokeWidth={2.5} /> Kiosk
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -8834,39 +8836,84 @@ const BusinessPOS = () => {
                                         </div>
                                     )}
 
-                                    {/* Launch Customer View Action Button */}
-                                    <div style={{ paddingTop: '0.5rem' }}>
-                                        <button
-                                            type="button"
-                                            disabled={!posKioskEnabled}
-                                            onClick={() => {
-                                                handleEnterKioskMode();
-                                            }}
-                                            style={{
-                                                width: '100%',
-                                                padding: '0.9rem',
+                                    {/* Kiosk Display & Launch Controls */}
+                                    {Boolean(posKioskEnabled) && (
+                                        <div style={{ paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            {/* Full Screen Display Control */}
+                                            <div style={{
+                                                background: '#F8FAFC',
+                                                border: '1px solid #E2E8F0',
                                                 borderRadius: '12px',
-                                                border: 'none',
-                                                background: posKioskEnabled ? 'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)' : '#94A3B8',
-                                                color: '#FFFFFF',
-                                                fontSize: '0.95rem',
-                                                fontWeight: '850',
-                                                cursor: posKioskEnabled ? 'pointer' : 'not-allowed',
+                                                padding: '0.85rem 1rem',
                                                 display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '8px',
-                                                boxShadow: posKioskEnabled ? '0 4px 14px rgba(79, 70, 229, 0.35)' : 'none',
-                                                transition: 'all 0.2s ease'
-                                            }}
-                                        >
-                                            <Monitor size={18} />
-                                            Launch Customer View (Full Screen Kiosk)
-                                        </button>
-                                        <p style={{ textAlign: 'center', margin: '6px 0 0', fontSize: '0.72rem', color: '#64748B' }}>
-                                            Cashier POS screen can be restored at any time by entering PIN: <strong>{localPosKioskPin || posKioskPin || '1234'}</strong>.
-                                        </p>
-                                    </div>
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center'
+                                            }}>
+                                                <div>
+                                                    <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        {isKioskFullscreen ? <Minimize size={15} color="#4F46E5" /> : <Maximize size={15} color="#4F46E5" />}
+                                                        <span>Full Screen Mode</span>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>
+                                                        {isKioskFullscreen ? 'Display is currently running in full screen mode' : 'Run kiosk in full screen to hide browser address bar and navigation'}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={toggleKioskFullscreen}
+                                                    style={{
+                                                        background: isKioskFullscreen ? '#EFF6FF' : '#4F46E5',
+                                                        color: isKioskFullscreen ? '#1D4ED8' : '#FFFFFF',
+                                                        border: isKioskFullscreen ? '1.5px solid #93C5FD' : 'none',
+                                                        padding: '0.5rem 0.85rem',
+                                                        borderRadius: '8px',
+                                                        fontSize: '0.78rem',
+                                                        fontWeight: '750',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        transition: 'all 0.15s ease'
+                                                    }}
+                                                >
+                                                    {isKioskFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+                                                    <span>{isKioskFullscreen ? 'Exit Full Screen' : 'Enter Full Screen'}</span>
+                                                </button>
+                                            </div>
+
+                                            {/* Launch Customer View Action Button */}
+                                            <button
+                                                type="button"
+                                                disabled={!posKioskEnabled}
+                                                onClick={() => {
+                                                    handleEnterKioskMode();
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.9rem',
+                                                    borderRadius: '12px',
+                                                    border: 'none',
+                                                    background: 'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)',
+                                                    color: '#FFFFFF',
+                                                    fontSize: '0.95rem',
+                                                    fontWeight: '850',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '8px',
+                                                    boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)',
+                                                    transition: 'all 0.2s ease'
+                                                }}
+                                            >
+                                                <Monitor size={18} />
+                                                Launch Customer View (Full Screen Kiosk)
+                                            </button>
+                                            <p style={{ textAlign: 'center', margin: '2px 0 0', fontSize: '0.72rem', color: '#64748B' }}>
+                                                Cashier POS screen can be restored at any time by entering PIN: <strong>{localPosKioskPin || posKioskPin || '1234'}</strong>.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -9009,33 +9056,8 @@ const BusinessPOS = () => {
                             </div>
                         </div>
 
-                        {/* Header Action Buttons (Fullscreen + Discreet Staff Exit) */}
+                        {/* Header Action Buttons (Discreet Staff Exit) */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                            {/* Fullscreen Toggle Button */}
-                            <button
-                                type="button"
-                                onClick={toggleKioskFullscreen}
-                                title={isKioskFullscreen ? "Exit Fullscreen" : "Enter Fullscreen Mode"}
-                                style={{
-                                    background: 'rgba(255, 255, 255, 0.1)',
-                                    border: '1px solid rgba(255, 255, 255, 0.22)',
-                                    color: '#F1F5F9',
-                                    padding: '0.45rem 0.75rem',
-                                    borderRadius: '8px',
-                                    fontSize: '0.75rem',
-                                    fontWeight: '750',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    transition: 'all 0.15s ease'
-                                }}
-                                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; }}
-                            >
-                                {isKioskFullscreen ? <Minimize size={13} /> : <Maximize size={13} />}
-                                <span>{isKioskFullscreen ? 'Windowed' : 'Fullscreen'}</span>
-                            </button>
 
                             {/* Discreet Staff Exit Button */}
                             <button
