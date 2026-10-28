@@ -1146,147 +1146,156 @@ const BusinessPeople = () => {
                 </div>
             </div>
 
-            {/* Receivables & Payables Summary (2-Card Section) */}
-            <div 
-                className="max-w-5xl mb-5 gap-3 grid grid-cols-1 md:grid-cols-2 shrink-0 w-full"
-                style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem', maxWidth: '64rem' }}
-            >
-                {/* Receivables Card */}
-                <div 
-                    className="p-3.5 sm:p-4 rounded-2xl flex flex-col justify-between gap-3 relative overflow-hidden bg-white border border-slate-200"
-                    style={{
-                        background: '#FFFFFF',
-                        borderRadius: '16px',
-                        border: '1px solid #E2E8F0',
-                        boxShadow: '0 4px 12px -2px rgba(16, 185, 129, 0.06), 0 2px 4px rgba(0,0,0,0.02)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '0.75rem',
-                        position: 'relative',
-                        overflow: 'hidden'
-                    }}
-                >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#065F46', fontSize: '0.65rem', fontWeight: '800', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-                                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10B981' }}></span>
-                                Receivables Card
+            {/* Receivables & Payables Summary (Compact Minimized Strip) */}
+            {(() => {
+                const recPct = summary.totalReceivables > 0 ? Math.min(100, Math.round((summary.totalReceivablesCollected / summary.totalReceivables) * 100)) : 0;
+                const payPct = summary.totalPayables > 0 ? Math.min(100, Math.round((summary.totalPayablesPaid / summary.totalPayables) * 100)) : 0;
+
+                return (
+                    <div 
+                        className="shrink-0 w-full"
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                            gap: '0.75rem',
+                            marginBottom: '1rem',
+                            maxWidth: '64rem'
+                        }}
+                    >
+                        {/* Compact Receivables Card */}
+                        <div 
+                            style={{
+                                background: '#FFFFFF',
+                                borderRadius: '12px',
+                                border: '1px solid #E2E8F0',
+                                padding: '0.75rem 1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '0.75rem',
+                                position: 'relative',
+                                overflow: 'hidden',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                                <div style={{
+                                    width: '36px',
+                                    height: '36px',
+                                    borderRadius: '10px',
+                                    background: '#ECFDF5',
+                                    color: '#059669',
+                                    border: '1px solid #A7F3D0',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0
+                                }}>
+                                    <TrendingUp size={18} />
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                            To Receive
+                                        </span>
+                                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#047857', background: '#ECFDF5', border: '1px solid #D1FAE5', padding: '1px 6px', borderRadius: '999px' }}>
+                                            {recPct}% Collected
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '1.15rem', fontWeight: '900', color: '#065F46', letterSpacing: '-0.02em', lineHeight: '1.2', marginTop: '2px' }}>
+                                        {formatCurr(summary.outstandingReceivables)}
+                                    </div>
+                                </div>
                             </div>
-                            <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: '750', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Outstanding Receivables</p>
-                            <h3 className="text-lg font-black" style={{ margin: '0.15rem 0 0 0', fontSize: '1.125rem', fontWeight: '900', color: '#064E3B', letterSpacing: '-0.02em', lineHeight: '1.2' }}>
-                                {formatCurr(summary.outstandingReceivables)}
-                            </h3>
-                        </div>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: '#DCF2E4', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(27, 107, 58, 0.12)' }}>
-                            <TrendingUp size={20} />
-                        </div>
-                    </div>
 
-                    {/* Progress Bar / Ratio */}
-                    <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', fontWeight: '700', color: '#64748B', marginBottom: '0.35rem' }}>
-                            <span>Collection Progress</span>
-                            <span style={{ color: '#065F46', fontWeight: '800' }}>
-                                {summary.totalReceivables > 0 ? Math.min(100, Math.round((summary.totalReceivablesCollected / summary.totalReceivables) * 100)) : 0}% collected
-                            </span>
-                        </div>
-                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden" style={{ width: '100%', height: '6px', background: '#F1F5F9', borderRadius: '999px', overflow: 'hidden' }}>
-                            <div style={{
-                                width: `${summary.totalReceivables > 0 ? Math.min(100, Math.max(0, (summary.totalReceivablesCollected / summary.totalReceivables) * 100)) : 0}%`,
-                                height: '100%',
-                                background: 'linear-gradient(90deg, #10B981 0%, #059669 100%)',
-                                borderRadius: '999px',
-                                transition: 'width 0.4s ease'
-                            }} />
-                        </div>
-                    </div>
-
-                    {/* 3 Metric Breakdown */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', paddingTop: '0.65rem', borderTop: '1px solid #F1F5F9' }}>
-                        <div className="p-2" style={{ background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                            <p className="text-[8px]" style={{ margin: 0, fontSize: '8px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Total Receivables</p>
-                            <p className="text-xs font-black" style={{ margin: '0.15rem 0 0 0', fontSize: '0.75rem', fontWeight: '900', color: '#1E293B' }}>{formatCurr(summary.totalReceivables)}</p>
-                        </div>
-                        <div className="p-2" style={{ background: '#ECFDF5', borderRadius: '10px', border: '1px solid #D1FAE5' }}>
-                            <p className="text-[8px]" style={{ margin: 0, fontSize: '8px', fontWeight: '800', color: '#047857', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Total Collected</p>
-                            <p className="text-xs font-black" style={{ margin: '0.15rem 0 0 0', fontSize: '0.75rem', fontWeight: '900', color: '#065F46' }}>{formatCurr(summary.totalReceivablesCollected)}</p>
-                        </div>
-                        <div className="p-2" style={{ background: '#F0FDF4', borderRadius: '10px', border: '1px solid #BBF7D0' }}>
-                            <p className="text-[8px]" style={{ margin: 0, fontSize: '8px', fontWeight: '800', color: '#15803D', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Outstanding</p>
-                            <p className="text-xs font-black" style={{ margin: '0.15rem 0 0 0', fontSize: '0.75rem', fontWeight: '900', color: '#166534' }}>{formatCurr(summary.outstandingReceivables)}</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Payables Card */}
-                <div 
-                    className="p-3.5 sm:p-4 rounded-2xl flex flex-col justify-between gap-3 relative overflow-hidden bg-white border border-slate-200"
-                    style={{
-                        background: '#FFFFFF',
-                        borderRadius: '16px',
-                        border: '1px solid #E2E8F0',
-                        boxShadow: '0 4px 12px -2px rgba(239, 68, 68, 0.06), 0 2px 4px rgba(0,0,0,0.02)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '0.75rem',
-                        position: 'relative',
-                        overflow: 'hidden'
-                    }}
-                >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', fontSize: '0.65rem', fontWeight: '800', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-                                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#EF4444' }}></span>
-                                Payables Card
+                            <div style={{ textAlign: 'right', flexShrink: 0, borderLeft: '1px solid #F1F5F9', paddingLeft: '0.75rem' }}>
+                                <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '600' }}>
+                                    Total: <strong style={{ color: '#1E293B', fontWeight: '800' }}>{formatCurr(summary.totalReceivables)}</strong>
+                                </div>
+                                <div style={{ fontSize: '0.7rem', color: '#059669', fontWeight: '600', marginTop: '2px' }}>
+                                    Received: <strong style={{ fontWeight: '800' }}>{formatCurr(summary.totalReceivablesCollected)}</strong>
+                                </div>
                             </div>
-                            <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: '750', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Outstanding Payables</p>
-                            <h3 className="text-lg font-black" style={{ margin: '0.15rem 0 0 0', fontSize: '1.125rem', fontWeight: '900', color: '#991B1B', letterSpacing: '-0.02em', lineHeight: '1.2' }}>
-                                {formatCurr(summary.outstandingPayables)}
-                            </h3>
-                        </div>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: '#FEE2E2', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 6px rgba(239, 68, 68, 0.12)' }}>
-                            <TrendingDown size={20} />
-                        </div>
-                    </div>
 
-                    {/* Progress Bar / Ratio */}
-                    <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', fontWeight: '700', color: '#64748B', marginBottom: '0.35rem' }}>
-                            <span>Settlement Progress</span>
-                            <span style={{ color: '#991B1B', fontWeight: '800' }}>
-                                {summary.totalPayables > 0 ? Math.min(100, Math.round((summary.totalPayablesPaid / summary.totalPayables) * 100)) : 0}% paid
-                            </span>
+                            {/* Slim bottom progress indicator */}
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: '#F1F5F9' }}>
+                                <div style={{
+                                    height: '100%',
+                                    width: `${recPct}%`,
+                                    background: 'linear-gradient(90deg, #10B981, #059669)',
+                                    transition: 'width 0.4s ease'
+                                }} />
+                            </div>
                         </div>
-                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden" style={{ width: '100%', height: '6px', background: '#F1F5F9', borderRadius: '999px', overflow: 'hidden' }}>
-                            <div style={{
-                                width: `${summary.totalPayables > 0 ? Math.min(100, Math.max(0, (summary.totalPayablesPaid / summary.totalPayables) * 100)) : 0}%`,
-                                height: '100%',
-                                background: 'linear-gradient(90deg, #F87171 0%, #EF4444 100%)',
-                                borderRadius: '999px',
-                                transition: 'width 0.4s ease'
-                            }} />
-                        </div>
-                    </div>
 
-                    {/* 3 Metric Breakdown */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', paddingTop: '0.65rem', borderTop: '1px solid #F1F5F9' }}>
-                        <div className="p-2" style={{ background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                            <p className="text-[8px]" style={{ margin: 0, fontSize: '8px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Total Payables</p>
-                            <p className="text-xs font-black" style={{ margin: '0.15rem 0 0 0', fontSize: '0.75rem', fontWeight: '900', color: '#1E293B' }}>{formatCurr(summary.totalPayables)}</p>
-                        </div>
-                        <div className="p-2" style={{ background: '#FFF1F2', borderRadius: '10px', border: '1px solid #FFE4E6' }}>
-                            <p className="text-[8px]" style={{ margin: 0, fontSize: '8px', fontWeight: '800', color: '#BE123C', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Total Paid</p>
-                            <p className="text-xs font-black" style={{ margin: '0.15rem 0 0 0', fontSize: '0.75rem', fontWeight: '900', color: '#9F1239' }}>{formatCurr(summary.totalPayablesPaid)}</p>
-                        </div>
-                        <div className="p-2" style={{ background: '#FEF2F2', borderRadius: '10px', border: '1px solid #FECACA' }}>
-                            <p className="text-[8px]" style={{ margin: 0, fontSize: '8px', fontWeight: '800', color: '#B91C1C', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Outstanding</p>
-                            <p className="text-xs font-black" style={{ margin: '0.15rem 0 0 0', fontSize: '0.75rem', fontWeight: '900', color: '#991B1B' }}>{formatCurr(summary.outstandingPayables)}</p>
+                        {/* Compact Payables Card */}
+                        <div 
+                            style={{
+                                background: '#FFFFFF',
+                                borderRadius: '12px',
+                                border: '1px solid #E2E8F0',
+                                padding: '0.75rem 1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '0.75rem',
+                                position: 'relative',
+                                overflow: 'hidden',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                                <div style={{
+                                    width: '36px',
+                                    height: '36px',
+                                    borderRadius: '10px',
+                                    background: '#FEF2F2',
+                                    color: '#DC2626',
+                                    border: '1px solid #FECACA',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0
+                                }}>
+                                    <TrendingDown size={18} />
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                            To Pay
+                                        </span>
+                                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#B91C1C', background: '#FEF2F2', border: '1px solid #FEE2E2', padding: '1px 6px', borderRadius: '999px' }}>
+                                            {payPct}% Settled
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '1.15rem', fontWeight: '900', color: '#991B1B', letterSpacing: '-0.02em', lineHeight: '1.2', marginTop: '2px' }}>
+                                        {formatCurr(summary.outstandingPayables)}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ textAlign: 'right', flexShrink: 0, borderLeft: '1px solid #F1F5F9', paddingLeft: '0.75rem' }}>
+                                <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '600' }}>
+                                    Total: <strong style={{ color: '#1E293B', fontWeight: '800' }}>{formatCurr(summary.totalPayables)}</strong>
+                                </div>
+                                <div style={{ fontSize: '0.7rem', color: '#DC2626', fontWeight: '600', marginTop: '2px' }}>
+                                    Paid: <strong style={{ fontWeight: '800' }}>{formatCurr(summary.totalPayablesPaid)}</strong>
+                                </div>
+                            </div>
+
+                            {/* Slim bottom progress indicator */}
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: '#F1F5F9' }}>
+                                <div style={{
+                                    height: '100%',
+                                    width: `${payPct}%`,
+                                    background: 'linear-gradient(90deg, #F87171, #DC2626)',
+                                    transition: 'width 0.4s ease'
+                                }} />
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
+                );
+            })()}
 
             {/* Incoming Connection & Financial Group Requests Banner */}
             {((incomingRequests && incomingRequests.length > 0) || (groupIncomingRequests && groupIncomingRequests.length > 0)) && activeTab !== 'requests' && (

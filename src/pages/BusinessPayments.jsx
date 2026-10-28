@@ -1453,7 +1453,7 @@ const BusinessPayments = ({
                         onClick={handleOpenSupplierModal}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.25rem', borderRadius: '14px', background: 'white', color: '#1B6B3A', border: '1px solid #DCF2E4', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
                     >
-                        <ArrowUpRight size={16} /> Pay Supplier
+                        <ArrowUpRight size={16} /> Send Payment
                     </button>
                     <button 
                         onClick={handleOpenPaymentModal}

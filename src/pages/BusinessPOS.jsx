@@ -704,8 +704,13 @@ const BusinessPOS = () => {
         requireName: false,
         askTableToken: true,
         allowNotes: true,
-        paymentMode: 'counter', // 'counter' | 'upi' | 'both'
+        paymentMode: 'all', // 'all' | 'upi' | 'gateway' | 'counter' | 'both'
         upiId: '',
+        upiMerchantName: '',
+        gatewayEnabled: false,
+        gatewayProvider: 'razorpay', // 'razorpay' | 'phonepe' | 'paytm' | 'stripe'
+        gatewayKeyId: '',
+        gatewayMode: 'test', // 'test' | 'live'
         thankYouMsg: 'Please share your Order Token at the billing counter to collect and pay for your items.',
         autoResetSeconds: 8,
         idleTimeoutSeconds: 60
@@ -801,6 +806,31 @@ const BusinessPOS = () => {
     const [kioskInactivitySeconds, setKioskInactivitySeconds] = useState(0);
     const [kioskSuccessCountdown, setKioskSuccessCountdown] = useState(null);
     const [kioskSettingsSubTab, setKioskSettingsSubTab] = useState('branding'); // 'branding' | 'catalog' | 'flow' | 'payment' | 'security'
+    const [kioskCustomerPaymentMethod, setKioskCustomerPaymentMethod] = useState('upi'); // 'upi' | 'gateway' | 'counter'
+    const [kioskPaymentProcessingModal, setKioskPaymentProcessingModal] = useState(null); // null | 'upi_qr' | 'gateway_checkout'
+    const [kioskGatewayForm, setKioskGatewayForm] = useState({ cardNum: '', expiry: '', cvv: '', name: '', method: 'card', bank: 'HDFC Bank' });
+    const [kioskPaymentVerifying, setKioskPaymentVerifying] = useState(false);
+
+    // Sync default customer payment selection with owner's configured acceptance mode
+    useEffect(() => {
+        const mode = kioskConfig.paymentMode || 'all';
+        if (mode === 'upi') {
+            setKioskCustomerPaymentMethod('upi');
+        } else if (mode === 'gateway') {
+            setKioskCustomerPaymentMethod('gateway');
+        } else if (mode === 'counter') {
+            setKioskCustomerPaymentMethod('counter');
+        } else {
+            // 'all' or 'both': pick primary configured method
+            if (kioskConfig.upiId) {
+                setKioskCustomerPaymentMethod('upi');
+            } else if (kioskConfig.gatewayEnabled || kioskConfig.gatewayKeyId) {
+                setKioskCustomerPaymentMethod('gateway');
+            } else {
+                setKioskCustomerPaymentMethod('upi');
+            }
+        }
+    }, [kioskConfig.paymentMode, kioskConfig.upiId, kioskConfig.gatewayEnabled, kioskConfig.gatewayKeyId]);
 
     // Inactivity Auto-Clear Timer for Kiosk
     useEffect(() => {
@@ -1042,7 +1072,7 @@ const BusinessPOS = () => {
         });
     };
 
-    const handleKioskSubmitOrder = () => {
+    const handleKioskSubmitOrder = (paymentOverride = null) => {
         if (!kioskCart || kioskCart.length === 0) {
             alert('Your order is empty. Please add items before placing order.');
             return;
@@ -1066,10 +1096,24 @@ const BusinessPOS = () => {
         const orderTypeLabel = kioskOrderType === 'takeaway' ? 'Takeaway' : 'Dine-In';
         const tableLabel = kioskTableToken.trim() ? ` [Token/Table #${kioskTableToken.trim()}]` : '';
 
+        // Determine payment details
+        const selectedMode = paymentOverride?.paymentMode || (
+            kioskCustomerPaymentMethod === 'upi' ? 'UPI' :
+            kioskCustomerPaymentMethod === 'gateway' ? 'GATEWAY' : 'COUNTER'
+        );
+        const isPaid = selectedMode !== 'COUNTER';
+        const paymentStatus = paymentOverride?.paymentStatus || (isPaid ? 'PAID' : 'PENDING_COUNTER');
+        const paymentRef = paymentOverride?.paymentRef || (
+            selectedMode === 'UPI' ? `UPI-${Date.now().toString().slice(-6)}` :
+            selectedMode === 'GATEWAY' ? `GTW-${Date.now().toString().slice(-6)}` : ''
+        );
+        const providerName = paymentOverride?.gatewayProvider || kioskConfig.gatewayProvider || 'Razorpay';
+        const paymentBadge = isPaid ? `[PAID - ${selectedMode}]` : `[PAY AT COUNTER]`;
+
         const newHeldCart = {
             id: Date.now(),
             displayId: kioskOrderNum,
-            customName: `Kiosk #${orderIdStr} (${orderTypeLabel}${tableLabel}) - ${kioskCustomerName || 'In-Store Guest'}`,
+            customName: `Kiosk #${orderIdStr} ${paymentBadge} (${orderTypeLabel}${tableLabel}) - ${kioskCustomerName || 'In-Store Guest'}`,
             cart: [...kioskCart],
             customerName: kioskCustomerName || 'In-Store Customer',
             customerEmail: kioskCustomerPhone || '',
@@ -1084,7 +1128,11 @@ const BusinessPOS = () => {
             kioskOrderType: kioskOrderType,
             kioskTableToken: kioskTableToken,
             kioskOrderNotes: kioskOrderNotes,
-            total: totalAmount
+            total: totalAmount,
+            paymentMode: selectedMode,
+            paymentStatus: paymentStatus,
+            paymentRef: paymentRef,
+            gatewayProvider: providerName
         };
 
         // Push to POS Cashier's held carts list
@@ -1100,7 +1148,11 @@ const BusinessPOS = () => {
             tableToken: kioskTableToken,
             orderNotes: kioskOrderNotes,
             itemCount: itemsCount,
-            total: totalAmount
+            total: totalAmount,
+            paymentMode: selectedMode,
+            paymentStatus: paymentStatus,
+            paymentRef: paymentRef,
+            gatewayProvider: providerName
         });
 
         // Play pleasant chime
@@ -1115,9 +1167,16 @@ const BusinessPOS = () => {
             orderType: orderTypeLabel,
             tableToken: kioskTableToken,
             orderNotes: kioskOrderNotes,
-            paymentMode: kioskConfig.paymentMode,
+            paymentMode: selectedMode,
+            paymentStatus: paymentStatus,
+            paymentRef: paymentRef,
+            gatewayProvider: providerName,
             upiId: kioskConfig.upiId
         });
+
+        // Close any payment processing modal
+        setKioskPaymentProcessingModal(null);
+        setKioskPaymentVerifying(false);
 
         // Reset customer form
         setKioskCart([]);
@@ -4647,9 +4706,19 @@ const BusinessPOS = () => {
                                     <span style={{ fontSize: '0.72rem', background: '#1D4ED8', color: '#fff', padding: '1px 8px', borderRadius: '12px', fontWeight: '800' }}>
                                         {kioskOrderNotification.orderId}
                                     </span>
+                                    {kioskOrderNotification.paymentStatus === 'PAID' ? (
+                                        <span style={{ fontSize: '0.72rem', background: '#16A34A', color: '#fff', padding: '1px 8px', borderRadius: '12px', fontWeight: '800' }}>
+                                            PAID VIA {kioskOrderNotification.paymentMode}
+                                        </span>
+                                    ) : (
+                                        <span style={{ fontSize: '0.72rem', background: '#D97706', color: '#fff', padding: '1px 8px', borderRadius: '12px', fontWeight: '800' }}>
+                                            PAY AT COUNTER
+                                        </span>
+                                    )}
                                 </div>
                                 <div style={{ fontSize: '0.76rem', color: '#2563EB', fontWeight: '600', marginTop: '1px' }}>
                                     Customer: <strong>{kioskOrderNotification.customerName || 'In-Store Guest'}</strong> {kioskOrderNotification.customerPhone ? `(${kioskOrderNotification.customerPhone})` : ''} • {kioskOrderNotification.itemCount} item(s) • Total: <strong>{formatCurrency(kioskOrderNotification.total || 0)}</strong>
+                                    {kioskOrderNotification.paymentRef ? ` • Ref: ${kioskOrderNotification.paymentRef}` : ''}
                                 </div>
                             </div>
                         </div>
@@ -4863,6 +4932,16 @@ const BusinessPOS = () => {
                                                                 {hc.isKioskOrder && (
                                                                     <span style={{ background: '#2563EB', color: '#FFFFFF', padding: '1px 5px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: '900', letterSpacing: '0.02em', flexShrink: 0 }}>
                                                                         KIOSK
+                                                                    </span>
+                                                                )}
+                                                                {hc.paymentStatus === 'PAID' && (
+                                                                    <span style={{ background: '#16A34A', color: '#FFFFFF', padding: '1px 5px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: '900', letterSpacing: '0.02em', flexShrink: 0 }}>
+                                                                        PAID ({hc.paymentMode || 'ONLINE'})
+                                                                    </span>
+                                                                )}
+                                                                {hc.paymentStatus === 'PENDING_COUNTER' && (
+                                                                    <span style={{ background: '#D97706', color: '#FFFFFF', padding: '1px 5px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: '900', letterSpacing: '0.02em', flexShrink: 0 }}>
+                                                                        COUNTER
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -8647,21 +8726,23 @@ const BusinessPOS = () => {
                                         </div>
                                     )}
 
-                                    {/* SUB-TAB 4: PAYMENT & UPI */}
+                                    {/* SUB-TAB 4: PAYMENT & GATEWAYS */}
                                     {kioskSettingsSubTab === 'payment' && (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                             {/* Payment Mode Selector */}
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', marginBottom: '6px' }}>
-                                                    Kiosk Order Payment Acceptance Mode
+                                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '850', color: '#1E293B', marginBottom: '8px' }}>
+                                                    Customer Checkout Payment Acceptance Modes
                                                 </label>
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.75rem' }}>
                                                     {[
-                                                        { id: 'counter', title: '🏷️ Pay at Counter', desc: 'Customer takes order token slip to pay cashier' },
-                                                        { id: 'upi', title: '📲 Instant UPI QR', desc: 'Dynamic QR code generated on screen to pay via GPay/PhonePe' },
-                                                        { id: 'both', title: '🔀 Counter or UPI', desc: 'Customer can pay with UPI QR on-screen or at billing counter' }
+                                                        { id: 'all', title: '🔀 Multi-Option (Recommended)', desc: 'Customer chooses between UPI Scanner, Payment Gateway, or Counter' },
+                                                        { id: 'upi', title: '📲 Instant UPI QR Scanner', desc: 'Dynamic QR code generated on-screen to scan & pay via GPay/PhonePe' },
+                                                        { id: 'gateway', title: '💳 Online Payment Gateway', desc: 'Accept Debit/Credit Cards, Net Banking, and Gateway UPI' },
+                                                        { id: 'counter', title: '🏷️ Pay at Counter Only', desc: 'Customer takes order token slip to pay cashier at desk' }
                                                     ].map(pm => {
-                                                        const isSel = (kioskConfig.paymentMode || 'counter') === pm.id;
+                                                        const currentMode = kioskConfig.paymentMode || 'all';
+                                                        const isSel = currentMode === pm.id || (currentMode === 'both' && pm.id === 'all');
                                                         return (
                                                             <div
                                                                 key={pm.id}
@@ -8669,37 +8750,137 @@ const BusinessPOS = () => {
                                                                 style={{
                                                                     border: isSel ? '2px solid #2563EB' : '1px solid #CBD5E1',
                                                                     background: isSel ? '#EFF6FF' : '#FAFAFA',
-                                                                    borderRadius: '10px',
-                                                                    padding: '0.75rem',
+                                                                    borderRadius: '12px',
+                                                                    padding: '0.85rem',
                                                                     cursor: 'pointer',
-                                                                    transition: 'all 0.15s ease'
+                                                                    transition: 'all 0.15s ease',
+                                                                    boxShadow: isSel ? '0 2px 8px rgba(37,99,235,0.1)' : 'none'
                                                                 }}
                                                             >
-                                                                <div style={{ fontSize: '0.82rem', fontWeight: '850', color: isSel ? '#1E40AF' : '#1E293B' }}>{pm.title}</div>
-                                                                <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '3px' }}>{pm.desc}</div>
+                                                                <div style={{ fontSize: '0.85rem', fontWeight: '850', color: isSel ? '#1E40AF' : '#1E293B' }}>{pm.title}</div>
+                                                                <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '4px', lineHeight: '1.4' }}>{pm.desc}</div>
                                                             </div>
                                                         );
                                                     })}
                                                 </div>
                                             </div>
 
-                                            {/* UPI ID Field (Only if UPI enabled) */}
-                                            {(kioskConfig.paymentMode === 'upi' || kioskConfig.paymentMode === 'both') && (
-                                                <div style={{ background: '#F0FDF4', border: '1px solid #DCFCE7', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                                                    <div style={{ fontSize: '0.82rem', fontWeight: '850', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        <QrCode size={16} /> Merchant UPI Virtual Payment Address (VPA)
+                                            {/* BUSINESS OWNER UPI SCANNER INTEGRATION */}
+                                            {(kioskConfig.paymentMode === 'upi' || kioskConfig.paymentMode === 'all' || kioskConfig.paymentMode === 'both' || !kioskConfig.paymentMode) && (
+                                                <div style={{ background: '#F0FDF4', border: '1.5px solid #BBF7D0', borderRadius: '14px', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                        <div style={{ fontSize: '0.85rem', fontWeight: '850', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <QrCode size={18} color="#16A34A" /> Business Owner UPI QR Integration
+                                                        </div>
+                                                        <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#DCFCE7', color: '#15803D', padding: '2px 8px', borderRadius: '999px', border: '1px solid #86EFAC' }}>
+                                                            Dynamic On-Screen QR
+                                                        </span>
                                                     </div>
-                                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                                                        <input
-                                                            type="text"
-                                                            value={kioskConfig.upiId || ''}
-                                                            placeholder="e.g. storename@okhdfcbank or merchant@upi"
-                                                            onChange={(e) => handleUpdateKioskConfig({ upiId: e.target.value.trim() })}
-                                                            style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #86EFAC', fontSize: '0.82rem', background: '#FFFFFF' }}
-                                                        />
+
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#166534', marginBottom: '4px' }}>
+                                                                Merchant UPI ID (VPA) *
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={kioskConfig.upiId || ''}
+                                                                placeholder="e.g. storename@okhdfcbank or merchant@upi"
+                                                                onChange={(e) => handleUpdateKioskConfig({ upiId: e.target.value.trim() })}
+                                                                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #86EFAC', fontSize: '0.82rem', background: '#FFFFFF' }}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#166534', marginBottom: '4px' }}>
+                                                                Business / Payee Name on QR
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={kioskConfig.upiMerchantName || ''}
+                                                                placeholder={activeConfig?.business_name || 'My Store'}
+                                                                onChange={(e) => handleUpdateKioskConfig({ upiMerchantName: e.target.value })}
+                                                                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #86EFAC', fontSize: '0.82rem', background: '#FFFFFF' }}
+                                                            />
+                                                        </div>
                                                     </div>
-                                                    <div style={{ fontSize: '0.72rem', color: '#15803D' }}>
-                                                        Dynamic QR codes with exact order total and token ID will be rendered on the kiosk for customers to scan with GPay, PhonePe, Paytm, or BHIM.
+
+                                                    <div style={{ fontSize: '0.72rem', color: '#15803D', lineHeight: '1.4' }}>
+                                                        Customers scan dynamic UPI QR codes directly from the kiosk screen with Google Pay, PhonePe, Paytm, BHIM, or CRED with exact cart amounts auto-filled.
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* BUSINESS OWNER PAYMENT GATEWAY INTEGRATION */}
+                                            {(kioskConfig.paymentMode === 'gateway' || kioskConfig.paymentMode === 'all' || kioskConfig.paymentMode === 'both' || !kioskConfig.paymentMode) && (
+                                                <div style={{ background: '#F8FAFC', border: '1.5px solid #CBD5E1', borderRadius: '14px', padding: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                        <div style={{ fontSize: '0.85rem', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <CreditCard size={18} color="#2563EB" /> Business Owner Payment Gateway Integration
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '700' }}>Enable Gateway:</span>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={kioskConfig.gatewayEnabled !== false}
+                                                                onChange={(e) => handleUpdateKioskConfig({ gatewayEnabled: e.target.checked })}
+                                                                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#2563EB' }}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                                                        {/* Gateway Provider */}
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#334155', marginBottom: '4px' }}>
+                                                                Gateway Provider
+                                                            </label>
+                                                            <select
+                                                                value={kioskConfig.gatewayProvider || 'razorpay'}
+                                                                onChange={(e) => handleUpdateKioskConfig({ gatewayProvider: e.target.value })}
+                                                                style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #CBD5E1', fontSize: '0.82rem', background: '#FFFFFF', cursor: 'pointer' }}
+                                                            >
+                                                                <option value="razorpay">Razorpay (Cards, Net Banking, UPI)</option>
+                                                                <option value="phonepe">PhonePe Payment Gateway</option>
+                                                                <option value="paytm">Paytm Payment Gateway</option>
+                                                                <option value="stripe">Stripe (Cards & Wallets)</option>
+                                                            </select>
+                                                        </div>
+
+                                                        {/* Gateway Key ID / API Key */}
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#334155', marginBottom: '4px' }}>
+                                                                Merchant Key ID / API Key
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={kioskConfig.gatewayKeyId || ''}
+                                                                placeholder="e.g. rzp_live_xxxxxxxx or rzp_test_xxxxxxxx"
+                                                                onChange={(e) => handleUpdateKioskConfig({ gatewayKeyId: e.target.value.trim() })}
+                                                                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #CBD5E1', fontSize: '0.82rem', background: '#FFFFFF' }}
+                                                            />
+                                                        </div>
+
+                                                        {/* Environment Mode */}
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '750', color: '#334155', marginBottom: '4px' }}>
+                                                                Gateway Mode
+                                                            </label>
+                                                            <select
+                                                                value={kioskConfig.gatewayMode || 'test'}
+                                                                onChange={(e) => handleUpdateKioskConfig({ gatewayMode: e.target.value })}
+                                                                style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #CBD5E1', fontSize: '0.82rem', background: '#FFFFFF', cursor: 'pointer' }}
+                                                            >
+                                                                <option value="test">Test / Sandbox (Verify checkout safely)</option>
+                                                                <option value="live">Live / Production</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', paddingTop: '4px' }}>
+                                                        <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '750' }}>Accepted Payment Instruments:</span>
+                                                        <span style={{ fontSize: '0.68rem', background: '#EFF6FF', color: '#1D4ED8', padding: '2px 8px', borderRadius: '6px', fontWeight: '800' }}>Visa, Mastercard, RuPay</span>
+                                                        <span style={{ fontSize: '0.68rem', background: '#EFF6FF', color: '#1D4ED8', padding: '2px 8px', borderRadius: '6px', fontWeight: '800' }}>Net Banking (50+ Banks)</span>
+                                                        <span style={{ fontSize: '0.68rem', background: '#EFF6FF', color: '#1D4ED8', padding: '2px 8px', borderRadius: '6px', fontWeight: '800' }}>Digital Wallets</span>
                                                     </div>
                                                 </div>
                                             )}
@@ -9630,17 +9811,127 @@ const BusinessPOS = () => {
                                 const kGrandTotal = kSubtotal + kTax;
                                 const accent = kioskConfig.accentColor || '#2563EB';
 
-                                // Submit button text according to configured payment mode
-                                let submitBtnText = '🛍️ Place Order at Counter';
-                                if (kioskConfig.paymentMode === 'upi') {
-                                    submitBtnText = '📲 Pay with UPI QR';
-                                } else if (kioskConfig.paymentMode === 'both') {
-                                    submitBtnText = '🛍️ Place Order / Pay';
+                                {/* Customer Payment Method Selection */}
+                                const isMultiPayment = !kioskConfig.paymentMode || kioskConfig.paymentMode === 'all' || kioskConfig.paymentMode === 'both';
+                                const paymentOptions = [];
+
+                                if (isMultiPayment || kioskConfig.paymentMode === 'upi') {
+                                    paymentOptions.push({
+                                        id: 'upi',
+                                        title: 'UPI QR Scanner',
+                                        subtitle: 'GPay, PhonePe, Paytm, CRED',
+                                        icon: QrCode,
+                                        accent: '#16A34A',
+                                        bg: '#F0FDF4',
+                                        border: '#BBF7D0'
+                                    });
+                                }
+
+                                if (isMultiPayment || kioskConfig.paymentMode === 'gateway') {
+                                    paymentOptions.push({
+                                        id: 'gateway',
+                                        title: kioskConfig.gatewayProvider ? `${kioskConfig.gatewayProvider.toUpperCase()} Gateway` : 'Payment Gateway',
+                                        subtitle: 'Cards, Net Banking & Wallets',
+                                        icon: CreditCard,
+                                        accent: '#2563EB',
+                                        bg: '#EFF6FF',
+                                        border: '#BFDBFE'
+                                    });
+                                }
+
+                                if (isMultiPayment || kioskConfig.paymentMode === 'counter') {
+                                    paymentOptions.push({
+                                        id: 'counter',
+                                        title: 'Pay at Counter',
+                                        subtitle: 'Cash / Settle with cashier',
+                                        icon: Wallet,
+                                        accent: '#D97706',
+                                        bg: '#FFFBEB',
+                                        border: '#FDE68A'
+                                    });
+                                }
+
+                                // Handle checkout button click
+                                const handleProceedCheckout = () => {
+                                    if (!kioskCart || kioskCart.length === 0) return;
+                                    if (kioskConfig.requireName && !kioskCustomerName.trim()) {
+                                        alert('Please enter your name to place the order.');
+                                        return;
+                                    }
+                                    if (kioskConfig.requirePhone && (!kioskCustomerPhone || kioskCustomerPhone.replace(/\D/g, '').length < 10)) {
+                                        alert('Please enter a valid 10-digit mobile number to proceed.');
+                                        return;
+                                    }
+
+                                    if (kioskCustomerPaymentMethod === 'upi') {
+                                        setKioskPaymentProcessingModal('upi_qr');
+                                    } else if (kioskCustomerPaymentMethod === 'gateway') {
+                                        setKioskPaymentProcessingModal('gateway_checkout');
+                                    } else {
+                                        handleKioskSubmitOrder({ paymentMode: 'COUNTER', paymentStatus: 'PENDING_COUNTER' });
+                                    }
+                                };
+
+                                let submitBtnLabel = `Place Order • ${formatCurrency(kGrandTotal)}`;
+                                if (kioskCustomerPaymentMethod === 'upi') {
+                                    submitBtnLabel = `Scan UPI QR & Pay ${formatCurrency(kGrandTotal)}`;
+                                } else if (kioskCustomerPaymentMethod === 'gateway') {
+                                    submitBtnLabel = `Pay via Gateway • ${formatCurrency(kGrandTotal)}`;
+                                } else {
+                                    submitBtnLabel = `Place Order (Pay at Counter) • ${formatCurrency(kGrandTotal)}`;
                                 }
 
                                 return (
-                                    <div style={{ padding: '1.25rem', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748B' }}>
+                                    <div style={{ padding: '1.15rem', background: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                        {/* Payment Method Selector if multiple enabled */}
+                                        {paymentOptions.length > 1 ? (
+                                            <div>
+                                                <div style={{ fontSize: '0.74rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', marginBottom: '6px' }}>
+                                                    Choose Payment Method
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${paymentOptions.length}, 1fr)`, gap: '0.5rem' }}>
+                                                    {paymentOptions.map(opt => {
+                                                        const isSel = kioskCustomerPaymentMethod === opt.id;
+                                                        const IconComp = opt.icon;
+                                                        return (
+                                                            <div
+                                                                key={opt.id}
+                                                                onClick={() => setKioskCustomerPaymentMethod(opt.id)}
+                                                                style={{
+                                                                    border: isSel ? `2px solid ${opt.accent}` : '1px solid #E2E8F0',
+                                                                    background: isSel ? opt.bg : '#FAFAFA',
+                                                                    borderRadius: '10px',
+                                                                    padding: '0.55rem 0.5rem',
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    flexDirection: 'column',
+                                                                    alignItems: 'center',
+                                                                    textAlign: 'center',
+                                                                    gap: '4px',
+                                                                    transition: 'all 0.15s ease'
+                                                                }}
+                                                            >
+                                                                <IconComp size={16} color={isSel ? opt.accent : '#64748B'} />
+                                                                <span style={{ fontSize: '0.72rem', fontWeight: '850', color: isSel ? opt.accent : '#1E293B' }}>
+                                                                    {opt.title}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                {kioskCustomerPaymentMethod === 'upi' && <QrCode size={15} color="#16A34A" />}
+                                                {kioskCustomerPaymentMethod === 'gateway' && <CreditCard size={15} color="#2563EB" />}
+                                                {kioskCustomerPaymentMethod === 'counter' && <Wallet size={15} color="#D97706" />}
+                                                <span style={{ fontSize: '0.74rem', fontWeight: '750', color: '#334155' }}>
+                                                    Payment: {kioskCustomerPaymentMethod === 'upi' ? 'Scan Dynamic UPI QR on next screen' : kioskCustomerPaymentMethod === 'gateway' ? 'Pay Online via Payment Gateway' : 'Pay at Cashier Counter'}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748B', marginTop: '2px' }}>
                                             <span>Subtotal</span>
                                             <span>{formatCurrency(kSubtotal)}</span>
                                         </div>
@@ -9648,22 +9939,22 @@ const BusinessPOS = () => {
                                             <span>GST & Taxes</span>
                                             <span>{formatCurrency(kTax)}</span>
                                         </div>
-                                        <div style={{ borderTop: '1px dashed #CBD5E1', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                            <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>Grand Total</span>
+                                        <div style={{ borderTop: '1px dashed #CBD5E1', paddingTop: '0.45rem', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                            <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#0F172A' }}>Grand Total</span>
                                             <span style={{ fontSize: '1.35rem', fontWeight: '950', color: accent }}>{formatCurrency(kGrandTotal)}</span>
                                         </div>
 
                                         <button
                                             disabled={kioskCart.length === 0}
-                                            onClick={handleKioskSubmitOrder}
+                                            onClick={handleProceedCheckout}
                                             style={{
                                                 width: '100%',
-                                                padding: '0.9rem',
+                                                padding: '0.85rem',
                                                 borderRadius: '12px',
                                                 border: 'none',
                                                 background: kioskCart.length > 0 ? `linear-gradient(135deg, ${accent} 0%, #1D4ED8 100%)` : '#E2E8F0',
                                                 color: kioskCart.length > 0 ? '#FFFFFF' : '#94A3B8',
-                                                fontSize: '0.95rem',
+                                                fontSize: '0.92rem',
                                                 fontWeight: '900',
                                                 cursor: kioskCart.length > 0 ? 'pointer' : 'not-allowed',
                                                 boxShadow: kioskCart.length > 0 ? `0 4px 14px ${accent}40` : 'none',
@@ -9671,14 +9962,16 @@ const BusinessPOS = () => {
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 gap: '8px',
-                                                marginTop: '0.35rem'
+                                                marginTop: '0.25rem'
                                             }}
                                         >
-                                            {submitBtnText}
+                                            {submitBtnLabel}
                                         </button>
                                         <div style={{ textAlign: 'center', fontSize: '0.7rem', color: '#64748B' }}>
-                                            {kioskConfig.paymentMode === 'upi'
-                                                ? 'Scan dynamic UPI QR code on the next screen with any UPI app'
+                                            {kioskCustomerPaymentMethod === 'upi'
+                                                ? 'Scan dynamic UPI QR code on screen with any UPI app'
+                                                : kioskCustomerPaymentMethod === 'gateway'
+                                                ? 'Instant authorization with 256-bit SSL encrypted gateway'
                                                 : 'Collect and pay for your items at the checkout counter'}
                                         </div>
                                     </div>
@@ -9688,6 +9981,376 @@ const BusinessPOS = () => {
                     </div>
                 </div>
             )}
+
+            {/* ======================================================== */}
+            {/* KIOSK MODAL: INTERACTIVE UPI QR SCANNER                  */}
+            {/* ======================================================== */}
+            {kioskPaymentProcessingModal === 'upi_qr' && (() => {
+                const kSubtotal = kioskCart.reduce((acc, it) => acc + (it.total || (it.price * it.quantity)), 0);
+                const kTax = kioskCart.reduce((acc, it) => acc + ((it.total || (it.price * it.quantity)) * (it.tax_rate || 0) / 100), 0);
+                const totalDue = kSubtotal + kTax;
+                const merchantVpa = kioskConfig.upiId || 'merchant@upi';
+                const merchantName = kioskConfig.upiMerchantName || activeConfig?.business_name || 'Store';
+                const upiLink = `upi://pay?pa=${encodeURIComponent(merchantVpa)}&pn=${encodeURIComponent(merchantName)}&am=${totalDue.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Kiosk Order')}`;
+
+                return (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(15, 23, 42, 0.8)',
+                        backdropFilter: 'blur(8px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 99998,
+                        animation: 'fadeIn 0.2s ease-out'
+                    }}>
+                        <div style={{
+                            background: '#FFFFFF',
+                            borderRadius: '24px',
+                            padding: '2rem',
+                            maxWidth: '460px',
+                            width: '92%',
+                            textAlign: 'center',
+                            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.4)',
+                            border: '1px solid #E2E8F0',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1rem'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <QrCode size={20} />
+                                    </div>
+                                    <div style={{ textAlign: 'left' }}>
+                                        <div style={{ fontSize: '1rem', fontWeight: '900', color: '#0F172A' }}>Scan & Pay via UPI</div>
+                                        <div style={{ fontSize: '0.72rem', color: '#64748B' }}>GPay • PhonePe • Paytm • BHIM • CRED</div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setKioskPaymentProcessingModal(null)}
+                                    style={{ border: 'none', background: '#F1F5F9', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#64748B' }}
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            {/* Total Amount Pill */}
+                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '750' }}>Total Payable</span>
+                                <span style={{ fontSize: '1.45rem', fontWeight: '950', color: '#16A34A' }}>{formatCurrency(totalDue)}</span>
+                            </div>
+
+                            {/* Dynamic QR Code Card */}
+                            <div style={{ background: '#F0FDF4', border: '2px solid #BBF7D0', borderRadius: '18px', padding: '1.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ background: '#FFFFFF', padding: '12px', borderRadius: '14px', boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }}>
+                                    <QRCodeSVG value={upiLink} size={180} level="M" />
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '0.76rem', fontWeight: '800', color: '#166534' }}>
+                                        Payee: {merchantName}
+                                    </div>
+                                    <div style={{ fontSize: '0.72rem', color: '#15803D', fontWeight: '650', marginTop: '2px' }}>
+                                        UPI ID: {merchantVpa}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ fontSize: '0.74rem', color: '#64748B' }}>
+                                Open your UPI app, scan the dynamic QR above to complete payment of <strong>{formatCurrency(totalDue)}</strong>, then click below.
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <button
+                                    disabled={kioskPaymentVerifying}
+                                    onClick={() => {
+                                        setKioskPaymentVerifying(true);
+                                        setTimeout(() => {
+                                            handleKioskSubmitOrder({
+                                                paymentMode: 'UPI',
+                                                paymentStatus: 'PAID',
+                                                paymentRef: `UPI-${Date.now().toString().slice(-6)}`
+                                            });
+                                        }, 1200);
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.9rem',
+                                        borderRadius: '12px',
+                                        border: 'none',
+                                        background: 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)',
+                                        color: '#FFFFFF',
+                                        fontSize: '0.95rem',
+                                        fontWeight: '850',
+                                        cursor: kioskPaymentVerifying ? 'wait' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        boxShadow: '0 4px 14px rgba(22, 163, 74, 0.3)'
+                                    }}
+                                >
+                                    {kioskPaymentVerifying ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" /> Verifying UPI Payment...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle2 size={18} /> I Have Paid • Confirm Order
+                                        </>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setKioskPaymentProcessingModal(null)}
+                                    style={{ border: 'none', background: 'transparent', color: '#64748B', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer', padding: '0.4rem' }}
+                                >
+                                    Cancel / Change Payment Method
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* ======================================================== */}
+            {/* KIOSK MODAL: INTERACTIVE PAYMENT GATEWAY CHECKOUT        */}
+            {/* ======================================================== */}
+            {kioskPaymentProcessingModal === 'gateway_checkout' && (() => {
+                const kSubtotal = kioskCart.reduce((acc, it) => acc + (it.total || (it.price * it.quantity)), 0);
+                const kTax = kioskCart.reduce((acc, it) => acc + ((it.total || (it.price * it.quantity)) * (it.tax_rate || 0) / 100), 0);
+                const totalDue = kSubtotal + kTax;
+                const providerName = (kioskConfig.gatewayProvider || 'Razorpay').toUpperCase();
+
+                return (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(15, 23, 42, 0.8)',
+                        backdropFilter: 'blur(8px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 99998,
+                        animation: 'fadeIn 0.2s ease-out'
+                    }}>
+                        <div style={{
+                            background: '#FFFFFF',
+                            borderRadius: '24px',
+                            padding: '2rem',
+                            maxWidth: '480px',
+                            width: '92%',
+                            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.4)',
+                            border: '1px solid #E2E8F0',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1rem'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <CreditCard size={20} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '1rem', fontWeight: '900', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            {providerName} Payment Gateway
+                                            <span style={{ fontSize: '0.62rem', background: '#DCFCE7', color: '#166534', padding: '1px 6px', borderRadius: '4px', fontWeight: '800' }}>
+                                                {kioskConfig.gatewayMode === 'live' ? 'LIVE' : 'TEST MODE'}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '0.72rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <ShieldCheck size={12} color="#16A34A" /> 256-bit SSL Secure In-Store Checkout
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setKioskPaymentProcessingModal(null)}
+                                    style={{ border: 'none', background: '#F1F5F9', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: '#64748B' }}
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            {/* Total Amount Pill */}
+                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '750' }}>Total Amount</span>
+                                <span style={{ fontSize: '1.45rem', fontWeight: '950', color: '#2563EB' }}>{formatCurrency(totalDue)}</span>
+                            </div>
+
+                            {/* Gateway Instrument Selector */}
+                            <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid #E2E8F0', paddingBottom: '6px' }}>
+                                {[
+                                    { id: 'card', label: 'Debit / Credit Card' },
+                                    { id: 'netbanking', label: 'Net Banking' },
+                                    { id: 'wallet', label: 'Wallets & UPI' }
+                                ].map(t => (
+                                    <button
+                                        key={t.id}
+                                        type="button"
+                                        onClick={() => setKioskGatewayForm(prev => ({ ...prev, method: t.id }))}
+                                        style={{
+                                            flex: 1,
+                                            padding: '0.45rem 0.5rem',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            background: (kioskGatewayForm.method || 'card') === t.id ? '#EFF6FF' : '#F8FAFC',
+                                            color: (kioskGatewayForm.method || 'card') === t.id ? '#1D4ED8' : '#64748B',
+                                            fontSize: '0.75rem',
+                                            fontWeight: '800',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {t.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Instrument Fields */}
+                            {(kioskGatewayForm.method || 'card') === 'card' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '750', color: '#334155', marginBottom: '3px' }}>Card Number</label>
+                                        <input
+                                            type="text"
+                                            placeholder="4532 •••• •••• 8892"
+                                            value={kioskGatewayForm.cardNum}
+                                            onChange={(e) => setKioskGatewayForm(prev => ({ ...prev, cardNum: e.target.value }))}
+                                            style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #CBD5E1', fontSize: '0.85rem' }}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '750', color: '#334155', marginBottom: '3px' }}>Valid Thru</label>
+                                            <input
+                                                type="text"
+                                                placeholder="MM/YY"
+                                                value={kioskGatewayForm.expiry}
+                                                onChange={(e) => setKioskGatewayForm(prev => ({ ...prev, expiry: e.target.value }))}
+                                                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #CBD5E1', fontSize: '0.85rem' }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: '750', color: '#334155', marginBottom: '3px' }}>CVV</label>
+                                            <input
+                                                type="password"
+                                                maxLength={4}
+                                                placeholder="•••"
+                                                value={kioskGatewayForm.cvv}
+                                                onChange={(e) => setKioskGatewayForm(prev => ({ ...prev, cvv: e.target.value }))}
+                                                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1.5px solid #CBD5E1', fontSize: '0.85rem' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {kioskGatewayForm.method === 'netbanking' && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
+                                    {['HDFC Bank', 'State Bank of India', 'ICICI Bank', 'Axis Bank', 'Kotak Bank', 'Punjab National Bank'].map(bk => (
+                                        <div
+                                            key={bk}
+                                            onClick={() => setKioskGatewayForm(prev => ({ ...prev, bank: bk }))}
+                                            style={{
+                                                padding: '0.65rem',
+                                                borderRadius: '8px',
+                                                border: kioskGatewayForm.bank === bk ? '2px solid #2563EB' : '1px solid #CBD5E1',
+                                                background: kioskGatewayForm.bank === bk ? '#EFF6FF' : '#FFFFFF',
+                                                fontSize: '0.75rem',
+                                                fontWeight: '800',
+                                                color: kioskGatewayForm.bank === bk ? '#1D4ED8' : '#334155',
+                                                cursor: 'pointer',
+                                                textAlign: 'center'
+                                            }}
+                                        >
+                                            {bk}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {kioskGatewayForm.method === 'wallet' && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
+                                    {['Paytm Wallet', 'PhonePe PG', 'Amazon Pay', 'MobiKwik'].map(wl => (
+                                        <div
+                                            key={wl}
+                                            onClick={() => setKioskGatewayForm(prev => ({ ...prev, bank: wl }))}
+                                            style={{
+                                                padding: '0.65rem',
+                                                borderRadius: '8px',
+                                                border: kioskGatewayForm.bank === wl ? '2px solid #2563EB' : '1px solid #CBD5E1',
+                                                background: kioskGatewayForm.bank === wl ? '#EFF6FF' : '#FFFFFF',
+                                                fontSize: '0.75rem',
+                                                fontWeight: '800',
+                                                color: kioskGatewayForm.bank === wl ? '#1D4ED8' : '#334155',
+                                                cursor: 'pointer',
+                                                textAlign: 'center'
+                                            }}
+                                        >
+                                            {wl}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Authorize Button */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem' }}>
+                                <button
+                                    disabled={kioskPaymentVerifying}
+                                    onClick={() => {
+                                        setKioskPaymentVerifying(true);
+                                        setTimeout(() => {
+                                            handleKioskSubmitOrder({
+                                                paymentMode: 'GATEWAY',
+                                                paymentStatus: 'PAID',
+                                                paymentRef: `GTW-${Date.now().toString().slice(-6)}`,
+                                                gatewayProvider: providerName
+                                            });
+                                        }, 1400);
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.9rem',
+                                        borderRadius: '12px',
+                                        border: 'none',
+                                        background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                                        color: '#FFFFFF',
+                                        fontSize: '0.95rem',
+                                        fontWeight: '850',
+                                        cursor: kioskPaymentVerifying ? 'wait' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)'
+                                    }}
+                                >
+                                    {kioskPaymentVerifying ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" /> Authorizing with {providerName}...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle2 size={18} /> Authorize & Pay {formatCurrency(totalDue)}
+                                        </>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setKioskPaymentProcessingModal(null)}
+                                    style={{ border: 'none', background: 'transparent', color: '#64748B', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer', padding: '0.4rem' }}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* ======================================================== */}
             {/* KIOSK ORDER PLACED SUCCESS CELEBRATION MODAL             */}
@@ -9745,23 +10408,39 @@ const BusinessPOS = () => {
                             )}
                         </div>
 
-                        {/* Dynamic UPI QR Code if configured */}
-                        {(kioskConfig.paymentMode === 'upi' || kioskConfig.paymentMode === 'both') && kioskConfig.upiId && (
-                            <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '16px', padding: '1.1rem', marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                                <div style={{ fontSize: '0.76rem', fontWeight: '850', color: '#166534', textTransform: 'uppercase' }}>
-                                    📲 Scan & Pay ₹{kioskOrderSuccessInfo.total.toFixed(2)} via UPI
-                                </div>
-                                <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                                    <QRCodeSVG
-                                        value={`upi://pay?pa=${encodeURIComponent(kioskConfig.upiId)}&pn=${encodeURIComponent(activeConfig?.business_name || 'Store')}&am=${kioskOrderSuccessInfo.total.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Order ' + kioskOrderSuccessInfo.orderId)}`}
-                                        size={155}
-                                        level="M"
-                                    />
-                                </div>
-                                <div style={{ fontSize: '0.72rem', color: '#15803D', fontWeight: '700' }}>
-                                    UPI ID: {kioskConfig.upiId}
+                        {/* Payment Confirmation Banner if Paid */}
+                        {kioskOrderSuccessInfo.paymentStatus === 'PAID' ? (
+                            <div style={{ background: '#F0FDF4', border: '1.5px solid #86EFAC', borderRadius: '16px', padding: '1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                                <CheckCircle2 size={24} color="#16A34A" />
+                                <div style={{ textAlign: 'left' }}>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: '850', color: '#166534' }}>
+                                        Paid via {kioskOrderSuccessInfo.paymentMode === 'UPI' ? 'UPI QR Scanner' : `${kioskOrderSuccessInfo.gatewayProvider || 'Payment'} Gateway`}
+                                    </div>
+                                    {kioskOrderSuccessInfo.paymentRef && (
+                                        <div style={{ fontSize: '0.74rem', color: '#15803D', fontWeight: '700' }}>
+                                            Reference: {kioskOrderSuccessInfo.paymentRef}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
+                        ) : (
+                            kioskConfig.upiId && (kioskOrderSuccessInfo.paymentMode === 'UPI' || kioskConfig.paymentMode === 'upi') && (
+                                <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '16px', padding: '1.1rem', marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div style={{ fontSize: '0.76rem', fontWeight: '850', color: '#166534', textTransform: 'uppercase' }}>
+                                        📲 Scan & Pay ₹{kioskOrderSuccessInfo.total.toFixed(2)} via UPI
+                                    </div>
+                                    <div style={{ background: '#FFFFFF', padding: '10px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                                        <QRCodeSVG
+                                            value={`upi://pay?pa=${encodeURIComponent(kioskConfig.upiId)}&pn=${encodeURIComponent(kioskConfig.upiMerchantName || activeConfig?.business_name || 'Store')}&am=${kioskOrderSuccessInfo.total.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Order ' + kioskOrderSuccessInfo.orderId)}`}
+                                            size={155}
+                                            level="M"
+                                        />
+                                    </div>
+                                    <div style={{ fontSize: '0.72rem', color: '#15803D', fontWeight: '700' }}>
+                                        UPI ID: {kioskConfig.upiId}
+                                    </div>
+                                </div>
+                            )
                         )}
 
                         {/* Auto-Reset Countdown Notice */}
