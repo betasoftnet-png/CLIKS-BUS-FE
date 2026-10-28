@@ -358,11 +358,13 @@ const BusinessPOS = () => {
     const [isLoadingProductAnalytics, setIsLoadingProductAnalytics] = useState(false);
     const [infoModalActiveTab, setInfoModalActiveTab] = useState('customers'); // 'customers' | 'transactions'
     const [isOrdersDropdownOpen, setIsOrdersDropdownOpen] = useState(false);
+    const [isHeldCartsDropdownOpen, setIsHeldCartsDropdownOpen] = useState(false);
 
     React.useEffect(() => {
         const handleGlobalClick = () => {
             setActiveProductMenuId(null);
             setIsOrdersDropdownOpen(false);
+            setIsHeldCartsDropdownOpen(false);
         };
         window.addEventListener('click', handleGlobalClick);
         return () => window.removeEventListener('click', handleGlobalClick);
@@ -4691,85 +4693,6 @@ const BusinessPOS = () => {
                     </div>
                 )}
 
-                {/* Held Carts Row */}
-                {heldCarts.length > 0 && (
-                    <div style={{ padding: '0.5rem 1.25rem', background: '#FFFBEB', borderBottom: '1px solid #FEF3C7', display: 'flex', gap: '0.5rem', alignItems: 'center', overflowX: 'auto', flexShrink: 0 }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#B45309', alignSelf: 'center', marginRight: '0.25rem', whiteSpace: 'nowrap' }}>CARTS ({heldCarts.length}):</span>
-                        {heldCarts.map(hc => {
-                            const isActive = activeHeldCartInfo && activeHeldCartInfo.id === hc.id;
-                            return (
-                                <div
-                                    key={hc.id}
-                                    style={{
-                                        background: hc.isKioskOrder ? (isActive ? '#EFF6FF' : '#F0FDF4') : (isActive ? '#DCFCE7' : '#FFFFFF'),
-                                        border: hc.isKioskOrder ? (isActive ? '1.5px solid #3B82F6' : '1.5px solid #60A5FA') : (isActive ? '1.5px solid #16A34A' : '1px solid #FCD34D'),
-                                        padding: '0.3rem 0.65rem',
-                                        borderRadius: '8px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem',
-                                        fontSize: '0.75rem',
-                                        fontWeight: '800',
-                                        color: hc.isKioskOrder ? '#1D4ED8' : (isActive ? '#15803D' : '#92400E'),
-                                        whiteSpace: 'nowrap',
-                                        boxShadow: isActive ? '0 2px 6px rgba(22, 163, 74, 0.15)' : (hc.isKioskOrder ? '0 1px 4px rgba(59,130,246,0.15)' : 'none'),
-                                        transition: 'all 0.15s ease'
-                                    }}
-                                >
-                                    {hc.isKioskOrder && (
-                                        <span style={{ background: '#2563EB', color: '#FFFFFF', padding: '1px 5px', borderRadius: '4px', fontSize: '0.62rem', fontWeight: '900', letterSpacing: '0.02em' }}>
-                                            KIOSK
-                                        </span>
-                                    )}
-                                    <span
-                                        onClick={() => restoreCart(hc.id)}
-                                        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                        title="Click to view/edit this held cart"
-                                    >
-                                        {isActive && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: hc.isKioskOrder ? '#2563EB' : '#16A34A', display: 'inline-block' }} />}
-                                        {hc.customName || hc.customerName || `Cart #${hc.displayId}`} ({hc.cart?.length || 0} items)
-                                    </span>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px', borderLeft: isActive ? '1px solid #BBF7D0' : '1px solid #FEF3C7', paddingLeft: '6px' }}>
-                                        <Edit
-                                            size={12}
-                                            style={{ cursor: 'pointer', color: isActive ? '#16A34A' : '#D97706' }}
-                                            onClick={() => renameHeldCart(hc.id)}
-                                            title="Rename Cart"
-                                        />
-                                        <Trash2
-                                            size={12}
-                                            style={{ cursor: 'pointer', color: '#EF4444' }}
-                                            onClick={() => deleteHeldCart(hc.id)}
-                                            title="Discard Cart"
-                                        />
-                                    </div>
-                                </div>
-                            );
-                        })}
-                        <button
-                            type="button"
-                            onClick={startNewCart}
-                            style={{
-                                background: '#FFFFFF',
-                                border: '1px dashed #CBD5E1',
-                                padding: '0.3rem 0.65rem',
-                                borderRadius: '8px',
-                                fontSize: '0.74rem',
-                                fontWeight: '750',
-                                color: '#475569',
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                            }}
-                            title="Start a new empty cart"
-                        >
-                            + New Cart
-                        </button>
-                    </div>
-                )}
-
                 {/* Cart Control Header Action Row */}
                 <div style={{ padding: '0.65rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', flexShrink: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -4822,6 +4745,202 @@ const BusinessPOS = () => {
                         >
                             {activeHeldCartInfo ? 'Held (Update)' : 'Hold Cart'}
                         </button>
+
+                        {/* Held Carts Dropdown (Replaces sliding bar) */}
+                        {heldCarts.length > 0 && (
+                            <div style={{ position: 'relative' }}>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsHeldCartsDropdownOpen(prev => !prev);
+                                    }}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        background: isHeldCartsDropdownOpen ? '#FEF3C7' : '#FFFBEB',
+                                        border: '1px solid #FCD34D',
+                                        padding: '0.25rem 0.65rem',
+                                        borderRadius: '6px',
+                                        color: '#B45309',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '800',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        transition: 'all 0.15s ease',
+                                        boxShadow: '0 1px 2px rgba(180, 83, 9, 0.08)'
+                                    }}
+                                    title="View and switch between held carts"
+                                >
+                                    <ShoppingCart size={13} color="#B45309" />
+                                    <span>Carts ({heldCarts.length})</span>
+                                    <ChevronDown size={13} style={{ transform: isHeldCartsDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                                </button>
+
+                                {isHeldCartsDropdownOpen && (
+                                    <div
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{
+                                            position: 'absolute',
+                                            top: '100%',
+                                            right: 0,
+                                            marginTop: '6px',
+                                            background: '#FFFFFF',
+                                            border: '1px solid #E2E8F0',
+                                            borderRadius: '12px',
+                                            boxShadow: '0 12px 30px -4px rgba(15, 23, 42, 0.18)',
+                                            zIndex: 50,
+                                            width: '320px',
+                                            maxHeight: '380px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            overflow: 'hidden'
+                                        }}
+                                    >
+                                        {/* Dropdown Header */}
+                                        <div style={{ padding: '0.65rem 0.9rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.78rem', fontWeight: '850', color: '#0F172A' }}>
+                                                    Held Carts ({heldCarts.length})
+                                                </div>
+                                                <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
+                                                    Select a cart to resume editing
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsHeldCartsDropdownOpen(false)}
+                                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8', display: 'flex', padding: '2px' }}
+                                                title="Close"
+                                            >
+                                                <X size={15} />
+                                            </button>
+                                        </div>
+
+                                        {/* Dropdown Cart List */}
+                                        <div style={{ flex: 1, overflowY: 'auto', padding: '0.35rem 0' }}>
+                                            {heldCarts.map(hc => {
+                                                const isActive = activeHeldCartInfo && activeHeldCartInfo.id === hc.id;
+                                                const cartTotal = (hc.cart || []).reduce((sum, item) => sum + (parseFloat(item.total) || ((parseFloat(item.price) || 0) * (parseFloat(item.quantity) || 1))), 0);
+                                                const itemCount = (hc.cart || []).reduce((sum, item) => sum + (parseFloat(item.quantity) || 1), 0);
+
+                                                return (
+                                                    <div
+                                                        key={hc.id}
+                                                        onClick={() => {
+                                                            restoreCart(hc.id);
+                                                            setIsHeldCartsDropdownOpen(false);
+                                                        }}
+                                                        style={{
+                                                            padding: '0.55rem 0.85rem',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'space-between',
+                                                            gap: '0.5rem',
+                                                            cursor: 'pointer',
+                                                            background: isActive ? '#F0FDF4' : 'transparent',
+                                                            borderLeft: isActive ? '3px solid #16A34A' : '3px solid transparent',
+                                                            transition: 'background 0.15s'
+                                                        }}
+                                                        onMouseOver={(e) => {
+                                                            if (!isActive) e.currentTarget.style.backgroundColor = '#F8FAFC';
+                                                        }}
+                                                        onMouseOut={(e) => {
+                                                            if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
+                                                        }}
+                                                    >
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                {isActive && (
+                                                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16A34A', flexShrink: 0 }} />
+                                                                )}
+                                                                <span style={{ fontSize: '0.82rem', fontWeight: '800', color: isActive ? '#15803D' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                    {hc.customName || hc.customerName || `Cart #${hc.displayId}`}
+                                                                </span>
+                                                                {hc.isKioskOrder && (
+                                                                    <span style={{ background: '#2563EB', color: '#FFFFFF', padding: '1px 5px', borderRadius: '4px', fontSize: '0.6rem', fontWeight: '900', letterSpacing: '0.02em', flexShrink: 0 }}>
+                                                                        KIOSK
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: '#64748B', marginTop: '2px', fontWeight: '650' }}>
+                                                                <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
+                                                                <span>•</span>
+                                                                <span style={{ color: '#0F172A', fontWeight: '800' }}>{formatCurrency(cartTotal)}</span>
+                                                                {hc.customerName && (
+                                                                    <>
+                                                                        <span>•</span>
+                                                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90px' }}>
+                                                                            {hc.customerName}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Actions */}
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    renameHeldCart(hc.id);
+                                                                }}
+                                                                style={{ border: 'none', background: '#F1F5F9', borderRadius: '6px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', cursor: 'pointer' }}
+                                                                title="Rename Cart"
+                                                            >
+                                                                <Edit size={12} />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    deleteHeldCart(hc.id);
+                                                                }}
+                                                                style={{ border: 'none', background: '#FEF2F2', borderRadius: '6px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', cursor: 'pointer' }}
+                                                                title="Discard Cart"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Dropdown Footer: + New Cart */}
+                                        <div style={{ padding: '0.5rem 0.85rem', background: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsHeldCartsDropdownOpen(false);
+                                                    startNewCart();
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '6px',
+                                                    padding: '0.4rem 0.75rem',
+                                                    borderRadius: '8px',
+                                                    border: '1px dashed #CBD5E1',
+                                                    background: '#FFFFFF',
+                                                    color: '#334155',
+                                                    fontSize: '0.76rem',
+                                                    fontWeight: '800',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                <Plus size={13} />
+                                                <span>Start New Empty Cart</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         <button
                             type="button"
