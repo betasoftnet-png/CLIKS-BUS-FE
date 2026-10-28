@@ -52,8 +52,8 @@ const BusinessPayments = ({
     ...props
 }) => {
     const { currency, formatCurrency } = useCurrency();
-    const [activeTab, setActiveTab] = useState('receivables');
-    const [colFilters, setColFilters] = React.useState({}); // 'receivables', 'payables', 'bank', 'reminders'
+    const [activeTab, setActiveTab] = useState('inward_outward');
+    const [colFilters, setColFilters] = React.useState({}); // 'inward_outward', 'reminders', 'bank'
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearch, setShowSearch] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -1276,7 +1276,7 @@ const BusinessPayments = ({
             paid_amount: '',
             paidAmount: ''
         }));
-        setActiveTab('payables');
+        setActiveTab('inward_outward');
 
         try {
             await apiClient.post('/payments/pay', payload);
@@ -1488,11 +1488,9 @@ const BusinessPayments = ({
             <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div className="flex flex-nowrap overflow-x-auto whitespace-nowrap gap-1.5 min-w-0">
                     {[
-                        { id: 'receivables', label: 'Customer Receivables (Inward)', icon: ArrowDownRight },
-                        { id: 'payables', label: 'Supplier Payables (Outward)', icon: ArrowUpRight },
-                        { id: 'bank', label: 'Bank & Cash Registers', icon: Wallet },
+                        { id: 'inward_outward', label: 'Total Inward & Outward', icon: DoubleArrowIcon },
                         { id: 'reminders', label: 'Overdue Collections & Reminders', icon: Clock },
-                        { id: 'inward_outward', label: 'Total Inward & Outward', icon: DoubleArrowIcon }
+                        { id: 'bank', label: 'Bank & Cash Registers', icon: Wallet }
                     ].map(tab => (
                         <button 
                             key={tab.id}
@@ -1512,7 +1510,7 @@ const BusinessPayments = ({
                 </div>
 
                 {/* Global Search Icon Outside Table */}
-                {(activeTab === 'receivables' || activeTab === 'payables' || activeTab === 'inward_outward') && (
+                {activeTab === 'inward_outward' && (
                     <div style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -1553,115 +1551,187 @@ const BusinessPayments = ({
                 )}
             </div>
 
-            {/* Tab 1: Customer Receivables */}
-            {activeTab === 'receivables' && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: '1.5rem' }}>
+            {/* Tab 1: Total Inward & Outward */}
+            {activeTab === 'inward_outward' && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', marginBottom: '1.5rem' }}>
+                    {/* 3-Metric Summary Header */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginBottom: '1.25rem', flexShrink: 0 }}>
+                        {/* Total Inward */}
+                        <div style={{ background: 'white', padding: '1.1rem 1.5rem', borderRadius: '18px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                            <div>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Inward (+₹)</p>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#16A34A', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>
+                                    +{formatCurrency(totalInwardAmount)}
+                                </h3>
+                            </div>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A', flexShrink: 0 }}>
+                                <ArrowDownRight size={22} strokeWidth={2.5} />
+                            </div>
+                        </div>
 
-                    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <FilterableTableHead columns={[
-                                { key: 'receipt_id', label: 'Receipt ID', placeholder: 'e.g. RCP-001' },
-                                { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
-                                { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
-                                { key: 'invoice_linked', label: 'Invoice Linked', placeholder: 'INV-' },
-                                { key: 'total', label: 'Original Amount', placeholder: 'e.g. 5000' },
-                                { key: 'paid_amount', label: 'Paid Amount', placeholder: 'e.g. 5000' },
-                                { key: 'payment_mode', label: 'Mode', placeholder: 'e.g. UPI' },
-                                { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
-                            ]} onFilterChange={setColFilters} />
-                            <tbody>
-                                {filteredReceivables.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((r) => (
-                                    <tr key={r.payment_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.95rem' }}>{r.payment_number}</p>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem', color: '#64748B' }}>{r.payment_date}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#1E293B' }}>{r.customerProfile || r.customer_name}</td>
-                                        <td style={{ padding: '1.5rem 2rem', color: '#475569', fontWeight: '600' }}>{r.invoiceLinkedId || r.invoice_id}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>{formatCurrency(r.totalOriginalAmount !== undefined ? r.totalOriginalAmount : r.total_amount)}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#1B6B3A' }}>{formatCurrency(r.paidAmount !== undefined ? r.paidAmount : r.paid_amount)}</td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#F0FDF4', color: '#1B6B3A', fontWeight: '800', fontSize: '0.75rem' }}>{r.payment_mode}</span>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ 
-                                                padding: '0.25rem 0.5rem', 
-                                                borderRadius: '6px', 
-                                                background: r.reconciliation_status === 'matched' ? '#EFF6FF' : (r.reconciliation_status === 'partially matched' ? '#FEF3C7' : '#F1F5F9'), 
-                                                color: r.reconciliation_status === 'matched' ? '#2563EB' : (r.reconciliation_status === 'partially matched' ? '#B45309' : '#64748B'), 
-                                                fontWeight: '800', 
-                                                fontSize: '0.75rem' 
-                                            }}>
-                                                {(r.reconciliation_status || 'MATCHED').toUpperCase()}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {filteredReceivables.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).length === 0 && (
-                                    <tr>
-                                        <td colSpan={8} style={{ padding: '3.5rem 2rem', textAlign: 'center', color: '#94A3B8' }}>
-                                            <FileText size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
-                                            <p style={{ fontWeight: '700', fontSize: '0.95rem', color: '#64748B', margin: 0 }}>No customer bills or receivables recorded</p>
-                                            <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '0.25rem' }}>Customer invoices and POS bills will appear here automatically</p>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                        {/* Total Outward */}
+                        <div style={{ background: 'white', padding: '1.1rem 1.5rem', borderRadius: '18px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                            <div>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Outward (-₹)</p>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#DC2626', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>
+                                    -{formatCurrency(totalOutwardAmount)}
+                                </h3>
+                            </div>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626', flexShrink: 0 }}>
+                                <ArrowUpRight size={22} strokeWidth={2.5} />
+                            </div>
+                        </div>
+
+                        {/* Net Balance */}
+                        <div style={{ background: 'white', padding: '1.1rem 1.5rem', borderRadius: '18px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                            <div>
+                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Net Balance (Inward - Outward)</p>
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: netBalanceAmount >= 0 ? '#1B6B3A' : '#DC2626', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>
+                                    {netBalanceAmount >= 0 ? '+' : '-'}{formatCurrency(Math.abs(netBalanceAmount))}
+                                </h3>
+                            </div>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: netBalanceAmount >= 0 ? '#DCF2E4' : '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: netBalanceAmount >= 0 ? '#1B6B3A' : '#DC2626', flexShrink: 0 }}>
+                                <Wallet size={22} strokeWidth={2.5} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Table Card */}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <FilterableTableHead columns={[
+                                    { key: 'entryId', label: 'ENTRY ID', placeholder: 'e.g. REC-001' },
+                                    { key: 'date', label: 'DATE', placeholder: 'e.g. 2026-05' },
+                                    { key: 'flowType', label: 'FLOW TYPE', placeholder: 'INWARD / OUTWARD' },
+                                    { key: 'party', label: 'PARTY (CUSTOMER / SUPPLIER)', placeholder: 'Name' },
+                                    { key: 'referenceNum', label: 'REFERENCE #', placeholder: 'Ref #' },
+                                    { key: 'originalAmount', label: 'ORIGINAL AMOUNT', placeholder: 'Amount' },
+                                    { key: 'transactedAmount', label: 'TRANSACTED AMOUNT', placeholder: 'Amount' },
+                                    { key: 'mode', label: 'MODE', placeholder: 'Mode' },
+                                    { key: 'status', label: 'STATUS', placeholder: 'Status' }
+                                ]} onFilterChange={setColFilters} />
+                                <tbody>
+                                    {filteredUnifiedTransactions.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((item) => (
+                                        <tr key={item.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.92rem', margin: 0 }}>{item.entryId}</p>
+                                            </td>
+                                            <td style={{ padding: '1.25rem 1.5rem', color: '#64748B', fontSize: '0.88rem', whiteSpace: 'nowrap' }}>{item.date}</td>
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                {item.flowType === 'INWARD' ? (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.65rem', borderRadius: '8px', background: '#DCFCE7', color: '#15803D', fontWeight: '850', fontSize: '0.75rem', letterSpacing: '0.02em', border: '1px solid #BBF7D0' }}>
+                                                        ↘ INWARD
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.65rem', borderRadius: '8px', background: '#FEE2E2', color: '#B91C1C', fontWeight: '850', fontSize: '0.75rem', letterSpacing: '0.02em', border: '1px solid #FECACA' }}>
+                                                        ↗ OUTWARD
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: '1.25rem 1.5rem', fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>{item.party}</td>
+                                            <td style={{ padding: '1.25rem 1.5rem', color: '#475569', fontWeight: '600', fontSize: '0.85rem' }}>{item.referenceNum}</td>
+                                            <td style={{ padding: '1.25rem 1.5rem', fontWeight: '600', color: '#475569', fontSize: '0.88rem' }}>{formatCurrency(item.originalAmount)}</td>
+                                            <td style={{ padding: '1.25rem 1.5rem', fontWeight: '850', color: item.flowType === 'INWARD' ? '#16A34A' : '#DC2626', fontSize: '0.92rem', whiteSpace: 'nowrap' }}>
+                                                {item.flowType === 'INWARD' ? '+' : '-'}{formatCurrency(item.transactedAmount)}
+                                            </td>
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                <span style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', background: item.flowType === 'INWARD' ? '#F0FDF4' : '#FEF2F2', color: item.flowType === 'INWARD' ? '#1B6B3A' : '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>{item.mode}</span>
+                                            </td>
+                                            <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                <span style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{item.status}</span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredUnifiedTransactions.length === 0 && (
+                                        <tr>
+                                            <td colSpan={9} style={{ textAlign: 'center', padding: '3rem', color: '#94A3B8', fontWeight: '600' }}>
+                                                No transactions found matching your criteria.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* Tab 2: Supplier Payables */}
-            {activeTab === 'payables' && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: '1.5rem' }}>
-
+            {/* Tab 2: Overdue reminders */}
+            {activeTab === 'reminders' && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2rem 2.5rem 2.5rem 2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: '1.5rem' }}>
+                    <h3 style={{ flexShrink: 0, fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Overdue Customer Accounts Reminders</h3>
                     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-                                { key: 'receipt_id', label: 'Receipt ID', placeholder: 'e.g. RCP-001' },
-                                { key: 'date', label: 'Date', placeholder: 'e.g. 2026-05' },
-                                { key: 'customer_name', label: 'Customer', placeholder: 'Name' },
-                                { key: 'invoice_linked', label: 'Invoice Linked', placeholder: 'INV-' },
-                                { key: 'total', label: 'Total Original', placeholder: 'e.g. 5000' },
-                                { key: 'paid_amount', label: 'Paid Amount', placeholder: 'e.g. 5000' },
-                                { key: 'payment_mode', label: 'Mode', placeholder: 'e.g. UPI' },
-                                { key: 'status', label: 'Reconciliation', placeholder: 'Status' }
+                                { key: 'customer_name', label: 'Customer Name', placeholder: 'Name' },
+                                { key: 'invoice_id', label: 'Invoice / Bill No', placeholder: 'e.g. INV-101' },
+                                { key: 'total_amount', label: 'Total Bill', placeholder: 'Total' },
+                                { key: 'paid_amount', label: 'Paid Amount', placeholder: 'Paid' },
+                                { key: 'pending_amount', label: 'Credit Due Balance', placeholder: 'Due' },
+                                { key: 'due_date', label: 'Due Date', placeholder: 'YYYY-MM-DD' },
+                                { key: 'overdue_days', label: 'Status', placeholder: 'Status' },
+                                { 
+                                    key: 'actions', 
+                                    label: 'Actions', 
+                                    placeholder: 'Action',
+                                    align: 'right',
+                                    className: 'min-w-[170px] text-right',
+                                    style: { minWidth: '170px', textAlign: 'right' }
+                                }
                             ]} onFilterChange={setColFilters} />
                             <tbody>
-                                {filteredPayables.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((p) => (
-                                    <tr key={p.payment_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.95rem' }}>{p.payment_number}</p>
+                                {overdues.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ov) => (
+                                    <tr key={ov.invoice_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#1E293B' }}>{ov.customer_name}</td>
+                                        <td style={{ padding: '1rem', color: '#475569', fontWeight: '700' }}>{ov.invoice_id}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '700', color: '#1E293B' }}>{formatCurrency(ov.total_amount)}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '700', color: '#16A34A' }}>{formatCurrency(ov.paid_amount)}</td>
+                                        <td style={{ padding: '1rem', fontWeight: '850', color: '#DC2626' }}>{formatCurrency(ov.pending_amount)}</td>
+                                        <td style={{ padding: '1rem', color: '#64748B' }}>{ov.due_date}</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            {ov.overdue_days > 0 ? (
+                                                <span style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>
+                                                    {ov.overdue_days} Days Overdue
+                                                </span>
+                                            ) : (
+                                                <span style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', background: '#FFFBEB', color: '#D97706', fontWeight: '800', fontSize: '0.75rem' }}>
+                                                    Credit Due
+                                                </span>
+                                            )}
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem', color: '#64748B' }}>{p.payment_date}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '700', color: '#1E293B' }}>{p.supplier_name}</td>
-                                        <td style={{ padding: '1.5rem 2rem', color: '#475569', fontWeight: '600' }}>{p.purchase_id}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '600', color: '#475569' }}>{formatCurrency(p.total_amount)}</td>
-                                        <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#EF4444' }}>{formatCurrency(p.paid_amount)}</td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ padding: '0.25rem 0.5rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>{p.payment_mode}</span>
-                                        </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <span style={{ 
-                                                padding: '0.25rem 0.5rem', 
-                                                borderRadius: '6px', 
-                                                background: p.reconciliation_status === 'matched' ? '#F0FDF4' : (p.reconciliation_status === 'partially matched' ? '#FEF3C7' : '#EFF6FF'), 
-                                                color: p.reconciliation_status === 'matched' ? '#1B6B3A' : (p.reconciliation_status === 'partially matched' ? '#B45309' : '#2563EB'), 
-                                                fontWeight: '800', 
-                                                fontSize: '0.75rem' 
-                                            }}>
-                                                {(p.reconciliation_status || 'MATCHED').toUpperCase()}
-                                            </span>
+                                        <td className="whitespace-nowrap text-right" style={{ padding: '1rem', textAlign: 'right', whiteSpace: 'nowrap', minWidth: '170px' }}>
+                                            <button 
+                                                type="button"
+                                                onClick={() => sendWhatsAppReminder(ov)}
+                                                title="Send reminder via WhatsApp"
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-all hover:bg-emerald-100 whitespace-nowrap"
+                                                style={{ 
+                                                    display: 'inline-flex', 
+                                                    alignItems: 'center', 
+                                                    gap: '0.375rem', 
+                                                    padding: '0.4rem 0.85rem', 
+                                                    borderRadius: '9999px', 
+                                                    background: '#ECFDF5', 
+                                                    color: '#059669', 
+                                                    border: '1px solid #A7F3D0', 
+                                                    fontWeight: '700', 
+                                                    fontSize: '0.75rem', 
+                                                    cursor: 'pointer',
+                                                    whiteSpace: 'nowrap',
+                                                    flexShrink: 0
+                                                }}
+                                            >
+                                                <Send size={12} className="text-emerald-600 flex-shrink-0" style={{ color: '#059669', flexShrink: 0 }} />
+                                                <span style={{ whiteSpace: 'nowrap' }}>Send Reminder</span>
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
-                                {filteredPayables.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).length === 0 && (
+                                {overdues.length === 0 && (
                                     <tr>
-                                        <td colSpan={8} style={{ padding: '3.5rem 2rem', textAlign: 'center', color: '#94A3B8' }}>
-                                            <FileText size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
-                                            <p style={{ fontWeight: '700', fontSize: '0.95rem', color: '#64748B', margin: 0 }}>No supplier bills or payables recorded</p>
-                                            <p style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '0.25rem' }}>Purchases and vendor bills will appear here automatically</p>
+                                        <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>
+                                            No overdue credit collections found. All customer credit bills are settled!
                                         </td>
                                     </tr>
                                 )}
@@ -1933,195 +2003,7 @@ const BusinessPayments = ({
                 </div>
             )}
 
-            {/* Tab 4: Overdue reminders */}
-            {activeTab === 'reminders' && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2rem 2.5rem 2.5rem 2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: '1.5rem' }}>
-                    <h3 style={{ flexShrink: 0, fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>Overdue Customer Accounts Reminders (myBillBook flow)</h3>
-                    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <FilterableTableHead columns={[
-                                { key: 'customer_name', label: 'Customer Name', placeholder: 'Name' },
-                                { key: 'invoice_id', label: 'Invoice / Bill No', placeholder: 'e.g. INV-101' },
-                                { key: 'total_amount', label: 'Total Bill', placeholder: 'Total' },
-                                { key: 'paid_amount', label: 'Paid Amount', placeholder: 'Paid' },
-                                { key: 'pending_amount', label: 'Credit Due Balance', placeholder: 'Due' },
-                                { key: 'due_date', label: 'Due Date', placeholder: 'YYYY-MM-DD' },
-                                { key: 'overdue_days', label: 'Status', placeholder: 'Status' },
-                                { 
-                                    key: 'actions', 
-                                    label: 'Actions', 
-                                    placeholder: 'Action',
-                                    align: 'right',
-                                    className: 'min-w-[170px] text-right',
-                                    style: { minWidth: '170px', textAlign: 'right' }
-                                }
-                            ]} onFilterChange={setColFilters} />
-                            <tbody>
-                                {overdues.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ov) => (
-                                    <tr key={ov.invoice_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#1E293B' }}>{ov.customer_name}</td>
-                                        <td style={{ padding: '1rem', color: '#475569', fontWeight: '700' }}>{ov.invoice_id}</td>
-                                        <td style={{ padding: '1rem', fontWeight: '700', color: '#1E293B' }}>{formatCurrency(ov.total_amount)}</td>
-                                        <td style={{ padding: '1rem', fontWeight: '700', color: '#16A34A' }}>{formatCurrency(ov.paid_amount)}</td>
-                                        <td style={{ padding: '1rem', fontWeight: '850', color: '#DC2626' }}>{formatCurrency(ov.pending_amount)}</td>
-                                        <td style={{ padding: '1rem', color: '#64748B' }}>{ov.due_date}</td>
-                                        <td style={{ padding: '1rem' }}>
-                                            {ov.overdue_days > 0 ? (
-                                                <span style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', background: '#FEF2F2', color: '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>
-                                                    {ov.overdue_days} Days Overdue
-                                                </span>
-                                            ) : (
-                                                <span style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', background: '#FFFBEB', color: '#D97706', fontWeight: '800', fontSize: '0.75rem' }}>
-                                                    Credit Due
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="whitespace-nowrap text-right" style={{ padding: '1rem', textAlign: 'right', whiteSpace: 'nowrap', minWidth: '170px' }}>
-                                            <button 
-                                                type="button"
-                                                onClick={() => sendWhatsAppReminder(ov)}
-                                                title="Send reminder via WhatsApp"
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 transition-all hover:bg-emerald-100 whitespace-nowrap"
-                                                style={{ 
-                                                    display: 'inline-flex', 
-                                                    alignItems: 'center', 
-                                                    gap: '0.375rem', 
-                                                    padding: '0.4rem 0.85rem', 
-                                                    borderRadius: '9999px', 
-                                                    background: '#ECFDF5', 
-                                                    color: '#059669', 
-                                                    border: '1px solid #A7F3D0', 
-                                                    fontWeight: '700', 
-                                                    fontSize: '0.75rem', 
-                                                    cursor: 'pointer',
-                                                    whiteSpace: 'nowrap',
-                                                    flexShrink: 0
-                                                }}
-                                            >
-                                                <Send size={12} className="text-emerald-600 flex-shrink-0" style={{ color: '#059669', flexShrink: 0 }} />
-                                                <span style={{ whiteSpace: 'nowrap' }}>Send Reminder</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {overdues.length === 0 && (
-                                    <tr>
-                                        <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>
-                                            No overdue credit collections found. All customer credit bills are settled!
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
 
-            {/* Tab 5: Total Inward & Outward */}
-            {activeTab === 'inward_outward' && (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', marginBottom: '1.5rem' }}>
-                    {/* 3-Metric Summary Header */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginBottom: '1.25rem', flexShrink: 0 }}>
-                        {/* Total Inward */}
-                        <div style={{ background: 'white', padding: '1.1rem 1.5rem', borderRadius: '18px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                            <div>
-                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Inward (+₹)</p>
-                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#16A34A', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>
-                                    +{formatCurrency(totalInwardAmount)}
-                                </h3>
-                            </div>
-                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A', flexShrink: 0 }}>
-                                <ArrowDownRight size={22} strokeWidth={2.5} />
-                            </div>
-                        </div>
-
-                        {/* Total Outward */}
-                        <div style={{ background: 'white', padding: '1.1rem 1.5rem', borderRadius: '18px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                            <div>
-                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Outward (-₹)</p>
-                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#DC2626', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>
-                                    -{formatCurrency(totalOutwardAmount)}
-                                </h3>
-                            </div>
-                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626', flexShrink: 0 }}>
-                                <ArrowUpRight size={22} strokeWidth={2.5} />
-                            </div>
-                        </div>
-
-                        {/* Net Balance */}
-                        <div style={{ background: 'white', padding: '1.1rem 1.5rem', borderRadius: '18px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-                            <div>
-                                <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Net Balance (Inward - Outward)</p>
-                                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: netBalanceAmount >= 0 ? '#1B6B3A' : '#DC2626', margin: '0.2rem 0 0 0', letterSpacing: '-0.02em' }}>
-                                    {netBalanceAmount >= 0 ? '+' : '-'}{formatCurrency(Math.abs(netBalanceAmount))}
-                                </h3>
-                            </div>
-                            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: netBalanceAmount >= 0 ? '#DCF2E4' : '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: netBalanceAmount >= 0 ? '#1B6B3A' : '#DC2626', flexShrink: 0 }}>
-                                <Wallet size={22} strokeWidth={2.5} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Table Card */}
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                <FilterableTableHead columns={[
-                                    { key: 'entryId', label: 'ENTRY ID', placeholder: 'e.g. REC-001' },
-                                    { key: 'date', label: 'DATE', placeholder: 'e.g. 2026-05' },
-                                    { key: 'flowType', label: 'FLOW TYPE', placeholder: 'INWARD / OUTWARD' },
-                                    { key: 'party', label: 'PARTY (CUSTOMER / SUPPLIER)', placeholder: 'Name' },
-                                    { key: 'referenceNum', label: 'REFERENCE #', placeholder: 'Ref #' },
-                                    { key: 'originalAmount', label: 'ORIGINAL AMOUNT', placeholder: 'Amount' },
-                                    { key: 'transactedAmount', label: 'TRANSACTED AMOUNT', placeholder: 'Amount' },
-                                    { key: 'mode', label: 'MODE', placeholder: 'Mode' },
-                                    { key: 'status', label: 'STATUS', placeholder: 'Status' }
-                                ]} onFilterChange={setColFilters} />
-                                <tbody>
-                                    {filteredUnifiedTransactions.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((item) => (
-                                        <tr key={item.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                            <td style={{ padding: '1.25rem 1.5rem' }}>
-                                                <p style={{ fontWeight: '800', color: '#064E3B', fontSize: '0.92rem', margin: 0 }}>{item.entryId}</p>
-                                            </td>
-                                            <td style={{ padding: '1.25rem 1.5rem', color: '#64748B', fontSize: '0.88rem', whiteSpace: 'nowrap' }}>{item.date}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem' }}>
-                                                {item.flowType === 'INWARD' ? (
-                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.65rem', borderRadius: '8px', background: '#DCFCE7', color: '#15803D', fontWeight: '850', fontSize: '0.75rem', letterSpacing: '0.02em', border: '1px solid #BBF7D0' }}>
-                                                        ↘ INWARD
-                                                    </span>
-                                                ) : (
-                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.3rem 0.65rem', borderRadius: '8px', background: '#FEE2E2', color: '#B91C1C', fontWeight: '850', fontSize: '0.75rem', letterSpacing: '0.02em', border: '1px solid #FECACA' }}>
-                                                        ↗ OUTWARD
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td style={{ padding: '1.25rem 1.5rem', fontWeight: '750', color: '#1E293B', fontSize: '0.9rem' }}>{item.party}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', color: '#475569', fontWeight: '600', fontSize: '0.85rem' }}>{item.referenceNum}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', fontWeight: '600', color: '#475569', fontSize: '0.88rem' }}>{formatCurrency(item.originalAmount)}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', fontWeight: '850', color: item.flowType === 'INWARD' ? '#16A34A' : '#DC2626', fontSize: '0.92rem', whiteSpace: 'nowrap' }}>
-                                                {item.flowType === 'INWARD' ? '+' : '-'}{formatCurrency(item.transactedAmount)}
-                                            </td>
-                                            <td style={{ padding: '1.25rem 1.5rem' }}>
-                                                <span style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', background: item.flowType === 'INWARD' ? '#F0FDF4' : '#FEF2F2', color: item.flowType === 'INWARD' ? '#1B6B3A' : '#EF4444', fontWeight: '800', fontSize: '0.75rem' }}>{item.mode}</span>
-                                            </td>
-                                            <td style={{ padding: '1.25rem 1.5rem' }}>
-                                                <span style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', background: '#EFF6FF', color: '#2563EB', fontWeight: '800', fontSize: '0.75rem' }}>{item.status}</span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {filteredUnifiedTransactions.length === 0 && (
-                                        <tr>
-                                            <td colSpan={9} style={{ textAlign: 'center', padding: '3rem', color: '#94A3B8', fontWeight: '600' }}>
-                                                No transactions found matching your criteria.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Inward Customer Payment Modal */}
             {isPaymentModalOpen && (
