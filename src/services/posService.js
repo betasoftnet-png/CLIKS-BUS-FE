@@ -43,6 +43,16 @@ export const posService = {
         }
     },
 
+    getProductAnalytics: async (params = {}) => {
+        try {
+            const res = await apiClient.get('/pos/product-analytics', { params });
+            return res.data?.data || res.data || null;
+        } catch (error) {
+            console.error('[POS Service] Fetching product analytics error:', error);
+            return null;
+        }
+    },
+
     getPosSession: async () => {
         try {
             const res = await apiClient.get('/pos/session');

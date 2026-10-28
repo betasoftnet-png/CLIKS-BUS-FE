@@ -9,6 +9,7 @@ import {
     Minus,
     Trash2,
     User,
+    Users,
     ShoppingBag,
     CreditCard,
     Smartphone,
@@ -340,6 +341,22 @@ const BusinessPOS = () => {
     const [stockTargetProduct, setStockTargetProduct] = useState(null);
     const [addedStockQty, setAddedStockQty] = useState('');
     const [decreasedStockQty, setDecreasedStockQty] = useState('');
+
+    // Product Information & Sales Modal State
+    const [infoTargetProduct, setInfoTargetProduct] = useState(null);
+    const [isProductInfoModalOpen, setIsProductInfoModalOpen] = useState(false);
+    const [productSalesRange, setProductSalesRange] = useState('today'); // 'today' | 'week' | 'month' | 'custom'
+    const [productSalesFromDate, setProductSalesFromDate] = useState(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    });
+    const [productSalesToDate, setProductSalesToDate] = useState(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    });
+    const [productAnalyticsData, setProductAnalyticsData] = useState(null);
+    const [isLoadingProductAnalytics, setIsLoadingProductAnalytics] = useState(false);
+    const [infoModalActiveTab, setInfoModalActiveTab] = useState('customers'); // 'customers' | 'transactions'
 
     React.useEffect(() => {
         const handleGlobalClick = () => {
@@ -1453,8 +1470,8 @@ const BusinessPOS = () => {
     // 4. Fetch Order History
     const { data: orderHistory = [], isLoading: isHistoryLoading } = useQuery({
         queryKey: ['pos-order-history'],
-        queryFn: () => posService.getOrders({ limit: 200 }),
-        enabled: showHistoryModal
+        queryFn: () => posService.getOrders({ limit: 500 }),
+        enabled: showHistoryModal || isProductInfoModalOpen
     });
 
     const todayDateStr = useMemo(() => {
@@ -2019,6 +2036,186 @@ const BusinessPOS = () => {
         if (window.confirm(`Delete Item?\n\nAre you sure you want to delete "${prod.name}"?`)) {
             deleteProductMutation.mutate({ id: prod.id, source: prod.source });
         }
+    };
+
+    const fetchProductAnalytics = async (prod, range, from, to) => {
+        if (!prod) return;
+        setIsLoadingProductAnalytics(true);
+        try {
+            const res = await posService.getProductAnalytics({
+                product_id: prod.id,
+                sku: prod.sku,
+                name: prod.name,
+                range,
+                from_date: range === 'custom' ? from : undefined,
+                to_date: range === 'custom' ? to : undefined
+            });
+            if (res && res.sales) {
+                setProductAnalyticsData(res);
+                setIsLoadingProductAnalytics(false);
+                return;
+            }
+        } catch (e) {
+            console.warn('[POS] Error fetching analytics from API, computing fallback:', e);
+        }
+
+        // Fallback: Compute from orderHistory and current prod data
+        const rawStock = parseFloat(prod.quantity) || 0;
+        const isUnlimited = Boolean(prod.isUnlimited || prod.is_unlimited || rawStock >= 999000);
+        const rackLoc = prod.rack_location || prod.rack_number || prod.rack || prod.rawProduct?.rack_location || prod.rawProduct?.rack_number || prod.rawProduct?.rack || 'Not Assigned';
+        const expiryDate = prod.expiry_date || prod.rawProduct?.expiry_date || null;
+        let isExpired = false;
+        let daysToExpiry = null;
+        if (expiryDate) {
+            try {
+                const expTime = new Date(expiryDate).getTime();
+                daysToExpiry = Math.ceil((expTime - Date.now()) / (1000 * 60 * 60 * 24));
+                isExpired = daysToExpiry < 0;
+            } catch (e) {}
+        }
+        const hasWarranty = prod.has_warranty === 'Yes' || prod.has_warranty === true || Boolean(prod.warranty_period) || Boolean(prod.rawProduct?.warranty_period);
+        const warrantyPeriod = prod.warranty_period || prod.rawProduct?.warranty_period || (hasWarranty ? '1 Year Standard Warranty' : 'No Warranty');
+
+        const targetIdStr = String(prod.id || '').trim();
+        const targetSku = (prod.sku || '').trim().toLowerCase();
+        const targetName = (prod.name || '').trim().toLowerCase();
+
+        const now = new Date();
+        let sTime = null;
+        let eTime = null;
+        if (range === 'today') {
+            sTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).getTime();
+            eTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+        } else if (range === 'week') {
+            sTime = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+            eTime = now.getTime();
+        } else if (range === 'month') {
+            sTime = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+            eTime = now.getTime();
+        } else if (range === 'custom') {
+            if (from) sTime = new Date(from).setHours(0, 0, 0, 0);
+            if (to) eTime = new Date(to).setHours(23, 59, 59, 999);
+        }
+
+        let totalSalesAmount = 0;
+        let totalQuantitySold = 0;
+        let totalOrders = 0;
+        const uniqueCustomersSet = new Set();
+        const customerPurchasesMap = {};
+        const transactions = [];
+
+        (orderHistory || []).forEach(order => {
+            const orderDate = new Date(order.created_at || order.date || Date.now()).getTime();
+            if (sTime && orderDate < sTime) return;
+            if (eTime && orderDate > eTime) return;
+
+            let items = [];
+            try {
+                items = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []);
+            } catch (e) {
+                items = [];
+            }
+            if (!Array.isArray(items)) return;
+
+            let matchedInOrder = false;
+            items.forEach(item => {
+                const iIdStr = String(item.id || '').trim();
+                const iSku = (item.sku || '').trim().toLowerCase();
+                const iName = (item.name || item.description || '').trim().toLowerCase();
+
+                const isMatch = (targetIdStr && iIdStr && targetIdStr === iIdStr) ||
+                                (targetSku && iSku && targetSku === iSku) ||
+                                (targetName && iName && (targetName === iName || iName.includes(targetName) || targetName.includes(iName)));
+
+                if (isMatch) {
+                    matchedInOrder = true;
+                    const qty = parseFloat(item.quantity) || 0;
+                    const itemPrice = parseFloat(item.price) || (qty > 0 ? (parseFloat(item.total) / qty) : 0);
+                    const itemTotal = parseFloat(item.total) || (qty * itemPrice) || 0;
+
+                    totalQuantitySold += qty;
+                    totalSalesAmount += itemTotal;
+
+                    const custName = (order.client_name || (order.customer_id ? `Customer #${order.customer_id}` : 'Walk-in Customer')).trim();
+                    uniqueCustomersSet.add(custName);
+
+                    if (!customerPurchasesMap[custName]) {
+                        customerPurchasesMap[custName] = { name: custName, totalQty: 0, totalAmount: 0, orderCount: 0 };
+                    }
+                    customerPurchasesMap[custName].totalQty += qty;
+                    customerPurchasesMap[custName].totalAmount += itemTotal;
+                    customerPurchasesMap[custName].orderCount += 1;
+
+                    transactions.push({
+                        invoice_id: order.id,
+                        invoice_number: order.invoice_number,
+                        date: order.created_at || order.date,
+                        customer_name: custName,
+                        quantity: qty,
+                        unit: item.unit || prod.unit || 'PCS',
+                        price: itemPrice,
+                        total: itemTotal
+                    });
+                }
+            });
+            if (matchedInOrder) totalOrders += 1;
+        });
+
+        setProductAnalyticsData({
+            product: {
+                id: prod.id,
+                name: prod.name,
+                sku: prod.sku,
+                category: prod.category || 'General',
+                unit: prod.unit || 'PCS',
+                price: prod.price || 0
+            },
+            stock: {
+                quantity: isUnlimited ? '∞' : rawStock,
+                unit: prod.unit || 'PCS',
+                is_unlimited: isUnlimited,
+                low_stock_threshold: prod.low_stock_threshold || prod.rawProduct?.low_stock_threshold || 5,
+                warehouse: prod.warehouse_id || prod.location || 'Main Godown',
+                status: isUnlimited ? 'In Stock (Unlimited)' : (rawStock <= 0 ? 'Out of Stock' : (rawStock < (prod.low_stock_threshold || 5) ? 'Low Stock' : 'In Stock'))
+            },
+            rack: {
+                rack_location: rackLoc,
+                shelf_number: prod.shelf_number || prod.rawProduct?.shelf_number || null,
+                bin_number: prod.bin_number || prod.rawProduct?.bin_number || null,
+                zone: prod.zone || prod.rawProduct?.zone || null,
+                formatted: rackLoc !== 'Not Assigned' ? `${rackLoc}${prod.shelf_number ? ` (Shelf ${prod.shelf_number})` : ''}` : 'Not Assigned'
+            },
+            expiry: {
+                expiry_date: expiryDate || 'N/A',
+                is_perishable: Boolean(prod.is_perishable || prod.rawProduct?.is_perishable),
+                batch_number: prod.batch_number || prod.rawProduct?.batch_number || null,
+                is_expired: isExpired,
+                days_remaining: daysToExpiry,
+                status: !expiryDate ? 'Non-Perishable / N/A' : (isExpired ? 'Expired' : (daysToExpiry <= 30 ? `Expiring Soon (${daysToExpiry}d)` : `Valid (${daysToExpiry}d left)`))
+            },
+            warranty: {
+                has_warranty: hasWarranty,
+                warranty_period: warrantyPeriod,
+                status: hasWarranty ? `Active (${warrantyPeriod})` : 'No Warranty Available'
+            },
+            sales: {
+                total_sales_amount: totalSalesAmount,
+                total_quantity_sold: totalQuantitySold,
+                total_orders: totalOrders,
+                unique_customers_count: uniqueCustomersSet.size,
+                unique_customers_list: Array.from(uniqueCustomersSet),
+                customer_breakdown: Object.values(customerPurchasesMap).sort((a, b) => b.totalAmount - a.totalAmount),
+                transactions: transactions.slice(0, 50),
+                date_range: { range, start_date: from, end_date: to }
+            }
+        });
+        setIsLoadingProductAnalytics(false);
+    };
+
+    const handleOpenProductInfo = (prod) => {
+        setInfoTargetProduct(prod);
+        setIsProductInfoModalOpen(true);
+        fetchProductAnalytics(prod, productSalesRange, productSalesFromDate, productSalesToDate);
     };
 
     // Derived Categories
@@ -3788,56 +3985,125 @@ const BusinessPOS = () => {
                                                 boxShadow: isUnlimited ? '0 4px 12px rgba(37, 99, 235, 0.06)' : '0 2px 4px rgba(0,0,0,0.02)'
                                             }}
                                         >
-                                            {/* Top Row: Visual Tag for Category + Three-Dot Menu */}
+                                            {/* Top Row: Visual Tag for Category + Info Button + Three-Dot Menu */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{prod.category || 'General'}</span>
+                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.03em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75px' }}>
+                                                    {prod.category || 'General'}
+                                                </span>
 
-                                                {/* Three-Dot Option Icon */}
-                                                <div style={{ position: 'relative' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                    {/* Small Product Information Button */}
                                                     <button
                                                         type="button"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            setActiveProductMenuId(activeProductMenuId === prod.id ? null : prod.id);
+                                                            handleOpenProductInfo(prod);
                                                         }}
                                                         style={{
-                                                            border: 'none',
-                                                            background: 'transparent',
+                                                            border: '1px solid #E2E8F0',
+                                                            background: '#F8FAFC',
                                                             cursor: 'pointer',
-                                                            padding: '2px 4px',
-                                                            borderRadius: '4px',
-                                                            color: '#64748B',
+                                                            width: '22px',
+                                                            height: '22px',
+                                                            borderRadius: '6px',
+                                                            color: '#0284C7',
                                                             display: 'flex',
                                                             alignItems: 'center',
                                                             justifyContent: 'center',
-                                                            transition: 'background 0.15s ease'
+                                                            transition: 'all 0.15s ease',
+                                                            padding: 0
                                                         }}
-                                                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F1F5F9'}
-                                                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                        title="Options"
+                                                        onMouseOver={(e) => {
+                                                            e.currentTarget.style.backgroundColor = '#E0F2FE';
+                                                            e.currentTarget.style.borderColor = '#BAE6FD';
+                                                            e.currentTarget.style.color = '#0369A1';
+                                                        }}
+                                                        onMouseOut={(e) => {
+                                                            e.currentTarget.style.backgroundColor = '#F8FAFC';
+                                                            e.currentTarget.style.borderColor = '#E2E8F0';
+                                                            e.currentTarget.style.color = '#0284C7';
+                                                        }}
+                                                        title="Product Info, Stock, Rack, Expiry, Warranty & Sales"
                                                     >
-                                                        <MoreVertical size={16} />
+                                                        <Info size={13} strokeWidth={2.5} />
                                                     </button>
 
-                                                    {/* Dropdown Menu */}
-                                                    {activeProductMenuId === prod.id && (
-                                                        <div
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            style={{
-                                                                position: 'absolute',
-                                                                top: '100%',
-                                                                right: 0,
-                                                                marginTop: '4px',
-                                                                background: '#FFFFFF',
-                                                                border: '1px solid #E2E8F0',
-                                                                borderRadius: '10px',
-                                                                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)',
-                                                                zIndex: 50,
-                                                                minWidth: '150px',
-                                                                padding: '0.35rem 0',
-                                                                overflow: 'hidden'
+                                                    {/* Three-Dot Option Icon */}
+                                                    <div style={{ position: 'relative' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveProductMenuId(activeProductMenuId === prod.id ? null : prod.id);
                                                             }}
+                                                            style={{
+                                                                border: 'none',
+                                                                background: 'transparent',
+                                                                cursor: 'pointer',
+                                                                padding: '2px 4px',
+                                                                borderRadius: '4px',
+                                                                color: '#64748B',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                transition: 'background 0.15s ease'
+                                                            }}
+                                                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F1F5F9'}
+                                                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                            title="Options"
                                                         >
+                                                            <MoreVertical size={16} />
+                                                        </button>
+
+                                                        {/* Dropdown Menu */}
+                                                        {activeProductMenuId === prod.id && (
+                                                            <div
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    top: '100%',
+                                                                    right: 0,
+                                                                    marginTop: '4px',
+                                                                    background: '#FFFFFF',
+                                                                    border: '1px solid #E2E8F0',
+                                                                    borderRadius: '10px',
+                                                                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)',
+                                                                    zIndex: 50,
+                                                                    minWidth: '160px',
+                                                                    padding: '0.35rem 0',
+                                                                    overflow: 'hidden'
+                                                                }}
+                                                            >
+                                                                {/* 0. Product Info & Sales */}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setActiveProductMenuId(null);
+                                                                        handleOpenProductInfo(prod);
+                                                                    }}
+                                                                    style={{
+                                                                        width: '100%',
+                                                                        textAlign: 'left',
+                                                                        padding: '0.5rem 0.85rem',
+                                                                        background: 'transparent',
+                                                                        border: 'none',
+                                                                        cursor: 'pointer',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '8px',
+                                                                        fontSize: '0.78rem',
+                                                                        fontWeight: '700',
+                                                                        color: '#0284C7',
+                                                                        transition: 'background 0.15s'
+                                                                    }}
+                                                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#F0F9FF'}
+                                                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                                >
+                                                                    <Info size={14} color="#0284C7" />
+                                                                    <span>Product Info & Sales</span>
+                                                                </button>
+                                                                <div style={{ height: '1px', background: '#F1F5F9', margin: '0.2rem 0' }} />
                                                             {/* 1. Edit Item */}
                                                             <button
                                                                 type="button"
@@ -3964,8 +4230,9 @@ const BusinessPOS = () => {
                                                     )}
                                                 </div>
                                             </div>
+                                        </div>
 
-                                            {/* Middle Row: Product Name + SKU on Left, "In Cart" Badge on Right */}
+                                        {/* Middle Row: Product Name + SKU on Left, "In Cart" Badge on Right */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minHeight: '40px' }}>
                                                 <div style={{ flex: 1, minWidth: 0, paddingRight: '0.4rem' }}>
                                                     <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: '850', color: '#0F172A', lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{prod.name}</h4>
@@ -6781,6 +7048,527 @@ const BusinessPOS = () => {
                     </motion.div>
                 </div>
             )}
+
+            {/* PRODUCT INFORMATION & SALES ANALYTICS MODAL */}
+            {isProductInfoModalOpen && infoTargetProduct && (
+                <div 
+                    style={{ 
+                        position: 'fixed', 
+                        inset: 0, 
+                        background: 'rgba(15, 23, 42, 0.6)', 
+                        backdropFilter: 'blur(5px)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        zIndex: 1300, 
+                        padding: '1rem' 
+                    }}
+                    onClick={() => { setIsProductInfoModalOpen(false); setInfoTargetProduct(null); }}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.96, y: 10 }}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: '#FFFFFF',
+                            borderRadius: '20px',
+                            border: '1px solid #E2E8F0',
+                            boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+                            width: '100%',
+                            maxWidth: '760px',
+                            maxHeight: '90vh',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden'
+                        }}
+                    >
+                        {/* Header */}
+                        <div style={{ padding: '1rem 1.35rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#E0F2FE', color: '#0284C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Info size={20} strokeWidth={2.5} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span>{infoTargetProduct.name}</span>
+                                        <span style={{ fontSize: '0.62rem', fontWeight: '800', background: '#F1F5F9', color: '#475569', padding: '2px 7px', borderRadius: '6px', textTransform: 'uppercase' }}>
+                                            {infoTargetProduct.category || 'General'}
+                                        </span>
+                                    </h3>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#64748B', marginTop: '2px' }}>
+                                        {infoTargetProduct.sku && <span>SKU: <strong style={{ color: '#334155' }}>{infoTargetProduct.sku}</strong></span>}
+                                        {infoTargetProduct.sku && <span>•</span>}
+                                        <span>Price: <strong style={{ color: '#0F172A' }}>{formatCurrency(infoTargetProduct.price || 0)}</strong> / {infoTargetProduct.unit || 'PCS'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => { setIsProductInfoModalOpen(false); setInfoTargetProduct(null); }}
+                                style={{ border: 'none', background: '#F1F5F9', borderRadius: '8px', cursor: 'pointer', color: '#64748B', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
+                                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#E2E8F0'; e.currentTarget.style.color = '#0F172A'; }}
+                                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#F1F5F9'; e.currentTarget.style.color = '#64748B'; }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+
+                            {/* Section 1: 4 Core Property Cards (Stock, Rack, Expiry, Warranty) */}
+                            {(() => {
+                                const stockInfo = productAnalyticsData?.stock;
+                                const rackInfo = productAnalyticsData?.rack;
+                                const expiryInfo = productAnalyticsData?.expiry;
+                                const warrantyInfo = productAnalyticsData?.warranty;
+
+                                const rawQty = stockInfo?.quantity !== undefined ? stockInfo.quantity : (infoTargetProduct.quantity || 0);
+                                const isUnlim = Boolean(stockInfo?.is_unlimited || infoTargetProduct.isUnlimited || rawQty >= 999000);
+                                const isOut = !isUnlim && (parseFloat(rawQty) || 0) <= 0;
+                                const isLow = !isUnlim && (parseFloat(rawQty) || 0) > 0 && (parseFloat(rawQty) || 0) < (stockInfo?.low_stock_threshold || 5);
+
+                                return (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
+                                        {/* 1. STOCK CARD */}
+                                        <div style={{ background: isOut ? '#FEF2F2' : (isLow ? '#FFFBEB' : '#F0FDF4'), borderRadius: '12px', border: `1px solid ${isOut ? '#FECACA' : (isLow ? '#FDE68A' : '#BBF7D0')}`, padding: '0.8rem 0.9rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.65rem', fontWeight: '800', color: isOut ? '#991B1B' : (isLow ? '#92400E' : '#166534'), textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <Package size={13} /> Stock
+                                                </span>
+                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px', background: isOut ? '#DC2626' : (isLow ? '#D97706' : '#16A34A'), color: '#FFFFFF' }}>
+                                                    {isUnlim ? 'Unlimited' : (isOut ? 'Out of Stock' : (isLow ? 'Low Stock' : 'In Stock'))}
+                                                </span>
+                                            </div>
+                                            <div style={{ fontSize: '1.2rem', fontWeight: '950', color: isOut ? '#B91C1C' : (isLow ? '#B45309' : '#15803D'), letterSpacing: '-0.02em' }}>
+                                                {isUnlim ? '∞' : rawQty} <span style={{ fontSize: '0.72rem', fontWeight: '750' }}>{infoTargetProduct.unit || 'PCS'}</span>
+                                            </div>
+                                            <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
+                                                Threshold: <strong>{stockInfo?.low_stock_threshold || 5} {infoTargetProduct.unit || 'PCS'}</strong>
+                                            </div>
+                                        </div>
+
+                                        {/* 2. RACK CARD */}
+                                        <div style={{ background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '0.8rem 0.9rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <Building size={13} /> Rack Location
+                                                </span>
+                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px', background: rackInfo?.rack_location && rackInfo.rack_location !== 'Not Assigned' ? '#E0F2FE' : '#F1F5F9', color: rackInfo?.rack_location && rackInfo.rack_location !== 'Not Assigned' ? '#0369A1' : '#64748B' }}>
+                                                    {rackInfo?.rack_location && rackInfo.rack_location !== 'Not Assigned' ? 'Assigned' : 'Unassigned'}
+                                                </span>
+                                            </div>
+                                            <div style={{ fontSize: '1.05rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {rackInfo?.rack_location || 'Not Assigned'}
+                                            </div>
+                                            <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
+                                                {rackInfo?.shelf_number ? `Shelf: ${rackInfo.shelf_number}` : 'No shelf specified'}
+                                                {rackInfo?.bin_number ? ` • Bin: ${rackInfo.bin_number}` : ''}
+                                            </div>
+                                        </div>
+
+                                        {/* 3. EXPIRY CARD */}
+                                        <div style={{ background: expiryInfo?.is_expired ? '#FEF2F2' : (expiryInfo?.days_remaining !== null && expiryInfo?.days_remaining <= 30 ? '#FFFBEB' : '#F8FAFC'), borderRadius: '12px', border: `1px solid ${expiryInfo?.is_expired ? '#FECACA' : (expiryInfo?.days_remaining !== null && expiryInfo?.days_remaining <= 30 ? '#FDE68A' : '#E2E8F0')}`, padding: '0.8rem 0.9rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.65rem', fontWeight: '800', color: expiryInfo?.is_expired ? '#991B1B' : '#475569', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <Clock size={13} /> Expiry
+                                                </span>
+                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px', background: expiryInfo?.is_expired ? '#FEE2E2' : (expiryInfo?.days_remaining !== null && expiryInfo?.days_remaining <= 30 ? '#FEF3C7' : '#F1F5F9'), color: expiryInfo?.is_expired ? '#DC2626' : (expiryInfo?.days_remaining !== null && expiryInfo?.days_remaining <= 30 ? '#D97706' : '#475569') }}>
+                                                    {expiryInfo?.status ? expiryInfo.status.split('(')[0].trim() : 'N/A'}
+                                                </span>
+                                            </div>
+                                            <div style={{ fontSize: '0.98rem', fontWeight: '900', color: expiryInfo?.is_expired ? '#B91C1C' : '#0F172A', letterSpacing: '-0.01em' }}>
+                                                {expiryInfo?.expiry_date && expiryInfo.expiry_date !== 'N/A' ? expiryInfo.expiry_date : 'Non-Perishable'}
+                                            </div>
+                                            <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
+                                                {expiryInfo?.batch_number ? `Batch: ${expiryInfo.batch_number}` : (expiryInfo?.days_remaining !== null ? `${expiryInfo.days_remaining} days remaining` : 'No expiry track')}
+                                            </div>
+                                        </div>
+
+                                        {/* 4. WARRANTY CARD */}
+                                        <div style={{ background: warrantyInfo?.has_warranty ? '#F0FDF4' : '#F8FAFC', borderRadius: '12px', border: `1px solid ${warrantyInfo?.has_warranty ? '#BBF7D0' : '#E2E8F0'}`, padding: '0.8rem 0.9rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.65rem', fontWeight: '800', color: warrantyInfo?.has_warranty ? '#166534' : '#475569', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <ShieldCheck size={13} /> Warranty
+                                                </span>
+                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px', background: warrantyInfo?.has_warranty ? '#DCFCE7' : '#F1F5F9', color: warrantyInfo?.has_warranty ? '#15803D' : '#64748B' }}>
+                                                    {warrantyInfo?.has_warranty ? 'Covered' : 'No Warranty'}
+                                                </span>
+                                            </div>
+                                            <div style={{ fontSize: '0.98rem', fontWeight: '900', color: warrantyInfo?.has_warranty ? '#15803D' : '#334155', letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {warrantyInfo?.warranty_period || 'No Warranty'}
+                                            </div>
+                                            <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
+                                                {warrantyInfo?.has_warranty ? 'Manufacturer Warranty' : 'Sold without warranty'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Section 2: Total Sales & Customer Analytics */}
+                            <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                
+                                {/* Sales Filter Header */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                                    <div>
+                                        <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <TrendingUp size={16} color="#10B981" /> Total Sales & Customer Insights
+                                        </h4>
+                                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>
+                                            Analyze performance across custom time periods
+                                        </span>
+                                    </div>
+
+                                    {/* Period Selection Controls: Today, Week, Month, Custom */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#F1F5F9', padding: '3px', borderRadius: '8px' }}>
+                                        {[
+                                            { id: 'today', label: 'Today' },
+                                            { id: 'week', label: 'Week' },
+                                            { id: 'month', label: 'Month' },
+                                            { id: 'custom', label: 'Custom' }
+                                        ].map(tab => (
+                                            <button
+                                                key={tab.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setProductSalesRange(tab.id);
+                                                    fetchProductAnalytics(infoTargetProduct, tab.id, productSalesFromDate, productSalesToDate);
+                                                }}
+                                                style={{
+                                                    border: 'none',
+                                                    background: productSalesRange === tab.id ? '#FFFFFF' : 'transparent',
+                                                    color: productSalesRange === tab.id ? '#0F172A' : '#64748B',
+                                                    fontWeight: productSalesRange === tab.id ? '800' : '650',
+                                                    fontSize: '0.74rem',
+                                                    padding: '4px 10px',
+                                                    borderRadius: '6px',
+                                                    cursor: 'pointer',
+                                                    boxShadow: productSalesRange === tab.id ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                                                    transition: 'all 0.15s ease'
+                                                }}
+                                            >
+                                                {tab.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Custom Calendar Date Selector (When 'custom' is active) */}
+                                {productSalesRange === 'custom' && (
+                                    <div style={{ background: '#F8FAFC', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Calendar size={14} color="#64748B" />
+                                            <span style={{ fontSize: '0.72rem', fontWeight: '750', color: '#475569' }}>From:</span>
+                                            <input
+                                                type="date"
+                                                value={productSalesFromDate}
+                                                onChange={(e) => setProductSalesFromDate(e.target.value)}
+                                                style={{ padding: '0.3rem 0.5rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.75rem', fontWeight: '700', outline: 'none', background: '#FFFFFF' }}
+                                            />
+                                        </div>
+
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{ fontSize: '0.72rem', fontWeight: '750', color: '#475569' }}>To:</span>
+                                            <input
+                                                type="date"
+                                                value={productSalesToDate}
+                                                onChange={(e) => setProductSalesToDate(e.target.value)}
+                                                style={{ padding: '0.3rem 0.5rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.75rem', fontWeight: '700', outline: 'none', background: '#FFFFFF' }}
+                                            />
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => fetchProductAnalytics(infoTargetProduct, 'custom', productSalesFromDate, productSalesToDate)}
+                                            style={{
+                                                padding: '0.35rem 0.85rem',
+                                                borderRadius: '6px',
+                                                background: '#2563EB',
+                                                color: '#FFFFFF',
+                                                border: 'none',
+                                                fontWeight: '800',
+                                                fontSize: '0.74rem',
+                                                cursor: 'pointer',
+                                                boxShadow: '0 2px 4px rgba(37,99,235,0.2)'
+                                            }}
+                                        >
+                                            Apply Filter
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Sales & Customer KPI Metric Cards (4 Cards) */}
+                                {(() => {
+                                    const sales = productAnalyticsData?.sales || {
+                                        total_sales_amount: 0,
+                                        total_quantity_sold: 0,
+                                        total_orders: 0,
+                                        unique_customers_count: 0,
+                                        unique_customers_list: [],
+                                        customer_breakdown: [],
+                                        transactions: []
+                                    };
+
+                                    return (
+                                        <>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.65rem' }}>
+                                                {/* Metric 1: Total Sales Amount */}
+                                                <div style={{ background: '#F8FAFC', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Total Sales</div>
+                                                    <div style={{ fontSize: '1.15rem', fontWeight: '950', color: '#0F172A', marginTop: '3px' }}>
+                                                        {formatCurrency(sales.total_sales_amount)}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.62rem', color: '#10B981', fontWeight: '750', marginTop: '2px' }}>
+                                                        Period: {productSalesRange.toUpperCase()}
+                                                    </div>
+                                                </div>
+
+                                                {/* Metric 2: Quantity Sold */}
+                                                <div style={{ background: '#F8FAFC', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Quantity Sold</div>
+                                                    <div style={{ fontSize: '1.15rem', fontWeight: '950', color: '#0F172A', marginTop: '3px' }}>
+                                                        {sales.total_quantity_sold} <span style={{ fontSize: '0.72rem', fontWeight: '750', color: '#64748B' }}>{infoTargetProduct.unit || 'PCS'}</span>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
+                                                        Across {sales.total_orders} Bills
+                                                    </div>
+                                                </div>
+
+                                                {/* Metric 3: Total Orders / Invoices */}
+                                                <div style={{ background: '#F8FAFC', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                                                    <div style={{ fontSize: '0.65rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Orders / Bills</div>
+                                                    <div style={{ fontSize: '1.15rem', fontWeight: '950', color: '#0F172A', marginTop: '3px' }}>
+                                                        {sales.total_orders} <span style={{ fontSize: '0.72rem', fontWeight: '750', color: '#64748B' }}>Bills</span>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: '700', marginTop: '2px' }}>
+                                                        Avg {sales.total_orders > 0 ? (sales.total_quantity_sold / sales.total_orders).toFixed(1) : '0'} {infoTargetProduct.unit || 'PCS'}/bill
+                                                    </div>
+                                                </div>
+
+                                                {/* Metric 4: NUMBER OF CUSTOMERS (Highlighted & Prominent) */}
+                                                <div style={{ background: 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1.5px solid #C7D2FE', boxShadow: '0 2px 6px rgba(99,102,241,0.08)' }}>
+                                                    <div style={{ fontSize: '0.65rem', fontWeight: '850', color: '#4338CA', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Users size={12} /> No. of Customers
+                                                    </div>
+                                                    <div style={{ fontSize: '1.18rem', fontWeight: '950', color: '#312E81', marginTop: '3px' }}>
+                                                        {sales.unique_customers_count} <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#4338CA' }}>Buyers</span>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.62rem', color: '#4F46E5', fontWeight: '750', marginTop: '2px' }}>
+                                                        Unique buyers in period
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Section 3: CLEAR VIEW OF CUSTOMERS */}
+                                            <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                
+                                                {/* Sub-tabs: Customers vs Transactions */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.4rem' }}>
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setInfoModalActiveTab('customers')}
+                                                            style={{
+                                                                border: 'none',
+                                                                background: 'transparent',
+                                                                fontSize: '0.78rem',
+                                                                fontWeight: infoModalActiveTab === 'customers' ? '850' : '650',
+                                                                color: infoModalActiveTab === 'customers' ? '#4F46E5' : '#64748B',
+                                                                cursor: 'pointer',
+                                                                padding: '0 4px 4px 4px',
+                                                                borderBottom: infoModalActiveTab === 'customers' ? '2px solid #4F46E5' : '2px solid transparent',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '5px'
+                                                            }}
+                                                        >
+                                                            <Users size={13} />
+                                                            <span>Customer Breakdown ({sales.unique_customers_count})</span>
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setInfoModalActiveTab('transactions')}
+                                                            style={{
+                                                                border: 'none',
+                                                                background: 'transparent',
+                                                                fontSize: '0.78rem',
+                                                                fontWeight: infoModalActiveTab === 'transactions' ? '850' : '650',
+                                                                color: infoModalActiveTab === 'transactions' ? '#4F46E5' : '#64748B',
+                                                                cursor: 'pointer',
+                                                                padding: '0 4px 4px 4px',
+                                                                borderBottom: infoModalActiveTab === 'transactions' ? '2px solid #4F46E5' : '2px solid transparent',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '5px'
+                                                            }}
+                                                        >
+                                                            <Receipt size={13} />
+                                                            <span>Recent Sales ({sales.transactions?.length || 0})</span>
+                                                        </button>
+                                                    </div>
+
+                                                    {isLoadingProductAnalytics && (
+                                                        <span style={{ fontSize: '0.68rem', color: '#6366F1', fontWeight: '750', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            <div className="animate-spin" style={{ width: '10px', height: '10px', border: '2px solid #C7D2FE', borderTopColor: '#4F46E5', borderRadius: '50%' }}></div>
+                                                            Updating...
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Content for TAB 1: Customer Breakdown */}
+                                                {infoModalActiveTab === 'customers' && (
+                                                    <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                        {(!sales.customer_breakdown || sales.customer_breakdown.length === 0) ? (
+                                                            <div style={{ padding: '1.25rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.78rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                                                                No customer purchases recorded for this product during the selected period.
+                                                            </div>
+                                                        ) : (
+                                                            sales.customer_breakdown.map((cust, idx) => (
+                                                                <div 
+                                                                    key={idx} 
+                                                                    style={{ 
+                                                                        background: '#F8FAFC', 
+                                                                        padding: '0.5rem 0.75rem', 
+                                                                        borderRadius: '8px', 
+                                                                        border: '1px solid #E2E8F0',
+                                                                        display: 'flex', 
+                                                                        justifyContent: 'space-between', 
+                                                                        alignItems: 'center' 
+                                                                    }}
+                                                                >
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                                                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#EEF2FF', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: '850' }}>
+                                                                            {cust.name.slice(0, 1).toUpperCase()}
+                                                                        </div>
+                                                                        <div>
+                                                                            <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1E293B', display: 'block' }}>
+                                                                                {cust.name}
+                                                                            </span>
+                                                                            <span style={{ fontSize: '0.64rem', color: '#64748B', fontWeight: '600' }}>
+                                                                                {cust.orderCount} {cust.orderCount === 1 ? 'order' : 'orders'} • Total {cust.totalQty} {infoTargetProduct.unit || 'PCS'}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div style={{ textAlign: 'right' }}>
+                                                                        <span style={{ fontSize: '0.82rem', fontWeight: '900', color: '#0F172A', display: 'block' }}>
+                                                                            {formatCurrency(cust.totalAmount)}
+                                                                        </span>
+                                                                        <span style={{ fontSize: '0.62rem', color: '#10B981', fontWeight: '750' }}>
+                                                                            Avg {formatCurrency(cust.totalQty > 0 ? (cust.totalAmount / cust.totalQty) : 0)}/{infoTargetProduct.unit || 'PCS'}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            ))
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Content for TAB 2: Recent Transactions */}
+                                                {infoModalActiveTab === 'transactions' && (
+                                                    <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                        {(!sales.transactions || sales.transactions.length === 0) ? (
+                                                            <div style={{ padding: '1.25rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.78rem', background: '#F8FAFC', borderRadius: '8px' }}>
+                                                                No sales transactions found for this product in the selected period.
+                                                            </div>
+                                                        ) : (
+                                                            sales.transactions.map((tx, idx) => (
+                                                                <div 
+                                                                    key={idx} 
+                                                                    style={{ 
+                                                                        background: '#F8FAFC', 
+                                                                        padding: '0.45rem 0.65rem', 
+                                                                        borderRadius: '8px', 
+                                                                        border: '1px solid #E2E8F0',
+                                                                        display: 'flex', 
+                                                                        justifyContent: 'space-between', 
+                                                                        alignItems: 'center' 
+                                                                    }}
+                                                                >
+                                                                    <div>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                            <span style={{ fontSize: '0.76rem', fontWeight: '850', color: '#1E293B' }}>
+                                                                                {tx.invoice_number ? `#${tx.invoice_number}` : 'POS Sale'}
+                                                                            </span>
+                                                                            <span style={{ fontSize: '0.62rem', color: '#64748B', background: '#E2E8F0', padding: '1px 5px', borderRadius: '4px' }}>
+                                                                                {tx.date ? new Date(tx.date).toLocaleDateString() : 'Today'}
+                                                                            </span>
+                                                                        </div>
+                                                                        <span style={{ fontSize: '0.66rem', color: '#64748B', fontWeight: '600' }}>
+                                                                            Buyer: <strong style={{ color: '#475569' }}>{tx.customer_name}</strong>
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div style={{ textAlign: 'right' }}>
+                                                                        <span style={{ fontSize: '0.8rem', fontWeight: '850', color: '#0F172A', display: 'block' }}>
+                                                                            {formatCurrency(tx.total)}
+                                                                        </span>
+                                                                        <span style={{ fontSize: '0.64rem', color: '#64748B', fontWeight: '700' }}>
+                                                                            {tx.quantity} {tx.unit || 'PCS'} @ {formatCurrency(tx.price)}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            ))
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+
+                        {/* Modal Footer Actions */}
+                        <div style={{ padding: '0.85rem 1.35rem', borderTop: '1px solid #F1F5F9', background: '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: '600' }}>
+                                Product ID: <code style={{ background: '#E2E8F0', padding: '1px 5px', borderRadius: '4px', fontSize: '0.7rem' }}>{infoTargetProduct.id}</code>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsProductInfoModalOpen(false); setInfoTargetProduct(null); }}
+                                    style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#475569', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer' }}
+                                >
+                                    Close
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        addToCart(infoTargetProduct);
+                                        setIsProductInfoModalOpen(false);
+                                        setInfoTargetProduct(null);
+                                    }}
+                                    style={{
+                                        padding: '0.5rem 1.1rem',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                        color: '#FFFFFF',
+                                        fontWeight: '800',
+                                        fontSize: '0.8rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        boxShadow: '0 2px 6px rgba(16,185,129,0.3)'
+                                    }}
+                                >
+                                    <ShoppingCart size={14} />
+                                    <span>Add to Cart</span>
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
             {/* Customer Order History Modal */}
             {isCustomerHistoryModalOpen && customerHistoryModalCustomer && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
