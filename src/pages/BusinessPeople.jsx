@@ -1490,7 +1490,7 @@ const BusinessPeople = () => {
             <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                     {[
-                        { id: 'contacts', label: 'Active Directory', icon: Users },
+                        { id: 'contacts', label: 'Contacts', icon: Users },
                         { id: 'groups', label: `Financial Groups ${groupsList && groupsList.length > 0 ? `(${groupsList.length})` : ''}`, icon: FolderKanban },
                         { 
                             id: 'requests', 
@@ -1616,7 +1616,7 @@ const BusinessPeople = () => {
                                 columns={[
                                     { key: 'name', label: 'Profile Contact', placeholder: 'Name...' },
                                     { key: 'role_type', label: 'Classification', placeholder: 'Role...' },
-                                    ...(activeConfig.partyGroup ? [{ key: 'relationship', label: 'Group Cluster', placeholder: 'Group...' }] : []),
+                                    ...(activeConfig.partyGroup ? [{ key: 'relationship', label: 'Group', placeholder: 'Group...' }] : []),
                                     ...(activeConfig.partyStatus ? [{ key: 'status', label: 'Status', placeholder: 'Status...' }] : []),
                                     { key: 'company', label: 'Company / Link', placeholder: 'Company...' },
                                     { key: 'phone_email', label: 'Phone / Email', placeholder: 'Contact...' },
@@ -2558,13 +2558,13 @@ const BusinessPeople = () => {
 
                                 {activeConfig.partyGroup && (
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Group / Relationship Cluster</label>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Group</label>
                                         <select 
                                             value={contactForm.relationship || ''} 
                                             onChange={(e) => setContactForm({ ...contactForm, relationship: e.target.value })}
                                             style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white' }}
                                         >
-                                            <option value="">No Group Cluster</option>
+                                            <option value="">No Group</option>
                                             <option value="Family">Family</option>
                                             <option value="Friends">Friends</option>
                                             <option value="Clients">Clients</option>
