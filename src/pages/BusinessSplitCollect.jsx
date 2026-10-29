@@ -199,7 +199,10 @@ export const getParticipantEmail = (p) => {
 
 export const getParticipantRole = (p) => {
     if (!p) return 'viewer';
-    if (typeof p === 'object' && p.role) return p.role;
+    if (typeof p === 'object') {
+        if (p.isAdmin || p.role === 'admin') return 'admin';
+        if (p.role) return p.role;
+    }
     return 'editor';
 };
 
@@ -211,7 +214,7 @@ export const getParticipantStatus = (p) => {
 
 export const isParticipantAdmin = (p) => {
     if (!p) return false;
-    if (typeof p === 'object') return !!p.isAdmin;
+    if (typeof p === 'object') return !!p.isAdmin || p.role === 'admin';
     if (typeof p === 'string') {
         const lower = p.toLowerCase();
         return lower === 'you' || lower.includes('admin') || lower.startsWith('you ');
@@ -483,7 +486,7 @@ const BusinessSplitCollect = () => {
         {
             name: 'You',
             email: (user?.email || 'admin@bnxmail.com'),
-            role: 'editor',
+            role: 'admin',
             status: 'accepted',
             isAdmin: true
         }
@@ -504,7 +507,7 @@ const BusinessSplitCollect = () => {
             {
                 name: 'You',
                 email: 'admin@bnxmail.com',
-                role: 'editor',
+                role: 'admin',
                 status: 'accepted',
                 isAdmin: true
             }
@@ -512,7 +515,7 @@ const BusinessSplitCollect = () => {
     });
     const [newParticipantName, setNewParticipantName] = useState('');
     const [newParticipantEmail, setNewParticipantEmail] = useState('');
-    const [newParticipantRole, setNewParticipantRole] = useState('editor'); // 'editor' | 'viewer'
+    const [newParticipantRole, setNewParticipantRole] = useState('editor'); // 'admin' | 'editor' | 'viewer'
     const [emailError, setEmailError] = useState('');
 
     // Sync admin email in form when user loads
@@ -718,12 +721,13 @@ const BusinessSplitCollect = () => {
             return;
         }
 
+        const isNewAdmin = newParticipantRole === 'admin';
         const newMember = {
             name: memberName,
             email: cleanEmail,
-            role: newParticipantRole, // 'editor' | 'viewer'
+            role: isNewAdmin ? 'admin' : newParticipantRole, // 'admin' | 'editor' | 'viewer'
             status: 'pending',        // Request sent, pending member acceptance
-            isAdmin: false
+            isAdmin: isNewAdmin
         };
 
         setGroupForm(prev => ({
@@ -740,10 +744,25 @@ const BusinessSplitCollect = () => {
             ...prev,
             participants: prev.participants.map((p, i) => {
                 if (i === index) {
-                    if (isParticipantAdmin(p)) return p;
-                    const curRole = getParticipantRole(p);
-                    const newR = curRole === 'editor' ? 'viewer' : 'editor';
-                    return typeof p === 'object' ? { ...p, role: newR } : { name: p, email: '', role: newR, status: 'pending', isAdmin: false };
+                    const pName = getParticipantName(p).toLowerCase();
+                    if (pName === 'you' || i === 0) return p; // Primary creator stays Admin
+                    const isAdm = isParticipantAdmin(p);
+                    const curRole = p.role || (isAdm ? 'admin' : 'viewer');
+                    let nextRole = 'editor';
+                    let nextIsAdmin = false;
+                    if (isAdm || curRole === 'admin') {
+                        nextRole = 'viewer';
+                        nextIsAdmin = false;
+                    } else if (curRole === 'viewer') {
+                        nextRole = 'editor';
+                        nextIsAdmin = false;
+                    } else {
+                        nextRole = 'admin';
+                        nextIsAdmin = true;
+                    }
+                    return typeof p === 'object' 
+                        ? { ...p, role: nextRole, isAdmin: nextIsAdmin } 
+                        : { name: p, email: '', role: nextRole, status: 'pending', isAdmin: nextIsAdmin };
                 }
                 return p;
             })
@@ -754,8 +773,9 @@ const BusinessSplitCollect = () => {
         setGroupForm(prev => ({
             ...prev,
             participants: prev.participants.filter((p, i) => {
-                if (i === index && !isParticipantAdmin(p)) return false;
-                return true;
+                const pName = getParticipantName(p).toLowerCase();
+                if (i === 0 || pName === 'you') return true; // Primary creator cannot be removed
+                return i !== index;
             })
         }));
     };
@@ -797,17 +817,22 @@ const BusinessSplitCollect = () => {
         }
     };
 
-    // Admin updates a member's role (view vs edit)
-    const handleUpdateMemberRole = async (memberEmail, newRole) => {
+    // Admin updates a member's role (view vs edit vs admin)
+    const handleUpdateMemberRole = async (memberEmail, newRole, makeAdmin = null) => {
         try {
-            await splitExpenseService.updateMemberRole(selectedSplitId, { email: memberEmail, role: newRole });
+            const isAdmin = makeAdmin !== null ? makeAdmin : (newRole === 'admin');
+            const targetRole = newRole === 'admin' ? 'admin' : newRole;
+            await splitExpenseService.updateMemberRole(selectedSplitId, { email: memberEmail, role: targetRole, isAdmin });
             setSplits(prev => prev.map(s => {
                 if (s.id === selectedSplitId) {
                     return {
                         ...s,
                         participants: s.participants.map(p => {
                             if (getParticipantEmail(p).toLowerCase() === memberEmail.toLowerCase()) {
-                                return typeof p === 'object' ? { ...p, role: newRole } : { name: p, email: memberEmail, role: newRole, status: 'accepted' };
+                                const updatedIsAdmin = isAdmin !== null ? isAdmin : (targetRole === 'admin');
+                                return typeof p === 'object' 
+                                    ? { ...p, role: targetRole, isAdmin: updatedIsAdmin } 
+                                    : { name: p, email: memberEmail, role: targetRole, status: 'accepted', isAdmin: updatedIsAdmin };
                             }
                             return p;
                         })
@@ -815,7 +840,8 @@ const BusinessSplitCollect = () => {
                 }
                 return s;
             }));
-            setInviteSuccessToast(`Updated permission for ${memberEmail} to ${newRole === 'editor' ? 'Edit Access' : 'View Only'}`);
+            const roleLabel = targetRole === 'admin' ? '👑 Admin (Full Access)' : (targetRole === 'editor' ? '✏️ Edit Access' : '👁️ View Only');
+            setInviteSuccessToast(`Updated permission for ${memberEmail} to ${roleLabel}`);
             setTimeout(() => setInviteSuccessToast(''), 4000);
         } catch (err) {
             console.error('Failed to update member role:', err);
@@ -836,16 +862,18 @@ const BusinessSplitCollect = () => {
         }
 
         try {
+            const isTargetAdmin = inviteMemberRole === 'admin';
             const res = await splitExpenseService.inviteMember(selectedSplitId, {
                 email: cleanEmail,
                 name: inviteMemberName.trim(),
-                role: inviteMemberRole
+                role: isTargetAdmin ? 'admin' : inviteMemberRole,
+                isAdmin: isTargetAdmin
             });
             setSplits(prev => prev.map(s => s.id === selectedSplitId ? { ...s, ...res } : s));
             setIsInviteModalOpen(false);
             setInviteMemberEmail('');
             setInviteMemberName('');
-            setInviteMemberRole('viewer');
+            setInviteMemberRole('editor');
             setInviteError('');
             setInviteSuccessToast(`Invitation request sent to ${cleanEmail}`);
             setTimeout(() => setInviteSuccessToast(''), 4500);
@@ -3318,6 +3346,7 @@ const BusinessSplitCollect = () => {
                                                             const mRole = getParticipantRole(m);
                                                             const mStatus = getParticipantStatus(m);
                                                             const mIsAdmin = isParticipantAdmin(m);
+                                                            const isCreatorMember = mIdx === 0 || mName.toLowerCase() === 'you' || (activeSplit?.user_id && user?.id && String(activeSplit.user_id) === String(user.id) && mEmail && mEmail.toLowerCase() === (user?.email || '').toLowerCase());
 
                                                             const primaryExpenses = allExpenses.filter(item => isPrimaryExpense(item));
                                                             const hasRecordedExpenses = primaryExpenses.length > 0;
@@ -3372,13 +3401,12 @@ const BusinessSplitCollect = () => {
                                                                                 {mName}
                                                                             </span>
                                                                             
-                                                                            {mIsAdmin ? (
+                                                                            {isCreatorMember ? (
                                                                                 <span style={{ background: '#047857', color: 'white', fontSize: '0.65rem', fontWeight: '850', padding: '2px 7px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                                                    <Crown size={11} strokeWidth={2.5} /> Admin
+                                                                                    <Crown size={11} strokeWidth={2.5} /> Creator & Admin
                                                                                 </span>
-                                                                            ) : (
-                                                                                <>
-                                                                                    {/* Role Selector for Admin or static badge */}
+                                                                            ) : mIsAdmin ? (
+                                                                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                                                                     {isSplitAdmin ? (
                                                                                         <div style={{
                                                                                             display: 'inline-flex',
@@ -3388,34 +3416,121 @@ const BusinessSplitCollect = () => {
                                                                                             fontWeight: '800',
                                                                                             borderRadius: '6px',
                                                                                             padding: '2px 6px',
-                                                                                            border: mRole === 'editor' ? '1px solid #93C5FD' : '1px solid #FDE68A',
-                                                                                            background: mRole === 'editor' ? '#EFF6FF' : '#FFFBEB',
-                                                                                            color: mRole === 'editor' ? '#1D4ED8' : '#B45309'
+                                                                                            border: '1px solid #A7F3D0',
+                                                                                            background: '#ECFDF5',
+                                                                                            color: '#047857'
                                                                                         }}>
-                                                                                            {mRole === 'editor' ? (
-                                                                                                <Pencil size={11} strokeWidth={2.5} style={{ color: '#1D4ED8' }} />
-                                                                                            ) : (
-                                                                                                <Eye size={11} strokeWidth={2.5} style={{ color: '#B45309' }} />
-                                                                                            )}
+                                                                                            <Crown size={11} strokeWidth={2.5} style={{ color: '#047857' }} />
                                                                                             <select
-                                                                                                value={mRole}
-                                                                                                onChange={(e) => handleUpdateMemberRole(mEmail, e.target.value)}
+                                                                                                value="admin"
+                                                                                                onChange={(e) => {
+                                                                                                    const val = e.target.value;
+                                                                                                    if (val === 'admin') {
+                                                                                                        handleUpdateMemberRole(mEmail, 'admin', true);
+                                                                                                    } else {
+                                                                                                        handleUpdateMemberRole(mEmail, val, false);
+                                                                                                    }
+                                                                                                }}
                                                                                                 onClick={(e) => e.stopPropagation()}
                                                                                                 style={{
                                                                                                     fontSize: '0.72rem',
                                                                                                     fontWeight: '800',
                                                                                                     border: 'none',
                                                                                                     background: 'transparent',
-                                                                                                    color: mRole === 'editor' ? '#1D4ED8' : '#B45309',
+                                                                                                    color: '#047857',
                                                                                                     outline: 'none',
                                                                                                     cursor: 'pointer',
                                                                                                     padding: 0
                                                                                                 }}
                                                                                                 title="Change Member Access Role"
                                                                                             >
-                                                                                                <option value="editor">Edit Access</option>
-                                                                                                <option value="viewer">View Only</option>
+                                                                                                <option value="admin">👑 Admin</option>
+                                                                                                <option value="editor">✏️ Edit Access</option>
+                                                                                                <option value="viewer">👁️ View Only</option>
                                                                                             </select>
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <span style={{ background: '#047857', color: 'white', fontSize: '0.65rem', fontWeight: '850', padding: '2px 7px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                                                            <Crown size={11} strokeWidth={2.5} /> Admin
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                            ) : (
+                                                                                <>
+                                                                                    {/* Role Selector for Admin or static badge */}
+                                                                                    {isSplitAdmin ? (
+                                                                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                                                                            <div style={{
+                                                                                                display: 'inline-flex',
+                                                                                                alignItems: 'center',
+                                                                                                gap: '4px',
+                                                                                                fontSize: '0.72rem',
+                                                                                                fontWeight: '800',
+                                                                                                borderRadius: '6px',
+                                                                                                padding: '2px 6px',
+                                                                                                border: mRole === 'editor' ? '1px solid #93C5FD' : '1px solid #FDE68A',
+                                                                                                background: mRole === 'editor' ? '#EFF6FF' : '#FFFBEB',
+                                                                                                color: mRole === 'editor' ? '#1D4ED8' : '#B45309'
+                                                                                            }}>
+                                                                                                {mRole === 'editor' ? (
+                                                                                                    <Pencil size={11} strokeWidth={2.5} style={{ color: '#1D4ED8' }} />
+                                                                                                ) : (
+                                                                                                    <Eye size={11} strokeWidth={2.5} style={{ color: '#B45309' }} />
+                                                                                                )}
+                                                                                                <select
+                                                                                                    value={mRole}
+                                                                                                    onChange={(e) => {
+                                                                                                        const val = e.target.value;
+                                                                                                        if (val === 'admin') {
+                                                                                                            handleUpdateMemberRole(mEmail, 'admin', true);
+                                                                                                        } else {
+                                                                                                            handleUpdateMemberRole(mEmail, val, false);
+                                                                                                        }
+                                                                                                    }}
+                                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                                    style={{
+                                                                                                        fontSize: '0.72rem',
+                                                                                                        fontWeight: '800',
+                                                                                                        border: 'none',
+                                                                                                        background: 'transparent',
+                                                                                                        color: mRole === 'editor' ? '#1D4ED8' : '#B45309',
+                                                                                                        outline: 'none',
+                                                                                                        cursor: 'pointer',
+                                                                                                        padding: 0
+                                                                                                    }}
+                                                                                                    title="Change Member Access Role"
+                                                                                                >
+                                                                                                    <option value="editor">Edit Access</option>
+                                                                                                    <option value="viewer">View Only</option>
+                                                                                                    <option value="admin">👑 Make Admin</option>
+                                                                                                </select>
+                                                                                            </div>
+
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={(e) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    handleUpdateMemberRole(mEmail, 'admin', true);
+                                                                                                }}
+                                                                                                title={`Make ${mName} an Admin`}
+                                                                                                style={{
+                                                                                                    display: 'inline-flex',
+                                                                                                    alignItems: 'center',
+                                                                                                    gap: '4px',
+                                                                                                    fontSize: '0.68rem',
+                                                                                                    fontWeight: '850',
+                                                                                                    background: '#ECFDF5',
+                                                                                                    color: '#047857',
+                                                                                                    border: '1px solid #A7F3D0',
+                                                                                                    padding: '2px 7px',
+                                                                                                    borderRadius: '6px',
+                                                                                                    cursor: 'pointer',
+                                                                                                    transition: 'all 0.15s'
+                                                                                                }}
+                                                                                            >
+                                                                                                <Crown size={10} strokeWidth={2.5} />
+                                                                                                <span>Make Admin</span>
+                                                                                            </button>
                                                                                         </div>
                                                                                     ) : (
                                                                                         <span
@@ -3975,8 +4090,9 @@ const BusinessSplitCollect = () => {
                                                 cursor: 'pointer'
                                             }}
                                         >
-                                            <option value="editor">Edit Access</option>
-                                            <option value="viewer">View Only</option>
+                                            <option value="editor">✏️ Edit Access</option>
+                                            <option value="viewer">👁️ View Only</option>
+                                            <option value="admin">👑 Admin</option>
                                         </select>
                                         <button 
                                             type="button"
@@ -4016,6 +4132,7 @@ const BusinessSplitCollect = () => {
                                             const pEmail = getParticipantEmail(p);
                                             const pRole = getParticipantRole(p);
                                             const pIsAdmin = isParticipantAdmin(p);
+                                            const isPrimaryCreator = idx === 0 || pName.toLowerCase() === 'you';
 
                                             return (
                                                 <div 
@@ -4043,22 +4160,22 @@ const BusinessSplitCollect = () => {
                                                     </div>
 
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                                                        {pIsAdmin ? (
+                                                        {isPrimaryCreator ? (
                                                             <span style={{ background: '#047857', color: 'white', fontSize: '0.65rem', fontWeight: '850', padding: '2px 6px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                                <Crown size={10} strokeWidth={2.5} /> Admin
+                                                                <Crown size={10} strokeWidth={2.5} /> Creator & Admin
                                                             </span>
                                                         ) : (
                                                             <>
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => toggleParticipantRoleInForm(idx)}
-                                                                    title="Click to toggle access permission"
+                                                                    title="Click to toggle access permission (Viewer -> Edit Access -> Admin)"
                                                                     style={{
                                                                         border: 'none',
-                                                                        background: pRole === 'editor' ? '#EFF6FF' : '#FFFBEB',
-                                                                        color: pRole === 'editor' ? '#2563EB' : '#D97706',
+                                                                        background: pIsAdmin ? '#ECFDF5' : (pRole === 'editor' ? '#EFF6FF' : '#FFFBEB'),
+                                                                        color: pIsAdmin ? '#047857' : (pRole === 'editor' ? '#2563EB' : '#D97706'),
                                                                         fontSize: '0.68rem',
-                                                                        fontWeight: '800',
+                                                                        fontWeight: '850',
                                                                         padding: '2px 6px',
                                                                         borderRadius: '6px',
                                                                         cursor: 'pointer',
@@ -4067,7 +4184,9 @@ const BusinessSplitCollect = () => {
                                                                         gap: '4px'
                                                                     }}
                                                                 >
-                                                                    {pRole === 'editor' ? (
+                                                                    {pIsAdmin ? (
+                                                                        <><Crown size={10} strokeWidth={2.5} /> Admin</>
+                                                                    ) : pRole === 'editor' ? (
                                                                         <><Pencil size={10} strokeWidth={2.5} /> Edit Access</>
                                                                     ) : (
                                                                         <><Eye size={10} strokeWidth={2.5} /> View Only</>
@@ -4172,21 +4291,21 @@ const BusinessSplitCollect = () => {
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
                                         Designated Access Permission
                                     </label>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
                                         <div
                                             onClick={() => setInviteMemberRole('editor')}
                                             style={{
                                                 border: inviteMemberRole === 'editor' ? '2px solid #1B6B3A' : '1px solid #E2E8F0',
                                                 background: inviteMemberRole === 'editor' ? '#F0FDF4' : 'white',
-                                                padding: '0.75rem', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s'
+                                                padding: '0.65rem 0.5rem', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s'
                                             }}
                                         >
-                                            <div style={{ fontSize: '0.82rem', fontWeight: '850', color: inviteMemberRole === 'editor' ? '#166534' : '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <Pencil size={14} strokeWidth={2.5} />
+                                            <div style={{ fontSize: '0.78rem', fontWeight: '850', color: inviteMemberRole === 'editor' ? '#166534' : '#334155', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <Pencil size={13} strokeWidth={2.5} />
                                                 <span>Edit Access</span>
                                             </div>
-                                            <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>
-                                                Can record and add expenses in this split
+                                            <div style={{ fontSize: '0.67rem', color: '#64748B', marginTop: '2px' }}>
+                                                Can record & add expenses
                                             </div>
                                         </div>
 
@@ -4195,15 +4314,32 @@ const BusinessSplitCollect = () => {
                                             style={{
                                                 border: inviteMemberRole === 'viewer' ? '2px solid #1B6B3A' : '1px solid #E2E8F0',
                                                 background: inviteMemberRole === 'viewer' ? '#F0FDF4' : 'white',
-                                                padding: '0.75rem', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s'
+                                                padding: '0.65rem 0.5rem', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s'
                                             }}
                                         >
-                                            <div style={{ fontSize: '0.82rem', fontWeight: '850', color: inviteMemberRole === 'viewer' ? '#166534' : '#334155', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <Eye size={14} strokeWidth={2.5} />
+                                            <div style={{ fontSize: '0.78rem', fontWeight: '850', color: inviteMemberRole === 'viewer' ? '#166534' : '#334155', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <Eye size={13} strokeWidth={2.5} />
                                                 <span>View Only</span>
                                             </div>
-                                            <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px' }}>
-                                                Can only view expenses and balances
+                                            <div style={{ fontSize: '0.67rem', color: '#64748B', marginTop: '2px' }}>
+                                                Can view expenses & balances
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            onClick={() => setInviteMemberRole('admin')}
+                                            style={{
+                                                border: inviteMemberRole === 'admin' ? '2px solid #047857' : '1px solid #E2E8F0',
+                                                background: inviteMemberRole === 'admin' ? '#ECFDF5' : 'white',
+                                                padding: '0.65rem 0.5rem', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s'
+                                            }}
+                                        >
+                                            <div style={{ fontSize: '0.78rem', fontWeight: '850', color: inviteMemberRole === 'admin' ? '#047857' : '#334155', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <Crown size={13} strokeWidth={2.5} />
+                                                <span>Admin</span>
+                                            </div>
+                                            <div style={{ fontSize: '0.67rem', color: '#64748B', marginTop: '2px' }}>
+                                                Full admin access & controls
                                             </div>
                                         </div>
                                     </div>
