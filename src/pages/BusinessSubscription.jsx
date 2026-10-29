@@ -37,6 +37,7 @@ import { apiClient } from '../api/client';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import { useCurrency, useAuth } from '../context';
+import { caService } from '../services';
 
 const BusinessSubscription = () => {
     const navigate = useNavigate();
@@ -54,8 +55,14 @@ const BusinessSubscription = () => {
         // Institutional ICAI Verification Guard for FIN-PRO Suite
         const isFinProTier = (tier.name && tier.name.startsWith('Fin-Pro')) || activeCategory === 'ca';
         if (isFinProTier) {
-            const caStatus = localStorage.getItem('cliks_ca_verification_status');
-            if (caStatus !== 'VERIFIED') {
+            try {
+                const icaiRes = await caService.getIcaiVerification();
+                const icai = icaiRes?.data || icaiRes;
+                if (!icai || icai.status !== 'VERIFIED') {
+                    setShowIcaiGuardModal(true);
+                    return;
+                }
+            } catch (e) {
                 setShowIcaiGuardModal(true);
                 return;
             }
@@ -651,7 +658,7 @@ const BusinessSubscription = () => {
                     const currentCategoryKey = activeCategory === 'betaclub' ? (betaSubCategory === 'investor' ? 'betaclub_investor' : 'betaclub_product') : activeCategory;
                     const activeModulePlan = 
                         currentCategoryKey === 'business' ? (user?.active_subscriptions?.business?.plan || user?.tier || 'Starter Plan') :
-                        currentCategoryKey === 'ca' ? (user?.active_subscriptions?.fin_pro?.plan || user?.finpro_plan || (localStorage.getItem('cliks_finpro_active') === 'true' ? 'Fin-Pro Solo' : null)) :
+                        currentCategoryKey === 'ca' ? (user?.active_subscriptions?.fin_pro?.plan || user?.finpro_plan || null) :
                         currentCategoryKey === 'betaclub_investor' ? (user?.active_subscriptions?.investor?.plan || user?.investor_plan || (localStorage.getItem('cliks_investor_active') === 'true' ? 'Basic Investor' : null)) :
                         currentCategoryKey === 'betaclub_product' ? (user?.active_subscriptions?.poster?.plan || user?.poster_plan || (localStorage.getItem('cliks_poster_active') === 'true' ? 'Monthly Innovator' : null)) : null;
 

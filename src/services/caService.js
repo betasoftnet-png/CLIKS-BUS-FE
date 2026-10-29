@@ -99,7 +99,14 @@ export const caService = {
     // Direct Messenger Chat API
     getChatMessages: (partnerId) => apiClient.get(`/ca/messages/${partnerId}`).then(res => res.data.data || res.data),
     sendChatMessage: (data) => apiClient.post('/ca/messages', data).then(res => res.data.data || res.data),
-    getUnreadChatCount: () => apiClient.get('/ca/messages/unread-count').then(res => res.data.data || res.data)
+    getUnreadChatCount: () => apiClient.get('/ca/messages/unread-count').then(res => res.data.data || res.data),
+
+    // ICAI Verification & FIN-PRO Subscription Backend API
+    submitIcaiVerification: (data) => apiClient.post('/ca/icai-verification', data).then(res => res.data.data || res.data),
+    getIcaiVerification: () => apiClient.get('/ca/icai-verification').then(res => res.data.data || res.data),
+    activateFinproSubscription: (data) => apiClient.post('/ca/finpro-subscription', data).then(res => res.data.data || res.data),
+    getFinproSubscription: () => apiClient.get('/ca/finpro-subscription').then(res => res.data.data || res.data),
+    simulateVerifyIcai: () => apiClient.post('/ca/icai-verification/simulate-verify').then(res => res.data.data || res.data)
 };
 
 export default caService;

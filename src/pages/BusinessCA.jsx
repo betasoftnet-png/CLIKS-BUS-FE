@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
@@ -8,7 +8,7 @@ import {
     UserCheck, ChevronRight, Layers, FileCheck, HelpCircle, TrendingUp, Plus, Search, Building,
     User, Wallet, Percent, PiggyBank, FileUp, Home, Users, Folder, BarChart, Play, Square, Trash2, PlusCircle, CheckSquare, FileSpreadsheet, Edit2,
     Calculator, History, Info, Save, X, ChevronDown, Check, Download, ExternalLink, Eye, MessageSquare,
-    ShieldCheck, Award, MapPin, CheckCircle
+    ShieldCheck, Award, MapPin, CheckCircle, Lock, Sparkles
 } from 'lucide-react';
 import { accountingService, gstService, contactsService, caService, profileService } from '../services';
 import { useCurrency, useAuth } from '../context';
@@ -28,6 +28,7 @@ export const COMING_SOON_ROLES = {
 
 export default function BusinessCA({ mode }) {
     const location = useLocation();
+    const navigate = useNavigate();
     const activeMode = mode || (location.pathname.startsWith('/ca') ? 'personal' : 'business');
     const { currency, formatCurrency } = useCurrency();
     const { user } = useAuth();
@@ -101,57 +102,60 @@ export default function BusinessCA({ mode }) {
         return 'finpro';
     })();
 
-    // ── ICAI Professional Verification State ──
-    const [icaiVerification, setIcaiVerification] = useState(() => {
-        const saved = localStorage.getItem('cliks_icai_verification');
-        if (saved) {
-            try { return JSON.parse(saved); } catch (e) {}
-        }
-        return {
-            fullName: '',
-            firmName: '',
-            membershipNo: '',
-            email: user?.email || '',
-            copStatus: 'ACTIVE',
-            associateFellow: 'Associate (ACA)',
-            address: '',
-            region: 'Southern',
-            status: localStorage.getItem('cliks_ca_verification_status') || 'UNVERIFIED'
-        };
+    // ── ICAI Professional Verification & FIN-PRO Subscription State (Backend Driven) ──
+    const { data: icaiData, refetch: refetchIcai } = useQuery({
+        queryKey: ['icaiVerificationStatus'],
+        queryFn: () => caService.getIcaiVerification(),
+        refetchInterval: 10000
     });
+
+    const icaiVerification = icaiData?.data || icaiData || {};
+    const isCaVerified = icaiVerification?.status === 'VERIFIED';
+    const isFinProSubscribed = Boolean(icaiVerification?.isSubscribed);
+
+    const activateSubscriptionMutation = useMutation({
+        mutationFn: (planName) => caService.activateFinproSubscription({ planName }),
+        onSuccess: (res, planName) => {
+            refetchIcai();
+            alert(`Successfully subscribed to ${planName}! FIN-PRO Dashboard is now unlocked.`);
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || err?.message || 'Failed to activate subscription');
+        }
+    });
+
+    const simulateVerifyMutation = useMutation({
+        mutationFn: () => caService.simulateVerifyIcai(),
+        onSuccess: () => {
+            refetchIcai();
+            alert('ICAI Credentials Officially Verified! Subscriptions unlocked.');
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || err?.message || 'Verification simulation failed');
+        }
+    });
+
+    const handleActivateSubscription = (planName) => {
+        activateSubscriptionMutation.mutate(planName);
+    };
+
+    const handleSimulateAdminVerify = () => {
+        simulateVerifyMutation.mutate();
+    };
 
     const [isIcaiModalOpen, setIsIcaiModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
 
     const [icaiFormData, setIcaiFormData] = useState({
-        fullName: icaiVerification.fullName || '',
-        firmName: icaiVerification.firmName || '',
-        membershipNo: icaiVerification.membershipNo || '',
-        email: icaiVerification.email || user?.email || '',
-        copStatus: icaiVerification.copStatus || 'ACTIVE',
-        associateFellow: icaiVerification.associateFellow || 'Associate (ACA)',
-        address: icaiVerification.address || '',
-        region: icaiVerification.region || 'Southern'
+        fullName: '',
+        firmName: '',
+        membershipNo: '',
+        email: user?.email || '',
+        copStatus: 'ACTIVE',
+        associateFellow: 'Associate Member (ACA)',
+        address: '',
+        region: 'Southern India Regional Council (SIRC)'
     });
-
-    // Automatically synchronize state from localStorage
-    useEffect(() => {
-        const syncIcai = () => {
-            const saved = localStorage.getItem('cliks_icai_verification');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    setIcaiVerification(parsed);
-                } catch (e) {}
-            } else {
-                const status = localStorage.getItem('cliks_ca_verification_status') || 'UNVERIFIED';
-                setIcaiVerification(prev => ({ ...prev, status }));
-            }
-        };
-        syncIcai();
-        window.addEventListener('storage', syncIcai);
-        return () => window.removeEventListener('storage', syncIcai);
-    }, []);
 
     // Auto-open modal if URL has ?verify_icai=true
     useEffect(() => {
@@ -161,26 +165,39 @@ export default function BusinessCA({ mode }) {
         }
     }, [location.search]);
 
-    // Sync form data whenever icaiVerification updates
+    // Sync form data whenever icaiVerification updates from backend
     useEffect(() => {
-        if (icaiVerification) {
+        if (icaiVerification && icaiVerification.status && icaiVerification.status !== 'UNVERIFIED') {
             setIcaiFormData({
-                fullName: icaiVerification.fullName || '',
-                firmName: icaiVerification.firmName || '',
-                membershipNo: icaiVerification.membershipNo || '',
+                fullName: icaiVerification.full_name || icaiVerification.fullName || '',
+                firmName: icaiVerification.firm_name || icaiVerification.firmName || '',
+                membershipNo: icaiVerification.membership_no || icaiVerification.membershipNo || '',
                 email: icaiVerification.email || user?.email || '',
-                copStatus: icaiVerification.copStatus || 'ACTIVE',
-                associateFellow: icaiVerification.associateFellow || 'Associate Member (ACA)',
+                copStatus: icaiVerification.cop_status || icaiVerification.copStatus || 'ACTIVE',
+                associateFellow: icaiVerification.associate_fellow || icaiVerification.associateFellow || 'Associate Member (ACA)',
                 address: icaiVerification.address || '',
                 region: icaiVerification.region || 'Southern India Regional Council (SIRC)'
             });
         }
-    }, [icaiVerification]);
+    }, [icaiVerification, user]);
+
+    const submitIcaiMutation = useMutation({
+        mutationFn: (data) => caService.submitIcaiVerification(data),
+        onSuccess: () => {
+            refetchIcai();
+            setIsEditMode(false);
+            setIsIcaiModalOpen(false);
+            alert('Your ICAI membership credentials have been submitted for institutional verification.');
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || err?.message || 'Failed to submit ICAI credentials');
+        }
+    });
 
     const handleSubmitIcaiVerification = (e) => {
         e.preventDefault();
-        if (!icaiFormData.fullName.trim() || !icaiFormData.membershipNo.trim()) {
-            alert('Please fill in both Member Name and Membership / Reg No.');
+        if (!icaiFormData.fullName.trim() || !icaiFormData.membershipNo.trim() || !icaiFormData.firmName.trim()) {
+            alert('Please fill in Member Name, Membership / Reg No, and Firm Name.');
             return;
         }
 
@@ -190,27 +207,10 @@ export default function BusinessCA({ mode }) {
             return;
         }
 
-        // 2. Professional Email Validation: strictly enforce @bnxmail.com domain
-        const emailVal = (icaiFormData.email || user?.email || '').trim();
-        if (!/^[a-zA-Z0-9._%+-]+@bnxmail\.com$/.test(emailVal)) {
-            alert('Please enter a valid official email ending with @bnxmail.com.');
-            return;
-        }
-
-        const submission = {
+        submitIcaiMutation.mutate({
             ...icaiFormData,
-            membershipNo: icaiFormData.membershipNo.trim(),
-            email: emailVal,
-            copStatus: icaiFormData.copStatus || 'ACTIVE',
-            status: 'PENDING_REVIEW',
-            submittedAt: new Date().toISOString().split('T')[0]
-        };
-
-        setIcaiVerification(submission);
-        localStorage.setItem('cliks_icai_verification', JSON.stringify(submission));
-        localStorage.setItem('cliks_ca_verification_status', 'PENDING_REVIEW');
-        setIsEditMode(false);
-        alert('Your ICAI membership credentials have been submitted for institutional verification.');
+            membershipNo: icaiFormData.membershipNo.trim()
+        });
     };
 
     // Timer States
@@ -1511,7 +1511,274 @@ export default function BusinessCA({ mode }) {
     return (
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', backgroundColor: '#F8FAFC', minHeight: '85vh', fontFamily: 'Inter, sans-serif' }}>
 
-            {activeMode === 'business' ? (
+            {!isCaVerified ? (
+                /* ── Gate 1: ICAI Credential Verification Required ── */
+                <div style={{
+                    maxWidth: '800px',
+                    margin: '3rem auto',
+                    background: '#FFFFFF',
+                    borderRadius: '24px',
+                    border: '1px solid #E2E8F0',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05)',
+                    padding: '3rem 2.5rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '1.5rem'
+                }}>
+                    <div style={{
+                        width: '72px',
+                        height: '72px',
+                        borderRadius: '20px',
+                        background: icaiVerification.status === 'PENDING_REVIEW' ? '#FEF3C7' : (icaiVerification.status === 'REJECTED' ? '#FEE2E2' : '#EFF6FF'),
+                        color: icaiVerification.status === 'PENDING_REVIEW' ? '#D97706' : (icaiVerification.status === 'REJECTED' ? '#DC2626' : '#2563EB'),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}>
+                        {icaiVerification.status === 'PENDING_REVIEW' ? <Clock size={36} /> : (icaiVerification.status === 'REJECTED' ? <AlertTriangle size={36} /> : <Lock size={36} />)}
+                    </div>
+
+                    <div>
+                        <span style={{
+                            fontSize: '0.75rem',
+                            fontWeight: '800',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            padding: '4px 12px',
+                            borderRadius: '999px',
+                            background: icaiVerification.status === 'PENDING_REVIEW' ? '#FEF3C7' : (icaiVerification.status === 'REJECTED' ? '#FEE2E2' : '#EFF6FF'),
+                            color: icaiVerification.status === 'PENDING_REVIEW' ? '#92400E' : (icaiVerification.status === 'REJECTED' ? '#991B1B' : '#1D4ED8')
+                        }}>
+                            {icaiVerification.status === 'PENDING_REVIEW' ? 'Verification In Progress' : (icaiVerification.status === 'REJECTED' ? 'Verification Rejected' : 'ICAI Verification Required')}
+                        </span>
+                        <h2 style={{ fontSize: '1.75rem', fontWeight: '850', color: '#0F172A', margin: '0.75rem 0 0.5rem 0' }}>
+                            {icaiVerification.status === 'PENDING_REVIEW'
+                                ? 'ICAI Verification Pending Administrator Approval'
+                                : (icaiVerification.status === 'REJECTED'
+                                    ? 'ICAI Credential Verification Unsuccessful'
+                                    : 'Chartered Accountant (ICAI) Credential Gate')}
+                        </h2>
+                        <p style={{ fontSize: '0.95rem', color: '#64748B', lineHeight: '1.6', maxWidth: '580px', margin: '0 auto' }}>
+                            {icaiVerification.status === 'PENDING_REVIEW'
+                                ? `Your credentials for ${icaiVerification.fullName || 'Member'} (ICAI #${icaiVerification.membershipNo}) have been submitted and are undergoing review by the administrator. The FIN-PRO dashboard will be unlocked once approved.`
+                                : (icaiVerification.status === 'REJECTED'
+                                    ? 'Your submitted details could not be validated against official ICAI records. Please update your registration information under Customization.'
+                                    : 'FIN-PRO is exclusively accessible to verified Chartered Accountants holding an active Certificate of Practice (COP). Verify your ICAI credentials in Customization to unlock access.')}
+                        </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '0.5rem' }}>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/customization?tab=finPro')}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                padding: '0.85rem 1.75rem',
+                                borderRadius: '12px',
+                                background: 'linear-gradient(135deg, #1B6B3A 0%, #135029 100%)',
+                                color: 'white',
+                                border: 'none',
+                                fontSize: '0.95rem',
+                                fontWeight: '800',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(27, 107, 58, 0.25)'
+                            }}
+                        >
+                            <ShieldCheck size={18} /> Open Customization (FIN-PRO)
+                        </button>
+                        {icaiVerification.status === 'PENDING_REVIEW' && (
+                            <button
+                                type="button"
+                                onClick={handleSimulateAdminVerify}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.85rem 1.5rem',
+                                    borderRadius: '12px',
+                                    background: '#10B981',
+                                    color: 'white',
+                                    border: 'none',
+                                    fontSize: '0.95rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <Sparkles size={18} /> Simulate Admin Verify
+                            </button>
+                        )}
+                        {icaiVerification.status === 'UNVERIFIED' && (
+                            <button
+                                type="button"
+                                onClick={() => setIsIcaiModalOpen(true)}
+                                style={{
+                                    padding: '0.85rem 1.5rem',
+                                    borderRadius: '12px',
+                                    background: '#F1F5F9',
+                                    color: '#334155',
+                                    border: '1px solid #CBD5E1',
+                                    fontSize: '0.95rem',
+                                    fontWeight: '750',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Enter Credentials Here
+                            </button>
+                        )}
+                    </div>
+                </div>
+            ) : !isFinProSubscribed ? (
+                /* ── Gate 2: Subscription Required ── */
+                <div style={{
+                    maxWidth: '900px',
+                    margin: '2rem auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2rem'
+                }}>
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '20px',
+                        border: '1px solid #E2E8F0',
+                        padding: '2rem 2.5rem',
+                        textAlign: 'center',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+                    }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '4px 14px', borderRadius: '999px', color: '#065F46', fontSize: '0.8rem', fontWeight: '800', marginBottom: '0.75rem' }}>
+                            <CheckCircle2 size={16} color="#059669" /> ICAI Credentials Verified — #{icaiVerification.membershipNo} ({icaiVerification.fullName || 'Member'})
+                        </div>
+                        <h2 style={{ fontSize: '1.85rem', fontWeight: '850', color: '#0F172A', margin: '0 0 0.5rem 0' }}>
+                            Activate Your FIN-PRO Subscription
+                        </h2>
+                        <p style={{ fontSize: '0.95rem', color: '#64748B', maxWidth: '600px', margin: '0 auto', lineHeight: '1.5' }}>
+                            Your institutional ICAI credentials have been validated! Choose your subscription tier below to activate your auditor workspace and display the FIN-PRO dashboard.
+                        </p>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                        {/* Fin-Pro Solo */}
+                        <div style={{
+                            background: '#FFFFFF',
+                            borderRadius: '20px',
+                            border: '1.5px solid #E2E8F0',
+                            padding: '2rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
+                        }}>
+                            <div>
+                                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#2563EB', textTransform: 'uppercase' }}>Individual Practice</span>
+                                <h3 style={{ fontSize: '1.4rem', fontWeight: '850', color: '#0F172A', margin: '0.35rem 0' }}>Fin-Pro Solo</h3>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '1rem' }}>
+                                    <span style={{ fontSize: '2rem', fontWeight: '900', color: '#0F172A' }}>₹999</span>
+                                    <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}>/ year</span>
+                                </div>
+                                <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.5', marginBottom: '1.5rem' }}>
+                                    Ideal for independent chartered accountants managing SME client portfolios, tax returns, and statutory audits.
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem', fontSize: '0.85rem', color: '#334155' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> 50 Connected SME Clients</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> Automated CARO 2020 Working Papers</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> Real-Time GST & TDS Audit Scanners</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> Direct Statutory Export Suite</div>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => handleActivateSubscription('Fin-Pro Solo')}
+                                style={{
+                                    width: '100%',
+                                    padding: '0.85rem',
+                                    borderRadius: '12px',
+                                    background: 'white',
+                                    border: '2px solid #2563EB',
+                                    color: '#2563EB',
+                                    fontSize: '0.95rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = '#2563EB'; e.currentTarget.style.color = 'white'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#2563EB'; }}
+                            >
+                                Subscribe & Unlock Dashboard
+                            </button>
+                        </div>
+
+                        {/* Fin-Pro Firm */}
+                        <div style={{
+                            background: '#0F172A',
+                            borderRadius: '20px',
+                            border: '2px solid #F59E0B',
+                            padding: '2rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            color: 'white',
+                            position: 'relative',
+                            boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+                        }}>
+                            <span style={{
+                                position: 'absolute',
+                                top: '-12px',
+                                right: '24px',
+                                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                                color: 'white',
+                                padding: '4px 12px',
+                                borderRadius: '999px',
+                                fontSize: '0.72rem',
+                                fontWeight: '800',
+                                textTransform: 'uppercase'
+                            }}>
+                                RECOMMENDED
+                            </span>
+                            <div>
+                                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#F59E0B', textTransform: 'uppercase' }}>Full Practice</span>
+                                <h3 style={{ fontSize: '1.4rem', fontWeight: '850', color: 'white', margin: '0.35rem 0' }}>Fin-Pro Firm</h3>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '1rem' }}>
+                                    <span style={{ fontSize: '2rem', fontWeight: '900', color: 'white' }}>₹1,499</span>
+                                    <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: '600' }}>/ year</span>
+                                </div>
+                                <p style={{ fontSize: '0.85rem', color: '#94A3B8', lineHeight: '1.5', marginBottom: '1.5rem' }}>
+                                    Designed for multi-partner audit firms, team collaboration, and AI forensic fraud detection.
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem', fontSize: '0.85rem', color: '#E2E8F0' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> Unlimited SME Client Portals</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> Multi-Partner & Article Clerk Team Hub</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> AI Forensic Anomaly & Fraud Detection</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> Direct Resolution Vault & Client Chat</div>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => handleActivateSubscription('Fin-Pro Firm')}
+                                style={{
+                                    width: '100%',
+                                    padding: '0.85rem',
+                                    borderRadius: '12px',
+                                    background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                                    border: 'none',
+                                    color: 'white',
+                                    fontSize: '0.95rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)'
+                                }}
+                            >
+                                Subscribe & Unlock Dashboard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                /* ── Full FIN-PRO Dashboard (Rendered only after verification and subscription) ── */
+                <>
+                    {activeMode === 'business' ? (
                 <>
 
                     {/* Main Area - Restructured as 2-column Grid */}
@@ -6489,6 +6756,8 @@ export default function BusinessCA({ mode }) {
                         </div>
                     )}
                 </div>
+            )}
+                </>
             )}
 
             {/* 🏛 ICAI Professional Verification Modal */}

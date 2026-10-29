@@ -4,13 +4,13 @@ import {
     ShieldCheck, CheckCircle2, Truck, ArrowRightLeft, Database, 
     Printer, MessageSquare, Users, Smartphone, LayoutGrid, Eye, EyeOff, Edit,
     Calculator, Bell, Camera, UploadCloud, Calendar, MapPin, Mail, Phone, Briefcase, Crown, X,
-    Globe, Shield, Coins, Zap
+    Globe, Shield, Coins, Zap, Clock, AlertTriangle, Lock, Award, Sparkles, ExternalLink, ShieldAlert
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import '../App.css';
 import { Toggle } from '../components/ui/toggle';
-import { settingsService, profileService } from '../services';
+import { settingsService, profileService, caService } from '../services';
 import { customPrompt } from '../utils/customConfirm';
 import { useCurrency, useLanguage } from '../context';
 
@@ -63,7 +63,112 @@ const BusinessCustomization = () => {
     const [showPin, setShowPin] = useState(false);
     const { currency } = useCurrency();
     const { t, language, setLanguage } = useLanguage();
-    const [activeTab, setActiveTab] = useState('profile');
+    const [activeTab, setActiveTab] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('tab') || 'profile';
+    });
+
+    // ── ICAI & FIN-PRO Verification State ──
+    const { data: icaiData, refetch: refetchIcai } = useQuery({
+        queryKey: ['icaiVerificationStatus'],
+        queryFn: () => caService.getIcaiVerification(),
+        refetchInterval: 10000
+    });
+
+    const icaiVerification = icaiData?.data || icaiData || {};
+    const caVerificationStatus = icaiVerification?.status || 'UNVERIFIED';
+    const isFinProSubscribed = Boolean(icaiVerification?.isSubscribed);
+
+    const [showIcaiModal, setShowIcaiModal] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [icaiFormData, setIcaiFormData] = useState({
+        fullName: '',
+        firmName: '',
+        membershipNo: '',
+        email: '',
+        copStatus: 'ACTIVE',
+        associateFellow: 'Associate Member (ACA)',
+        address: '',
+        region: 'Southern India Regional Council (SIRC)'
+    });
+
+    // Sync form data with existing icaiVerification from backend
+    useEffect(() => {
+        if (icaiVerification && icaiVerification.status && icaiVerification.status !== 'UNVERIFIED') {
+            setIcaiFormData({
+                fullName: icaiVerification.full_name || icaiVerification.fullName || '',
+                firmName: icaiVerification.firm_name || icaiVerification.firmName || '',
+                membershipNo: icaiVerification.membership_no || icaiVerification.membershipNo || '',
+                email: icaiVerification.email || '',
+                copStatus: icaiVerification.cop_status || icaiVerification.copStatus || 'ACTIVE',
+                associateFellow: icaiVerification.associate_fellow || icaiVerification.associateFellow || 'Associate Member (ACA)',
+                address: icaiVerification.address || '',
+                region: icaiVerification.region || 'Southern India Regional Council (SIRC)'
+            });
+        }
+    }, [icaiVerification]);
+
+    const submitIcaiMutation = useMutation({
+        mutationFn: (data) => caService.submitIcaiVerification(data),
+        onSuccess: () => {
+            refetchIcai();
+            setShowIcaiModal(false);
+            setIsEditMode(false);
+            alert('ICAI membership credentials submitted successfully! Awaiting institutional approval by administrator.');
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || err?.message || 'Failed to submit ICAI credentials');
+        }
+    });
+
+    const subscribeMutation = useMutation({
+        mutationFn: (planName) => caService.activateFinproSubscription({ planName }),
+        onSuccess: (res, planName) => {
+            refetchIcai();
+            alert(`Congratulations! You have successfully subscribed to ${planName}. FIN-PRO Workspace is now unlocked!`);
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || err?.message || 'Failed to subscribe to FIN-PRO');
+        }
+    });
+
+    const simulateVerifyMutation = useMutation({
+        mutationFn: () => caService.simulateVerifyIcai(),
+        onSuccess: () => {
+            refetchIcai();
+            alert('ICAI Credentials Officially Verified by Admin! Subscription plans are now unlocked.');
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || err?.message || 'Failed to verify');
+        }
+    });
+
+    const handleSubmitIcai = (e) => {
+        e.preventDefault();
+        if (!icaiFormData.fullName.trim() || !icaiFormData.membershipNo.trim() || !icaiFormData.firmName.trim()) {
+            alert('Please fill in Member Full Name, ICAI Membership No, and Firm Name.');
+            return;
+        }
+
+        // Must be exactly 6 digits
+        if (!/^\d{6}$/.test(icaiFormData.membershipNo.trim())) {
+            alert('ICAI Membership Number must be exactly 6 digits (e.g. 084921).');
+            return;
+        }
+
+        submitIcaiMutation.mutate({
+            ...icaiFormData,
+            membershipNo: icaiFormData.membershipNo.trim()
+        });
+    };
+
+    const handleSubscribeFinPro = (planName) => {
+        subscribeMutation.mutate(planName);
+    };
+
+    const handleSimulateAdminVerify = () => {
+        simulateVerifyMutation.mutate();
+    };
 
     const logoInputRef = React.useRef(null);
     const sigInputRef = React.useRef(null);
@@ -1030,95 +1135,530 @@ const BusinessCustomization = () => {
     );
 
     const renderFinPro = () => (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <CustomizationCard title="Professional Ledger & AI Analytics" icon={Zap}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <PremiumToggleItem 
-                            label="Multi-Currency Ledgers" 
-                            desc="Enable cross-border entries with real-time currency conversions and daily forex adjustments." 
-                            active={config.finProMultiCurrency} 
-                            onToggle={() => handleToggle('finProMultiCurrency')} 
-                        />
-                        <Divider />
-                        <PremiumToggleItem 
-                            label="AI Predictive Cashflow Projections" 
-                            desc="Activate self-learning neural engines to forecast cash runways, collections, and burn rates." 
-                            active={config.finProAiCashflow} 
-                            onToggle={() => handleToggle('finProAiCashflow')} 
-                        />
-                        <Divider />
-                        <PremiumToggleItem 
-                            label="Smart Audit Trail GST Sync" 
-                            desc="Maintain a cryptographically hashed log of every invoice action with instant tax node parity." 
-                            active={config.finProSmartAudit} 
-                            onToggle={() => handleToggle('finProSmartAudit')} 
-                        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+            {/* ── 1. ICAI Credential Verification Gate ── */}
+            <div style={{
+                borderRadius: '16px',
+                padding: '1.75rem',
+                border: caVerificationStatus === 'VERIFIED' ? '1.5px solid #10B981' : (caVerificationStatus === 'PENDING_REVIEW' ? '1.5px solid #F59E0B' : (caVerificationStatus === 'REJECTED' ? '1.5px solid #EF4444' : '1.5px solid #3B82F6')),
+                background: caVerificationStatus === 'VERIFIED' ? 'linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%)' : (caVerificationStatus === 'PENDING_REVIEW' ? 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)' : (caVerificationStatus === 'REJECTED' ? 'linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%)' : 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)')),
+                boxShadow: '0 4px 16px rgba(0,0,0,0.04)'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                        <div style={{
+                            width: '46px',
+                            height: '46px',
+                            borderRadius: '12px',
+                            background: caVerificationStatus === 'VERIFIED' ? '#10B981' : (caVerificationStatus === 'PENDING_REVIEW' ? '#F59E0B' : (caVerificationStatus === 'REJECTED' ? '#EF4444' : '#2563EB')),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            flexShrink: 0
+                        }}>
+                            {caVerificationStatus === 'VERIFIED' ? <ShieldCheck size={26} /> : (caVerificationStatus === 'PENDING_REVIEW' ? <Clock size={26} /> : (caVerificationStatus === 'REJECTED' ? <AlertTriangle size={26} /> : <Award size={26} />))}
+                        </div>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <span style={{
+                                    fontSize: '0.7rem',
+                                    fontWeight: '800',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    background: caVerificationStatus === 'VERIFIED' ? '#047857' : (caVerificationStatus === 'PENDING_REVIEW' ? '#B45309' : (caVerificationStatus === 'REJECTED' ? '#B91C1C' : '#1D4ED8')),
+                                    color: 'white'
+                                }}>
+                                    {caVerificationStatus === 'VERIFIED' ? 'ICAI Verified & Approved' : (caVerificationStatus === 'PENDING_REVIEW' ? 'Verification Pending Approval' : (caVerificationStatus === 'REJECTED' ? 'Verification Rejected' : 'Verification Required'))}
+                                </span>
+                                {caVerificationStatus === 'VERIFIED' && (
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#047857' }}>
+                                        ICAI #{icaiVerification.membershipNo}
+                                    </span>
+                                )}
+                            </div>
+                            <h3 style={{ margin: '0.35rem 0 0.2rem 0', fontSize: '1.25rem', fontWeight: '850', color: '#0F172A' }}>
+                                {caVerificationStatus === 'VERIFIED' 
+                                    ? `Verified Chartered Accountant — ${icaiVerification.fullName || 'Member'}` 
+                                    : (caVerificationStatus === 'PENDING_REVIEW' 
+                                        ? `ICAI Verification Under Administrator Review` 
+                                        : (caVerificationStatus === 'REJECTED' 
+                                            ? `ICAI Verification Rejected` 
+                                            : `Chartered Accountant (ICAI) Credential Gate`))}
+                            </h3>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', maxWidth: '650px', lineHeight: '1.45' }}>
+                                {caVerificationStatus === 'VERIFIED'
+                                    ? `Your ICAI credentials have been officially authenticated by the administrator. Full access to FIN-PRO advisory modules and practice tools is unlocked.`
+                                    : (caVerificationStatus === 'PENDING_REVIEW'
+                                        ? `Your submission for ${icaiVerification.fullName || 'Applicant'} (ICAI #${icaiVerification.membershipNo}) has been dispatched to the Cliks Administrator. The dashboard and subscription will open once approved.`
+                                        : (caVerificationStatus === 'REJECTED'
+                                            ? `Your submitted details could not be validated against the official ICAI register. Please review your Registration No. and Firm name, then re-submit.`
+                                            : `FIN-PRO is exclusively accessible to certified Chartered Accountants with an active Certificate of Practice (COP). Only verified CA professionals can access this suite.`))}
+                            </p>
+                        </div>
                     </div>
-                </CustomizationCard>
-            </div>
-            
-            <div style={{ background: '#0F172A', border: '1px solid #1E293B', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)', position: 'relative' }}>
-                {/* Accent glows */}
-                <div style={{ position: 'absolute', right: '-30px', top: '-30px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                <div style={{ position: 'absolute', left: '-30px', bottom: '-30px', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(236, 72, 153, 0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
-                
-                <div style={{ padding: '1rem', background: '#1E293B', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '800', color: '#F8FAFC' }}>
-                    <Crown size={16} color="#F59E0B" /> FIN-PRO PLATINUM SUITE
+
+                    {/* Action buttons based on status */}
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {caVerificationStatus === 'UNVERIFIED' && (
+                            <button
+                                type="button"
+                                onClick={() => { setIsEditMode(false); setShowIcaiModal(true); }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.75rem 1.5rem',
+                                    borderRadius: '10px',
+                                    background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <ShieldCheck size={18} /> Verify ICAI Credentials
+                            </button>
+                        )}
+
+                        {caVerificationStatus === 'PENDING_REVIEW' && (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsEditMode(true); setShowIcaiModal(true); }}
+                                    style={{
+                                        padding: '0.65rem 1.1rem',
+                                        borderRadius: '8px',
+                                        background: 'white',
+                                        border: '1.5px solid #CBD5E1',
+                                        color: '#334155',
+                                        fontSize: '0.85rem',
+                                        fontWeight: '750',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Modify Details
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSimulateAdminVerify}
+                                    title="Click to simulate admin approval for testing"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        padding: '0.65rem 1.1rem',
+                                        borderRadius: '8px',
+                                        background: '#10B981',
+                                        border: 'none',
+                                        color: 'white',
+                                        fontSize: '0.85rem',
+                                        fontWeight: '800',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)'
+                                    }}
+                                >
+                                    <Sparkles size={16} /> Simulate Admin Verify
+                                </button>
+                            </div>
+                        )}
+
+                        {caVerificationStatus === 'REJECTED' && (
+                            <button
+                                type="button"
+                                onClick={() => { setIsEditMode(true); setShowIcaiModal(true); }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.75rem 1.35rem',
+                                    borderRadius: '10px',
+                                    background: '#DC2626',
+                                    color: 'white',
+                                    border: 'none',
+                                    fontSize: '0.85rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <Edit size={16} /> Modify & Re-submit Credentials
+                            </button>
+                        )}
+
+                        {caVerificationStatus === 'VERIFIED' && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsEditMode(false); setShowIcaiModal(true); }}
+                                    style={{
+                                        padding: '0.6rem 1rem',
+                                        borderRadius: '8px',
+                                        background: 'white',
+                                        border: '1px solid #A7F3D0',
+                                        color: '#065F46',
+                                        fontSize: '0.82rem',
+                                        fontWeight: '750',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    View Dossier
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                
-                <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', minHeight: '320px', boxSizing: 'border-box' }}>
-                    {/* Glassmorphic card */}
-                    <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '1.25rem', backdropFilter: 'blur(10px)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <span style={{ fontSize: '0.6rem', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enterprise Layer</span>
-                                <h3 style={{ margin: '0.1rem 0 0 0', fontSize: '1.1rem', fontWeight: '900', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    FIN-PRO <span style={{ fontSize: '0.65rem', background: 'linear-gradient(90deg, #F59E0B 0%, #EC4899 100%)', color: 'white', padding: '1px 6px', borderRadius: '100px', fontWeight: '800' }}>ACTIVE</span>
-                                </h3>
-                            </div>
-                            <Zap size={24} color="#F59E0B" style={{ filter: 'drop-shadow(0 0 8px rgba(245, 158, 11, 0.4))' }} />
-                        </div>
-                        
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.25rem' }}>
-                            {/* Multi-currency indicator */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
-                                <span style={{ color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}><Globe size={14} color="#6366F1" /> Multi-Currency Ledger</span>
-                                <span style={{ fontWeight: '750', color: config.finProMultiCurrency ? '#10B981' : '#64748B' }}>
-                                    {config.finProMultiCurrency ? 'USD, EUR, INR ENABLED' : 'LOCAL CURRENCY ONLY'}
-                                </span>
-                            </div>
-                            
-                            {/* AI Cashflow engine */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
-                                <span style={{ color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}><Calculator size={14} color="#EC4899" /> AI Cashflow Engine</span>
-                                <span style={{ fontWeight: '750', color: config.finProAiCashflow ? '#10B981' : '#64748B' }}>
-                                    {config.finProAiCashflow ? 'PREDICTIVE ANALYSIS UP' : 'DEACTIVATED'}
-                                </span>
-                            </div>
-                            
-                            {/* Compliance node status */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
-                                <span style={{ color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}><Shield size={14} color="#10B981" /> Hashed GST Node Sync</span>
-                                <span style={{ fontWeight: '750', color: config.finProSmartAudit ? '#10B981' : '#64748B' }}>
-                                    {config.finProSmartAudit ? 'CRYPTOGRAPHIC HANDSHAKE' : 'OFFLINE'}
-                                </span>
-                            </div>
-                        </div>
+            </div>
+
+            {/* ── 2. FIN-PRO Subscription & Dashboard Area ── */}
+            {caVerificationStatus !== 'VERIFIED' ? (
+                /* Locked State: Cannot subscribe or view dashboard until verified by admin */
+                <div style={{
+                    background: '#FFFFFF',
+                    border: '1.5px dashed #CBD5E1',
+                    borderRadius: '16px',
+                    padding: '3rem 2rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '1rem'
+                }}>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                        <Lock size={28} />
                     </div>
-                    
-                    {/* Tiny glassmorphic preview banner for Cashflow Prediction */}
-                    {config.finProAiCashflow && (
-                        <div style={{ background: 'rgba(99, 102, 241, 0.05)', border: '1px dashed rgba(99, 102, 241, 0.3)', borderRadius: '10px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                            <div style={{ fontSize: '0.6rem', fontWeight: '800', color: '#818CF8', textTransform: 'uppercase' }}>AI Runaway Projection (30 Days)</div>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-                                <span style={{ fontSize: '1rem', fontWeight: '850', color: '#FFFFFF' }}>{currency.symbol} 14.8L Safe Reserve</span>
-                                <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '700' }}>+8.4% growth forecasted</span>
-                            </div>
-                        </div>
+                    <div style={{ maxWidth: '480px' }}>
+                        <h4 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#1E293B', margin: '0 0 0.35rem 0' }}>
+                            FIN-PRO Dashboard & Subscription Locked
+                        </h4>
+                        <p style={{ fontSize: '0.88rem', color: '#64748B', lineHeight: '1.5', margin: 0 }}>
+                            {caVerificationStatus === 'PENDING_REVIEW'
+                                ? 'Your credentials have been submitted and are awaiting administrator verification. The FIN-PRO subscription plans and auditor dashboard will automatically unlock once approved.'
+                                : 'To access FIN-PRO subscriptions and open the auditor dashboard, you must first verify your ICAI registration credentials above.'}
+                        </p>
+                    </div>
+                    {caVerificationStatus === 'UNVERIFIED' && (
+                        <button
+                            type="button"
+                            onClick={() => { setIsEditMode(false); setShowIcaiModal(true); }}
+                            style={{
+                                marginTop: '0.5rem',
+                                padding: '0.65rem 1.25rem',
+                                borderRadius: '8px',
+                                background: '#1B6B3A',
+                                color: 'white',
+                                border: 'none',
+                                fontWeight: '750',
+                                fontSize: '0.85rem',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Verify ICAI Credentials Now
+                        </button>
                     )}
                 </div>
-            </div>
+            ) : (
+                /* Verified by Admin: Check subscription status */
+                !isFinProSubscribed ? (
+                    /* Show Subscription Plans */
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        <div style={{
+                            background: '#FFFFFF',
+                            borderRadius: '16px',
+                            border: '1px solid #E2E8F0',
+                            padding: '1.75rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '1rem',
+                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)'
+                        }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Crown size={20} color="#F59E0B" />
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A' }}>
+                                        ICAI Verified ✓ Choose Your FIN-PRO Subscription
+                                    </h3>
+                                </div>
+                                <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.88rem', color: '#64748B' }}>
+                                    Your professional credentials have been validated! Select a FIN-PRO plan below to activate your auditor workspace and unlock the dashboard.
+                                </p>
+                            </div>
+                            <span style={{
+                                padding: '6px 14px',
+                                borderRadius: '999px',
+                                background: '#FEF3C7',
+                                color: '#B45309',
+                                fontSize: '0.78rem',
+                                fontWeight: '800'
+                            }}>
+                                Subscription Required for Dashboard
+                            </span>
+                        </div>
+
+                        {/* Subscription Tier Cards Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+                            {/* Plan 1: Fin-Pro Solo */}
+                            <div style={{
+                                background: 'white',
+                                borderRadius: '16px',
+                                border: '1.5px solid #E2E8F0',
+                                padding: '2rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                position: 'relative',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+                                transition: 'all 0.2s'
+                            }}>
+                                <div>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Individual Practice</span>
+                                    <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#0F172A', margin: '0.25rem 0 0.5rem 0' }}>Fin-Pro Solo</h3>
+                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '1rem' }}>
+                                        <span style={{ fontSize: '1.75rem', fontWeight: '900', color: '#0F172A' }}>₹999</span>
+                                        <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}>/ year</span>
+                                    </div>
+                                    <p style={{ fontSize: '0.82rem', color: '#475569', lineHeight: '1.5', marginBottom: '1.25rem' }}>
+                                        Designed for sole practitioner Chartered Accountants managing SME tax filings and audit compliance.
+                                    </p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.5rem', fontSize: '0.83rem', color: '#334155' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> 50 Connected SME Clients</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> Automated CARO 2020 Working Papers</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> Real-Time GST & TDS Audit Scanners</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> Statutory Disclosures & Export Suite</div>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => handleSubscribeFinPro('Fin-Pro Solo')}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        borderRadius: '10px',
+                                        background: 'white',
+                                        border: '2px solid #2563EB',
+                                        color: '#2563EB',
+                                        fontWeight: '800',
+                                        fontSize: '0.9rem',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#2563EB'; e.currentTarget.style.color = 'white'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#2563EB'; }}
+                                >
+                                    Subscribe to Fin-Pro Solo
+                                </button>
+                            </div>
+
+                            {/* Plan 2: Fin-Pro Firm */}
+                            <div style={{
+                                background: '#0F172A',
+                                borderRadius: '16px',
+                                border: '2px solid #F59E0B',
+                                padding: '2rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                position: 'relative',
+                                boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                                color: 'white'
+                            }}>
+                                <span style={{
+                                    position: 'absolute',
+                                    top: '-12px',
+                                    right: '20px',
+                                    background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                                    color: 'white',
+                                    padding: '3px 10px',
+                                    borderRadius: '999px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: '800',
+                                    textTransform: 'uppercase'
+                                }}>
+                                    RECOMMENDED
+                                </span>
+                                <div>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#F59E0B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Full CA Practice</span>
+                                    <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#FFFFFF', margin: '0.25rem 0 0.5rem 0' }}>Fin-Pro Firm</h3>
+                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '1rem' }}>
+                                        <span style={{ fontSize: '1.75rem', fontWeight: '900', color: '#FFFFFF' }}>₹1,499</span>
+                                        <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: '600' }}>/ year</span>
+                                    </div>
+                                    <p style={{ fontSize: '0.82rem', color: '#94A3B8', lineHeight: '1.5', marginBottom: '1.25rem' }}>
+                                        Multi-partner chartered practice with unlimited clients, article clerk teams, and AI forensic auditing.
+                                    </p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.5rem', fontSize: '0.83rem', color: '#E2E8F0' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> Unlimited Client Ledgers & Portals</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> Multi-Partner Team Permission Matrix</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> AI Forensic Anomaly & Fraud Detection</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={16} color="#10B981" /> Direct Resolution Vault & Client Chat</div>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => handleSubscribeFinPro('Fin-Pro Firm')}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        borderRadius: '10px',
+                                        background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                                        border: 'none',
+                                        color: 'white',
+                                        fontWeight: '800',
+                                        fontSize: '0.9rem',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    Subscribe to Fin-Pro Firm
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    /* Subscribed & Verified: Display Open Dashboard button and full configuration */
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        {/* Status & Dashboard Launch Bar */}
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '16px',
+                            border: '1.5px solid #10B981',
+                            padding: '1.5rem 1.75rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '1rem',
+                            boxShadow: '0 4px 16px rgba(16, 185, 129, 0.08)'
+                        }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <CheckCircle2 size={22} color="#10B981" />
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '850', color: '#0F172A' }}>
+                                        FIN-PRO Advisory Suite Unlocked & Active
+                                    </h3>
+                                    <span style={{ fontSize: '0.75rem', background: '#ECFDF5', color: '#065F46', padding: '2px 8px', borderRadius: '999px', fontWeight: '800', border: '1px solid #A7F3D0' }}>
+                                        {icaiVerification.subscription?.plan_name || 'Fin-Pro Solo'} Plan
+                                    </span>
+                                </div>
+                                <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: '#64748B' }}>
+                                    ICAI credentials authenticated and subscription confirmed. You have full access to the FIN-PRO Command Centre.
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/ca')}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        padding: '0.75rem 1.5rem',
+                                        borderRadius: '10px',
+                                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                        color: 'white',
+                                        border: 'none',
+                                        fontSize: '0.9rem',
+                                        fontWeight: '800',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                                    }}
+                                >
+                                    Open FIN-PRO Dashboard <ExternalLink size={16} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Existing Advanced Ledgers & Analytics Settings */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                <CustomizationCard title="Professional Ledger & AI Analytics" icon={Zap}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                        <PremiumToggleItem 
+                                            label="Multi-Currency Ledgers" 
+                                            desc="Enable cross-border entries with real-time currency conversions and daily forex adjustments." 
+                                            active={config.finProMultiCurrency} 
+                                            onToggle={() => handleToggle('finProMultiCurrency')} 
+                                        />
+                                        <Divider />
+                                        <PremiumToggleItem 
+                                            label="AI Predictive Cashflow Projections" 
+                                            desc="Activate self-learning neural engines to forecast cash runways, collections, and burn rates." 
+                                            active={config.finProAiCashflow} 
+                                            onToggle={() => handleToggle('finProAiCashflow')} 
+                                        />
+                                        <Divider />
+                                        <PremiumToggleItem 
+                                            label="Smart Audit Trail GST Sync" 
+                                            desc="Maintain a cryptographically hashed log of every invoice action with instant tax node parity." 
+                                            active={config.finProSmartAudit} 
+                                            onToggle={() => handleToggle('finProSmartAudit')} 
+                                        />
+                                    </div>
+                                </CustomizationCard>
+                            </div>
+                            
+                            <div style={{ background: '#0F172A', border: '1px solid #1E293B', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)', position: 'relative' }}>
+                                <div style={{ padding: '1rem', background: '#1E293B', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '800', color: '#F8FAFC' }}>
+                                    <Crown size={16} color="#F59E0B" /> FIN-PRO PLATINUM SUITE
+                                </div>
+                                <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <span style={{ fontSize: '0.65rem', color: '#94A3B8', fontWeight: '800', textTransform: 'uppercase' }}>Auditor License</span>
+                                            <h3 style={{ margin: '0.1rem 0 0 0', fontSize: '1.1rem', fontWeight: '900', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                FIN-PRO <span style={{ fontSize: '0.65rem', background: 'linear-gradient(90deg, #10B981 0%, #059669 100%)', color: 'white', padding: '1px 6px', borderRadius: '100px', fontWeight: '800' }}>ACTIVE</span>
+                                            </h3>
+                                        </div>
+                                        <Zap size={24} color="#F59E0B" />
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                            <span style={{ color: '#94A3B8' }}>ICAI Reg Number</span>
+                                            <span style={{ fontWeight: '750', color: '#10B981' }}>#{icaiVerification.membershipNo}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                            <span style={{ color: '#94A3B8' }}>Active Tier</span>
+                                            <span style={{ fontWeight: '750', color: '#FFFFFF' }}>{icaiVerification.subscription?.plan_name || 'Fin-Pro Solo'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                            <span style={{ color: '#94A3B8' }}>COP Status</span>
+                                            <span style={{ fontWeight: '750', color: '#10B981' }}>{icaiVerification.copStatus || 'ACTIVE'}</span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/ca')}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            borderRadius: '8px',
+                                            background: '#10B981',
+                                            border: 'none',
+                                            color: 'white',
+                                            fontWeight: '800',
+                                            fontSize: '0.85rem',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        Launch FIN-PRO Dashboard <ExternalLink size={15} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            )}
         </div>
     );
     const renderGeneral = () => (
@@ -1677,6 +2217,313 @@ const BusinessCustomization = () => {
             <div style={{ animation: 'fadeIn 0.3s ease' }}>
                 {renderContent()}
             </div>
+
+            {/* ── ICAI Credential Verification Modal ── */}
+            {showIcaiModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                    backdropFilter: 'blur(6px)',
+                    zIndex: 9999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '20px'
+                }}>
+                    <div style={{
+                        background: '#FFFFFF',
+                        borderRadius: '20px',
+                        width: '100%',
+                        maxWidth: '680px',
+                        maxHeight: '90vh',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        overflow: 'hidden'
+                    }}>
+                        {/* Modal Header */}
+                        <div style={{
+                            padding: '20px 24px',
+                            background: '#0F172A',
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            borderBottom: '1px solid #1E293B'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Award size={22} color="#F59E0B" />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#FFFFFF' }}>
+                                        ICAI Credential Audit & Verification
+                                    </h3>
+                                    <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#94A3B8' }}>
+                                        Statutory Chartered Accountant registration validation for FIN-PRO Suite
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => { setShowIcaiModal(false); setIsEditMode(false); }}
+                                style={{ background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '4px' }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+                            {caVerificationStatus !== 'UNVERIFIED' && !isEditMode ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                                    {/* Status Alert Banner */}
+                                    <div style={{
+                                        padding: '16px',
+                                        borderRadius: '12px',
+                                        background: caVerificationStatus === 'VERIFIED' ? '#ECFDF5' : (caVerificationStatus === 'PENDING_REVIEW' ? '#FFFBEB' : '#FEF2F2'),
+                                        border: `1px solid ${caVerificationStatus === 'VERIFIED' ? '#6EE7B7' : (caVerificationStatus === 'PENDING_REVIEW' ? '#FCD34D' : '#FECACA')}`,
+                                        display: 'flex',
+                                        gap: '12px'
+                                    }}>
+                                        {caVerificationStatus === 'VERIFIED' ? <ShieldCheck size={22} color="#059669" /> : (caVerificationStatus === 'PENDING_REVIEW' ? <Clock size={22} color="#D97706" /> : <AlertTriangle size={22} color="#DC2626" />)}
+                                        <div>
+                                            <div style={{ fontSize: '0.95rem', fontWeight: '800', color: caVerificationStatus === 'VERIFIED' ? '#065F46' : (caVerificationStatus === 'PENDING_REVIEW' ? '#92400E' : '#991B1B') }}>
+                                                {caVerificationStatus === 'VERIFIED' ? 'ICAI Member Officially Verified & Active' : (caVerificationStatus === 'PENDING_REVIEW' ? 'Pending Administrator Institutional Review' : 'Verification Unsuccessful')}
+                                            </div>
+                                            <div style={{ fontSize: '0.8rem', color: caVerificationStatus === 'VERIFIED' ? '#047857' : (caVerificationStatus === 'PENDING_REVIEW' ? '#B45309' : '#B91C1C'), marginTop: '2px', lineHeight: '1.4' }}>
+                                                {caVerificationStatus === 'VERIFIED'
+                                                    ? 'Your professional credentials are authenticated. You are authorized to activate FIN-PRO subscriptions and launch the auditor dashboard.'
+                                                    : (caVerificationStatus === 'PENDING_REVIEW'
+                                                        ? 'Your credentials have been submitted for official audit by the Cliks Administrator. The FIN-PRO suite will be accessible upon confirmation.'
+                                                        : 'The submitted details could not be verified against the official ICAI register. Please modify your information and re-submit.')}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Dossier Grid */}
+                                    <div style={{
+                                        background: '#F8FAFC',
+                                        borderRadius: '14px',
+                                        border: '1px solid #E2E8F0',
+                                        padding: '18px',
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(2, 1fr)',
+                                        gap: '14px'
+                                    }}>
+                                        <div>
+                                            <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>CA Full Name</span>
+                                            <div style={{ fontSize: '14px', fontWeight: '750', color: '#1E293B', marginTop: '2px' }}>{icaiVerification.fullName || '—'}</div>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>ICAI Membership / Reg No</span>
+                                            <div style={{ fontSize: '14px', fontWeight: '850', color: '#047857', marginTop: '2px', fontFamily: 'monospace' }}>#{icaiVerification.membershipNo || '—'}</div>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Firm / Practice Name</span>
+                                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#1E293B', marginTop: '2px' }}>{icaiVerification.firmName || 'Independent Practice'}</div>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Official Email</span>
+                                            <div style={{ fontSize: '13px', fontWeight: '600', color: '#1E293B', marginTop: '2px' }}>{icaiVerification.email || '—'}</div>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>COP Status</span>
+                                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#047857', marginTop: '2px' }}>{icaiVerification.copStatus || 'ACTIVE'}</div>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Regional Council</span>
+                                            <div style={{ fontSize: '13px', fontWeight: '650', color: '#334155', marginTop: '2px' }}>{icaiVerification.region || '—'}</div>
+                                        </div>
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Professional Address</span>
+                                            <div style={{ fontSize: '13px', fontWeight: '500', color: '#475569', marginTop: '2px' }}>{icaiVerification.address || '—'}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+                                        {caVerificationStatus === 'REJECTED' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditMode(true)}
+                                                style={{ padding: '8px 18px', borderRadius: '8px', background: '#DC2626', color: 'white', border: 'none', fontWeight: '750', fontSize: '13px', cursor: 'pointer' }}
+                                            >
+                                                Edit & Re-submit
+                                            </button>
+                                        )}
+                                        {caVerificationStatus === 'PENDING_REVIEW' && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsEditMode(true)}
+                                                    style={{ padding: '8px 16px', borderRadius: '8px', background: 'white', border: '1px solid #CBD5E1', color: '#334155', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}
+                                                >
+                                                    Modify Submission
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { handleSimulateAdminVerify(); setShowIcaiModal(false); }}
+                                                    style={{ padding: '8px 16px', borderRadius: '8px', background: '#10B981', border: 'none', color: 'white', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
+                                                >
+                                                    Simulate Admin Approval
+                                                </button>
+                                            </>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => { setShowIcaiModal(false); setIsEditMode(false); }}
+                                            style={{ padding: '8px 18px', borderRadius: '8px', background: '#F1F5F9', border: 'none', color: '#475569', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Credential Entry Form */
+                                <form onSubmit={handleSubmitIcai} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '750', color: '#334155', marginBottom: '5px' }}>
+                                                CA Full Name <span style={{ color: '#EF4444' }}>*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="e.g. CA Rajesh Sharma"
+                                                value={icaiFormData.fullName}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                                                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '750', color: '#334155', marginBottom: '5px' }}>
+                                                ICAI Membership / Reg No. <span style={{ color: '#EF4444' }}>* (6 Digits)</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                maxLength={6}
+                                                required
+                                                placeholder="e.g. 084921"
+                                                value={icaiFormData.membershipNo}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, membershipNo: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                                                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none', fontFamily: 'monospace', fontWeight: '750', boxSizing: 'border-box' }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '750', color: '#334155', marginBottom: '5px' }}>
+                                                Firm / Practice Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. Sharma & Associates LLP"
+                                                value={icaiFormData.firmName}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, firmName: e.target.value }))}
+                                                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '750', color: '#334155', marginBottom: '5px' }}>
+                                                Official Professional Email <span style={{ color: '#EF4444' }}>*</span>
+                                            </label>
+                                            <input
+                                                type="email"
+                                                required
+                                                placeholder="e.g. ca.sharma@bnxmail.com"
+                                                value={icaiFormData.email}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, email: e.target.value }))}
+                                                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '750', color: '#334155', marginBottom: '5px' }}>
+                                                Certificate of Practice (COP) Status
+                                            </label>
+                                            <select
+                                                value={icaiFormData.copStatus}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, copStatus: e.target.value }))}
+                                                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none', background: 'white', boxSizing: 'border-box' }}
+                                            >
+                                                <option value="ACTIVE">Active (Holding Valid COP)</option>
+                                                <option value="INACTIVE">Inactive / Under Transfer</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '750', color: '#334155', marginBottom: '5px' }}>
+                                                Designation / Classification
+                                            </label>
+                                            <select
+                                                value={icaiFormData.associateFellow}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, associateFellow: e.target.value }))}
+                                                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none', background: 'white', boxSizing: 'border-box' }}
+                                            >
+                                                <option value="Associate Member (ACA)">Associate Member (ACA)</option>
+                                                <option value="Fellow Member (FCA)">Fellow Member (FCA)</option>
+                                            </select>
+                                        </div>
+
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '750', color: '#334155', marginBottom: '5px' }}>
+                                                Regional Council Jurisdiction
+                                            </label>
+                                            <select
+                                                value={icaiFormData.region}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, region: e.target.value }))}
+                                                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none', background: 'white', boxSizing: 'border-box' }}
+                                            >
+                                                <option value="Southern India Regional Council (SIRC)">Southern India Regional Council (SIRC)</option>
+                                                <option value="Western India Regional Council (WIRC)">Western India Regional Council (WIRC)</option>
+                                                <option value="Northern India Regional Council (NIRC)">Northern India Regional Council (NIRC)</option>
+                                                <option value="Eastern India Regional Council (EIRC)">Eastern India Regional Council (EIRC)</option>
+                                                <option value="Central India Regional Council (CIRC)">Central India Regional Council (CIRC)</option>
+                                            </select>
+                                        </div>
+
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <label style={{ display: 'block', fontSize: '12px', fontWeight: '750', color: '#334155', marginBottom: '5px' }}>
+                                                Registered Office Address
+                                            </label>
+                                            <textarea
+                                                rows={2}
+                                                placeholder="Enter firm or practice registered address as per ICAI records"
+                                                value={icaiFormData.address}
+                                                onChange={(e) => setIcaiFormData(prev => ({ ...prev, address: e.target.value }))}
+                                                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setShowIcaiModal(false); setIsEditMode(false); }}
+                                            style={{ padding: '10px 18px', borderRadius: '8px', background: '#F1F5F9', border: 'none', color: '#475569', fontWeight: '750', fontSize: '13px', cursor: 'pointer' }}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            style={{ padding: '10px 22px', borderRadius: '8px', background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', border: 'none', color: 'white', fontWeight: '800', fontSize: '13px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)' }}
+                                        >
+                                            Submit for Institutional Verification
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
