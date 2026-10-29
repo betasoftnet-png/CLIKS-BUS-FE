@@ -243,12 +243,16 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
         const saved = localStorage.getItem('cliks_pinned_tools');
         if (saved) {
             try {
-                return JSON.parse(saved);
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) {
+                    const filtered = parsed.filter(t => t !== 'Beta Trust' && t !== 'Weather');
+                    if (filtered.length > 0) return filtered;
+                }
             } catch (e) {
                 console.error(e);
             }
         }
-        return ['Calendar', 'Calculator', 'Contact', 'Beta Trust'];
+        return ['Calendar', 'Calculator', 'Contact', 'Notes'];
     });
 
     React.useEffect(() => {
@@ -797,10 +801,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                         { name: 'Calendar', icon: Calendar, color: '#F59E0B', bg: '#FEF3C7', action: () => setActivePanel(activePanel === 'Calendar' ? null : 'Calendar') },
                                         { name: 'Calculator', icon: Calculator, color: '#10B981', bg: '#ECFDF5', action: () => setActivePanel(activePanel === 'Calculator' ? null : 'Calculator') },
                                         { name: 'Contact', icon: Contact, color: '#3B82F6', bg: '#EFF6FF', action: () => setActivePanel(activePanel === 'Contact' ? null : 'Contact') },
-                                        { name: 'Beta Trust', icon: ShieldCheck, color: '#14B8A6', bg: '#F0FDFA', action: () => setActivePanel(activePanel === 'Beta Trust' ? null : 'Beta Trust') },
                                         { name: 'Keyboard', icon: Keyboard, color: '#8B5CF6', bg: '#F5F3FF', action: () => setActivePanel(activePanel === 'Keyboard' ? null : 'Keyboard') },
-                                        { name: 'Notes', icon: StickyNote, color: '#EC4899', bg: '#FDF2F8', action: () => setActivePanel(activePanel === 'Notes' ? null : 'Notes') },
-                                        { name: 'Weather', icon: CloudSun, color: '#F97316', bg: '#FFF7ED', action: () => setActivePanel(activePanel === 'Weather' ? null : 'Weather') }
+                                        { name: 'Notes', icon: StickyNote, color: '#EC4899', bg: '#FDF2F8', action: () => setActivePanel(activePanel === 'Notes' ? null : 'Notes') }
                                     ];
 
                                     const toggleToolPin = (toolName) => {
