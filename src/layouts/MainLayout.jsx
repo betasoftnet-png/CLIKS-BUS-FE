@@ -119,19 +119,27 @@ const MainLayout = ({ children }) => {
 
     // Presence Heartbeat
     useEffect(() => {
+        let isStopped = false;
         const sendHeartbeat = () => {
-            authService.heartbeat().catch(() => {
-                // Ignore errors (e.g. if not logged in)
+            const token = typeof window !== 'undefined' ? (localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token')) : null;
+            if (!token || isStopped) return;
+            authService.heartbeat().catch((err) => {
+                if (err?.status === 429) {
+                    isStopped = true; // Pause polling if server rate limit is reached
+                }
             });
         };
 
-        // Send initial heartbeat
+        // Send initial heartbeat if authenticated
         sendHeartbeat();
 
-        // Set up interval (every 30 seconds)
-        const interval = setInterval(sendHeartbeat, 30000);
+        // Set up interval (every 45 seconds)
+        const interval = setInterval(sendHeartbeat, 45000);
 
-        return () => clearInterval(interval);
+        return () => {
+            isStopped = true;
+            clearInterval(interval);
+        };
     }, []);
 
     const toggleSidebar = () => {

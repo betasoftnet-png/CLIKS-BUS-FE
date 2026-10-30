@@ -23,6 +23,7 @@ import ProductLauncher from './ProductLauncher';
 import NotificationBell from './NotificationBell';
 import NotificationDropdown from './NotificationDropdown';
 import { useNotifications } from '../hooks/useNotifications';
+import { useQuery } from '@tanstack/react-query';
 import { caService } from '../services/caService';
 import BranchSelector from './BranchSelector';
 
@@ -162,13 +163,47 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
             setRewardPoints(saved ? parseInt(saved, 10) : 1000);
         };
         window.addEventListener('storage', handleStorageChange);
-        // Also poll every 1 second to keep it perfectly updated across standard react page changes
-        const interval = setInterval(handleStorageChange, 1000);
         return () => {
             window.removeEventListener('storage', handleStorageChange);
-            clearInterval(interval);
         };
     }, []);
+
+    // ICAI Verification / FIN-PRO Status Query
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token')) : null;
+    const { data: icaiVerification } = useQuery({
+        queryKey: ['icaiVerification'],
+        queryFn: async () => {
+            try {
+                return await caService.getIcaiVerification();
+            } catch (e) {
+                return null;
+            }
+        },
+        enabled: Boolean(token),
+        staleTime: 30000,
+        refetchInterval: (query) => {
+            // Once verified, avoid polling; otherwise poll every 15s to detect admin approval in real-time
+            const status = query.state.data?.status;
+            return status === 'VERIFIED' ? false : 15000;
+        },
+        refetchOnWindowFocus: true
+    });
+
+    const isFinProVerified = React.useMemo(() => {
+        const vStatus = icaiVerification?.status || user?.ca_verification_status;
+        const isVer = icaiVerification?.isVerified === true || user?.is_finpro_verified === true || user?.is_ca === 1 || user?.role === 'ca';
+        const isLocalVerified = typeof window !== 'undefined' && localStorage.getItem('cliks_finpro_verified') === 'true';
+        return vStatus === 'VERIFIED' || isVer || (isLocalVerified && vStatus !== 'REJECTED');
+    }, [icaiVerification, user]);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (icaiVerification?.status === 'VERIFIED' || icaiVerification?.isVerified) {
+            localStorage.setItem('cliks_finpro_verified', 'true');
+        } else if (icaiVerification?.status === 'REJECTED') {
+            localStorage.removeItem('cliks_finpro_verified');
+        }
+    }, [icaiVerification]);
 
     const [isSearchExpanded, setIsSearchExpanded] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
@@ -303,7 +338,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
         location.pathname.includes('/sales-portal/');
 
     const handleNavigation = (path) => {
-        if (selectedPlan === 'Free Plan' && path !== '/dashboard') {
+        if (selectedPlan === 'Free Plan' && path !== '/dashboard' && path !== '/ca') {
             alert('You are on the Free Plan! Please subscribe to unlock full access to this feature.');
             navigate('/subscription');
         } else {
@@ -340,6 +375,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
         { name: t('books', 'Books'), url: '/books', icon: BookOpen },
         { name: t('payments', 'Payments'), url: '/payments/transaction', icon: Calculator },
         { name: t('social', 'Social'), url: '/social', icon: Users },
+        ...(isFinProVerified ? [{ name: 'FIN-PRO', url: '/ca', icon: Briefcase }] : [])
     ];
 
     return (
@@ -403,7 +439,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                         const isItemActive = 
                             (item.url === '/books' && (location.pathname === '/books' || location.pathname === '/dashboard' || location.pathname.startsWith('/finance') || location.pathname.startsWith('/sales') || location.pathname.startsWith('/inventory') || location.pathname.startsWith('/purchases') || location.pathname.startsWith('/hr') || location.pathname.startsWith('/billing') || location.pathname === '/pos' || location.pathname === '/reports' || location.pathname === '/barcode' || location.pathname === '/customization' || location.pathname === '/subscription')) ||
                             (item.url === '/payments/transaction' && (location.pathname === '/payments' || location.pathname.startsWith('/payments'))) ||
-                            (item.url === '/social' && (location.pathname === '/social' || location.pathname.startsWith('/social')));
+                            (item.url === '/social' && (location.pathname === '/social' || location.pathname.startsWith('/social'))) ||
+                            (item.url === '/ca' && (location.pathname === '/ca' || location.pathname.startsWith('/ca')));
 
                         return (
                             <NavLink
@@ -650,6 +687,56 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                         onMarkAllRead={handleMarkAllNotificationsRead}
                     />
                 </div>
+
+                {/* FIN-PRO Header Button (Displayed after Admin verifies requested user's ICAI details) */}
+                {isFinProVerified && (
+                    <button
+                        onClick={() => handleNavigation('/ca')}
+                        title="FIN-PRO Audit & Practice Hub"
+                        className="topbar-finpro-btn"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '7px',
+                            height: '36px',
+                            padding: '0 14px',
+                            borderRadius: '999px',
+                            backgroundColor: location.pathname.startsWith('/ca') ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)',
+                            border: location.pathname.startsWith('/ca') ? '1.5px solid #60A5FA' : '1px solid rgba(255, 255, 255, 0.25)',
+                            color: '#FFFFFF',
+                            fontSize: '13px',
+                            fontWeight: '750',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                            whiteSpace: 'nowrap',
+                            boxShadow: location.pathname.startsWith('/ca') ? '0 0 14px rgba(96, 165, 250, 0.45)' : 'none'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.22)';
+                            e.currentTarget.style.transform = 'scale(1.02)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = location.pathname.startsWith('/ca') ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)';
+                            e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                    >
+                        <Briefcase size={16} color={location.pathname.startsWith('/ca') ? '#93C5FD' : '#FFFFFF'} />
+                        <span>FIN-PRO</span>
+                        <span style={{
+                            fontSize: '9.5px',
+                            padding: '1px 6px',
+                            borderRadius: '999px',
+                            backgroundColor: '#10B981',
+                            color: '#FFFFFF',
+                            fontWeight: '800',
+                            letterSpacing: '0.4px',
+                            marginLeft: '2px'
+                        }}>
+                            VERIFIED
+                        </span>
+                    </button>
+                )}
 
                 <ProfileDropdown
                     onAccount={() => navigate('/profile')}

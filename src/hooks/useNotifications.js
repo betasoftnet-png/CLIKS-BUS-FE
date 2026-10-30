@@ -98,6 +98,11 @@ export const useNotifications = (pollIntervalMs = 30000) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const fetchNotifications = useCallback(async () => {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token')) : null;
+        if (!token) {
+            setIsLoading(false);
+            return;
+        }
         try {
             const data = await caService.getNotifications();
             if (Array.isArray(data)) {
@@ -107,7 +112,9 @@ export const useNotifications = (pollIntervalMs = 30000) => {
                 });
             }
         } catch (err) {
-            console.warn('[useNotifications fetch error]', err);
+            if (err?.status !== 429) {
+                console.warn('[useNotifications fetch error]', err?.message || err);
+            }
         } finally {
             setIsLoading(false);
         }
