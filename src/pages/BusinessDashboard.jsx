@@ -46,11 +46,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { reportsService, expensesService, purchasesService, settingsService } from '../services';
 import { accountingService } from '../services/accountingService';
-import MoneyGoalsTile from '../components/dashboard/MoneyGoalsTile';
-import BudgetMixTile from '../components/dashboard/BudgetMixTile';
-import MarketPulseTile from '../components/dashboard/MarketPulseTile';
-import SplitBillsTile from '../components/dashboard/SplitBillsTile';
-import TheSquadTile from '../components/dashboard/TheSquadTile';
 import '../App.css';
 
 const DEFAULT_DASHBOARD_FEATURES = [
@@ -93,46 +88,6 @@ const DEFAULT_DASHBOARD_FEATURES = [
         icon: Receipt,
         color: '#EF4444',
         enabled: true
-    },
-    {
-        id: 'money_goals',
-        label: 'Financial Goals Tracker',
-        description: 'Monitor milestone goals, strategic targets, and capital accumulation progress.',
-        icon: Target,
-        color: '#8B5CF6',
-        enabled: false
-    },
-    {
-        id: 'budget_mix',
-        label: 'Operational Budget Mix',
-        description: 'Track spending limits, departmental allocations, and real-time burn rates.',
-        icon: Wallet,
-        color: '#F59E0B',
-        enabled: false
-    },
-    {
-        id: 'market_pulse',
-        label: 'Market Pulse & Trends',
-        description: 'Visual financial radar and market valuation indicators across time periods.',
-        icon: Activity,
-        color: '#06B6D4',
-        enabled: false
-    },
-    {
-        id: 'split_bills',
-        label: 'Split Bills & Settlements',
-        description: 'Track internal shared expenses, settlements, and member balance tallies.',
-        icon: Users2,
-        color: '#EC4899',
-        enabled: false
-    },
-    {
-        id: 'the_squad',
-        label: 'Team & Collaborators Activity',
-        description: 'Active team staff directory, instant transfers, and collaborator quick-access.',
-        icon: Users,
-        color: '#6366F1',
-        enabled: false
     }
 ];
 
@@ -675,36 +630,6 @@ const BusinessDashboard = () => {
                                                         </button>
                                                     );
                                                 })}
-
-                                                {/* Add/Manage Button Card */}
-                                                <button
-                                                    onClick={handleOpenModal}
-                                                    style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '0.75rem',
-                                                        padding: '0.75rem 1.25rem',
-                                                        borderRadius: '16px',
-                                                        background: 'transparent',
-                                                        border: '2px dashed #CBD5E1',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s ease',
-                                                        color: '#64748B'
-                                                    }}
-                                                    onMouseOver={(e) => {
-                                                        e.currentTarget.style.borderColor = '#1B6B3A';
-                                                        e.currentTarget.style.color = '#1B6B3A';
-                                                        e.currentTarget.style.background = '#F0FDF4';
-                                                    }}
-                                                    onMouseOut={(e) => {
-                                                        e.currentTarget.style.borderColor = '#CBD5E1';
-                                                        e.currentTarget.style.color = '#64748B';
-                                                        e.currentTarget.style.background = 'transparent';
-                                                    }}
-                                                >
-                                                    <Plus size={16} strokeWidth={2.5} />
-                                                    <span style={{ fontWeight: '750', fontSize: '0.9rem' }}>{t('manageShortcuts', '+ Manage Shortcuts')}</span>
-                                                </button>
                                             </div>
                                         </div>
                                     );
@@ -1036,76 +961,6 @@ const BusinessDashboard = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                        </div>
-                                    );
-
-                                case 'money_goals':
-                                    return (
-                                        <div key="money_goals" className="col-span-1 lg:col-span-6" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                                <div>
-                                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Financial Goals Tracker</h2>
-                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Progress towards organizational milestone targets.</p>
-                                                </div>
-                                                <span style={{ fontSize: '0.7rem', color: '#8B5CF6', fontWeight: '750', textTransform: 'uppercase', background: '#F5F3FF', border: '1px solid #DDD6FE', padding: '3px 8px', borderRadius: '12px' }}>Strategic Goals</span>
-                                            </div>
-                                            <MoneyGoalsTile />
-                                        </div>
-                                    );
-
-                                case 'budget_mix':
-                                    return (
-                                        <div key="budget_mix" className="col-span-1 lg:col-span-6" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                                <div>
-                                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Operational Budget Mix</h2>
-                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Departmental allocations and expenditure cap burn rates.</p>
-                                                </div>
-                                                <span style={{ fontSize: '0.7rem', color: '#F59E0B', fontWeight: '750', textTransform: 'uppercase', background: '#FFFBEB', border: '1px solid #FDE68A', padding: '3px 8px', borderRadius: '12px' }}>Active Budgets</span>
-                                            </div>
-                                            <BudgetMixTile />
-                                        </div>
-                                    );
-
-                                case 'market_pulse':
-                                    return (
-                                        <div key="market_pulse" className="col-span-1 lg:col-span-6" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                                <div>
-                                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Market Pulse & Trends</h2>
-                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Visual financial radar and market valuation indicators.</p>
-                                                </div>
-                                                <span style={{ fontSize: '0.7rem', color: '#06B6D4', fontWeight: '750', textTransform: 'uppercase', background: '#ECFEFF', border: '1px solid #A5F3FC', padding: '3px 8px', borderRadius: '12px' }}>Market Radar</span>
-                                            </div>
-                                            <MarketPulseTile totalValue={totalSalesAmount || 50000} totalInvested={totalPurchasesAmount || 30000} />
-                                        </div>
-                                    );
-
-                                case 'split_bills':
-                                    return (
-                                        <div key="split_bills" className="col-span-1 lg:col-span-6" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                                <div>
-                                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Split Bills & Settlements</h2>
-                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Internal shared expenses, settlements, and member balances.</p>
-                                                </div>
-                                                <span style={{ fontSize: '0.7rem', color: '#EC4899', fontWeight: '750', textTransform: 'uppercase', background: '#FDF2F8', border: '1px solid #FBCFE8', padding: '3px 8px', borderRadius: '12px' }}>Split Settlements</span>
-                                            </div>
-                                            <SplitBillsTile />
-                                        </div>
-                                    );
-
-                                case 'the_squad':
-                                    return (
-                                        <div key="the_squad" className="col-span-1 lg:col-span-6" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                                <div>
-                                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Team & Collaborators Activity</h2>
-                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Active team staff directory and peer interaction center.</p>
-                                                </div>
-                                                <span style={{ fontSize: '0.7rem', color: '#6366F1', fontWeight: '750', textTransform: 'uppercase', background: '#EEF2FF', border: '1px solid #C7D2FE', padding: '3px 8px', borderRadius: '12px' }}>Directory</span>
-                                            </div>
-                                            <TheSquadTile />
                                         </div>
                                     );
 
