@@ -631,44 +631,55 @@ const BusinessCategories = () => {
 
                                     {/* Quick Actions overlay */}
                                     <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '6px' }}>
-                                        {group.id && (
-                                            <>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOpenEditModal(group)}
+                                            style={{
+                                                padding: '0.35rem 0.65rem',
+                                                borderRadius: '8px',
+                                                background: 'rgba(255,255,255,0.95)',
+                                                border: '1px solid rgba(0,0,0,0.08)',
+                                                color: '#0F172A',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '5px',
+                                                cursor: 'pointer',
+                                                boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                                                fontSize: '0.74rem',
+                                                fontWeight: '800'
+                                            }}
+                                            title="Edit Category Name & Picture"
+                                        >
+                                            <Edit2 size={13} color="#1B6B3A" /> Edit Name / Photo
+                                        </button>
+                                        {deleteConfirmId === (group.id || group.category_name) ? (
+                                            <div style={{ display: 'flex', gap: '4px', background: 'white', padding: '2px', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
                                                 <button
                                                     type="button"
-                                                    onClick={() => handleOpenEditModal(group)}
-                                                    style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.9)', border: 'none', color: '#1E293B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
-                                                    title="Edit Category"
+                                                    onClick={() => {
+                                                        if (group.id) deleteCategoryMutation.mutate(group.id);
+                                                    }}
+                                                    style={{ border: 'none', background: '#EF4444', color: 'white', padding: '3px 6px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer' }}
                                                 >
-                                                    <Edit2 size={13} />
+                                                    Del?
                                                 </button>
-                                                {deleteConfirmId === group.id ? (
-                                                    <div style={{ display: 'flex', gap: '4px', background: 'white', padding: '2px', borderRadius: '8px' }}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => deleteCategoryMutation.mutate(group.id)}
-                                                            style={{ border: 'none', background: '#EF4444', color: 'white', padding: '3px 6px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer' }}
-                                                        >
-                                                            Del?
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDeleteConfirmId(null)}
-                                                            style={{ border: 'none', background: '#E2E8F0', color: '#475569', padding: '3px 6px', borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer' }}
-                                                        >
-                                                            ✕
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setDeleteConfirmId(group.id)}
-                                                        style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.9)', border: 'none', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
-                                                        title="Delete Category"
-                                                    >
-                                                        <Trash2 size={13} />
-                                                    </button>
-                                                )}
-                                            </>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDeleteConfirmId(null)}
+                                                    style={{ border: 'none', background: '#E2E8F0', color: '#475569', padding: '3px 6px', borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer' }}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => setDeleteConfirmId(group.id || group.category_name)}
+                                                style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(255,255,255,0.95)', border: '1px solid rgba(0,0,0,0.08)', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }}
+                                                title="Delete Category"
+                                            >
+                                                <Trash2 size={13} />
+                                            </button>
                                         )}
                                     </div>
                                 </div>
@@ -790,17 +801,34 @@ const BusinessCategories = () => {
                                         )}
                                     </div>
 
-                                    {/* Footer Button: View Products */}
-                                    <div style={{ marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px dashed #E2E8F0', display: 'flex', justifyContent: 'flex-end' }}>
+                                    {/* Footer Button: View Products & Quick Edit */}
+                                    <div style={{ marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px dashed #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOpenEditModal(group)}
+                                            style={{
+                                                border: 'none',
+                                                background: 'none',
+                                                color: '#1B6B3A',
+                                                fontSize: '0.76rem',
+                                                fontWeight: '800',
+                                                cursor: 'pointer',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '4px'
+                                            }}
+                                        >
+                                            <Edit2 size={12} /> Edit Details
+                                        </button>
                                         <button
                                             type="button"
                                             onClick={() => navigate(`/inventory/products?category=${encodeURIComponent(group.category_name)}`)}
                                             style={{
                                                 border: 'none',
                                                 background: 'none',
-                                                color: '#1B6B3A',
-                                                fontSize: '0.78rem',
-                                                fontWeight: '800',
+                                                color: '#64748B',
+                                                fontSize: '0.76rem',
+                                                fontWeight: '750',
                                                 cursor: 'pointer',
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
@@ -820,7 +848,7 @@ const BusinessCategories = () => {
             {/* Tree View Mode */}
             {!isLoading && !isError && filteredGroups.length > 0 && viewMode === 'tree' && (
                 <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-                    <div style={{ padding: '0.75rem 1.25rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 120px', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>
+                    <div style={{ padding: '0.75rem 1.25rem', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 190px', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>
                         <div>Category Hierarchy</div>
                         <div>Type</div>
                         <div>Linked Products</div>
@@ -839,15 +867,15 @@ const BusinessCategories = () => {
                                         padding: '0.85rem 1.25rem',
                                         borderBottom: '1px solid #F1F5F9',
                                         display: 'grid',
-                                        gridTemplateColumns: '2fr 1fr 1fr 1fr 120px',
+                                        gridTemplateColumns: '2fr 1fr 1fr 1fr 190px',
                                         alignItems: 'center',
                                         background: '#FFFFFF'
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                             {group.image_url ? (
-                                                <img src={group.image_url} alt={group.category_name} style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'cover' }} />
+                                                <img src={group.image_url} alt={group.category_name} style={{ width: '34px', height: '34px', borderRadius: '8px', objectFit: 'cover' }} />
                                             ) : (
-                                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#E8F5E9', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#E8F5E9', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                     <FolderTree size={16} />
                                                 </div>
                                             )}
@@ -875,14 +903,35 @@ const BusinessCategories = () => {
                                             </span>
                                         </div>
 
-                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
-                                            {group.id && (
-                                                <>
-                                                    <button onClick={() => handleOpenCreateModal(group.id)} title="Add Subcategory" style={{ padding: '4px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#1B6B3A', cursor: 'pointer' }}><Plus size={14} /></button>
-                                                    <button onClick={() => handleOpenEditModal(group)} title="Edit" style={{ padding: '4px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', cursor: 'pointer' }}><Edit2 size={14} /></button>
-                                                    <button onClick={() => { if (window.confirm(`Delete "${group.category_name}"?`)) deleteCategoryMutation.mutate(group.id); }} title="Delete" style={{ padding: '4px', borderRadius: '6px', border: '1px solid #FEE2E2', background: 'white', color: '#EF4444', cursor: 'pointer' }}><Trash2 size={14} /></button>
-                                                </>
-                                            )}
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleOpenCreateModal(group.id)} 
+                                                title="Add Subcategory" 
+                                                style={{ padding: '0.35rem 0.65rem', borderRadius: '7px', border: '1px solid #DCFCE7', background: '#F0FDF4', color: '#1B6B3A', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                                            >
+                                                <Plus size={12} /> Sub
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleOpenEditModal(group)} 
+                                                title="Edit Category Name & Picture" 
+                                                style={{ padding: '0.35rem 0.65rem', borderRadius: '7px', border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#0F172A', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                                            >
+                                                <Edit2 size={12} color="#1B6B3A" /> Edit
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => { 
+                                                    if (window.confirm(`Delete "${group.category_name}"?`)) {
+                                                        if (group.id) deleteCategoryMutation.mutate(group.id);
+                                                    }
+                                                }} 
+                                                title="Delete Category" 
+                                                style={{ padding: '0.35rem 0.5rem', borderRadius: '7px', border: '1px solid #FEE2E2', background: '#FEF2F2', color: '#EF4444', cursor: 'pointer' }}
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
                                         </div>
                                     </div>
 
@@ -894,7 +943,7 @@ const BusinessCategories = () => {
                                                 padding: '0.65rem 1.25rem 0.65rem 3.5rem',
                                                 borderBottom: '1px solid #F1F5F9',
                                                 display: 'grid',
-                                                gridTemplateColumns: '2fr 1fr 1fr 1fr 120px',
+                                                gridTemplateColumns: '2fr 1fr 1fr 1fr 190px',
                                                 alignItems: 'center',
                                                 background: '#F8FAFC'
                                             }}
@@ -902,9 +951,9 @@ const BusinessCategories = () => {
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 <span style={{ color: '#CBD5E1', fontSize: '0.85rem' }}>↳</span>
                                                 {sc.image_url ? (
-                                                    <img src={sc.image_url} alt={sc.category_name} style={{ width: '24px', height: '24px', borderRadius: '6px', objectFit: 'cover' }} />
+                                                    <img src={sc.image_url} alt={sc.category_name} style={{ width: '26px', height: '26px', borderRadius: '6px', objectFit: 'cover' }} />
                                                 ) : (
-                                                    <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
+                                                    <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
                                                         🏷️
                                                     </div>
                                                 )}
@@ -931,13 +980,27 @@ const BusinessCategories = () => {
                                                 </span>
                                             </div>
 
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
-                                                {sc.id && (
-                                                    <>
-                                                        <button onClick={() => handleOpenEditModal(sc)} title="Edit" style={{ padding: '3px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', cursor: 'pointer' }}><Edit2 size={13} /></button>
-                                                        <button onClick={() => { if (window.confirm(`Delete subcategory "${sc.category_name}"?`)) deleteCategoryMutation.mutate(sc.id); }} title="Delete" style={{ padding: '3px', borderRadius: '6px', border: '1px solid #FEE2E2', background: 'white', color: '#EF4444', cursor: 'pointer' }}><Trash2 size={13} /></button>
-                                                    </>
-                                                )}
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => handleOpenEditModal(sc)} 
+                                                    title="Edit Subcategory Name & Picture" 
+                                                    style={{ padding: '0.3rem 0.65rem', borderRadius: '7px', border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#0F172A', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                                >
+                                                    <Edit2 size={11} color="#1B6B3A" /> Edit
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => { 
+                                                        if (window.confirm(`Delete subcategory "${sc.category_name}"?`)) {
+                                                            if (sc.id) deleteCategoryMutation.mutate(sc.id);
+                                                        }
+                                                    }} 
+                                                    title="Delete Subcategory" 
+                                                    style={{ padding: '0.3rem 0.45rem', borderRadius: '7px', border: '1px solid #FEE2E2', background: '#FEF2F2', color: '#EF4444', cursor: 'pointer' }}
+                                                >
+                                                    <Trash2 size={11} />
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
@@ -955,11 +1018,14 @@ const BusinessCategories = () => {
                         {/* Modal Header */}
                         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <div>
-                                <h2 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>
-                                    {editingCategory ? 'Edit Category' : 'Create New Category'}
+                                <h2 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Edit2 size={18} color="#1B6B3A" />
+                                    {editingCategory ? 'Edit Category Name & Picture' : 'Create New Category'}
                                 </h2>
-                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.15rem 0 0' }}>
-                                    {formData.parent_id ? 'Configuring as a nested Subcategory' : 'Configuring as a top-level Main Category'}
+                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.2rem 0 0' }}>
+                                    {editingCategory 
+                                        ? `Update "${editingCategory.category_name}" details, cover picture, and hierarchy`
+                                        : (formData.parent_id ? 'Configuring as a nested Subcategory' : 'Configuring as a top-level Main Category')}
                                 </p>
                             </div>
                             <button
