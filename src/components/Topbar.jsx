@@ -54,7 +54,7 @@ const staticPages = [
     { name: 'Savings', path: '/finance/accounting?tab=p&l', module: 'Finance', desc: 'Savings & Profit logs', icon: 'Coins', rank: 3, synonyms: ['savings', 'savings goals', 'capital', 'sa'] },
     { name: 'Income', path: '/finance/accounting?tab=p&l', module: 'Finance', desc: 'Income & profit statement', icon: 'TrendingUp', rank: 3, synonyms: ['income', 'earnings', 'revenue', 'fin'] },
 
-    { name: 'Sales Orders', path: '/sales/orders', module: 'Sales', desc: 'Customer Sales Orders', icon: 'ShoppingCart', rank: 3, synonyms: ['sales orders', 'orders', 'booking', 'sa'] },
+    { name: 'Sales Orders', path: '/sales/orders', module: 'Sales', desc: 'Customer Sales Orders', icon: 'TrendingUp', rank: 3, synonyms: ['sales orders', 'orders', 'booking', 'sa'] },
     { name: 'Sales Invoice', path: '/sales/invoice', module: 'Sales', desc: 'Billing & Invoicing', icon: 'Receipt', rank: 3, synonyms: ['sales invoice', 'invoice', 'billing', 'bill', 'sa'] },
     { name: 'Sales Return', path: '/sales/returns', module: 'Sales', desc: 'Sales returns & credit notes', icon: 'ArrowDownRight', rank: 3, synonyms: ['sales return', 'refund', 'credit note', 'sa'] },
     { name: 'Customers', path: '/sales/customers', module: 'Sales', desc: 'CRM and Client list', icon: 'Users', rank: 3, synonyms: ['customers', 'crm', 'client', 'buyers', 'loyalty'] },

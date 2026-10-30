@@ -26,6 +26,7 @@ import {
     Calculator,
     CreditCard,
     TrendingUp,
+    TrendingDown,
     BarChart3,
     PercentCircle,
     UsersRound,
@@ -522,14 +523,14 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 permission: PERMISSIONS.FINANCE_ALL,
                 children: [
                     { label: 'Accounting', icon: Calculator, path: '/finance/accounting', permission: PERMISSIONS.FIN_ACC_ALL },
-                    { label: 'Expenses', icon: TrendingUp, path: '/finance/expenses', permission: PERMISSIONS.FIN_EXP_ALL },
+                    { label: 'Expenses', icon: TrendingDown, path: '/finance/expenses', permission: PERMISSIONS.FIN_EXP_ALL },
                     { label: 'Tax', icon: PercentCircle, path: '/finance/gst', permission: PERMISSIONS.FIN_TAX_ALL },
                     { label: 'FINTECH', icon: Cpu, path: '/finance/fintech', permission: PERMISSIONS.FIN_FITTECH }
                 ]
             },
             {
                 label: 'Sales',
-                icon: ShoppingCart,
+                icon: TrendingUp,
                 permission: PERMISSIONS.SALES_ALL,
                 children: [
                     { label: 'Sales Invoice', icon: Receipt, path: '/sales/invoice', permission: PERMISSIONS.SALES_SEC_ALL },
