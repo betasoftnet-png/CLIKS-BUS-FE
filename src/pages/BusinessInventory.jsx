@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams, useLocation } from 'react-router-dom';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { productsService, hsnService, warehouseService, stockService } from '../services';
 import {
     Package,
@@ -23,6 +23,7 @@ import {
     TrendingUp,
     ChevronRight,
     Download,
+    FolderTree,
     History,
     ShieldAlert,
     BarChart3,
@@ -53,6 +54,7 @@ const BusinessInventory = () => {
     const [editingItem, setEditingItem] = useState(null);
     const [activeTab, setActiveTab] = useState('list'); // 'list', 'movement', 'reports'
     const [filterCategory, setFilterCategory] = useState('All');
+    const navigate = useNavigate();
     const [stockStatusFilter, setStockStatusFilter] = useState('All'); // All, Low Stock, In Stock
 
     // Product Bulk Import CSV states
@@ -249,6 +251,42 @@ const BusinessInventory = () => {
         staleTime: 5 * 60 * 1000,
         refetchOnWindowFocus: false
     });
+
+    // Live categories and subcategories taxonomy
+    const { data: dbCategoriesData } = useQuery({
+        queryKey: ['product_categories'],
+        queryFn: () => productsService.getCategories(),
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false
+    });
+
+    const availableCategories = React.useMemo(() => {
+        const set = new Set(['Electronics', 'Clothes', 'Food', 'Footwear']);
+        if (dbCategoriesData) {
+            const groups = dbCategoriesData.groups || [];
+            groups.forEach(g => {
+                if (g.category_name) set.add(g.category_name);
+                (g.subcategories || []).forEach(sc => {
+                    if (sc.category_name) set.add(`${g.category_name} > ${sc.category_name}`);
+                });
+            });
+            const sub = dbCategoriesData.subgroups || [];
+            sub.forEach(s => {
+                if (s.category_name) {
+                    if (s.parent_name) set.add(`${s.parent_name} > ${s.category_name}`);
+                    else set.add(s.category_name);
+                }
+            });
+        }
+        return Array.from(set);
+    }, [dbCategoriesData]);
+
+    React.useEffect(() => {
+        const catParam = searchParams.get('category');
+        if (catParam) {
+            setFilterCategory(catParam);
+        }
+    }, [searchParams]);
 
     const items = React.useMemo(() => {
         return rawItems.map(item => {
@@ -863,7 +901,21 @@ const BusinessInventory = () => {
                     </div>
                     <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage product specifications, service offerings, batch expiries, warehouses, and valuations.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <button
+                        onClick={() => navigate('/inventory/categories')}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            padding: '0.65rem 1.15rem', borderRadius: '10px',
+                            background: '#F0FDF4', color: '#1B6B3A', border: '1px solid #BBF7D0',
+                            fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                        }}
+                        title="Configure Categories and Subcategories (e.g. Snacks > Tea, Coffee)"
+                    >
+                        <FolderTree size={16} />
+                        Categories & Subcategories
+                    </button>
                     <button
                         onClick={() => {
                             setIsImportModalOpen(true);
@@ -962,9 +1014,9 @@ const BusinessInventory = () => {
                                 style={{ padding: '0.65rem 1.25rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569' }}
                             >
                                 <option value="All">All Categories</option>
-                                <option value="Electronics">Electronics</option>
-                                <option value="Furniture">Furniture</option>
-                                <option value="Services">Services</option>
+                                {availableCategories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
                             </select>
                         </div>
                     </div>
@@ -1340,7 +1392,7 @@ const BusinessInventory = () => {
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Category</label>
                                     <select
-                                        value={['Electronics', 'Clothes', 'Food', 'Footwear'].includes(formData.category) ? formData.category : (formData.category ? formData.category : 'Electronics')}
+                                        value={formData.category}
                                         onChange={(e) => {
                                             if (e.target.value === '+ Custom') {
                                                 const customVal = prompt("Enter custom category:");
@@ -1353,11 +1405,10 @@ const BusinessInventory = () => {
                                         }}
                                         style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}
                                     >
-                                        <option value="Electronics">Electronics</option>
-                                        <option value="Clothes">Clothes</option>
-                                        <option value="Food">Food</option>
-                                        <option value="Footwear">Footwear</option>
-                                        {formData.category && !['Electronics', 'Clothes', 'Food', 'Footwear', '+ Custom'].includes(formData.category) && (
+                                        {availableCategories.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                        {formData.category && !availableCategories.includes(formData.category) && (
                                             <option value={formData.category}>{formData.category}</option>
                                         )}
                                         <option value="+ Custom">+ Custom</option>

@@ -61,7 +61,8 @@ import {
     X,
     ClipboardList,
     CheckCircle2,
-    QrCode
+    QrCode,
+    FolderTree
 } from 'lucide-react';
 
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -385,6 +386,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/sales/delivery')) return 'Delivery';
         if (path.includes('/sales/customers')) return 'Customers';
         if (path.includes('/sales/returns')) return 'Returns';
+        if (path.includes('/inventory/categories') || path.includes('/categories')) return 'Categories';
         if (path.includes('/inventory/products')) return 'Products';
         if (path.includes('/barcode')) return 'Barcode Gen';
         if (path.includes('/inventory/stock')) return 'Stock';
@@ -557,6 +559,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 permission: PERMISSIONS.INVENTORY_ALL,
                 children: [
                     { label: 'Products', icon: Package, path: '/inventory/products', permission: PERMISSIONS.INV_PRODUCTS },
+                    { label: 'Categories', icon: FolderTree, path: '/inventory/categories', permission: PERMISSIONS.INV_PRODUCTS },
                     { label: 'Stock', icon: Layers, path: '/inventory/stock', permission: PERMISSIONS.INV_STOCK },
                     { label: 'Warehouse', icon: MapPin, path: '/inventory/warehouse', permission: PERMISSIONS.INV_WH_ALL }
                 ]

@@ -58,7 +58,12 @@ export const productsService = {
     createTax: (id, data) => apiClient.post(`/products/${id}/tax`, data).then(res => res.data.data || res.data),
     getTax: (id) => apiClient.get(`/products/${id}/tax`).then(res => res.data.data || res.data),
 
-    createCategory: (id, data) => apiClient.post(`/products/${id}/categories`, data).then(res => res.data.data || res.data),
+    createCategory: (idOrData, data) => {
+        if (data === undefined && typeof idOrData === 'object') {
+            return apiClient.post('/products/categories', idOrData).then(res => res.data.data || res.data);
+        }
+        return apiClient.post(`/products/${idOrData}/categories`, data).then(res => res.data.data || res.data);
+    },
     getCategories: () => apiClient.get('/products/categories').then(res => res.data.data || res.data),
     updateCategory: (categoryId, data) => apiClient.put(`/products/categories/${categoryId}`, data).then(res => res.data.data || res.data),
     deleteCategory: (categoryId) => apiClient.delete(`/products/categories/${categoryId}`).then(res => res.data.data || res.data),

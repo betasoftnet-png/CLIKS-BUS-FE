@@ -31,6 +31,7 @@ import BusinessDashboard from './pages/BusinessDashboard';
 import BusinessCA from './pages/BusinessCA';
 import BusinessPlaceholder from './pages/BusinessPlaceholder';
 import BusinessInventory from './pages/BusinessInventory';
+import BusinessCategories from './pages/BusinessCategories';
 import BusinessBilling from './pages/BusinessBilling';
 import BusinessSalesOrders from './pages/BusinessSalesOrders';
 import BusinessPurchases from './pages/BusinessPurchases';
@@ -278,6 +279,8 @@ function AuthenticatedApp() {
                 <Route path="/dashboard" element={<BusinessDashboard />} />
                 <Route path="/manage-subids" element={<PermissionManager />} />
                 <Route path="/inventory/products" element={<BusinessInventory />} />
+                <Route path="/inventory/categories" element={<BusinessCategories />} />
+                <Route path="/categories" element={<Navigate to="/inventory/categories" replace />} />
                 <Route path="/barcode" element={<BusinessBarcode />} />
                 <Route path="/inventory/barcode" element={<Navigate to="/barcode" replace />} />
                 <Route path="/sales/invoice" element={<BusinessBilling />} />
