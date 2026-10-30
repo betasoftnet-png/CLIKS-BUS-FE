@@ -375,7 +375,6 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
         { name: t('books', 'Books'), url: '/books', icon: BookOpen },
         { name: t('payments', 'Payments'), url: '/payments/transaction', icon: Calculator },
         { name: t('social', 'Social'), url: '/social', icon: Users },
-        ...(isFinProVerified ? [{ name: 'FIN-PRO', url: '/ca', icon: Briefcase }] : [])
     ];
 
     return (
@@ -439,8 +438,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                         const isItemActive = 
                             (item.url === '/books' && (location.pathname === '/books' || location.pathname === '/dashboard' || location.pathname.startsWith('/finance') || location.pathname.startsWith('/sales') || location.pathname.startsWith('/inventory') || location.pathname.startsWith('/purchases') || location.pathname.startsWith('/hr') || location.pathname.startsWith('/billing') || location.pathname === '/pos' || location.pathname === '/reports' || location.pathname === '/barcode' || location.pathname === '/customization' || location.pathname === '/subscription')) ||
                             (item.url === '/payments/transaction' && (location.pathname === '/payments' || location.pathname.startsWith('/payments'))) ||
-                            (item.url === '/social' && (location.pathname === '/social' || location.pathname.startsWith('/social'))) ||
-                            (item.url === '/ca' && (location.pathname === '/ca' || location.pathname.startsWith('/ca')));
+                            (item.url === '/social' && (location.pathname === '/social' || location.pathname.startsWith('/social')));
 
                         return (
                             <NavLink
