@@ -110,8 +110,23 @@ export default function BusinessCA({ mode }) {
     });
 
     const icaiVerification = icaiData?.data || icaiData || {};
-    const isCaVerified = icaiVerification?.status === 'VERIFIED';
+    const isCaVerified = 
+        icaiVerification?.status === 'VERIFIED' || 
+        icaiVerification?.isVerified === true ||
+        Boolean(user?.is_finpro_verified) || 
+        user?.ca_verification_status === 'VERIFIED' || 
+        user?.is_ca === 1 || 
+        (typeof window !== 'undefined' && localStorage.getItem('cliks_finpro_verified') === 'true');
     const isFinProSubscribed = Boolean(icaiVerification?.isSubscribed);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (isCaVerified) {
+            localStorage.setItem('cliks_finpro_verified', 'true');
+        } else if (icaiVerification?.status === 'REJECTED') {
+            localStorage.removeItem('cliks_finpro_verified');
+        }
+    }, [isCaVerified, icaiVerification?.status]);
 
     const activateSubscriptionMutation = useMutation({
         mutationFn: (planName) => caService.activateFinproSubscription({ planName }),
@@ -2787,38 +2802,6 @@ export default function BusinessCA({ mode }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
 
 
-                    {/* ========================================================================= */}
-                    {/* 1. TOP BANNER: SIGNING PARTNER & VERIFY ICAI CREDENTIALS CARD             */}
-                    {/* ========================================================================= */}
-                    <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base font-bold shrink-0">
-                          👤
-                        </div>
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <h2 className="text-xs sm:text-sm font-black text-gray-900">
-                              Signing Partner / Auditor
-                            </h2>
-                            <span className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-black uppercase tracking-wider">
-                              VERIFICATION REQUIRED
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-gray-500 font-medium">
-                            Verify ICAI membership &amp; COP to enable automated UDIN generation &amp; statutory e-filing.
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleVerifyIcaiModal}
-                        className="px-4 py-2 bg-[#0e4b34] hover:bg-[#093625] text-white rounded-xl text-xs font-bold shadow-xs inline-flex items-center gap-2 shrink-0 transition-colors"
-                      >
-                        <span>🛡️</span>
-                        <span>Verify ICAI Credentials</span>
-                      </button>
-                    </div>
 
                     {/* ========================================================================= */}
                     {/* 2. TOP AUDITOR ROLE SELECTION STRIP                                       */}

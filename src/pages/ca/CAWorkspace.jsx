@@ -11,33 +11,7 @@ export default function CAWorkspace() {
   return (
     <div className="min-h-screen bg-[#f8fafc] p-4 sm:p-6 space-y-5">
       
-      {/* 1. TOP HEADER: SIGNING PARTNER / AUDITOR VERIFICATION BANNER */}
-      <div className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
-            👤
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xs font-black text-gray-900">Signing Partner / Auditor</h2>
-              <span className="text-[10px] font-black uppercase text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                VERIFICATION REQUIRED
-              </span>
-            </div>
-            <p className="text-[11px] text-gray-400 font-semibold mt-0.5">
-              Verify ICAI membership &amp; COP to enable automated UDIN generation &amp; statutory e-filing.
-            </p>
-          </div>
-        </div>
 
-        <button
-          type="button"
-          className="px-4 py-2 bg-[#0e4b34] hover:bg-[#093625] text-white rounded-xl text-xs font-bold shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
-        >
-          <span>🛡️</span>
-          <span>Verify ICAI Credentials</span>
-        </button>
-      </div>
 
       {/* 2. ROLE BADGES ROW */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
