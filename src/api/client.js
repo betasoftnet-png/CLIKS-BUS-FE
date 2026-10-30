@@ -169,7 +169,7 @@ async function request(endpoint, options = {}) {
     let response;
     try {
         const token = localStorage.getItem('books_auth_token');
-        if (token === 'mock-test-token' && !endpoint.includes('/storage')) {
+        if (token === 'mock-test-token' && !endpoint.includes('/storage') && !endpoint.includes('/ca/')) {
             console.log(`[ApiClient] Mock mode for: ${endpoint}`);
             // Return mock data for common endpoints to prevent 401s
             if (endpoint.includes('/business-plans')) return { success: true, data: [] };
