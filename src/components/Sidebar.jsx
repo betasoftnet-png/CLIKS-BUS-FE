@@ -60,7 +60,8 @@ import {
     Cloud,
     X,
     ClipboardList,
-    CheckCircle2
+    CheckCircle2,
+    QrCode
 } from 'lucide-react';
 
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -377,6 +378,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/pos')) return 'POS Billing';
         if (path.includes('/billing/simple') || path.includes('/billing/records')) return 'Simple Billing';
         if (path.includes('/dashboard')) return 'Dashboard';
+        if (path.includes('tab=eway') || (typeof window !== 'undefined' && window.location.search.includes('tab=eway')) || path.includes('/sales/eway')) return 'e-Way Bill';
+        if (path.includes('tab=einvoice') || (typeof window !== 'undefined' && window.location.search.includes('tab=einvoice')) || path.includes('/sales/einvoice')) return 'e-Invoice';
         if (path.includes('/sales/invoice')) return 'Sales Invoice';
         if (path.includes('/sales/orders')) return 'Orders';
         if (path.includes('/sales/delivery')) return 'Delivery';
@@ -534,6 +537,8 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 permission: PERMISSIONS.SALES_ALL,
                 children: [
                     { label: 'Sales Invoice', icon: Receipt, path: '/sales/invoice', permission: PERMISSIONS.SALES_SEC_ALL },
+                    { label: 'e-Way Bill', icon: Truck, path: '/sales/invoice?tab=eway', permission: PERMISSIONS.FIN_TAX_EWAY || PERMISSIONS.SALES_SEC_ALL },
+                    { label: 'e-Invoice', icon: QrCode, path: '/sales/invoice?tab=einvoice', permission: PERMISSIONS.FIN_TAX_EINVOICE || PERMISSIONS.SALES_SEC_ALL },
                     { label: 'Customers', icon: Users, path: '/sales/customers', permission: PERMISSIONS.SALES_CUST_ALL }
                 ]
             },

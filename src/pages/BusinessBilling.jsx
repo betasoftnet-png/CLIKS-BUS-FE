@@ -609,8 +609,17 @@ const BusinessBilling = () => {
         }
     };
 
-    // Tab Navigation State (Orders List, Sales Returns, Purchase Returns, Warranty Claims)
-    const [activeMainTab, setActiveMainTab] = useState('orders'); // 'orders', 'sales_returns', 'purchase_returns', 'warranty'
+    // Tab Navigation State (Orders List, Sales Returns, Purchase Returns, Warranty Claims, e-Invoice, e-Way)
+    const [activeMainTab, setActiveMainTab] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const tab = params.get('tab');
+            if (tab && ['orders', 'sales_returns', 'warranty', 'delivery_challan', 'einvoice', 'eway'].includes(tab)) {
+                return tab;
+            }
+        }
+        return 'orders';
+    });
     const [isOrderReportsModalOpen, setIsOrderReportsModalOpen] = useState(false);
     const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
     const [returnFormType, setReturnFormType] = useState('sales'); // 'sales', 'purchase', 'warranty'
@@ -960,14 +969,50 @@ const BusinessBilling = () => {
         showSignature: true,
         showHeaderStrip: true
     });
-    // Auto-trigger invoice creation workflow via query param instruction
+    // Auto-trigger invoice creation or tab selection via query param instruction
     const [searchParams, setSearchParams] = useSearchParams();
     React.useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && ['orders', 'sales_returns', 'warranty', 'delivery_challan', 'einvoice', 'eway'].includes(tab)) {
+            setActiveMainTab(tab);
+        }
         if (searchParams.get('create') === 'true') {
             setIsModalOpen(true);
-            setSearchParams({}, { replace: true });
+            setSearchParams(prev => {
+                const updated = new URLSearchParams(prev);
+                updated.delete('create');
+                return updated;
+            }, { replace: true });
         }
     }, [searchParams, setSearchParams]);
+
+    const handleOpenEwayModalForInvoice = React.useCallback((selected) => {
+        if (!selected) return;
+        const items = Array.isArray(selected.items) ? selected.items : [];
+        const taxVal = items.reduce((sum, item) => sum + (parseFloat(item.price || item.rate || 0) * parseFloat(item.quantity || 0)), 0);
+        const totalVal = selected.total_amount || selected.amount || 0;
+
+        setEwayForm(prev => ({
+            ...prev,
+            is_invoice_selected: true,
+            invoice_number: selected.invoice_number || '',
+            invoice_date: selected.created_at ? selected.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+            delivery_location: selected.client_name || selected.billing_address || '',
+            recipient_name: selected.client_name || '',
+            recipient_gstin: selected.client_gstin || '',
+            recipient_address: selected.billing_address || '',
+            recipient_pincode: selected.shipping_pincode || selected.billing_pincode || '',
+            goods_items: items,
+            goods_product_name: items[0]?.name || items[0]?.product_name || 'Goods Transport Consignment',
+            goods_hsn_code: items[0]?.hsn || items[0]?.hsn_code || '998313',
+            goods_quantity: items[0]?.quantity || 1,
+            goods_unit: items[0]?.unit || 'Pcs',
+            goods_taxable_value: taxVal || (totalVal * 0.85).toFixed(2),
+            goods_gst_rate: '18',
+            goods_total_value: totalVal
+        }));
+        setIsEwayModalOpen(true);
+    }, []);
 
     const getPrefixForType = React.useCallback((type) => {
         if (!activeConfig) return 'INV-';
@@ -3380,6 +3425,62 @@ const BusinessBilling = () => {
                         <Truck size={15} />
                         <span>DELIVERY CHALLAN</span>
                     </button>
+
+                    {/* 6. e-Invoice */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveMainTab('einvoice');
+                            if (isModalOpen) closeModal();
+                        }}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            padding: '0.5rem 0.95rem',
+                            borderRadius: '10px',
+                            fontSize: '0.82rem',
+                            fontWeight: '800',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            border: (activeMainTab === 'einvoice' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
+                            background: (activeMainTab === 'einvoice' && !isModalOpen) ? 'linear-gradient(135deg, #6366F1 0%, #4338CA 100%)' : '#FFFFFF',
+                            color: (activeMainTab === 'einvoice' && !isModalOpen) ? '#FFFFFF' : '#475569',
+                            boxShadow: (activeMainTab === 'einvoice' && !isModalOpen) ? '0 4px 12px rgba(99, 102, 241, 0.25)' : 'none',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <QrCode size={15} />
+                        <span>e-Invoice</span>
+                    </button>
+
+                    {/* 7. e-Way Bill */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveMainTab('eway');
+                            if (isModalOpen) closeModal();
+                        }}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            padding: '0.5rem 0.95rem',
+                            borderRadius: '10px',
+                            fontSize: '0.82rem',
+                            fontWeight: '800',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            border: (activeMainTab === 'eway' && !isModalOpen) ? 'none' : '1px solid #E2E8F0',
+                            background: (activeMainTab === 'eway' && !isModalOpen) ? 'linear-gradient(135deg, #10B981 0%, #047857 100%)' : '#FFFFFF',
+                            color: (activeMainTab === 'eway' && !isModalOpen) ? '#FFFFFF' : '#475569',
+                            boxShadow: (activeMainTab === 'eway' && !isModalOpen) ? '0 4px 12px rgba(16, 185, 129, 0.25)' : 'none',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <Truck size={15} />
+                        <span>e-Way Bill</span>
+                    </button>
                 </div>
             )}
 
@@ -4167,6 +4268,7 @@ const BusinessBilling = () => {
                                                 <button onClick={() => handleViewHistory(inv)} title="Invoice Audit Trail" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><History size={14} /></button>
                                                 <button onClick={() => handleSendReminder(inv)} title="WhatsApp Reminder" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Share2 size={14} /></button>
                                                 <button onClick={() => handlePrint(inv)} title="Print Invoice" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#BE185D', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Printer size={14} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleOpenEwayModalForInvoice(inv); }} title="Generate e-Way Bill for Invoice" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Truck size={14} /></button>
                                                 <button onClick={() => handleEdit(inv)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={14} /></button>
                                                 <button onClick={() => handleDelete(inv.id)} style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #FEE2E2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={14} /></button>
                                             </div>

@@ -281,6 +281,8 @@ function AuthenticatedApp() {
                 <Route path="/barcode" element={<BusinessBarcode />} />
                 <Route path="/inventory/barcode" element={<Navigate to="/barcode" replace />} />
                 <Route path="/sales/invoice" element={<BusinessBilling />} />
+                <Route path="/sales/eway" element={<Navigate to="/sales/invoice?tab=eway" replace />} />
+                <Route path="/sales/einvoice" element={<Navigate to="/sales/invoice?tab=einvoice" replace />} />
                 <Route path="/sales/orders" element={<BusinessSalesOrders />} />
                 <Route path="/purchases/purchases" element={<BusinessPurchases />} />
                 <Route path="/purchases/invoice" element={<BusinessPurchases />} />
