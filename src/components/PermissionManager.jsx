@@ -42,9 +42,9 @@ const PERMISSIONS_HIERARCHY = [
         ]
       },
       {
-        label: 'FinTech',
+        label: 'Audit Center',
         children: [
-          { id: 140, label: 'Finance FinTech Access' }
+          { id: 140, label: 'Finance Audit Center Access' }
         ]
       }
     ]
