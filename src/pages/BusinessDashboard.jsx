@@ -32,14 +32,109 @@ import {
     ShieldCheck,
     Calendar,
     CalendarDays,
-    CheckCheck
+    CheckCheck,
+    SlidersHorizontal,
+    ArrowUp,
+    ArrowDown,
+    Eye,
+    EyeOff,
+    RotateCcw,
+    Layers
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { reportsService, expensesService, purchasesService, settingsService } from '../services';
 import { accountingService } from '../services/accountingService';
+import MoneyGoalsTile from '../components/dashboard/MoneyGoalsTile';
+import BudgetMixTile from '../components/dashboard/BudgetMixTile';
+import MarketPulseTile from '../components/dashboard/MarketPulseTile';
+import SplitBillsTile from '../components/dashboard/SplitBillsTile';
+import TheSquadTile from '../components/dashboard/TheSquadTile';
 import '../App.css';
+
+const DEFAULT_DASHBOARD_FEATURES = [
+    {
+        id: 'stats_grid',
+        label: 'Financial KPI Overview',
+        description: 'Total Invoices, Receivables, Payables, and Net Cash Flow metrics.',
+        icon: LayoutDashboard,
+        color: '#1B6B3A',
+        enabled: true
+    },
+    {
+        id: 'quick_actions',
+        label: 'Quick Action Center',
+        description: 'Instant one-click shortcuts to invoices, products, expenses, and key tools.',
+        icon: Target,
+        color: '#2563EB',
+        enabled: true
+    },
+    {
+        id: 'sales_performance',
+        label: 'Sales Performance Analytics',
+        description: 'Interactive monthly revenue graph with hover inspection and performance trends.',
+        icon: TrendingUp,
+        color: '#10B981',
+        enabled: true
+    },
+    {
+        id: 'top_products',
+        label: 'Top Performing Products',
+        description: 'Volume matrix and revenue drivers highlighting top sold inventory.',
+        icon: Package,
+        color: '#059669',
+        enabled: true
+    },
+    {
+        id: 'expense_distribution',
+        label: 'Expense Distribution Breakdown',
+        description: 'Categorized expenditure donut breakdown with interactive percentage legend.',
+        icon: Receipt,
+        color: '#EF4444',
+        enabled: true
+    },
+    {
+        id: 'money_goals',
+        label: 'Financial Goals Tracker',
+        description: 'Monitor milestone goals, strategic targets, and capital accumulation progress.',
+        icon: Target,
+        color: '#8B5CF6',
+        enabled: false
+    },
+    {
+        id: 'budget_mix',
+        label: 'Operational Budget Mix',
+        description: 'Track spending limits, departmental allocations, and real-time burn rates.',
+        icon: Wallet,
+        color: '#F59E0B',
+        enabled: false
+    },
+    {
+        id: 'market_pulse',
+        label: 'Market Pulse & Trends',
+        description: 'Visual financial radar and market valuation indicators across time periods.',
+        icon: Activity,
+        color: '#06B6D4',
+        enabled: false
+    },
+    {
+        id: 'split_bills',
+        label: 'Split Bills & Settlements',
+        description: 'Track internal shared expenses, settlements, and member balance tallies.',
+        icon: Users2,
+        color: '#EC4899',
+        enabled: false
+    },
+    {
+        id: 'the_squad',
+        label: 'Team & Collaborators Activity',
+        description: 'Active team staff directory, instant transfers, and collaborator quick-access.',
+        icon: Users,
+        color: '#6366F1',
+        enabled: false
+    }
+];
 
 const MASTER_SHORTCUTS = [
     // 🌟 Priority Invoicing & Point-of-Sale
@@ -124,7 +219,40 @@ const BusinessDashboard = () => {
     const [modalSelectedShortcuts, setModalSelectedShortcuts] = useState(selectedShortcuts);
     const [isSavingShortcuts, setIsSavingShortcuts] = useState(false);
 
-    // Sync from database whenever settings are fetched
+    // Dashboard Features Customization State (Align, Reorder, Add, Remove)
+    const [dashboardFeatures, setDashboardFeatures] = useState(() => {
+        const saved = localStorage.getItem('cliks_dashboard_features');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    const merged = [];
+                    parsed.forEach(item => {
+                        const defaultItem = DEFAULT_DASHBOARD_FEATURES.find(d => d.id === (item.id || item));
+                        if (defaultItem) {
+                            merged.push({
+                                ...defaultItem,
+                                enabled: item.enabled !== undefined ? Boolean(item.enabled) : defaultItem.enabled
+                            });
+                        }
+                    });
+                    DEFAULT_DASHBOARD_FEATURES.forEach(defaultItem => {
+                        if (!merged.some(m => m.id === defaultItem.id)) {
+                            merged.push(defaultItem);
+                        }
+                    });
+                    return merged;
+                }
+            } catch (e) {}
+        }
+        return DEFAULT_DASHBOARD_FEATURES;
+    });
+
+    const [isDashboardCustomiseOpen, setIsDashboardCustomiseOpen] = useState(false);
+    const [modalFeatures, setModalFeatures] = useState(dashboardFeatures);
+    const [isSavingFeatures, setIsSavingFeatures] = useState(false);
+
+    // Sync shortcuts & features from database whenever settings are fetched
     useEffect(() => {
         const cloudShortcuts = userSettingsData?.data?.dashboard_shortcuts ?? 
                                userSettingsData?.dashboard_shortcuts ?? 
@@ -137,6 +265,33 @@ const BusinessDashboard = () => {
             setModalSelectedShortcuts(filtered);
             try {
                 localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(filtered));
+            } catch (e) {}
+        }
+
+        const cloudFeatures = userSettingsData?.data?.dashboard_features ?? 
+                              userSettingsData?.dashboard_features ??
+                              userSettingsData?.data?.widgets ??
+                              userSettingsData?.widgets;
+        if (Array.isArray(cloudFeatures) && cloudFeatures.length > 0) {
+            const merged = [];
+            cloudFeatures.forEach(item => {
+                const defaultItem = DEFAULT_DASHBOARD_FEATURES.find(d => d.id === (item.id || item));
+                if (defaultItem) {
+                    merged.push({
+                        ...defaultItem,
+                        enabled: item.enabled !== undefined ? Boolean(item.enabled) : defaultItem.enabled
+                    });
+                }
+            });
+            DEFAULT_DASHBOARD_FEATURES.forEach(defaultItem => {
+                if (!merged.some(m => m.id === defaultItem.id)) {
+                    merged.push(defaultItem);
+                }
+            });
+            setDashboardFeatures(merged);
+            setModalFeatures(merged);
+            try {
+                localStorage.setItem('cliks_dashboard_features', JSON.stringify(merged.map(f => ({ id: f.id, enabled: f.enabled }))));
             } catch (e) {}
         }
     }, [userSettingsData]);
@@ -183,6 +338,50 @@ const BusinessDashboard = () => {
         } finally {
             setIsSavingShortcuts(false);
             setIsModalOpen(false);
+        }
+    };
+
+    // Dashboard Layout Customization Handlers
+    const handleOpenDashboardCustomise = () => {
+        setModalFeatures([...dashboardFeatures]);
+        setIsDashboardCustomiseOpen(true);
+    };
+
+    const handleToggleFeature = (id) => {
+        setModalFeatures(prev => prev.map(f => f.id === id ? { ...f, enabled: !f.enabled } : f));
+    };
+
+    const handleMoveFeature = (index, direction) => {
+        setModalFeatures(prev => {
+            const next = [...prev];
+            const targetIndex = direction === 'up' ? index - 1 : index + 1;
+            if (targetIndex < 0 || targetIndex >= next.length) return prev;
+            const [movedItem] = next.splice(index, 1);
+            next.splice(targetIndex, 0, movedItem);
+            return next;
+        });
+    };
+
+    const handleResetDefaultFeatures = () => {
+        setModalFeatures(DEFAULT_DASHBOARD_FEATURES.map(f => ({ ...f })));
+    };
+
+    const handleSaveDashboardFeatures = async () => {
+        setIsSavingFeatures(true);
+        const toSave = modalFeatures.map(f => ({ id: f.id, enabled: f.enabled }));
+        setDashboardFeatures([...modalFeatures]);
+        try {
+            localStorage.setItem('cliks_dashboard_features', JSON.stringify(toSave));
+            await settingsService.updateSettings({
+                dashboard_features: toSave,
+                widgets: toSave
+            });
+            queryClient.invalidateQueries(['userSettings']);
+        } catch (err) {
+            console.warn('[Dashboard] Failed to save dashboard features to cloud settings:', err);
+        } finally {
+            setIsSavingFeatures(false);
+            setIsDashboardCustomiseOpen(false);
         }
     };
 
@@ -341,472 +540,911 @@ const BusinessDashboard = () => {
                     </p>
                 </div>
                 <div className="dashboard-header-actions">
-
-
                     <button
-                        onClick={handleOpenModal}
+                        onClick={handleOpenDashboardCustomise}
                         style={{
-                            padding: '0.65rem 1.5rem',
+                            padding: '0.65rem 1.4rem',
                             borderRadius: '12px',
                             background: '#1B6B3A',
                             color: 'white',
                             border: 'none',
-                            fontWeight: '700',
+                            fontWeight: '750',
+                            fontSize: '0.9rem',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.5rem',
-                            boxShadow: '0 4px 12px rgba(27, 107, 58, 0.15)'
+                            gap: '0.6rem',
+                            boxShadow: '0 4px 14px rgba(27, 107, 58, 0.2)',
+                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 18px rgba(27, 107, 58, 0.3)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(27, 107, 58, 0.2)';
                         }}
                     >
-                        <Settings size={16} /> {t('customise', 'Customise')}
+                        <SlidersHorizontal size={17} strokeWidth={2.3} /> {t('customiseDashboard', 'Customise Dashboard')}
                     </button>
                 </div>
             </div>
 
             {/* Scrollable Dashboard Content */}
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '2rem' }}>
-                {/* Stats Grid */}
-                <div className="dashboard-stats-grid">
-                    {stats.map((stat, idx) => (
-                        <div key={idx} className="dashboard-stat-card">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
-                                    <stat.icon size={20} />
-                                </div>
-                                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#059669', background: '#F0FDF4', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>{stat.change}</span>
-                            </div>
-                            <h3 style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748B', marginBottom: '0.5rem' }}>{stat.label}</h3>
-                            <p style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1E293B' }}>{stat.value}</p>
-                        </div>
-                    ))}
-                </div>
+                {dashboardFeatures.filter(f => f.enabled).length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" style={{ boxSizing: 'border-box' }}>
+                        {dashboardFeatures.filter(f => f.enabled).map(feature => {
+                            switch (feature.id) {
+                                case 'stats_grid':
+                                    return (
+                                        <div key="stats_grid" className="col-span-1 lg:col-span-12" style={{ marginBottom: '0.5rem' }}>
+                                            <div className="dashboard-stats-grid">
+                                                {stats.map((stat, idx) => (
+                                                    <div key={idx} className="dashboard-stat-card">
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                                            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
+                                                                <stat.icon size={20} />
+                                                            </div>
+                                                            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#059669', background: '#F0FDF4', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>{stat.change}</span>
+                                                        </div>
+                                                        <h3 style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748B', marginBottom: '0.5rem' }}>{stat.label}</h3>
+                                                        <p style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1E293B' }}>{stat.value}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
 
-                {/* Quick Actions Row - Hidden for Sub-IDs */}
-                {!isSubId && (
-                    <div style={{ marginTop: '2.25rem', marginBottom: '2.25rem' }}>
-                        <h2 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#1E293B', marginBottom: '1.25rem', letterSpacing: '-0.3px' }}>{t('quickActionCenter', 'Quick Action Center')}</h2>
+                                case 'quick_actions':
+                                    if (isSubId) return null;
+                                    return (
+                                        <div key="quick_actions" className="col-span-1 lg:col-span-12" style={{ marginTop: '0.5rem', marginBottom: '0.75rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                                <h2 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#1E293B', margin: 0, letterSpacing: '-0.3px' }}>
+                                                    {t('quickActionCenter', 'Quick Action Center')}
+                                                </h2>
+                                                <button
+                                                    onClick={handleOpenModal}
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        padding: '4px 12px',
+                                                        borderRadius: '999px',
+                                                        background: '#F0FDF4',
+                                                        border: '1px solid #BBF7D0',
+                                                        color: '#1B6B3A',
+                                                        fontSize: '0.78rem',
+                                                        fontWeight: '750',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.15s ease'
+                                                    }}
+                                                    onMouseOver={(e) => { e.currentTarget.style.background = '#DCFCE7'; }}
+                                                    onMouseOut={(e) => { e.currentTarget.style.background = '#F0FDF4'; }}
+                                                >
+                                                    <Plus size={13} strokeWidth={2.5} />
+                                                    {t('manageShortcuts', 'Manage Shortcuts')}
+                                                </button>
+                                            </div>
 
-                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                        {MASTER_SHORTCUTS.filter(s => selectedShortcuts.includes(s.id)).map(shortcut => {
-                            const Icon = shortcut.icon;
-                            return (
-                                <button
-                                    key={shortcut.id}
-                                    onClick={() => navigate(shortcut.path)}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.85rem',
-                                        padding: '0.75rem 1.25rem',
-                                        borderRadius: '16px',
-                                        background: 'white',
-                                        border: '1px solid #E2E8F0',
-                                        cursor: 'pointer',
-                                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    }}
-                                    onMouseOver={(e) => {
-                                        e.currentTarget.style.transform = 'translateY(-3px)';
-                                        e.currentTarget.style.boxShadow = '0 12px 20px -8px rgba(0,0,0,0.08)';
-                                        e.currentTarget.style.borderColor = shortcut.color;
-                                    }}
-                                    onMouseOut={(e) => {
-                                        e.currentTarget.style.transform = 'translateY(0)';
-                                        e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)';
-                                        e.currentTarget.style.borderColor = '#E2E8F0';
-                                    }}
-                                >
-                                    <div style={{
-                                        width: '32px',
-                                        height: '32px',
-                                        borderRadius: '10px',
-                                        background: `${shortcut.color}12`,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: shortcut.color
-                                    }}>
-                                        <Icon size={16} strokeWidth={2.5} />
-                                    </div>
-                                    <span style={{ fontWeight: '750', fontSize: '0.9rem', color: '#1E293B' }}>{t(shortcut.label)}</span>
-                                </button>
-                            );
+                                            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                                {MASTER_SHORTCUTS.filter(s => selectedShortcuts.includes(s.id)).map(shortcut => {
+                                                    const Icon = shortcut.icon;
+                                                    return (
+                                                        <button
+                                                            key={shortcut.id}
+                                                            onClick={() => navigate(shortcut.path)}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.85rem',
+                                                                padding: '0.75rem 1.25rem',
+                                                                borderRadius: '16px',
+                                                                background: 'white',
+                                                                border: '1px solid #E2E8F0',
+                                                                cursor: 'pointer',
+                                                                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                                                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                            }}
+                                                            onMouseOver={(e) => {
+                                                                e.currentTarget.style.transform = 'translateY(-3px)';
+                                                                e.currentTarget.style.boxShadow = '0 12px 20px -8px rgba(0,0,0,0.08)';
+                                                                e.currentTarget.style.borderColor = shortcut.color;
+                                                            }}
+                                                            onMouseOut={(e) => {
+                                                                e.currentTarget.style.transform = 'translateY(0)';
+                                                                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)';
+                                                                e.currentTarget.style.borderColor = '#E2E8F0';
+                                                            }}
+                                                        >
+                                                            <div style={{
+                                                                width: '32px',
+                                                                height: '32px',
+                                                                borderRadius: '10px',
+                                                                background: `${shortcut.color}12`,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                color: shortcut.color
+                                                            }}>
+                                                                <Icon size={16} strokeWidth={2.5} />
+                                                            </div>
+                                                            <span style={{ fontWeight: '750', fontSize: '0.9rem', color: '#1E293B' }}>{t(shortcut.label)}</span>
+                                                        </button>
+                                                    );
+                                                })}
+
+                                                {/* Add/Manage Button Card */}
+                                                <button
+                                                    onClick={handleOpenModal}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.75rem',
+                                                        padding: '0.75rem 1.25rem',
+                                                        borderRadius: '16px',
+                                                        background: 'transparent',
+                                                        border: '2px dashed #CBD5E1',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s ease',
+                                                        color: '#64748B'
+                                                    }}
+                                                    onMouseOver={(e) => {
+                                                        e.currentTarget.style.borderColor = '#1B6B3A';
+                                                        e.currentTarget.style.color = '#1B6B3A';
+                                                        e.currentTarget.style.background = '#F0FDF4';
+                                                    }}
+                                                    onMouseOut={(e) => {
+                                                        e.currentTarget.style.borderColor = '#CBD5E1';
+                                                        e.currentTarget.style.color = '#64748B';
+                                                        e.currentTarget.style.background = 'transparent';
+                                                    }}
+                                                >
+                                                    <Plus size={16} strokeWidth={2.5} />
+                                                    <span style={{ fontWeight: '750', fontSize: '0.9rem' }}>{t('manageShortcuts', '+ Manage Shortcuts')}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+
+                                case 'sales_performance':
+                                    return (
+                                        <div key="sales_performance" className="col-span-1 lg:col-span-12" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', position: 'relative', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                                <div>
+                                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{t('salesPerformance', 'Sales Performance')}</h2>
+                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>{t('interactiveSalesGraph', 'Interactive monthly sales aggregation graph.')}</p>
+                                                </div>
+                                                <div style={{ background: '#F0FDF4', color: '#1B6B3A', border: '1px solid #BBF7D0', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '800' }}>
+                                                    {t('liveStream', 'Live Stream')}
+                                                </div>
+                                            </div>
+
+                                            {/* Custom SVG Sales Line/Area Graph */}
+                                            <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
+                                                <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%" style={{ display: 'block', overflow: 'visible', height: 'auto' }}>
+                                                    <defs>
+                                                        <linearGradient id="salesAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="0%" stopColor="#1B6B3A" stopOpacity="0.3" />
+                                                            <stop offset="100%" stopColor="#1B6B3A" stopOpacity="0.0" />
+                                                        </linearGradient>
+                                                        <linearGradient id="salesLineGradient" x1="0" y1="0" x2="1" y2="0">
+                                                            <stop offset="0%" stopColor="#10B981" />
+                                                            <stop offset="100%" stopColor="#047857" />
+                                                        </linearGradient>
+                                                    </defs>
+
+                                                    {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
+                                                        const y = paddingTop + ratio * chartHeight;
+                                                        return (
+                                                            <g key={i}>
+                                                                <line 
+                                                                    x1={paddingLeft} 
+                                                                    y1={y} 
+                                                                    x2={svgWidth - paddingRight} 
+                                                                    y2={y} 
+                                                                    stroke="#F1F5F9" 
+                                                                    strokeWidth="1.5" 
+                                                                    strokeDasharray="4 4"
+                                                                />
+                                                                <text 
+                                                                    x={paddingLeft - 10} 
+                                                                    y={y + 4} 
+                                                                    textAnchor="end" 
+                                                                    style={{ fontSize: '10px', fontWeight: '750', fill: '#94A3B8' }}
+                                                                >
+                                                                    {formatCurrency(maxSales * (1 - ratio)).split('.')[0]}
+                                                                </text>
+                                                            </g>
+                                                        );
+                                                    })}
+
+                                                    {areaPath && (
+                                                        <path d={areaPath} fill="url(#salesAreaGradient)" />
+                                                    )}
+
+                                                    {linePath && (
+                                                        <path 
+                                                            d={linePath} 
+                                                            fill="none" 
+                                                            stroke="url(#salesLineGradient)" 
+                                                            strokeWidth="3.5" 
+                                                            strokeLinecap="round" 
+                                                            strokeLinejoin="round" 
+                                                        />
+                                                    )}
+
+                                                    {salesPoints.map((p, idx) => (
+                                                        <g key={idx}>
+                                                            <text 
+                                                                x={p.x} 
+                                                                y={paddingTop + chartHeight + 18} 
+                                                                textAnchor="middle" 
+                                                                style={{ fontSize: '10px', fontWeight: '800', fill: '#64748B' }}
+                                                            >
+                                                                {p.month}
+                                                            </text>
+                                                            
+                                                            <circle 
+                                                                cx={p.x} 
+                                                                cy={p.y} 
+                                                                r={hoveredSalesPoint?.month === p.month ? "7" : "5"} 
+                                                                fill="#ffffff" 
+                                                                stroke="#1B6B3A" 
+                                                                strokeWidth="2.5" 
+                                                                style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+                                                            />
+                                                            
+                                                            <circle 
+                                                                cx={p.x} 
+                                                                cy={p.y} 
+                                                                r="18" 
+                                                                fill="transparent" 
+                                                                style={{ cursor: 'pointer' }}
+                                                                onMouseEnter={() => setHoveredSalesPoint(p)}
+                                                                onMouseLeave={() => setHoveredSalesPoint(null)}
+                                                            />
+                                                        </g>
+                                                    ))}
+                                                </svg>
+
+                                                {hoveredSalesPoint && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: `${(hoveredSalesPoint.y / svgHeight) * 100 - 18}%`,
+                                                        left: `${(hoveredSalesPoint.x / svgWidth) * 100}%`,
+                                                        transform: 'translate(-50%, -100%)',
+                                                        background: '#0F172A',
+                                                        color: 'white',
+                                                        padding: '8px 12px',
+                                                        borderRadius: '10px',
+                                                        fontSize: '11px',
+                                                        fontWeight: '800',
+                                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                                                        whiteSpace: 'nowrap',
+                                                        pointerEvents: 'none',
+                                                        zIndex: 10
+                                                    }}>
+                                                        <div style={{ color: '#34D399', fontSize: '9px', textTransform: 'uppercase', marginBottom: '2px' }}>{hoveredSalesPoint.month} Sales</div>
+                                                        <div>{formatCurrency(hoveredSalesPoint.val)}</div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+
+                                case 'top_products':
+                                    return (
+                                        <div key="top_products" className="col-span-1 lg:col-span-6" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                                            <div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                                    <div>
+                                                        <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Top Performing Products</h2>
+                                                        <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Highest volume contributors matrix.</p>
+                                                    </div>
+                                                    <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '3px 8px', borderRadius: '12px' }}>Volume Matrix</span>
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                    {topProducts && topProducts.length > 0 ? (
+                                                        (topProducts?.data || topProducts).slice(0, 3).map((prod, idx) => (
+                                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#F8FAFC', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', transition: 'all 0.2s ease' }}>
+                                                                <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '850', color: '#1B6B3A', fontSize: '0.85rem', border: '1px solid #DCF2E4' }}>
+                                                                    #{idx + 1}
+                                                                </div>
+                                                                <div style={{ flex: 1 }}>
+                                                                    <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', margin: '0 0 0.15rem 0' }}>{prod.name || 'Active Item'}</h4>
+                                                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0, fontWeight: '650' }}>Sold: <span style={{ color: '#064E3B', fontWeight: '800' }}>{prod.total_quantity || prod.sold || 0} pcs</span></p>
+                                                                </div>
+                                                                <div style={{ textAlign: 'right' }}>
+                                                                    <div style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(prod.total_sales || 0)}</div>
+                                                                    <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '800', textTransform: 'uppercase' }}>Revenue Driver</span>
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div style={{ padding: '2rem 1rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8', border: '1px dashed #CBD5E1', borderRadius: '16px' }}>
+                                                            No product sales analytics logged yet.
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+
+                                case 'expense_distribution':
+                                    return (
+                                        <div key="expense_distribution" className="col-span-1 lg:col-span-6" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', height: 'fit-content', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                                            <div>
+                                                <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Expense Distribution</h2>
+                                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Expense allocation grouped by categories.</p>
+                                                {finalExpenseCategories.length > 0 ? (
+                                                    <>
+                                                        <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', margin: '10px 0' }}>
+                                                            <svg width="200" height="200" viewBox="0 0 200 200" style={{ transform: 'rotate(-90deg)' }}>
+                                                                <circle 
+                                                                    cx="100" 
+                                                                    cy="100" 
+                                                                    r="65" 
+                                                                    fill="transparent" 
+                                                                    stroke="#F1F5F9" 
+                                                                    strokeWidth="16" 
+                                                                />
+                                                                {(() => {
+                                                                    let accumulatedPercent = 0;
+                                                                    const circumference = 2 * Math.PI * 65;
+                                                                    return finalExpenseCategories.map((c, i) => {
+                                                                        const dashLength = (c.pct / 100) * circumference;
+                                                                        const offset = -((accumulatedPercent / 100) * circumference);
+                                                                        accumulatedPercent += c.pct;
+                                                                        const color = DONUT_COLORS[i % DONUT_COLORS.length];
+                                                                        const isHovered = hoveredDonutSegment?.name === c.name;
+                                                                        return (
+                                                                            <circle
+                                                                                key={c.name}
+                                                                                cx="100"
+                                                                                cy="100"
+                                                                                r="65"
+                                                                                fill="transparent"
+                                                                                stroke={color}
+                                                                                strokeWidth={isHovered ? "22" : "16"}
+                                                                                strokeDasharray={`${dashLength} ${circumference}`}
+                                                                                strokeDashoffset={offset}
+                                                                                style={{ 
+                                                                                    cursor: 'pointer', 
+                                                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' 
+                                                                                }}
+                                                                                onMouseEnter={() => setHoveredDonutSegment({ ...c, color })}
+                                                                                onMouseLeave={() => setHoveredDonutSegment(null)}
+                                                                            />
+                                                                        );
+                                                                    });
+                                                                })()}
+                                                            </svg>
+
+                                                            <div style={{
+                                                                position: 'absolute',
+                                                                top: '50%',
+                                                                left: '50%',
+                                                                transform: 'translate(-50%, -50%)',
+                                                                textAlign: 'center',
+                                                                pointerEvents: 'none',
+                                                                width: '110px'
+                                                            }}>
+                                                                <div style={{ 
+                                                                    fontSize: '9px', 
+                                                                    fontWeight: '800', 
+                                                                    color: '#64748B', 
+                                                                    textTransform: 'uppercase',
+                                                                    letterSpacing: '0.5px'
+                                                                }}>
+                                                                    {hoveredDonutSegment ? hoveredDonutSegment.name : 'Total Expense'}
+                                                                </div>
+                                                                <div style={{ 
+                                                                    fontSize: '15px', 
+                                                                    fontWeight: '900', 
+                                                                    color: hoveredDonutSegment ? hoveredDonutSegment.color : '#0F172A',
+                                                                    marginTop: '4px',
+                                                                    lineHeight: '1.2'
+                                                                }}>
+                                                                    {hoveredDonutSegment 
+                                                                        ? formatCurrency(hoveredDonutSegment.value)
+                                                                        : formatCurrency(finalExpenseCategories.reduce((acc, c) => acc + c.value, 0))
+                                                                    }
+                                                                </div>
+                                                                <div style={{ 
+                                                                    fontSize: '10px', 
+                                                                    fontWeight: '800', 
+                                                                    color: '#10B981', 
+                                                                    marginTop: '2px' 
+                                                                }}>
+                                                                    {hoveredDonutSegment 
+                                                                        ? `${hoveredDonutSegment.pct.toFixed(1)}% Share`
+                                                                        : '100% Volume'
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                                                            {finalExpenseCategories.map((c, i) => {
+                                                                const color = DONUT_COLORS[i % DONUT_COLORS.length];
+                                                                const isHovered = hoveredDonutSegment?.name === c.name;
+                                                                return (
+                                                                    <div 
+                                                                        key={c.name}
+                                                                        onMouseEnter={() => setHoveredDonutSegment({ ...c, color })}
+                                                                        onMouseLeave={() => setHoveredDonutSegment(null)}
+                                                                        style={{
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'space-between',
+                                                                            background: isHovered ? '#F8FAFC' : 'transparent',
+                                                                            padding: '8px 10px',
+                                                                            borderRadius: '12px',
+                                                                            border: '1px solid',
+                                                                            borderColor: isHovered ? '#E2E8F0' : 'transparent',
+                                                                            cursor: 'pointer',
+                                                                            transition: 'all 0.15s ease'
+                                                                        }}
+                                                                    >
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                            <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: color, flexShrink: 0 }} />
+                                                                            <span style={{ 
+                                                                                fontSize: '0.8rem', 
+                                                                                fontWeight: '800', 
+                                                                                color: isHovered ? '#0F172A' : '#475569',
+                                                                                whiteSpace: 'nowrap',
+                                                                                overflow: 'hidden',
+                                                                                textOverflow: 'ellipsis',
+                                                                                maxWidth: '120px'
+                                                                            }} title={c.name}>
+                                                                                {c.name}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                                            <div style={{ fontSize: '0.85rem', fontWeight: '850', color: '#1E293B' }}>{formatCurrency(c.value)}</div>
+                                                                            <span style={{ fontSize: '9px', fontWeight: '800', color: '#94A3B8' }}>{c.pct.toFixed(1)}%</span>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div style={{
+                                                        flex: 1,
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        padding: '3.5rem 1.5rem',
+                                                        border: '2px dashed #E2E8F0',
+                                                        borderRadius: '20px',
+                                                        background: '#F8FAFC',
+                                                        textAlign: 'center',
+                                                        boxSizing: 'border-box'
+                                                    }}>
+                                                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', marginBottom: '1rem' }}>
+                                                            <TrendingUp size={24} />
+                                                        </div>
+                                                        <h3 style={{ fontSize: '0.92rem', fontWeight: '850', color: '#334155', margin: '0 0 0.5rem 0' }}>No Expense Data Logged</h3>
+                                                        <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0, lineHeight: '1.4', maxWidth: '240px', fontWeight: '600' }}>
+                                                            Record business expenses under Purchases or Accounting to compile your category distribution breakdown.
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+
+                                case 'money_goals':
+                                    return (
+                                        <div key="money_goals" className="col-span-1 lg:col-span-6" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                                <div>
+                                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Financial Goals Tracker</h2>
+                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Progress towards organizational milestone targets.</p>
+                                                </div>
+                                                <span style={{ fontSize: '0.7rem', color: '#8B5CF6', fontWeight: '750', textTransform: 'uppercase', background: '#F5F3FF', border: '1px solid #DDD6FE', padding: '3px 8px', borderRadius: '12px' }}>Strategic Goals</span>
+                                            </div>
+                                            <MoneyGoalsTile />
+                                        </div>
+                                    );
+
+                                case 'budget_mix':
+                                    return (
+                                        <div key="budget_mix" className="col-span-1 lg:col-span-6" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                                <div>
+                                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Operational Budget Mix</h2>
+                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Departmental allocations and expenditure cap burn rates.</p>
+                                                </div>
+                                                <span style={{ fontSize: '0.7rem', color: '#F59E0B', fontWeight: '750', textTransform: 'uppercase', background: '#FFFBEB', border: '1px solid #FDE68A', padding: '3px 8px', borderRadius: '12px' }}>Active Budgets</span>
+                                            </div>
+                                            <BudgetMixTile />
+                                        </div>
+                                    );
+
+                                case 'market_pulse':
+                                    return (
+                                        <div key="market_pulse" className="col-span-1 lg:col-span-6" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                                <div>
+                                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Market Pulse & Trends</h2>
+                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Visual financial radar and market valuation indicators.</p>
+                                                </div>
+                                                <span style={{ fontSize: '0.7rem', color: '#06B6D4', fontWeight: '750', textTransform: 'uppercase', background: '#ECFEFF', border: '1px solid #A5F3FC', padding: '3px 8px', borderRadius: '12px' }}>Market Radar</span>
+                                            </div>
+                                            <MarketPulseTile totalValue={totalSalesAmount || 50000} totalInvested={totalPurchasesAmount || 30000} />
+                                        </div>
+                                    );
+
+                                case 'split_bills':
+                                    return (
+                                        <div key="split_bills" className="col-span-1 lg:col-span-6" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                                <div>
+                                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Split Bills & Settlements</h2>
+                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Internal shared expenses, settlements, and member balances.</p>
+                                                </div>
+                                                <span style={{ fontSize: '0.7rem', color: '#EC4899', fontWeight: '750', textTransform: 'uppercase', background: '#FDF2F8', border: '1px solid #FBCFE8', padding: '3px 8px', borderRadius: '12px' }}>Split Settlements</span>
+                                            </div>
+                                            <SplitBillsTile />
+                                        </div>
+                                    );
+
+                                case 'the_squad':
+                                    return (
+                                        <div key="the_squad" className="col-span-1 lg:col-span-6" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                                <div>
+                                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Team & Collaborators Activity</h2>
+                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Active team staff directory and peer interaction center.</p>
+                                                </div>
+                                                <span style={{ fontSize: '0.7rem', color: '#6366F1', fontWeight: '750', textTransform: 'uppercase', background: '#EEF2FF', border: '1px solid #C7D2FE', padding: '3px 8px', borderRadius: '12px' }}>Directory</span>
+                                            </div>
+                                            <TheSquadTile />
+                                        </div>
+                                    );
+
+                                default:
+                                    return null;
+                            }
                         })}
-
-                        {/* Add/Manage Button Card */}
+                    </div>
+                ) : (
+                    <div style={{
+                        padding: '4rem 2rem',
+                        textAlign: 'center',
+                        background: 'white',
+                        borderRadius: '24px',
+                        border: '2px dashed #E2E8F0',
+                        margin: '2rem 0'
+                    }}>
+                        <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#F0FDF4', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem auto' }}>
+                            <SlidersHorizontal size={28} />
+                        </div>
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.5rem' }}>No Modules Visible</h3>
+                        <p style={{ fontSize: '0.85rem', color: '#64748B', maxWidth: '400px', margin: '0 auto 1.5rem auto' }}>
+                            All dashboard modules are currently hidden. Customize your layout to enable KPIs, analytics, and shortcuts.
+                        </p>
                         <button
-                            onClick={handleOpenModal}
+                            onClick={handleOpenDashboardCustomise}
                             style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.75rem',
-                                padding: '0.75rem 1.25rem',
-                                borderRadius: '16px',
-                                background: 'transparent',
-                                border: '2px dashed #CBD5E1',
+                                padding: '0.75rem 1.5rem',
+                                borderRadius: '12px',
+                                background: '#1B6B3A',
+                                color: 'white',
+                                border: 'none',
+                                fontWeight: '750',
                                 cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                color: '#64748B'
-                            }}
-                            onMouseOver={(e) => {
-                                e.currentTarget.style.borderColor = '#1B6B3A';
-                                e.currentTarget.style.color = '#1B6B3A';
-                                e.currentTarget.style.background = '#F0FDF4';
-                            }}
-                            onMouseOut={(e) => {
-                                e.currentTarget.style.borderColor = '#CBD5E1';
-                                e.currentTarget.style.color = '#64748B';
-                                e.currentTarget.style.background = 'transparent';
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                boxShadow: '0 4px 12px rgba(27, 107, 58, 0.2)'
                             }}
                         >
-                            <Plus size={16} strokeWidth={2.5} />
-                            <span style={{ fontWeight: '750', fontSize: '0.9rem' }}>{t('manageShortcuts', '+ Manage Shortcuts')}</span>
+                            <SlidersHorizontal size={16} /> Customize Dashboard
                         </button>
                     </div>
-                </div>
                 )}
+            </div>
 
-                {/* Redesigned Charts Content Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6" style={{ boxSizing: 'border-box' }}>
-                    {/* Left Column: Sales Area Graph & Top Products */}
-                    <div className="lg:col-span-3" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                        {/* Sales Curve Graph */}
-                        <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', position: 'relative', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <div>
-                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{t('salesPerformance', 'Sales Performance')}</h2>
-                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>{t('interactiveSalesGraph', 'Interactive monthly sales aggregation graph.')}</p>
+            {/* Dashboard Layout Customization Modal Overlay */}
+            {!isSubId && (
+                <AnimatePresence>
+                    {isDashboardCustomiseOpen && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            style={{
+                                position: 'fixed',
+                                top: 0,
+                                left: 0,
+                                width: '100vw',
+                                height: '100vh',
+                                background: 'rgba(15, 23, 42, 0.5)',
+                                backdropFilter: 'blur(8px)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 9999,
+                            }}
+                            onClick={() => setIsDashboardCustomiseOpen(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0, y: 25 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.95, opacity: 0, y: 25 }}
+                                transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
+                                style={{
+                                    width: '92%',
+                                    maxWidth: '560px',
+                                    maxHeight: '90vh',
+                                    background: 'white',
+                                    borderRadius: '28px',
+                                    boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.3)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    overflow: 'hidden'
+                                }}
+                                onClick={e => e.stopPropagation()}
+                            >
+                                {/* Header */}
+                                <div style={{ padding: '1.75rem 2rem 1.25rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#F0FDF4', color: '#1B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <SlidersHorizontal size={18} strokeWidth={2.5} />
+                                            </div>
+                                            <h2 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#1E293B', letterSpacing: '-0.5px', margin: 0 }}>
+                                                Customize Dashboard Layout
+                                            </h2>
+                                        </div>
+                                        <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.35rem', lineHeight: 1.4 }}>
+                                            Align priorities, reorder sections up/down, and toggle features visible on your dashboard.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsDashboardCustomiseOpen(false)}
+                                        style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', cursor: 'pointer', flexShrink: 0 }}
+                                    >
+                                        <X size={18} color="#64748B" />
+                                    </button>
                                 </div>
-                                <div style={{ background: '#F0FDF4', color: '#1B6B3A', border: '1px solid #BBF7D0', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '800' }}>
-                                    {t('liveStream', 'Live Stream')}
+
+                                {/* Active Count & Reset Defaults Toolbar */}
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '0.75rem 2rem',
+                                    background: '#F8FAFC',
+                                    borderBottom: '1px solid #F1F5F9'
+                                }}>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: '750', color: '#475569' }}>
+                                        {modalFeatures.filter(f => f.enabled).length} of {modalFeatures.length} modules active
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={handleResetDefaultFeatures}
+                                        style={{
+                                            background: '#FFFFFF',
+                                            color: '#64748B',
+                                            border: '1px solid #E2E8F0',
+                                            borderRadius: '8px',
+                                            padding: '4px 12px',
+                                            fontSize: '0.8rem',
+                                            fontWeight: '750',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                        onMouseOver={(e) => { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.color = '#1E293B'; }}
+                                        onMouseOut={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#64748B'; }}
+                                    >
+                                        <RotateCcw size={13} /> Reset Defaults
+                                    </button>
                                 </div>
-                            </div>
 
-                            {/* Custom SVG Sales Line/Area Graph */}
-                            <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
-                                <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%" style={{ display: 'block', overflow: 'visible', height: 'auto' }}>
-                                    <defs>
-                                        <linearGradient id="salesAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="#1B6B3A" stopOpacity="0.3" />
-                                            <stop offset="100%" stopColor="#1B6B3A" stopOpacity="0.0" />
-                                        </linearGradient>
-                                        <linearGradient id="salesLineGradient" x1="0" y1="0" x2="1" y2="0">
-                                            <stop offset="0%" stopColor="#10B981" />
-                                            <stop offset="100%" stopColor="#047857" />
-                                        </linearGradient>
-                                    </defs>
+                                {/* Reorderable Feature List */}
+                                <div style={{
+                                    flex: 1,
+                                    overflowY: 'auto',
+                                    padding: '1.25rem 2rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.75rem'
+                                }}>
+                                    {modalFeatures.map((feature, idx) => {
+                                        const Icon = feature.icon;
+                                        const isEnabled = feature.enabled;
+                                        const isFirst = idx === 0;
+                                        const isLast = idx === modalFeatures.length - 1;
 
-                                    {/* Horizontal Gridlines */}
-                                    {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
-                                        const y = paddingTop + ratio * chartHeight;
                                         return (
-                                            <g key={i}>
-                                                <line 
-                                                    x1={paddingLeft} 
-                                                    y1={y} 
-                                                    x2={svgWidth - paddingRight} 
-                                                    y2={y} 
-                                                    stroke="#F1F5F9" 
-                                                    strokeWidth="1.5" 
-                                                    strokeDasharray="4 4"
-                                                />
-                                                <text 
-                                                    x={paddingLeft - 10} 
-                                                    y={y + 4} 
-                                                    textAnchor="end" 
-                                                    style={{ fontSize: '10px', fontWeight: '750', fill: '#94A3B8' }}
-                                                >
-                                                    {formatCurrency(maxSales * (1 - ratio)).split('.')[0]}
-                                                </text>
-                                            </g>
-                                        );
-                                    })}
-
-                                    {/* SVG Area Under Path */}
-                                    {areaPath && (
-                                        <path d={areaPath} fill="url(#salesAreaGradient)" />
-                                    )}
-
-                                    {/* SVG Glowing Line */}
-                                    {linePath && (
-                                        <path 
-                                            d={linePath} 
-                                            fill="none" 
-                                            stroke="url(#salesLineGradient)" 
-                                            strokeWidth="3.5" 
-                                            strokeLinecap="round" 
-                                            strokeLinejoin="round" 
-                                        />
-                                    )}
-
-                                    {/* X-Axis labels & data node points */}
-                                    {salesPoints.map((p, idx) => (
-                                        <g key={idx}>
-                                            <text 
-                                                x={p.x} 
-                                                y={paddingTop + chartHeight + 18} 
-                                                textAnchor="middle" 
-                                                style={{ fontSize: '10px', fontWeight: '800', fill: '#64748B' }}
-                                            >
-                                                {p.month}
-                                            </text>
-                                            
-                                            {/* Hover Interaction Circle Group */}
-                                            <circle 
-                                                cx={p.x} 
-                                                cy={p.y} 
-                                                r={hoveredSalesPoint?.month === p.month ? "7" : "5"} 
-                                                fill="#ffffff" 
-                                                stroke="#1B6B3A" 
-                                                strokeWidth="2.5" 
-                                                style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
-                                            />
-                                            
-                                            {/* Large Invisible Hover Circle to ease interaction */}
-                                            <circle 
-                                                cx={p.x} 
-                                                cy={p.y} 
-                                                r="18" 
-                                                fill="transparent" 
-                                                style={{ cursor: 'pointer' }}
-                                                onMouseEnter={() => setHoveredSalesPoint(p)}
-                                                onMouseLeave={() => setHoveredSalesPoint(null)}
-                                            />
-                                        </g>
-                                    ))}
-                                </svg>
-
-                                {/* HTML Tooltip Overlay inside responsive wrapper */}
-                                {hoveredSalesPoint && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: `${(hoveredSalesPoint.y / svgHeight) * 100 - 18}%`,
-                                        left: `${(hoveredSalesPoint.x / svgWidth) * 100}%`,
-                                        transform: 'translate(-50%, -100%)',
-                                        background: '#0F172A',
-                                        color: 'white',
-                                        padding: '8px 12px',
-                                        borderRadius: '10px',
-                                        fontSize: '11px',
-                                        fontWeight: '800',
-                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
-                                        whiteSpace: 'nowrap',
-                                        pointerEvents: 'none',
-                                        zIndex: 10
-                                    }}>
-                                        <div style={{ color: '#34D399', fontSize: '9px', textTransform: 'uppercase', marginBottom: '2px' }}>{hoveredSalesPoint.month} Sales</div>
-                                        <div>{formatCurrency(hoveredSalesPoint.val)}</div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Top Performing Products */}
-                        <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <div>
-                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Top Performing Products</h2>
-                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Highest volume contributors matrix.</p>
-                                </div>
-                                <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '3px 8px', borderRadius: '12px' }}>Volume Matrix</span>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                {topProducts && topProducts.length > 0 ? (
-                                    (topProducts?.data || topProducts).slice(0, 3).map((prod, idx) => (
-                                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#F8FAFC', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', transition: 'all 0.2s ease' }}>
-                                            <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '850', color: '#1B6B3A', fontSize: '0.85rem', border: '1px solid #DCF2E4' }}>
-                                                #{idx + 1}
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', margin: '0 0 0.15rem 0' }}>{prod.name || 'Active Item'}</h4>
-                                                <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0, fontWeight: '650' }}>Sold: <span style={{ color: '#064E3B', fontWeight: '800' }}>{prod.total_quantity || prod.sold || 0} pcs</span></p>
-                                            </div>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <div style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(prod.total_sales || 0)}</div>
-                                                <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '800', textTransform: 'uppercase' }}>Revenue Driver</span>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div style={{ padding: '2rem 1rem', textAlign: 'center', fontSize: '0.8rem', color: '#94A3B8', border: '1px dashed #CBD5E1', borderRadius: '16px' }}>
-                                        No product sales analytics logged yet.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right Column: Custom SVG Donut Expense Chart */}
-                    <div className="lg:col-span-2" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', height: 'fit-content', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
-                        <div>
-                            <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Expense Distribution</h2>
-                            <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Expense allocation grouped by categories.</p>
-                                        {finalExpenseCategories.length > 0 ? (
-                            <>
-                                {/* Interactive Donut SVG */}
-                                <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', margin: '10px 0' }}>
-                                    <svg width="200" height="200" viewBox="0 0 200 200" style={{ transform: 'rotate(-90deg)' }}>
-                                        <circle 
-                                            cx="100" 
-                                            cy="100" 
-                                            r="65" 
-                                            fill="transparent" 
-                                            stroke="#F1F5F9" 
-                                            strokeWidth="16" 
-                                        />
-                                        {(() => {
-                                            let accumulatedPercent = 0;
-                                            const circumference = 2 * Math.PI * 65; // ~408.4
-
-                                            return finalExpenseCategories.map((c, i) => {
-                                                const dashLength = (c.pct / 100) * circumference;
-                                                const offset = -((accumulatedPercent / 100) * circumference);
-                                                accumulatedPercent += c.pct;
-                                                const color = DONUT_COLORS[i % DONUT_COLORS.length];
-
-                                                const isHovered = hoveredDonutSegment?.name === c.name;
-
-                                                return (
-                                                    <circle
-                                                        key={c.name}
-                                                        cx="100"
-                                                        cy="100"
-                                                        r="65"
-                                                        fill="transparent"
-                                                        stroke={color}
-                                                        strokeWidth={isHovered ? "22" : "16"}
-                                                        strokeDasharray={`${dashLength} ${circumference}`}
-                                                        strokeDashoffset={offset}
-                                                        style={{ 
-                                                            cursor: 'pointer', 
-                                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' 
-                                                        }}
-                                                        onMouseEnter={() => setHoveredDonutSegment({ ...c, color })}
-                                                        onMouseLeave={() => setHoveredDonutSegment(null)}
-                                                    />
-                                                );
-                                            });
-                                        })()}
-                                    </svg>
-
-                                    {/* Donut Center Display */}
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: '50%',
-                                        left: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        textAlign: 'center',
-                                        pointerEvents: 'none',
-                                        width: '110px'
-                                    }}>
-                                        <div style={{ 
-                                            fontSize: '9px', 
-                                            fontWeight: '800', 
-                                            color: '#64748B', 
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px'
-                                        }}>
-                                            {hoveredDonutSegment ? hoveredDonutSegment.name : 'Total Expense'}
-                                        </div>
-                                        <div style={{ 
-                                            fontSize: '15px', 
-                                            fontWeight: '900', 
-                                            color: hoveredDonutSegment ? hoveredDonutSegment.color : '#0F172A',
-                                            marginTop: '4px',
-                                            lineHeight: '1.2'
-                                        }}>
-                                            {hoveredDonutSegment 
-                                                ? formatCurrency(hoveredDonutSegment.value)
-                                                : formatCurrency(finalExpenseCategories.reduce((acc, c) => acc + c.value, 0))
-                                            }
-                                        </div>
-                                        <div style={{ 
-                                            fontSize: '10px', 
-                                            fontWeight: '800', 
-                                            color: '#10B981', 
-                                            marginTop: '2px' 
-                                        }}>
-                                            {hoveredDonutSegment 
-                                                ? `${hoveredDonutSegment.pct.toFixed(1)}% Share`
-                                                : '100% Volume'
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Interactive Color Legend */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
-                                    {finalExpenseCategories.map((c, i) => {
-                                        const color = DONUT_COLORS[i % DONUT_COLORS.length];
-                                        const isHovered = hoveredDonutSegment?.name === c.name;
-                                        return (
-                                            <div 
-                                                key={c.name}
-                                                onMouseEnter={() => setHoveredDonutSegment({ ...c, color })}
-                                                onMouseLeave={() => setHoveredDonutSegment(null)}
+                                            <div
+                                                key={feature.id}
                                                 style={{
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    justifyContent: 'space-between',
-                                                    background: isHovered ? '#F8FAFC' : 'transparent',
-                                                    padding: '8px 10px',
-                                                    borderRadius: '12px',
-                                                    border: '1px solid',
-                                                    borderColor: isHovered ? '#E2E8F0' : 'transparent',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.15s ease'
+                                                    gap: '12px',
+                                                    padding: '0.85rem 1rem',
+                                                    borderRadius: '16px',
+                                                    background: isEnabled ? '#FFFFFF' : '#F8FAFC',
+                                                    border: '1.5px solid',
+                                                    borderColor: isEnabled ? '#E2E8F0' : '#F1F5F9',
+                                                    opacity: isEnabled ? 1 : 0.65,
+                                                    transition: 'all 0.2s ease',
+                                                    boxShadow: isEnabled ? '0 2px 6px rgba(0,0,0,0.02)' : 'none'
                                                 }}
                                             >
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: color, flexShrink: 0 }} />
-                                                    <span style={{ 
-                                                        fontSize: '0.8rem', 
-                                                        fontWeight: '800', 
-                                                        color: isHovered ? '#0F172A' : '#475569',
-                                                        whiteSpace: 'nowrap',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        maxWidth: '120px'
-                                                    }} title={c.name}>
-                                                        {c.name}
-                                                    </span>
+                                                {/* Reorder Buttons (Up / Down) & Index */}
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleMoveFeature(idx, 'up')}
+                                                        disabled={isFirst}
+                                                        title="Move section up"
+                                                        style={{
+                                                            width: '26px',
+                                                            height: '24px',
+                                                            borderRadius: '6px',
+                                                            border: '1px solid #E2E8F0',
+                                                            background: isFirst ? '#F8FAFC' : '#FFFFFF',
+                                                            color: isFirst ? '#CBD5E1' : '#475569',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            cursor: isFirst ? 'not-allowed' : 'pointer',
+                                                            transition: 'all 0.15s ease'
+                                                        }}
+                                                        onMouseOver={(e) => { if (!isFirst) { e.currentTarget.style.borderColor = '#1B6B3A'; e.currentTarget.style.color = '#1B6B3A'; } }}
+                                                        onMouseOut={(e) => { if (!isFirst) { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#475569'; } }}
+                                                    >
+                                                        <ArrowUp size={13} strokeWidth={2.5} />
+                                                    </button>
+                                                    <span style={{ fontSize: '10px', fontWeight: '850', color: '#94A3B8', lineHeight: 1 }}>#{idx + 1}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleMoveFeature(idx, 'down')}
+                                                        disabled={isLast}
+                                                        title="Move section down"
+                                                        style={{
+                                                            width: '26px',
+                                                            height: '24px',
+                                                            borderRadius: '6px',
+                                                            border: '1px solid #E2E8F0',
+                                                            background: isLast ? '#F8FAFC' : '#FFFFFF',
+                                                            color: isLast ? '#CBD5E1' : '#475569',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            cursor: isLast ? 'not-allowed' : 'pointer',
+                                                            transition: 'all 0.15s ease'
+                                                        }}
+                                                        onMouseOver={(e) => { if (!isLast) { e.currentTarget.style.borderColor = '#1B6B3A'; e.currentTarget.style.color = '#1B6B3A'; } }}
+                                                        onMouseOut={(e) => { if (!isLast) { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.color = '#475569'; } }}
+                                                    >
+                                                        <ArrowDown size={13} strokeWidth={2.5} />
+                                                    </button>
                                                 </div>
-                                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                    <div style={{ fontSize: '0.85rem', fontWeight: '850', color: '#1E293B' }}>{formatCurrency(c.value)}</div>
-                                                    <span style={{ fontSize: '9px', fontWeight: '800', color: '#94A3B8' }}>{c.pct.toFixed(1)}%</span>
+
+                                                {/* Feature Icon */}
+                                                <div style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    borderRadius: '12px',
+                                                    background: `${feature.color}15`,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: feature.color,
+                                                    flexShrink: 0
+                                                }}>
+                                                    <Icon size={20} strokeWidth={2.2} />
                                                 </div>
+
+                                                {/* Feature Info */}
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: '800', color: '#1E293B' }}>
+                                                            {feature.label}
+                                                        </h4>
+                                                    </div>
+                                                    <p style={{ margin: '3px 0 0 0', fontSize: '0.75rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                        {feature.description}
+                                                    </p>
+                                                </div>
+
+                                                {/* Visibility Toggle Switch */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleToggleFeature(feature.id)}
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        padding: '6px 12px',
+                                                        borderRadius: '999px',
+                                                        border: '1px solid',
+                                                        borderColor: isEnabled ? '#BBF7D0' : '#E2E8F0',
+                                                        background: isEnabled ? '#F0FDF4' : '#F8FAFC',
+                                                        color: isEnabled ? '#1B6B3A' : '#94A3B8',
+                                                        fontSize: '0.78rem',
+                                                        fontWeight: '800',
+                                                        cursor: 'pointer',
+                                                        flexShrink: 0,
+                                                        transition: 'all 0.15s ease'
+                                                    }}
+                                                >
+                                                    {isEnabled ? <Eye size={14} strokeWidth={2.5} /> : <EyeOff size={14} strokeWidth={2.5} />}
+                                                    {isEnabled ? 'Visible' : 'Hidden'}
+                                                </button>
                                             </div>
                                         );
                                     })}
                                 </div>
-                            </>
-                        ) : (
-                            <div style={{
-                                flex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: '3.5rem 1.5rem',
-                                border: '2px dashed #E2E8F0',
-                                borderRadius: '20px',
-                                background: '#F8FAFC',
-                                textAlign: 'center',
-                                boxSizing: 'border-box'
-                            }}>
-                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', marginBottom: '1rem' }}>
-                                    <TrendingUp size={24} />
+
+                                {/* Modal Footer */}
+                                <div style={{
+                                    padding: '1.25rem 2rem',
+                                    borderTop: '1px solid #F1F5F9',
+                                    display: 'flex',
+                                    gap: '12px',
+                                    justifyContent: 'flex-end',
+                                    background: '#FFFFFF'
+                                }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsDashboardCustomiseOpen(false)}
+                                        style={{
+                                            padding: '0.8rem 1.4rem',
+                                            borderRadius: '14px',
+                                            border: '1px solid #E2E8F0',
+                                            background: '#FFFFFF',
+                                            color: '#64748B',
+                                            fontWeight: '750',
+                                            fontSize: '0.9rem',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveDashboardFeatures}
+                                        disabled={isSavingFeatures}
+                                        style={{
+                                            padding: '0.8rem 1.75rem',
+                                            borderRadius: '14px',
+                                            background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)',
+                                            color: '#FFFFFF',
+                                            border: 'none',
+                                            fontWeight: '850',
+                                            fontSize: '0.9rem',
+                                            cursor: isSavingFeatures ? 'not-allowed' : 'pointer',
+                                            boxShadow: '0 4px 14px rgba(27, 107, 58, 0.25)',
+                                            opacity: isSavingFeatures ? 0.75 : 1,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}
+                                    >
+                                        <SlidersHorizontal size={16} />
+                                        {isSavingFeatures ? 'Saving Layout...' : 'Save Layout'}
+                                    </button>
                                 </div>
-                                <h3 style={{ fontSize: '0.92rem', fontWeight: '850', color: '#334155', margin: '0 0 0.5rem 0' }}>No Expense Data Logged</h3>
-                                <p style={{ fontSize: '0.78rem', color: '#64748B', margin: 0, lineHeight: '1.4', maxWidth: '240px', fontWeight: '600' }}>
-                                    Record business expenses under Purchases or Accounting to compile your category distribution breakdown.
-                                </p>
-                            </div>
-                        )}          </div>
-                    </div>
-                </div>
-            </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            )}
 
             {/* Customisation Modal Overlay - Hidden for Sub-IDs */}
             {!isSubId && (
