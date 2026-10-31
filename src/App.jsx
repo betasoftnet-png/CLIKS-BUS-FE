@@ -37,6 +37,7 @@ import BusinessSalesOrders from './pages/BusinessSalesOrders';
 import BusinessPurchases from './pages/BusinessPurchases';
 import BusinessFinancePurchases from './pages/BusinessFinancePurchases';
 import BusinessCRM from './pages/BusinessCRM';
+import BusinessLoyalty from './pages/BusinessLoyalty';
 import BusinessStaffing from './pages/BusinessStaffing';
 import BusinessFinancialPlan from './pages/BusinessFinancialPlan';
 import BusinessSegregation from './pages/BusinessSegregation';
@@ -302,6 +303,8 @@ function AuthenticatedApp() {
                 <Route path="/hr/payroll" element={<FeatureGate feature="payroll-attendance" requiredPlanName="Starter Plan"><BusinessPayroll /></FeatureGate>} />
                 <Route path="/payments/split-collect" element={<BusinessSplitCollect />} />
                 <Route path="/sales/customers" element={<BusinessCRM />} />
+                <Route path="/sales/loyalty" element={<BusinessLoyalty />} />
+                <Route path="/sales/loyalty-points" element={<BusinessLoyalty />} />
 
                 <Route path="/sales/returns" element={<BusinessReturns />} />
                 <Route path="/inventory/stock" element={<BusinessStock />} />

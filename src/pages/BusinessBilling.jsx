@@ -1132,16 +1132,21 @@ const BusinessBilling = () => {
         // Settings for Loyalty
         const ptsFor1Rs = activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100;
         const rsPer1Point = activeConfig.loyaltyRsPer1Point !== undefined ? activeConfig.loyaltyRsPer1Point : 100;
+        const pointVal = activeConfig.pointValueCurrency !== undefined ? Number(activeConfig.pointValueCurrency) : (ptsFor1Rs > 0 ? (1 / ptsFor1Rs) : 1);
         
         const redeemedPts = loyaltyEnabled ? (parseFloat(currentFormData.redeemed_points) || 0) : 0;
-        const redeemedAmt = (loyaltyEnabled && ptsFor1Rs > 0) ? (redeemedPts / ptsFor1Rs) : 0;
+        const redeemedAmt = (loyaltyEnabled && pointVal > 0) ? (redeemedPts * pointVal) : 0;
         
         const adjustedTotal = rawTotal - redeemedAmt;
         const roundedTotal = activeConfig.roundOff !== false ? Math.max(0, Math.round(adjustedTotal)) : Math.max(0, adjustedTotal);
         const roundOff = roundedTotal - adjustedTotal;
         
         // Earn points based on final bill amount using dynamic setting
-        const earnedPts = (loyaltyEnabled && rsPer1Point > 0) ? Math.floor(roundedTotal / rsPer1Point) : 0;
+        const earnBase = activeConfig.excludeTaxFromPoints ? (parseFloat(subtotal) || 0) : roundedTotal;
+        const minSpend = activeConfig.minOrderSpend || 0;
+        const earnedPts = (loyaltyEnabled && rsPer1Point > 0 && earnBase >= minSpend) 
+            ? (activeConfig.roundDownPoints !== false ? Math.floor(earnBase / rsPer1Point) : Math.round((earnBase / rsPer1Point) * 10) / 10)
+            : 0;
 
         return {
             amount: parseFloat(subtotal) || 0,
@@ -2981,7 +2986,7 @@ const BusinessBilling = () => {
                                             </div>
                                             {(formData.redeemed_points > 0) && (
                                                 <div style={{fontSize: '0.7rem', color: '#166534', fontWeight: 600, marginTop: '0.2rem'}}>
-                                                    Discount Value: {formatCurrency(formData.redeemed_points / (activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100))}
+                                                    Discount Value: {formatCurrency(formData.redeemed_points * (activeConfig.pointValueCurrency !== undefined ? Number(activeConfig.pointValueCurrency) : (1 / (activeConfig.loyaltyPointsPer1Rs || 100))))}
                                                 </div>
                                             )}
                                         </div>
