@@ -522,7 +522,7 @@ export default function BusinessLoyalty() {
 
             {/* TAB 1: EARNING RULES */}
             {activeTab === 'earning' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.5rem' }}>
+                <div style={{ maxWidth: '680px' }}>
                     {/* Program Branding & Core Ratio */}
                     <div style={{ background: '#FFFFFF', borderRadius: '18px', border: '1px solid #E2E8F0', padding: '1.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                         <h3 style={{ fontSize: '1.05rem', fontWeight: '850', color: '#0F172A', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -580,7 +580,7 @@ export default function BusinessLoyalty() {
                             </p>
                         </div>
 
-                        <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.85rem 1rem', border: '1px solid #F1F5F9' }}>
+                        <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.85rem 1rem', border: '1px solid #F1F5F9', marginBottom: '1.25rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.82rem', fontWeight: '750', color: '#334155' }}>
                                     Round down points (No decimals)
@@ -594,62 +594,6 @@ export default function BusinessLoyalty() {
                             </div>
                             <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'block', marginTop: '0.2rem' }}>
                                 e.g. Spending ₹150 with a ₹100 rate awards 1 point instead of 1.5.
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Bonus & Exclusions */}
-                    <div style={{ background: '#FFFFFF', borderRadius: '18px', border: '1px solid #E2E8F0', padding: '1.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-                        <h3 style={{ fontSize: '1.05rem', fontWeight: '850', color: '#0F172A', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Gift size={18} color="#1B6B3A" /> Special Bonuses & Exclusions
-                        </h3>
-
-                        <div style={{ marginBottom: '1.25rem' }}>
-                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-                                Welcome / Sign-up Bonus Points
-                            </label>
-                            <input
-                                type="number"
-                                min="0"
-                                value={formData.welcomeBonusPoints}
-                                onChange={(e) => setFormData(prev => ({ ...prev, welcomeBonusPoints: Math.max(0, Number(e.target.value)) }))}
-                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none' }}
-                            />
-                            <p style={{ fontSize: '0.74rem', color: '#64748B', margin: '0.35rem 0 0' }}>
-                                Instantly granted to newly registered customers to encourage first purchases.
-                            </p>
-                        </div>
-
-                        <div style={{ marginBottom: '1.25rem' }}>
-                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-                                Annual Birthday Gift Points
-                            </label>
-                            <input
-                                type="number"
-                                min="0"
-                                value={formData.birthdayBonusPoints}
-                                onChange={(e) => setFormData(prev => ({ ...prev, birthdayBonusPoints: Math.max(0, Number(e.target.value)) }))}
-                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.9rem', outline: 'none' }}
-                            />
-                            <p style={{ fontSize: '0.74rem', color: '#64748B', margin: '0.35rem 0 0' }}>
-                                Special reward points gifted during the customer's birthday month.
-                            </p>
-                        </div>
-
-                        <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.85rem 1rem', border: '1px solid #F1F5F9', marginBottom: '1rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.82rem', fontWeight: '750', color: '#334155' }}>
-                                    Exclude GST / Taxes from points calculation
-                                </span>
-                                <input
-                                    type="checkbox"
-                                    checked={formData.excludeTaxFromPoints}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, excludeTaxFromPoints: e.target.checked }))}
-                                    style={{ width: '18px', height: '18px', accentColor: '#1B6B3A', cursor: 'pointer' }}
-                                />
-                            </div>
-                            <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'block', marginTop: '0.2rem' }}>
-                                Customers earn points only on the taxable item subtotal, excluding tax charges.
                             </span>
                         </div>
 
