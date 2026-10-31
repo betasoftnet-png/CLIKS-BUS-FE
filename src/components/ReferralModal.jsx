@@ -211,7 +211,7 @@ const ReferralModal = ({ isOpen, onClose, availablePoints }) => {
                             </div>
 
                             {/* Share Buttons */}
-                            <div style={{ marginBottom: '1.5rem' }}>
+                            {/* <div style={{ marginBottom: '1.5rem' }}>
                                 <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.6rem' }}>
                                     SHARE INSTANTLY
                                 </span>
@@ -246,7 +246,7 @@ const ReferralModal = ({ isOpen, onClose, availablePoints }) => {
                                         </button>
                                     ))}
                                 </div>
-                            </div>
+                            </div> */}
 
                             {/* Dashboard Navigation CTA */}
                             <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', display: 'flex', gap: '0.75rem' }}>
