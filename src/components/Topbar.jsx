@@ -373,7 +373,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
 
     const navItems = [
         { name: t('books', 'Books'), url: '/books', icon: BookOpen },
-        { name: t('payments', 'Payments'), url: '/payments/transaction', icon: Calculator },
+        { name: t('payments', 'Payments'), url: '/payments/people', icon: Calculator },
         { name: t('social', 'Social'), url: '/social', icon: Users },
     ];
 
@@ -437,7 +437,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                         const Icon = item.icon;
                         const isItemActive = 
                             (item.url === '/books' && (location.pathname === '/books' || location.pathname === '/dashboard' || location.pathname.startsWith('/finance') || location.pathname.startsWith('/sales') || location.pathname.startsWith('/inventory') || location.pathname.startsWith('/purchases') || location.pathname.startsWith('/hr') || location.pathname.startsWith('/billing') || location.pathname === '/pos' || location.pathname === '/reports' || location.pathname === '/barcode' || location.pathname === '/customization' || location.pathname === '/subscription')) ||
-                            (item.url === '/payments/transaction' && (location.pathname === '/payments' || location.pathname.startsWith('/payments'))) ||
+                            (item.url === '/payments/people' && (location.pathname === '/payments' || location.pathname.startsWith('/payments'))) ||
                             (item.url === '/social' && (location.pathname === '/social' || location.pathname.startsWith('/social')));
 
                         return (

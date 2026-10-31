@@ -99,7 +99,7 @@ export default function ReferralShareModal({
           </div>
 
           {/* SHARE INSTANTLY BUTTONS */}
-          <div className="space-y-1.5 text-left">
+          {/* <div className="space-y-1.5 text-left">
             <label className="text-[10px] font-black uppercase tracking-wider text-gray-500 block">
               Share Instantly
             </label>
@@ -133,7 +133,7 @@ export default function ReferralShareModal({
                 <span>🐦</span> Twitter
               </button>
             </div>
-          </div>
+          </div> */}
 
           {/* FOOTER CTA */}
           <button
