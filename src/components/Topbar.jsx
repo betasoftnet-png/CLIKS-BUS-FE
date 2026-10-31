@@ -421,18 +421,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
 
             {/* Center: Navigation (New Lamp Style) - Hidden for Platform Control / Sales Representative desks */}
             {!isAdminOrSales && (
-                <div className="top-nav-links" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                    backdropFilter: 'blur(8px)',
-                    padding: '4px',
-                    borderRadius: '999px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}>
+                <div className="top-nav-links">
+                <div className="top-nav-lamp-container">
                     {navItems.map((item) => {
                         const Icon = item.icon;
                         const isItemActive = 
@@ -449,20 +439,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                 style={({ isActive }) => {
                                     const active = isActive || isItemActive;
                                     return {
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        padding: '8px 20px',
-                                        borderRadius: '999px',
-                                        border: 'none',
                                         background: active ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-                                        color: active ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
-                                        fontSize: '14px',
-                                        fontWeight: 500,
-                                        cursor: 'pointer',
-                                        textDecoration: 'none',
-                                        transition: 'all 0.2s ease',
-                                        position: 'relative'
+                                        color: active ? '#ffffff' : 'rgba(255, 255, 255, 0.7)'
                                     };
                                 }}
                                 onMouseEnter={(e) => {
@@ -497,7 +475,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                     return (
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             {isSearchExpanded ? (
-                                <div style={{
+                                <div className="topbar-search-input-box" style={{
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '8px',
@@ -505,11 +483,10 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                     border: '1px solid rgba(255, 255, 255, 0.25)',
                                     borderRadius: '999px',
                                     padding: '5px 12px',
-                                    width: '180px',
                                     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                                     position: 'relative'
                                 }}>
-                                    <Search size={14} color="#FFFFFF" style={{ opacity: 0.8 }} />
+                                    <Search size={14} color="#FFFFFF" style={{ opacity: 0.8, flexShrink: 0 }} />
                                     <input 
                                         ref={searchInputRef}
                                         type="text" 
@@ -697,7 +674,6 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                             alignItems: 'center',
                             gap: '7px',
                             height: '36px',
-                            padding: '0 14px',
                             borderRadius: '999px',
                             backgroundColor: location.pathname.startsWith('/ca') ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)',
                             border: location.pathname.startsWith('/ca') ? '1.5px solid #60A5FA' : '1px solid rgba(255, 255, 255, 0.25)',
@@ -719,9 +695,9 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                             e.currentTarget.style.transform = 'scale(1)';
                         }}
                     >
-                        <Briefcase size={16} color={location.pathname.startsWith('/ca') ? '#93C5FD' : '#FFFFFF'} />
-                        <span>FIN-PRO</span>
-                        <span style={{
+                        <Briefcase size={16} color={location.pathname.startsWith('/ca') ? '#93C5FD' : '#FFFFFF'} style={{ flexShrink: 0 }} />
+                        <span className="topbar-finpro-text">FIN-PRO</span>
+                        <span className="topbar-finpro-badge" style={{
                             fontSize: '9.5px',
                             padding: '1px 6px',
                             borderRadius: '999px',

@@ -118,11 +118,12 @@ export const BranchSelector = () => {
                     height: '8px',
                     borderRadius: '50%',
                     backgroundColor: isAll ? '#38BDF8' : '#34D399',
-                    boxShadow: isAll ? '0 0 6px #38BDF8' : '0 0 6px #34D399'
+                    boxShadow: isAll ? '0 0 6px #38BDF8' : '0 0 6px #34D399',
+                    flexShrink: 0
                 }} />
                 
-                <span style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {isAll ? 'All Showrooms (Consolidated)' : activeBranchName}
+                <span className="branch-selector-text" title={isAll ? 'All Showrooms (Consolidated)' : activeBranchName} style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {isAll ? 'All Showrooms' : activeBranchName}
                 </span>
 
                 <ChevronDown 
@@ -130,7 +131,8 @@ export const BranchSelector = () => {
                     style={{ 
                         transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', 
                         transition: 'transform 0.2s ease',
-                        opacity: 0.8
+                        opacity: 0.8,
+                        flexShrink: 0
                     }} 
                 />
             </button>

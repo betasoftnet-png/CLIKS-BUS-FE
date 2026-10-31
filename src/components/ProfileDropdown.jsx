@@ -512,7 +512,7 @@ export function ProfileDropdown({
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className="gap-1.5 sm:gap-2.5 p-1.5 sm:px-3.5 sm:py-1.5"
+                className="profile-trigger-btn gap-1.5 sm:gap-2.5 p-1.5 sm:px-3.5 sm:py-1.5"
                 style={{
                     ...styles.triggerButton,
                     backgroundColor: open ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)'

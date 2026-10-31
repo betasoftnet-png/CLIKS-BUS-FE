@@ -310,7 +310,7 @@ function AuthenticatedApp() {
                 <Route path="/inventory/stock" element={<BusinessStock />} />
                 <Route path="/inventory/stock-items" element={<BusinessStock />} />
                 <Route path="/purchases/suppliers" element={<BusinessSuppliers />} />
-                <Route path="/payments" element={<Navigate to="/payments/transaction" replace />} />
+                <Route path="/payments" element={<Navigate to="/payments/people" replace />} />
                 <Route path="/payments/people" element={<BusinessPeople />} />
                 <Route path="/payments/transaction" element={<BusinessPayments key="transaction" />} />
                 <Route path="/payments/wallet" element={<Navigate to="/payments/people" replace />} />
