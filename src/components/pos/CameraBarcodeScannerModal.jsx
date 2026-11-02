@@ -422,3 +422,4 @@ export const CameraBarcodeScannerModal = ({
 };
 
 export default CameraBarcodeScannerModal;
+
