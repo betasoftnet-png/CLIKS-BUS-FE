@@ -31,6 +31,7 @@ import { productsService } from '../../services/productsService';
 import { customerService } from '../../services/customerService';
 import { useBranch, useAuth } from '../../context';
 import { isProductWeighted, checkIsMainBranch, QUICK_WEIGHT_PRESETS } from '../../utils/weightBillingHelper';
+import { playPosBeep, parseBarcodeOrQr, findProductByBarcodeOrQr } from '../../utils/barcodeScannerHelper';
 
 export const LOCAL_STORAGE_KEY = 'cliks_billing_records_v1';
 
@@ -177,7 +178,7 @@ const SimpleBilling = () => {
     const grandTotal = products.reduce((sum, item) => sum + calculateProductTotal(item.rate, item.quantity), 0);
 
     // Add product from existing catalog
-    const handleSelectCatalogProduct = (prod) => {
+    const handleSelectCatalogProduct = (prod, customWeight = null) => {
         const prodName = prod.name || 'Product';
         const prodPrice = parseFloat(prod.selling_price ?? prod.price ?? prod.rate ?? 0);
         const isWeighted = isProductWeighted(prod);
@@ -187,10 +188,14 @@ const SimpleBilling = () => {
         const existingIdx = products.findIndex(p => p.name.trim().toLowerCase() === prodName.trim().toLowerCase());
 
         if (existingIdx !== -1) {
-            // Increment existing item quantity
+            // Increment existing item quantity or update weight
             const updated = [...products];
             const currentQty = parseFloat(updated[existingIdx].quantity) || 0;
-            updated[existingIdx].quantity = isWeighted ? Math.round((currentQty + 0.25) * 1000) / 1000 : currentQty + 1;
+            if (customWeight !== null && customWeight !== undefined && customWeight > 0) {
+                updated[existingIdx].quantity = customWeight;
+            } else {
+                updated[existingIdx].quantity = isWeighted ? Math.round((currentQty + 0.25) * 1000) / 1000 : currentQty + 1;
+            }
             setProducts(updated);
             
             // Highlight row temporarily
@@ -206,7 +211,7 @@ const SimpleBilling = () => {
                 category: prod.category || '',
                 unit: resolvedUnit,
                 rate: prodPrice || '',
-                quantity: isWeighted ? 1.000 : 1,
+                quantity: (customWeight !== null && customWeight !== undefined && customWeight > 0) ? customWeight : (isWeighted ? 1.000 : 1),
                 is_weighted: isWeighted,
                 isCustom: false
             };
@@ -222,8 +227,65 @@ const SimpleBilling = () => {
         }
 
         setProductSearch('');
-        setIsSearchFocused(false);
     };
+
+    /**
+     * Hardware Barcode Scanner Gun Listener for Simple Billing
+     */
+    useEffect(() => {
+        let keyBuffer = '';
+        let lastKeyTime = 0;
+
+        const handleGlobalKeyDown = (e) => {
+            const now = Date.now();
+            const timeDiff = now - lastKeyTime;
+            lastKeyTime = now;
+
+            const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+            const isInputFocused = activeTag === 'input' || activeTag === 'textarea';
+
+            if (e.key === 'Enter') {
+                if (keyBuffer.length >= 2) {
+                    const isQuickBurst = timeDiff < 90;
+                    if (isQuickBurst || !isInputFocused) {
+                        const scannedCode = keyBuffer.trim();
+                        keyBuffer = '';
+                        if (scannedCode) {
+                            const { code, weight } = parseBarcodeOrQr(scannedCode);
+                            const matched = findProductByBarcodeOrQr(code, catalog);
+                            if (matched) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleSelectCatalogProduct(matched, weight);
+                                playPosBeep(isProductWeighted(matched) ? 'weight' : 'success');
+                                if (isInputFocused && document.activeElement) {
+                                    document.activeElement.value = '';
+                                }
+                            } else {
+                                playPosBeep('error');
+                            }
+                        }
+                        return;
+                    }
+                }
+                keyBuffer = '';
+                return;
+            }
+
+            if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                if (timeDiff > 120 && !isInputFocused) {
+                    keyBuffer = e.key;
+                } else {
+                    keyBuffer += e.key;
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown, true);
+        return () => {
+            window.removeEventListener('keydown', handleGlobalKeyDown, true);
+        };
+    }, [catalog]);
 
     // Product row inputs
     const handleProductChange = (index, field, value) => {
@@ -698,6 +760,29 @@ const SimpleBilling = () => {
                                     setIsSearchFocused(true);
                                 }}
                                 onFocus={() => setIsSearchFocused(true)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        const code = productSearch.trim();
+                                        if (code) {
+                                            const { code: parsedCode, weight } = parseBarcodeOrQr(code);
+                                            const matched = findProductByBarcodeOrQr(parsedCode, catalog);
+                                            if (matched) {
+                                                handleSelectCatalogProduct(matched, weight);
+                                                playPosBeep(isProductWeighted(matched) ? 'weight' : 'success');
+                                                setProductSearch('');
+                                                setIsSearchFocused(false);
+                                            } else if (filteredCatalog.length > 0) {
+                                                handleSelectCatalogProduct(filteredCatalog[0]);
+                                                playPosBeep('success');
+                                                setProductSearch('');
+                                                setIsSearchFocused(false);
+                                            } else {
+                                                playPosBeep('error');
+                                            }
+                                        }
+                                    }
+                                }}
                                 style={{
                                     width: '100%',
                                     padding: '0.8rem 1rem 0.8rem 2.75rem',

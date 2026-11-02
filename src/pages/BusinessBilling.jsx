@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useCurrency, useAuth, useBranch } from '../context';
 import { isInvoiceOnlyUser } from '../utils/permissions';
 import { isProductWeighted, checkIsMainBranch, QUICK_WEIGHT_PRESETS } from '../utils/weightBillingHelper';
+import { playPosBeep, parseBarcodeOrQr, findProductByBarcodeOrQr } from '../utils/barcodeScannerHelper';
 import { 
     FileText, 
     Plus, 
@@ -2664,49 +2665,60 @@ const BusinessBilling = () => {
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter') {
                                                         e.preventDefault();
-                                                        const barcode = e.target.value;
-                                                        // Search catalog products first
-                                                        const prod = catalogProducts.find(p => p.barcode === barcode || p.sku === barcode);
+                                                        const raw = e.target.value;
+                                                        if (!raw || !raw.trim()) return;
+                                                        const { code, weight: scannedWeight } = parseBarcodeOrQr(raw);
+                                                        
+                                                        // Search catalog products first, then inventory
+                                                        const prod = findProductByBarcodeOrQr(code, catalogProducts) || findProductByBarcodeOrQr(code, inventoryItems);
                                                         if (prod) {
-                                                            const newItem = {
-                                                                description: prod.name || prod.product_name,
-                                                                product_id: prod.id,
-                                                                inventory_id: null,
-                                                                quantity: 1,
-                                                                price: parseFloat(prod.selling_price || 0),
-                                                                tax_rate: parseInt(prod.gst_percentage || 18),
-                                                                unit: prod.primary_unit || 'Pcs',
-                                                                hsn_code: prod.hsn_code || prod.sku || '',
-                                                                discount_percent: 0,
-                                                                discount_amount: 0,
-                                                                total: parseFloat(prod.selling_price || 0)
-                                                            };
-                                                            const newItems = [...formData.items, newItem].filter(it => it.description !== '');
-                                                            const totals = calculateTotals(newItems, formData.tax_type, formData);
-                                                            setFormData({ ...formData, items: newItems, ...totals });
-                                                            e.target.value = '';
-                                                            return;
-                                                        }
+                                                            const isWeighted = isProductWeighted(prod);
+                                                            const resolvedPrice = parseFloat(prod.selling_price ?? prod.price ?? 0);
+                                                            const prodName = prod.name || prod.product_name;
 
-                                                        const item = inventoryItems.find(i => i.barcode === barcode || i.sku === barcode);
-                                                        if (item) {
-                                                            const newItem = {
-                                                                description: item.name,
-                                                                inventory_id: item.id,
-                                                                product_id: null,
-                                                                quantity: 1,
-                                                                price: item.price || 0,
-                                                                tax_rate: item.gst_rate || 18,
-                                                                unit: item.unit || 'Pcs',
-                                                                hsn_code: item.hsn_sac || '',
-                                                                discount_percent: 0,
-                                                                discount_amount: 0,
-                                                                total: item.price || 0
-                                                            };
-                                                            const newItems = [...formData.items, newItem].filter(it => it.description !== '');
-                                                            const totals = calculateTotals(newItems, formData.tax_type, formData);
-                                                            setFormData({ ...formData, items: newItems, ...totals });
+                                                            // Check if already in items list
+                                                            const existingIdx = formData.items.findIndex(it => (it.product_id && it.product_id === prod.id) || (it.description && it.description.trim().toLowerCase() === prodName.trim().toLowerCase()));
+
+                                                            if (existingIdx !== -1) {
+                                                                const newItems = [...formData.items];
+                                                                const currentQty = parseFloat(newItems[existingIdx].quantity) || 0;
+                                                                const newQty = (scannedWeight !== null && scannedWeight !== undefined && scannedWeight > 0)
+                                                                    ? scannedWeight
+                                                                    : (isWeighted ? Math.round((currentQty + 0.25) * 1000) / 1000 : currentQty + 1);
+                                                                newItems[existingIdx] = {
+                                                                    ...newItems[existingIdx],
+                                                                    quantity: newQty,
+                                                                    total: Math.round(newQty * (newItems[existingIdx].price || 0) * 100) / 100
+                                                                };
+                                                                const totals = calculateTotals(newItems, formData.tax_type, formData);
+                                                                setFormData({ ...formData, items: newItems, ...totals });
+                                                            } else {
+                                                                const initQty = (scannedWeight !== null && scannedWeight !== undefined && scannedWeight > 0)
+                                                                    ? scannedWeight
+                                                                    : (isWeighted ? 1.000 : 1);
+                                                                const newItem = {
+                                                                    description: prodName,
+                                                                    product_id: prod.id || null,
+                                                                    inventory_id: prod.source === 'inventory' ? prod.id : null,
+                                                                    quantity: initQty,
+                                                                    price: resolvedPrice,
+                                                                    tax_rate: parseInt(prod.gst_percentage || prod.tax_percentage || 18),
+                                                                    unit: prod.primary_unit || prod.unit || (isWeighted ? 'KG' : 'Pcs'),
+                                                                    hsn_code: prod.hsn_code || prod.sku || '',
+                                                                    discount_percent: 0,
+                                                                    discount_amount: 0,
+                                                                    is_weighted: isWeighted,
+                                                                    total: Math.round(initQty * resolvedPrice * 100) / 100
+                                                                };
+                                                                const newItems = [...formData.items, newItem].filter(it => it.description !== '');
+                                                                const totals = calculateTotals(newItems, formData.tax_type, formData);
+                                                                setFormData({ ...formData, items: newItems, ...totals });
+                                                            }
+
+                                                            playPosBeep(isWeighted ? 'weight' : 'success');
                                                             e.target.value = '';
+                                                        } else {
+                                                            playPosBeep('error');
                                                         }
                                                     }
                                                 }}

@@ -80,6 +80,8 @@ import '../App.css';
 import { customConfirm, customPrompt } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
 import QuickRegisterItemModal from '../components/pos/QuickRegisterItemModal';
+import { playPosBeep, parseBarcodeOrQr, findProductByBarcodeOrQr } from '../utils/barcodeScannerHelper';
+import CameraBarcodeScannerModal from '../components/pos/CameraBarcodeScannerModal';
 
 const BusinessPOS = () => {
     const { currency, formatCurrency } = useCurrency();
@@ -101,6 +103,9 @@ const BusinessPOS = () => {
     const [productSort, setProductSort] = useState('default');
     const [searchTarget, setSearchTarget] = useState('all');
     const [alphabetLetterFilter, setAlphabetLetterFilter] = useState('');
+    const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false);
+    const [scanNotification, setScanNotification] = useState(null);
+    const scanNotificationTimerRef = React.useRef(null);
     const [isSortFilterDropdownOpen, setIsSortFilterDropdownOpen] = useState(false);
     const sortFilterDropdownRef = React.useRef(null);
     const [isCreditMode, setIsCreditMode] = useState(false);
@@ -2493,9 +2498,10 @@ const BusinessPOS = () => {
         return ['KG', 'KGS', 'GRAM', 'GRAMS', 'G', 'LITRE', 'LITRES', 'L', 'ML'].includes(u);
     };
 
-    const addToCart = (prod) => {
+    const addToCart = (prod, customQuantityOrWeight = null) => {
         const prodUnit = prod.unit || 'PCS';
         const isDec = isDecimalUnit(prodUnit);
+        const isWeighted = isProductWeighted(prod);
         const isUnlimited = Boolean(prod.isUnlimited === true || prod.is_unlimited === true || (parseFloat(prod.quantity) >= 999000) || (parseFloat(prod.stock) >= 999000));
 
         const cartItem = cart.find(item => item.id === prod.id || (item.sku && prod.sku && item.sku === prod.sku));
@@ -2510,10 +2516,16 @@ const BusinessPOS = () => {
         setCart(prevCart => {
             const existing = prevCart.find(item => item.id === prod.id || (item.sku && prod.sku && item.sku === prod.sku));
             if (existing) {
-                const addStep = isDec ? 0.25 : 1;
-                const newQty = isDec
-                    ? Math.round((existing.quantity + addStep) * 1000) / 1000
-                    : existing.quantity + 1;
+                let newQty;
+                if (customQuantityOrWeight !== null && customQuantityOrWeight !== undefined && customQuantityOrWeight > 0) {
+                    newQty = customQuantityOrWeight;
+                } else if (isWeighted) {
+                    newQty = Math.round((existing.quantity + 1.000) * 1000) / 1000;
+                } else if (isDec) {
+                    newQty = Math.round((existing.quantity + 0.25) * 1000) / 1000;
+                } else {
+                    newQty = existing.quantity + 1;
+                }
 
                 if (!isUnlimited && newQty > prod.quantity) {
                     alert('Cannot add more than available stock!');
@@ -2526,17 +2538,22 @@ const BusinessPOS = () => {
                         : item
                 );
             }
-            const isWeighted = isProductWeighted(prod);
+
+            const initialQty = (customQuantityOrWeight !== null && customQuantityOrWeight !== undefined && customQuantityOrWeight > 0)
+                ? customQuantityOrWeight
+                : (isWeighted ? 1.000 : 1);
             const extractedTaxRate = parseFloat(prod.tax_percentage ?? prod.rawProduct?.tax_percentage ?? prod.rawProduct?.gst_percentage ?? prod.taxRate ?? prod.gst_percentage ?? prod.tax_rate ?? 0) || 0;
+            const price = parseFloat(prod.price) || 0;
+
             return [...prevCart, {
                 id: prod.id,
                 name: prod.name,
                 sku: prod.sku,
-                price: prod.price || 0,
-                quantity: isWeighted ? 1.000 : 1,
+                price: price,
+                quantity: initialQty,
                 tax_rate: extractedTaxRate,
                 unit: prodUnit,
-                total: prod.price || 0,
+                total: Math.round(initialQty * price * 100) / 100,
                 source: prod.source,
                 isUnlimited: isUnlimited,
                 is_weighted: isWeighted,
@@ -2544,6 +2561,107 @@ const BusinessPOS = () => {
             }];
         });
     };
+
+    /**
+     * Supermarket Barcode & QR Auto-Cart Resolution
+     * Scans barcode, looks up product, auto-adds to cart, and triggers POS sound
+     */
+    const handleBarcodeScan = (rawScannedCode) => {
+        if (!rawScannedCode) return false;
+        const { code, weight: scannedWeight, isScaleBarcode } = parseBarcodeOrQr(rawScannedCode);
+        if (!code) return false;
+
+        const matchedProd = findProductByBarcodeOrQr(code, inventory);
+        if (matchedProd) {
+            const isWeighted = isProductWeighted(matchedProd) || Boolean(isScaleBarcode);
+            const finalWeight = scannedWeight || (isWeighted ? 1.000 : null);
+
+            addToCart(matchedProd, finalWeight);
+            playPosBeep(isWeighted ? 'weight' : 'success');
+
+            setScanNotification({
+                show: true,
+                type: 'success',
+                productName: matchedProd.name,
+                price: matchedProd.price,
+                code: matchedProd.barcode || matchedProd.sku || code,
+                weight: finalWeight,
+                isWeighted: isWeighted
+            });
+
+            if (scanNotificationTimerRef.current) clearTimeout(scanNotificationTimerRef.current);
+            scanNotificationTimerRef.current = setTimeout(() => {
+                setScanNotification(null);
+            }, 3000);
+
+            return true;
+        } else {
+            playPosBeep('error');
+            setScanNotification({
+                show: true,
+                type: 'error',
+                message: `No item found matching Barcode / QR: "${code}"`
+            });
+
+            if (scanNotificationTimerRef.current) clearTimeout(scanNotificationTimerRef.current);
+            scanNotificationTimerRef.current = setTimeout(() => {
+                setScanNotification(null);
+            }, 3500);
+
+            return false;
+        }
+    };
+
+    /**
+     * Hardware Barcode Scanner Gun Global Keyboard Wedge Listener
+     */
+    useEffect(() => {
+        let keyBuffer = '';
+        let lastKeyTime = 0;
+
+        const handleGlobalKeyDown = (e) => {
+            const now = Date.now();
+            const timeDiff = now - lastKeyTime;
+            lastKeyTime = now;
+
+            const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+            const isInputFocused = activeTag === 'input' || activeTag === 'textarea';
+
+            if (e.key === 'Enter') {
+                if (keyBuffer.length >= 2) {
+                    const isQuickBurst = timeDiff < 90;
+                    if (isQuickBurst || !isInputFocused) {
+                        const scannedCode = keyBuffer.trim();
+                        keyBuffer = '';
+                        if (scannedCode) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleBarcodeScan(scannedCode);
+                            if (isInputFocused && document.activeElement) {
+                                document.activeElement.value = '';
+                            }
+                        }
+                        return;
+                    }
+                }
+                keyBuffer = '';
+                return;
+            }
+
+            if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                if (timeDiff > 120 && !isInputFocused) {
+                    keyBuffer = e.key;
+                } else {
+                    keyBuffer += e.key;
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown, true);
+        return () => {
+            window.removeEventListener('keydown', handleGlobalKeyDown, true);
+        };
+    }, [inventory]);
 
     const updateCartItemPrice = (id, newPrice) => {
         if (!isMainBranch) {
@@ -3701,11 +3819,23 @@ const BusinessPOS = () => {
                                     searchTarget === 'alphabet'
                                         ? "Search by product name (Alphabet wise)..."
                                         : searchTarget === 'code'
-                                            ? "Search by barcode SKU or code..."
-                                            : "Search item name, category or barcode SKU..."
+                                            ? "Scan barcode SKU or QR code (Enter to add)..."
+                                            : "Search name or scan barcode / QR..."
                                 }
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        const code = searchTerm.trim();
+                                        if (code) {
+                                            const added = handleBarcodeScan(code);
+                                            if (added) {
+                                                setSearchTerm('');
+                                            }
+                                        }
+                                    }
+                                }}
                                 style={{ width: '100%', padding: '0.75rem 2.2rem 0.75rem 2.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F8FAFC', fontSize: '0.9rem', fontWeight: 500, transition: 'border-color 0.2s', height: '100%' }}
                                 onFocus={(e) => e.target.style.borderColor = '#10B981'}
                                 onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
@@ -3736,6 +3866,33 @@ const BusinessPOS = () => {
                                 </button>
                             )}
                         </div>
+
+                        {/* Supermarket Barcode / QR Scanner Trigger */}
+                        <button
+                            type="button"
+                            onClick={() => setIsCameraScannerOpen(true)}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '0 0.85rem',
+                                height: '42px',
+                                borderRadius: '12px',
+                                border: '1.5px solid #10B981',
+                                background: '#ECFDF5',
+                                color: '#047857',
+                                fontSize: '0.82rem',
+                                fontWeight: '800',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.15s ease',
+                                boxShadow: '0 1px 2px rgba(16, 185, 129, 0.08)'
+                            }}
+                            title="Open Supermarket Camera / Barcode Gun Station"
+                        >
+                            <Barcode size={18} color="#059669" />
+                            <span>Scan QR / Barcode</span>
+                        </button>
 
                         {/* Product Filter & Sort / List Dropdown (Icon Only) */}
                         <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={sortFilterDropdownRef}>
@@ -6719,6 +6876,77 @@ const BusinessPOS = () => {
             )}
 
 
+
+            {/* CAMERA & HARDWARE BARCODE / QR SCANNER MODAL */}
+            <CameraBarcodeScannerModal
+                isOpen={isCameraScannerOpen}
+                onClose={() => setIsCameraScannerOpen(false)}
+                onScanProduct={handleBarcodeScan}
+            />
+
+            {/* SUPERMARKET SCAN NOTIFICATION TOAST */}
+            <AnimatePresence>
+                {scanNotification && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -25, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        style={{
+                            position: 'fixed',
+                            top: '24px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 99999,
+                            background: scanNotification.type === 'success' ? '#064E3B' : '#7F1D1D',
+                            color: '#FFFFFF',
+                            padding: '0.75rem 1.4rem',
+                            borderRadius: '16px',
+                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            maxWidth: '90vw',
+                            border: `1.5px solid ${scanNotification.type === 'success' ? '#10B981' : '#EF4444'}`
+                        }}
+                    >
+                        <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            background: scanNotification.type === 'success' ? '#047857' : '#991B1B',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                        }}>
+                            {scanNotification.type === 'success' ? <CheckCircle2 size={18} color="#A7F3D0" /> : <CircleAlert size={18} color="#FECACA" />}
+                        </div>
+                        <div>
+                            {scanNotification.type === 'success' ? (
+                                <div>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: '800', letterSpacing: '-0.01em' }}>
+                                        🛒 Added to Cart: {scanNotification.productName}
+                                    </div>
+                                    <div style={{ fontSize: '0.74rem', color: '#A7F3D0', fontWeight: '600' }}>
+                                        {scanNotification.isWeighted ? `Weight: ${scanNotification.weight} KG • ` : ''}
+                                        Price: {formatCurrency(scanNotification.price)} • Code: {scanNotification.code}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: '800' }}>
+                                        ⚠️ Scanner Warning
+                                    </div>
+                                    <div style={{ fontSize: '0.74rem', color: '#FECACA' }}>
+                                        {scanNotification.message}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* QUICK ADD PRODUCT MODAL (FOR POS CATALOG) */}
             {isAddProductModalOpen && (
