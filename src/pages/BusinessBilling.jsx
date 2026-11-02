@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { useCurrency, useAuth } from '../context';
+import { useCurrency, useAuth, useBranch } from '../context';
 import { isInvoiceOnlyUser } from '../utils/permissions';
+import { isProductWeighted, checkIsMainBranch, QUICK_WEIGHT_PRESETS } from '../utils/weightBillingHelper';
 import { 
     FileText, 
     Plus, 
@@ -252,6 +253,10 @@ const INITIAL_BILLING_STAFF = [
 const BusinessBilling = () => {
     const { currency, formatCurrency } = useCurrency();
     const { selectedPlan, user } = useAuth();
+    const { selectedBranch } = useBranch();
+    const isMainBranch = React.useMemo(() => {
+        return checkIsMainBranch(user, selectedBranch);
+    }, [user, selectedBranch]);
     const isInvoiceOnly = isInvoiceOnlyUser(user);
     const isStarterPlan = (selectedPlan || user?.tier) === 'Starter Plan';
     const queryClient = useQueryClient();
@@ -1193,31 +1198,41 @@ const BusinessBilling = () => {
             // Check if value matches real catalog products first
             const selectedProd = catalogProducts.find(p => (p.name || p.product_name) === value);
             if (selectedProd) {
+                const weighted = isProductWeighted(selectedProd);
+                const assignedUnit = weighted ? (selectedProd.primary_unit || selectedProd.unit || 'KG') : (selectedProd.primary_unit || 'Pcs');
+                const defaultQty = weighted ? (parseFloat(newItems[index].quantity) || 1.000) : (newItems[index].quantity || 1);
                 newItems[index] = {
                     ...newItems[index],
                     description: selectedProd.name || selectedProd.product_name,
                     product_id: selectedProd.id,
                     inventory_id: null,
+                    is_weighted: weighted,
                     price: parseFloat(selectedProd.selling_price || selectedProd.price || 0),
                     hsn_code: selectedProd.hsn_code || selectedProd.sku || '',
                     tax_rate: (selectedProd.gst_percentage !== undefined && selectedProd.gst_percentage !== null) ? parseInt(selectedProd.gst_percentage, 10) : ((selectedProd.tax_percentage !== undefined && selectedProd.tax_percentage !== null) ? parseInt(selectedProd.tax_percentage, 10) : 18),
-                    unit: selectedProd.primary_unit || 'Pcs',
-                    total: (newItems[index].quantity || 1) * parseFloat(selectedProd.selling_price || 0)
+                    unit: assignedUnit,
+                    quantity: defaultQty,
+                    total: defaultQty * parseFloat(selectedProd.selling_price || selectedProd.price || 0)
                 };
             } else {
                 // Fallback to generic legacy inventory items list
                 const selectedInvItem = inventoryItems.find(i => i.name === value);
                 if (selectedInvItem) {
+                    const weighted = isProductWeighted(selectedInvItem);
+                    const assignedUnit = weighted ? (selectedInvItem.unit || 'KG') : (selectedInvItem.unit || 'Pcs');
+                    const defaultQty = weighted ? (parseFloat(newItems[index].quantity) || 1.000) : (newItems[index].quantity || 1);
                     newItems[index] = {
                         ...newItems[index],
                         description: selectedInvItem.name,
                         inventory_id: selectedInvItem.id,
                         product_id: null,
+                        is_weighted: weighted,
                         price: parseFloat(selectedInvItem.price || 0),
                         hsn_code: selectedInvItem.hsn_sac || '',
                         tax_rate: parseInt(selectedInvItem.gst_rate || 18),
-                        unit: selectedInvItem.unit || 'Pcs',
-                        total: (newItems[index].quantity || 1) * parseFloat(selectedInvItem.price || 0)
+                        unit: assignedUnit,
+                        quantity: defaultQty,
+                        total: defaultQty * parseFloat(selectedInvItem.price || 0)
                     };
                 } else {
                     newItems[index][field] = value;
@@ -2753,70 +2768,98 @@ const BusinessBilling = () => {
                                                     <input type="text" value={item.hsn_code || ''} onChange={(e) => handleItemChange(idx, 'hsn_code', e.target.value)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                                 </div>
                                             )}
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>QTY</label>
-                                                <input 
-                                                    required 
-                                                    type="number" 
-                                                    min="0"
-                                                    value={item.quantity} 
-                                                    onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'quantity', Math.max(0, parseFloat(raw) || 0)); }} 
-                                                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
-                                                    style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
-                                                />
-                                            </div>
-                                            {activeConfig.freeQty === true && (
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>FREE</label>
-                                                    <input 
-                                                        type="number" 
-                                                        min="0"
-                                                        placeholder="0" 
-                                                        value={item.free_quantity || ''} 
-                                                        onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'free_quantity', Math.max(0, parseFloat(raw) || 0)); }} 
-                                                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
-                                                        style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
-                                                    />
-                                                </div>
-                                            )}
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>UNIT</label>
-                                                <select value={item.unit} onChange={(e) => handleItemChange(idx, 'unit', e.target.value)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.8rem' }}>
-                                                    {(dropdownOptions.units || DEFAULT_DROPDOWNS.units).map((unit, uIdx) => (
-                                                        <option key={uIdx}>{unit}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>PRICE ({currency.symbol})</label>
-                                                <input 
-                                                    required 
-                                                    type="number" 
-                                                    min="0"
-                                                    step="any"
-                                                    value={item.price} 
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-                                                            e.preventDefault();
-                                                        }
-                                                    }}
-                                                    onPaste={(e) => {
-                                                        const pasted = e.clipboardData.getData('text');
-                                                        if (pasted.includes('-') || parseFloat(pasted) < 0) {
-                                                            e.preventDefault();
-                                                            const sanitized = Math.max(0, parseFloat(pasted) || 0);
-                                                            handleItemChange(idx, 'price', sanitized);
-                                                        }
-                                                    }}
-                                                    onChange={(e) => {
-                                                        const raw = e.target.value.slice(0, 14);
-                                                        const parsed = parseFloat(raw);
-                                                        const sanitized = isNaN(parsed) ? '' : Math.max(0, parsed);
-                                                        handleItemChange(idx, 'price', sanitized);
-                                                    }} 
-                                                    style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
-                                                />
-                                            </div>
+                                            {(() => {
+                                                const isWeighted = isProductWeighted(item);
+                                                return (
+                                                    <>
+                                                        <div>
+                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.6rem', fontWeight: '800', color: isWeighted ? '#047857' : '#94A3B8', marginBottom: '0.25rem' }}>
+                                                                {isWeighted ? '⚖️ WEIGHT' : 'QTY'}
+                                                            </label>
+                                                            <input 
+                                                                required 
+                                                                type="number" 
+                                                                min="0"
+                                                                step={isWeighted ? "0.001" : "any"}
+                                                                placeholder={isWeighted ? "1.000" : "0"}
+                                                                value={item.quantity} 
+                                                                onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'quantity', Math.max(0, parseFloat(raw) || 0)); }} 
+                                                                onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
+                                                                style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: isWeighted ? '1.5px solid #10B981' : '1px solid #E2E8F0', background: isWeighted ? '#F0FDF4' : '#FFFFFF', fontSize: '0.8rem', fontWeight: isWeighted ? '700' : 'normal' }} 
+                                                            />
+                                                        </div>
+                                                        {activeConfig.freeQty === true && (
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>FREE</label>
+                                                                <input 
+                                                                    type="number" 
+                                                                    min="0" 
+                                                                    placeholder="0" 
+                                                                    value={item.free_quantity || ''} 
+                                                                    onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'free_quantity', Math.max(0, parseFloat(raw) || 0)); }} 
+                                                                    onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
+                                                                    style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>UNIT</label>
+                                                            <select value={item.unit} onChange={(e) => handleItemChange(idx, 'unit', e.target.value)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.8rem' }}>
+                                                                {(dropdownOptions.units || DEFAULT_DROPDOWNS.units).map((unit, uIdx) => (
+                                                                    <option key={uIdx}>{unit}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.6rem', fontWeight: '800', color: isWeighted ? '#047857' : '#94A3B8', marginBottom: '0.25rem' }}>
+                                                                {isWeighted ? `PRICE / ${item.unit || 'KG'}` : `PRICE (${currency.symbol})`}
+                                                                {!isMainBranch && <span title="Locked by Main Branch" style={{ fontSize: '0.65rem' }}>🔒</span>}
+                                                            </label>
+                                                            <input 
+                                                                required 
+                                                                type="number" 
+                                                                min="0"
+                                                                step="any"
+                                                                value={item.price} 
+                                                                disabled={!isMainBranch}
+                                                                readOnly={!isMainBranch}
+                                                                title={!isMainBranch ? "Price can only be set or adjusted by the Main Branch" : "Set price"}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                                                        e.preventDefault();
+                                                                    }
+                                                                }}
+                                                                onPaste={(e) => {
+                                                                    if (!isMainBranch) return;
+                                                                    const pasted = e.clipboardData.getData('text');
+                                                                    if (pasted.includes('-') || parseFloat(pasted) < 0) {
+                                                                        e.preventDefault();
+                                                                        const sanitized = Math.max(0, parseFloat(pasted) || 0);
+                                                                        handleItemChange(idx, 'price', sanitized);
+                                                                    }
+                                                                }}
+                                                                onChange={(e) => {
+                                                                    if (!isMainBranch) return;
+                                                                    const raw = e.target.value.slice(0, 14);
+                                                                    const parsed = parseFloat(raw);
+                                                                    const sanitized = isNaN(parsed) ? '' : Math.max(0, parsed);
+                                                                    handleItemChange(idx, 'price', sanitized);
+                                                                }} 
+                                                                style={{ 
+                                                                    width: '100%', 
+                                                                    padding: '0.4rem 0.6rem', 
+                                                                    borderRadius: '6px', 
+                                                                    border: '1px solid #E2E8F0', 
+                                                                    fontSize: '0.8rem',
+                                                                    background: !isMainBranch ? '#F1F5F9' : '#FFFFFF',
+                                                                    color: !isMainBranch ? '#64748B' : '#0F172A',
+                                                                    cursor: !isMainBranch ? 'not-allowed' : 'text'
+                                                                }} 
+                                                            />
+                                                        </div>
+                                                    </>
+                                                );
+                                            })()}
                                             {activeConfig.txnDiscount !== false && (
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>DISC %</label>

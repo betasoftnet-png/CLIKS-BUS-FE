@@ -59,10 +59,12 @@ import {
     CheckCircle2,
     Maximize,
     Minimize,
-    Loader2
+    Loader2,
+    Scale
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
+import { isProductWeighted, checkIsMainBranch, calculateWeightTotal, QUICK_WEIGHT_PRESETS } from '../utils/weightBillingHelper';
 import { inventoryService } from '../services/inventoryService';
 import { productsService } from '../services/productsService';
 import { crmService } from '../services/crmService';
@@ -129,6 +131,12 @@ const BusinessPOS = () => {
             }
         }
     }, [posBranches, user, activeBranchId]);
+
+    // Main Branch has authorization to set and modify commodity rates (e.g. per KG price for dhal, rice).
+    // Sub-Branch accounts are locked to view-only for prices, but can enter custom bag weights.
+    const isMainBranch = useMemo(() => {
+        return checkIsMainBranch(user, selectedPosBranch);
+    }, [user, selectedPosBranch]);
 
     // Active Showroom Promotions for Current Counter
     const { data: activeShowroomPromos = [] } = useQuery({
@@ -2518,20 +2526,42 @@ const BusinessPOS = () => {
                         : item
                 );
             }
+            const isWeighted = isProductWeighted(prod);
             const extractedTaxRate = parseFloat(prod.tax_percentage ?? prod.rawProduct?.tax_percentage ?? prod.rawProduct?.gst_percentage ?? prod.taxRate ?? prod.gst_percentage ?? prod.tax_rate ?? 0) || 0;
             return [...prevCart, {
                 id: prod.id,
                 name: prod.name,
                 sku: prod.sku,
                 price: prod.price || 0,
-                quantity: 1,
+                quantity: isWeighted ? 1.000 : 1,
                 tax_rate: extractedTaxRate,
                 unit: prodUnit,
                 total: prod.price || 0,
                 source: prod.source,
-                isUnlimited: isUnlimited
+                isUnlimited: isUnlimited,
+                is_weighted: isWeighted,
+                isWeighted: isWeighted
             }];
         });
+    };
+
+    const updateCartItemPrice = (id, newPrice) => {
+        if (!isMainBranch) {
+            alert('Only Main Branch has authorization to decide and change product prices. Sub-branch is view-only.');
+            return;
+        }
+        setCart(prevCart => prevCart.map(item => {
+            if (item.id !== id) return item;
+            const parsedPrice = parseFloat(newPrice) || 0;
+            const qty = parseFloat(item.quantity) || 0;
+            const newTotal = Math.round(qty * parsedPrice * 100) / 100;
+            return {
+                ...item,
+                price: parsedPrice,
+                total: newTotal,
+                isPriceDecidedByMain: true
+            };
+        }));
     };
 
     const updateCartQty = (id, delta) => {
@@ -4368,7 +4398,14 @@ const BusinessPOS = () => {
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minHeight: '40px' }}>
                                                 <div style={{ flex: 1, minWidth: 0, paddingRight: '0.4rem' }}>
                                                     <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: '850', color: '#0F172A', lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{prod.name}</h4>
-                                                    {prod.sku && <div style={{ fontSize: '0.68rem', color: '#94A3B8', marginTop: '2px', fontWeight: '500' }}>SKU: {prod.sku}</div>}
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
+                                                        {prod.sku && <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '500' }}>SKU: {prod.sku}</span>}
+                                                        {isProductWeighted(prod) && (
+                                                            <span style={{ fontSize: '0.6rem', fontWeight: '850', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 5px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                                                ⚖️ Sold by Weight
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 {cartQty > 0 && (
                                                     <span style={{
@@ -5123,103 +5160,211 @@ const BusinessPOS = () => {
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                             <AnimatePresence initial={false}>
-                                {cart.map(item => (
-                                    <motion.div
-                                        key={item.id}
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: 'auto' }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.2 }}
-                                        style={{
-                                            overflow: 'hidden',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.6rem',
-                                            background: '#FFFFFF',
-                                            padding: '0.45rem 0',
-                                            borderBottom: '1px solid #F8FAFC'
-                                        }}
-                                    >
-                                        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', paddingRight: '0.2rem' }}>
-                                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
-                                            {(() => {
-                                                const cartPriceStr = `${formatCurrency(item.price)} / ${item.unit || 'PCS'}`;
-                                                const cartPriceFontSz = cartPriceStr.length > 22 ? '0.66rem' : '0.75rem';
-                                                return (
-                                                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem', fontSize: cartPriceFontSz, color: '#64748B', marginTop: '2px', wordBreak: 'break-word' }}>
-                                                        <span>{cartPriceStr}</span>
+                                {cart.map(item => {
+                                    const isWeighted = isProductWeighted(item);
+                                    const catItem = inventory.find(p => p.id === item.id || (p.sku && item.sku && p.sku === item.sku));
+                                    const itemTaxRate = parseFloat(item.tax_rate !== undefined && item.tax_rate !== null && !isNaN(parseFloat(item.tax_rate)) ? item.tax_rate : (catItem?.tax_percentage || 0)) || 0;
+                                    const discountedItemTotal = (item.total || 0) * (1 - discountPercent);
+                                    const itemGstAmt = discountedItemTotal * (itemTaxRate / 100);
+                                    const totalStr = formatCurrency(item.total);
+
+                                    return (
+                                        <motion.div
+                                            key={item.id}
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                            style={{
+                                                overflow: 'hidden',
+                                                background: isWeighted ? '#F0FDF4' : '#FFFFFF',
+                                                padding: isWeighted ? '0.55rem 0.65rem' : '0.45rem 0',
+                                                border: isWeighted ? '1px solid #BBF7D0' : 'none',
+                                                borderRadius: isWeighted ? '12px' : '0',
+                                                borderBottom: isWeighted ? '1px solid #BBF7D0' : '1px solid #F8FAFC',
+                                                marginBottom: isWeighted ? '0.35rem' : '0'
+                                            }}
+                                        >
+                                            {isWeighted ? (
+                                                /* WEIGHTED COMMODITY ROW (Dhal, Rice, Sugar, Loose items) */
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%' }}>
+                                                    {/* Header: Name, Tag, Branch Rate Control, Trash */}
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1, minWidth: 0 }}>
+                                                            <span style={{ fontSize: '0.62rem', fontWeight: '850', color: '#166534', background: '#DCFCE7', padding: '1px 5px', borderRadius: '4px', textTransform: 'uppercase', flexShrink: 0 }}>
+                                                                ⚖️ Weight ({item.unit || 'KG'})
+                                                            </span>
+                                                            <p style={{ margin: 0, fontSize: '0.84rem', fontWeight: '800', color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                {item.name}
+                                                            </p>
+                                                        </div>
+
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                                            {/* Main Branch vs Sub Branch Price */}
+                                                            {isMainBranch ? (
+                                                                <div style={{ display: 'flex', alignItems: 'center', background: '#FFFFFF', border: '1px solid #86EFAC', borderRadius: '6px', padding: '1px 5px', gap: '3px' }} title="Main Branch Price Authority: Edit price per KG">
+                                                                    <span style={{ fontSize: '0.66rem', color: '#15803D', fontWeight: '800' }}>Rate: ₹</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        step="any"
+                                                                        value={item.price}
+                                                                        onChange={(e) => updateCartItemPrice(item.id, e.target.value)}
+                                                                        style={{ width: '48px', border: 'none', background: 'transparent', fontWeight: '850', fontSize: '0.78rem', color: '#0F172A', textAlign: 'right', outline: 'none' }}
+                                                                    />
+                                                                    <span style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: '700' }}>/{item.unit || 'KG'}</span>
+                                                                    <span style={{ fontSize: '0.6rem', color: '#10B981' }} title="Main Branch rate control">👑</span>
+                                                                </div>
+                                                            ) : (
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.74rem', color: '#475569', fontWeight: '800' }} title="Price locked by Main Branch (View Only)">
+                                                                    <span>{formatCurrency(item.price)} / {item.unit || 'KG'}</span>
+                                                                    <Lock size={11} color="#94A3B8" />
+                                                                </div>
+                                                            )}
+
+                                                            <button onClick={() => removeFromCart(item.id)} style={{ background: 'transparent', border: 'none', color: '#EF4444', padding: '2px', cursor: 'pointer', display: 'flex', opacity: 0.7 }}>
+                                                                <Trash2 size={13} />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                );
-                                            })()}
-                                        </div>
 
-                                        {/* Quantity Selectors */}
-                                        <div style={{ display: 'flex', alignItems: 'center', background: '#F1F5F9', borderRadius: '8px', padding: '2px', flexShrink: 0 }}>
-                                            <button
-                                                type="button"
-                                                onClick={() => updateCartQty(item.id, isDecimalUnit(item.unit) ? -0.25 : -1)}
-                                                style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
-                                            >
-                                                <Minus size={13} />
-                                            </button>
+                                                    {/* Weight Input Box + Quick Presets + Calculated Price */}
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#15803D', textTransform: 'uppercase' }}>
+                                                                Weight:
+                                                            </span>
+                                                            <div style={{ display: 'flex', alignItems: 'center', background: '#FFFFFF', border: '1.5px solid #16A34A', borderRadius: '7px', padding: '2px 5px' }}>
+                                                                <input
+                                                                    type="number"
+                                                                    step="0.001"
+                                                                    min="0.001"
+                                                                    placeholder="0.000"
+                                                                    value={item.quantity}
+                                                                    onChange={(e) => updateCartDirectQty(item.id, e.target.value)}
+                                                                    style={{ width: '58px', border: 'none', background: 'transparent', fontWeight: '900', fontSize: '0.84rem', color: '#15803D', textAlign: 'center', outline: 'none' }}
+                                                                />
+                                                                <span style={{ fontSize: '0.68rem', fontWeight: '850', color: '#15803D', paddingLeft: '2px' }}>
+                                                                    {item.unit || 'KG'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
 
-                                            <input
-                                                type="number"
-                                                step={isDecimalUnit(item.unit) ? "any" : "1"}
-                                                min="0.001"
-                                                value={item.quantity}
-                                                onChange={(e) => updateCartDirectQty(item.id, e.target.value)}
-                                                style={{
-                                                    width: isDecimalUnit(item.unit) ? '54px' : '32px',
-                                                    textAlign: 'center',
-                                                    fontSize: '0.82rem',
-                                                    fontWeight: '800',
-                                                    color: '#1E293B',
-                                                    border: 'none',
-                                                    background: 'transparent',
-                                                    outline: 'none'
-                                                }}
-                                            />
-                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', paddingRight: '4px' }}>
-                                                {item.unit || 'PCS'}
-                                            </span>
+                                                        {/* Quick Weight Selector Buttons for Fast Bag Weighing */}
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                                            {QUICK_WEIGHT_PRESETS.slice(1).map(p => {
+                                                                const isSel = Math.abs((parseFloat(item.quantity) || 0) - p.kg) < 0.001;
+                                                                return (
+                                                                    <button
+                                                                        key={p.label}
+                                                                        type="button"
+                                                                        onClick={() => updateCartDirectQty(item.id, p.kg)}
+                                                                        style={{
+                                                                            padding: '2px 5px',
+                                                                            borderRadius: '5px',
+                                                                            border: isSel ? '1px solid #16A34A' : '1px solid #CBD5E1',
+                                                                            background: isSel ? '#DCFCE7' : '#FFFFFF',
+                                                                            color: isSel ? '#15803D' : '#475569',
+                                                                            fontWeight: '800',
+                                                                            fontSize: '0.64rem',
+                                                                            cursor: 'pointer'
+                                                                        }}
+                                                                    >
+                                                                        {p.label}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
 
-                                            <button
-                                                type="button"
-                                                onClick={() => updateCartQty(item.id, isDecimalUnit(item.unit) ? 0.25 : 1)}
-                                                style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
-                                            >
-                                                <Plus size={13} />
-                                            </button>
-                                        </div>
-
-                                        {(() => {
-                                            const catItem = inventory.find(p => p.id === item.id || (p.sku && item.sku && p.sku === item.sku));
-                                            const itemTaxRate = parseFloat(item.tax_rate !== undefined && item.tax_rate !== null && !isNaN(parseFloat(item.tax_rate)) ? item.tax_rate : (catItem?.tax_percentage || 0)) || 0;
-                                            const discountedItemTotal = item.total * (1 - discountPercent);
-                                            const itemGstAmt = discountedItemTotal * (itemTaxRate / 100);
-                                            const totalStr = formatCurrency(item.total);
-                                            const totalFontSz = totalStr.length > 14 ? '0.72rem' : (totalStr.length > 10 ? '0.78rem' : '0.85rem');
-                                            return (
-                                                <div style={{ flexShrink: 0, textAlign: 'right', paddingLeft: '0.2rem', minWidth: '70px' }}>
-                                                    <span style={{ fontSize: totalFontSz, fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap', display: 'block' }}>{totalStr}</span>
-                                                    {itemTaxRate > 0 && itemGstAmt > 0 && (
-                                                        <span
-                                                            title={`${itemTaxRate}% GST`}
-                                                            style={{ fontSize: '0.68rem', fontWeight: '700', color: '#0D9488', whiteSpace: 'nowrap', display: 'block', marginTop: '1px' }}
-                                                        >
-                                                            +{formatCurrency(itemGstAmt)} GST
-                                                        </span>
-                                                    )}
+                                                        {/* Line Total */}
+                                                        <div style={{ textAlign: 'right', minWidth: '60px' }}>
+                                                            <span style={{ fontSize: '0.86rem', fontWeight: '950', color: '#0F172A', whiteSpace: 'nowrap', display: 'block' }}>
+                                                                {totalStr}
+                                                            </span>
+                                                            {itemTaxRate > 0 && itemGstAmt > 0 && (
+                                                                <span style={{ fontSize: '0.62rem', fontWeight: '700', color: '#0D9488', display: 'block' }}>
+                                                                    +{formatCurrency(itemGstAmt)} GST
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            );
-                                        })()}
+                                            ) : (
+                                                /* DISCRETE PACKAGED ITEM ROW (Standard Quantity Controls) */
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', width: '100%' }}>
+                                                    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', paddingRight: '0.2rem' }}>
+                                                        <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '750', color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
+                                                        {(() => {
+                                                            const cartPriceStr = `${formatCurrency(item.price)} / ${item.unit || 'PCS'}`;
+                                                            const cartPriceFontSz = cartPriceStr.length > 22 ? '0.66rem' : '0.75rem';
+                                                            return (
+                                                                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem', fontSize: cartPriceFontSz, color: '#64748B', marginTop: '2px', wordBreak: 'break-word' }}>
+                                                                    <span>{cartPriceStr}</span>
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </div>
 
-                                        <button onClick={() => removeFromCart(item.id)} style={{ background: 'transparent', border: 'none', color: '#EF4444', padding: '0.25rem', cursor: 'pointer', display: 'flex', opacity: 0.6 }}>
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </motion.div>
-                                ))}
+                                                    {/* Quantity Selectors */}
+                                                    <div style={{ display: 'flex', alignItems: 'center', background: '#F1F5F9', borderRadius: '8px', padding: '2px', flexShrink: 0 }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => updateCartQty(item.id, isDecimalUnit(item.unit) ? -0.25 : -1)}
+                                                            style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+                                                        >
+                                                            <Minus size={13} />
+                                                        </button>
+
+                                                        <input
+                                                            type="number"
+                                                            step={isDecimalUnit(item.unit) ? "any" : "1"}
+                                                            min="0.001"
+                                                            value={item.quantity}
+                                                            onChange={(e) => updateCartDirectQty(item.id, e.target.value)}
+                                                            style={{
+                                                                width: isDecimalUnit(item.unit) ? '54px' : '32px',
+                                                                textAlign: 'center',
+                                                                fontSize: '0.82rem',
+                                                                fontWeight: '800',
+                                                                color: '#1E293B',
+                                                                border: 'none',
+                                                                background: 'transparent',
+                                                                outline: 'none'
+                                                            }}
+                                                        />
+                                                        <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', paddingRight: '4px' }}>
+                                                            {item.unit || 'PCS'}
+                                                        </span>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => updateCartQty(item.id, isDecimalUnit(item.unit) ? 0.25 : 1)}
+                                                            style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+                                                        >
+                                                            <Plus size={13} />
+                                                        </button>
+                                                    </div>
+
+                                                    <div style={{ flexShrink: 0, textAlign: 'right', paddingLeft: '0.2rem', minWidth: '70px' }}>
+                                                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap', display: 'block' }}>{totalStr}</span>
+                                                        {itemTaxRate > 0 && itemGstAmt > 0 && (
+                                                            <span
+                                                                title={`${itemTaxRate}% GST`}
+                                                                style={{ fontSize: '0.68rem', fontWeight: '700', color: '#0D9488', whiteSpace: 'nowrap', display: 'block', marginTop: '1px' }}
+                                                            >
+                                                                +{formatCurrency(itemGstAmt)} GST
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <button onClick={() => removeFromCart(item.id)} style={{ background: 'transparent', border: 'none', color: '#EF4444', padding: '0.25rem', cursor: 'pointer', display: 'flex', opacity: 0.6 }}>
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </motion.div>
+                                    );
+                                })}
                             </AnimatePresence>
                         </div>
                     )}

@@ -1,10 +1,11 @@
 /* eslint-disable react/prop-types */
 import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Info, Loader2 } from 'lucide-react';
+import { X, Plus, Info, Loader2, Scale } from 'lucide-react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { productsService, inventoryService, hsnService, stockService } from '../../services';
 import { CurrencyContext } from '../../context/CurrencyContext';
+import { isProductWeighted } from '../../utils/weightBillingHelper';
 
 const DEFAULT_CATEGORIES = [
     'General',
@@ -42,6 +43,7 @@ export const QuickRegisterItemModal = ({
     const [sellingPrice, setSellingPrice] = useState('');
     const [sellingPriceError, setSellingPriceError] = useState('');
     const [unit, setUnit] = useState('PCS');
+    const [isWeighted, setIsWeighted] = useState(false);
     const [openingStock, setOpeningStock] = useState('');
     const [isUnlimited, setIsUnlimited] = useState(false);
     const [category, setCategory] = useState('General');
@@ -138,7 +140,9 @@ export const QuickRegisterItemModal = ({
         if (editingProduct) {
             setName(editingProduct.name || editingProduct.product_name || '');
             setSellingPrice(editingProduct.price ? String(editingProduct.price) : (editingProduct.selling_price ? String(editingProduct.selling_price) : ''));
-            setUnit(editingProduct.unit || editingProduct.primary_unit || 'PCS');
+            const resolvedUnit = editingProduct.unit || editingProduct.primary_unit || 'PCS';
+            setUnit(resolvedUnit);
+            setIsWeighted(Boolean(editingProduct.is_weighted || editingProduct.sold_by_weight || isProductWeighted(editingProduct)));
             const editingUnlimited = Boolean(editingProduct.isUnlimited || editingProduct.is_unlimited || (parseFloat(editingProduct.quantity) >= 999000));
             setIsUnlimited(editingUnlimited);
             setOpeningStock(editingUnlimited ? '999999' : (editingProduct.quantity !== undefined ? String(editingProduct.quantity) : ''));
@@ -242,6 +246,7 @@ export const QuickRegisterItemModal = ({
             setSellingPrice('');
             setSellingPriceError('');
             setUnit('PCS');
+            setIsWeighted(false);
             setOpeningStock('');
             setIsUnlimited(false);
             setCategory('General');
@@ -546,6 +551,8 @@ export const QuickRegisterItemModal = ({
             category_name: defaultCategory,
             unit: defaultUnit,
             primary_unit: defaultUnit,
+            is_weighted: isWeighted ? 1 : 0,
+            sold_by_weight: Boolean(isWeighted),
             openingStock: cleanOpeningStock,
             opening_stock: cleanOpeningStock,
             quantity: cleanOpeningStock,
@@ -622,63 +629,72 @@ export const QuickRegisterItemModal = ({
                         />
                     </div>
 
+                    {/* Sold by Weight / Loose Bulk Item toggle */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isWeighted ? '#ECFDF5' : '#F8FAFC', padding: '0.65rem 0.85rem', borderRadius: '12px', border: isWeighted ? '1px solid #A7F3D0' : '1px solid #E2E8F0', transition: 'all 0.2s' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '1.15rem' }}>⚖️</span>
+                            <div>
+                                <div style={{ fontSize: '0.8rem', fontWeight: '850', color: isWeighted ? '#065F46' : '#1E293B', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    Sold by Weight / Loose Commodity
+                                    {isWeighted && <span style={{ fontSize: '0.65rem', background: '#10B981', color: 'white', padding: '1px 5px', borderRadius: '4px', textTransform: 'uppercase' }}>Active</span>}
+                                </div>
+                                <div style={{ fontSize: '0.68rem', color: isWeighted ? '#047857' : '#64748B' }}>
+                                    For Dhal, Rice, Flour, Grains, Sugar, Vegetables where price is decided per KG and bag is weighed
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const nextState = !isWeighted;
+                                setIsWeighted(nextState);
+                                if (nextState && (unit === 'PCS' || !unit)) {
+                                    setUnit('KG');
+                                }
+                            }}
+                            style={{
+                                width: '38px',
+                                height: '22px',
+                                borderRadius: '11px',
+                                background: isWeighted ? '#10B981' : '#CBD5E1',
+                                border: 'none',
+                                position: 'relative',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s',
+                                padding: 0
+                            }}
+                        >
+                            <span style={{
+                                position: 'absolute',
+                                top: '3px',
+                                left: isWeighted ? '19px' : '3px',
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '50%',
+                                background: '#FFFFFF',
+                                transition: 'left 0.2s',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                            }} />
+                        </button>
+                    </div>
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Selling Price ({currency.symbol}) *</label>
+                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>
+                                {isWeighted ? `Price per ${unit || 'KG'} (${currency.symbol}) *` : `Selling Price (${currency.symbol}) *`}
+                            </label>
                             <input
                                 required
                                 type="number"
-                                min="1"
-                                step="1"
+                                min="0.01"
+                                step="any"
                                 value={sellingPrice}
-                                onKeyDown={(e) => {
-                                    if (['.', '-', 'e', 'E', '+'].includes(e.key)) {
-                                        e.preventDefault();
-                                        setSellingPriceError('Fractional values are not supported.');
-                                        return;
-                                    }
-                                    if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Home', 'End'].includes(e.key) || e.ctrlKey || e.metaKey) {
-                                        return;
-                                    }
-                                    if (/^[0-9]$/.test(e.key)) {
-                                        setSellingPriceError('');
-                                        const currentDigits = (e.target.value || '').replace(/[^0-9]/g, '');
-                                        if (currentDigits.length >= 10) {
-                                            e.preventDefault();
-                                        }
-                                    }
-                                }}
                                 onChange={(e) => {
-                                    let val = e.target.value;
-                                    if (val.includes('.') || val.includes('-') || val.includes('e') || val.includes('+')) {
-                                        setSellingPriceError('Fractional values are not supported.');
-                                        val = val.replace(/[^0-9]/g, '');
-                                    } else {
-                                        setSellingPriceError('');
-                                    }
-                                    
-                                    val = val.replace(/^0+/, '');
-                                    
-                                    const digitsOnly = val.replace(/[^0-9]/g, '');
-                                    if (digitsOnly.length > 10) {
-                                        let truncated = '';
-                                        let count = 0;
-                                        for (let char of val) {
-                                            if (/[0-9]/.test(char)) {
-                                                if (count < 10) {
-                                                    truncated += char;
-                                                    count++;
-                                                }
-                                            } else {
-                                                truncated += char;
-                                            }
-                                        }
-                                        val = truncated;
-                                    }
-                                    setSellingPrice(val);
+                                    setSellingPrice(e.target.value);
+                                    setSellingPriceError('');
                                 }}
                                 style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: sellingPriceError ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none', fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }}
-                                placeholder="0"
+                                placeholder={isWeighted ? "e.g. 120 / KG" : "0"}
                             />
                             {sellingPriceError && (
                                 <span style={{ display: 'block', color: '#EF4444', fontSize: '0.7rem', marginTop: '4px', fontWeight: 600 }}>{sellingPriceError}</span>
@@ -688,12 +704,18 @@ export const QuickRegisterItemModal = ({
                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Unit *</label>
                             <select
                                 value={unit || 'PCS'}
-                                onChange={(e) => setUnit(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setUnit(val);
+                                    if (['KG', 'GRAM', 'LITRE', 'ML'].includes(val)) {
+                                        setIsWeighted(true);
+                                    }
+                                }}
                                 style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', outline: 'none', fontSize: '0.85rem', fontWeight: 700 }}
                             >
                                 <option value="PCS">PCS (Pieces)</option>
-                                <option value="GRAM">GRAM (g)</option>
                                 <option value="KG">KG (Kilogram)</option>
+                                <option value="GRAM">GRAM (g)</option>
                                 <option value="LITRE">LITRE (L)</option>
                                 <option value="ML">ML (Millilitre)</option>
                                 <option value="DOZEN">DOZEN</option>

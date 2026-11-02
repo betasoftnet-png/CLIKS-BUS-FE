@@ -21,12 +21,16 @@ import {
     X,
     ChevronDown,
     Tag,
-    FileText
+    FileText,
+    Scale,
+    Lock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BillingRecords from './BillingRecords';
 import { productsService } from '../../services/productsService';
 import { customerService } from '../../services/customerService';
+import { useBranch, useAuth } from '../../context';
+import { isProductWeighted, checkIsMainBranch, QUICK_WEIGHT_PRESETS } from '../../utils/weightBillingHelper';
 
 export const LOCAL_STORAGE_KEY = 'cliks_billing_records_v1';
 
@@ -74,6 +78,12 @@ const PAYMENT_MODES = [
 
 const SimpleBilling = () => {
     const navigate = useNavigate();
+    const { selectedBranch } = useBranch();
+    const { user } = useAuth();
+    const isMainBranch = useMemo(() => {
+        return checkIsMainBranch(user, selectedBranch);
+    }, [user, selectedBranch]);
+
     const [activeTab, setActiveTab] = useState('create'); // 'create' | 'records'
     const [billingOrder, setBillingOrder] = useState(generateBillNumber);
     const [customerName, setCustomerName] = useState('Walk-in Customer');
@@ -170,15 +180,17 @@ const SimpleBilling = () => {
     const handleSelectCatalogProduct = (prod) => {
         const prodName = prod.name || 'Product';
         const prodPrice = parseFloat(prod.selling_price ?? prod.price ?? prod.rate ?? 0);
+        const isWeighted = isProductWeighted(prod);
+        const resolvedUnit = prod.unit || (isWeighted ? 'KG' : 'PCS');
 
         // Check if already in the bill
         const existingIdx = products.findIndex(p => p.name.trim().toLowerCase() === prodName.trim().toLowerCase());
 
         if (existingIdx !== -1) {
-            // Increment existing item quantity by 1
+            // Increment existing item quantity
             const updated = [...products];
             const currentQty = parseFloat(updated[existingIdx].quantity) || 0;
-            updated[existingIdx].quantity = currentQty + 1;
+            updated[existingIdx].quantity = isWeighted ? Math.round((currentQty + 0.25) * 1000) / 1000 : currentQty + 1;
             setProducts(updated);
             
             // Highlight row temporarily
@@ -192,8 +204,10 @@ const SimpleBilling = () => {
                 name: prodName,
                 sku: prod.sku || '',
                 category: prod.category || '',
+                unit: resolvedUnit,
                 rate: prodPrice || '',
-                quantity: 1,
+                quantity: isWeighted ? 1.000 : 1,
+                is_weighted: isWeighted,
                 isCustom: false
             };
 
@@ -214,7 +228,21 @@ const SimpleBilling = () => {
     // Product row inputs
     const handleProductChange = (index, field, value) => {
         const updated = [...products];
-        updated[index] = { ...updated[index], [field]: value };
+        const currentItem = updated[index];
+        const nextItem = { ...currentItem, [field]: value };
+
+        // Auto-detect loose weighted commodity if user types e.g. Dhal, Rice, Sugar in custom row
+        if (field === 'name') {
+            const detectedWeighted = isProductWeighted({ name: value, unit: currentItem.unit });
+            if (detectedWeighted && !currentItem.is_weighted) {
+                nextItem.is_weighted = true;
+                if (!nextItem.unit || nextItem.unit === 'PCS') {
+                    nextItem.unit = 'KG';
+                }
+            }
+        }
+
+        updated[index] = nextItem;
         setProducts(updated);
     };
 
@@ -893,15 +921,18 @@ const SimpleBilling = () => {
                         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 0.5rem', textAlign: 'left' }}>
                             <thead>
                                 <tr style={{ color: '#64748B', fontSize: '0.72rem', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                    <th style={{ padding: '0.4rem 0.75rem', width: '42%' }}>Item Description</th>
-                                    <th style={{ padding: '0.4rem 0.75rem', width: '20%' }}>Rate (₹)</th>
-                                    <th style={{ padding: '0.4rem 0.75rem', width: '18%', textAlign: 'center' }}>Quantity</th>
-                                    <th style={{ padding: '0.4rem 0.75rem', width: '15%', textAlign: 'right' }}>Total (₹)</th>
-                                    <th style={{ padding: '0.4rem 0.75rem', width: '5%', textAlign: 'center' }}></th>
+                                    <th style={{ padding: '0.4rem 0.75rem', width: '38%' }}>Item Description</th>
+                                    <th style={{ padding: '0.4rem 0.75rem', width: '22%' }}>
+                                        Rate (₹) {isMainBranch ? <span style={{ color: '#10B981', fontSize: '0.65rem' }}>👑 Main Rate Authority</span> : <span style={{ color: '#94A3B8', fontSize: '0.65rem' }}>🔒 Locked by Main</span>}
+                                    </th>
+                                    <th style={{ padding: '0.4rem 0.75rem', width: '22%', textAlign: 'center' }}>Quantity / Weight</th>
+                                    <th style={{ padding: '0.4rem 0.75rem', width: '14%', textAlign: 'right' }}>Total (₹)</th>
+                                    <th style={{ padding: '0.4rem 0.75rem', width: '4%', textAlign: 'center' }}></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {products.map((item, index) => {
+                                    const isWeighted = Boolean(item.is_weighted || isProductWeighted(item));
                                     const itemTotal = calculateProductTotal(item.rate, item.quantity);
                                     const isHighlighted = highlightedRowId === item.id;
 
@@ -909,51 +940,26 @@ const SimpleBilling = () => {
                                         <tr 
                                             key={item.id} 
                                             style={{ 
-                                                background: isHighlighted ? '#ECFDF5' : '#F8FAFC', 
+                                                background: isHighlighted ? '#ECFDF5' : (isWeighted ? '#F0FDF4' : '#F8FAFC'), 
                                                 borderRadius: '12px',
+                                                border: isWeighted ? '1px solid #BBF7D0' : 'none',
                                                 transition: 'background 0.3s ease'
                                             }}
                                         >
                                             {/* Item Name */}
                                             <td style={{ padding: '0.65rem 0.75rem', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }}>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Product Name (e.g. Wireless Mouse)"
-                                                    value={item.name}
-                                                    onChange={(e) => handleProductChange(index, 'name', e.target.value)}
-                                                    required
-                                                    style={{
-                                                        width: '100%',
-                                                        padding: '0.55rem 0.75rem',
-                                                        borderRadius: '10px',
-                                                        border: '1px solid #CBD5E1',
-                                                        fontSize: '0.88rem',
-                                                        fontWeight: 750,
-                                                        color: '#0F172A',
-                                                        background: '#FFFFFF',
-                                                        outline: 'none',
-                                                        boxSizing: 'border-box'
-                                                    }}
-                                                />
-                                            </td>
-
-                                            {/* Rate */}
-                                            <td style={{ padding: '0.65rem 0.75rem' }}>
-                                                <div style={{ position: 'relative' }}>
-                                                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', fontWeight: 800, fontSize: '0.85rem' }}>₹</span>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                     <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="any"
-                                                        placeholder="0.00"
-                                                        value={item.rate}
-                                                        onChange={(e) => handleProductChange(index, 'rate', e.target.value)}
+                                                        type="text"
+                                                        placeholder="Product Name (e.g. Toor Dal / Basmati Rice)"
+                                                        value={item.name}
+                                                        onChange={(e) => handleProductChange(index, 'name', e.target.value)}
                                                         required
                                                         style={{
                                                             width: '100%',
-                                                            padding: '0.55rem 0.75rem 0.55rem 1.6rem',
+                                                            padding: '0.55rem 0.75rem',
                                                             borderRadius: '10px',
-                                                            border: '1px solid #CBD5E1',
+                                                            border: isWeighted ? '1px solid #86EFAC' : '1px solid #CBD5E1',
                                                             fontSize: '0.88rem',
                                                             fontWeight: 750,
                                                             color: '#0F172A',
@@ -962,78 +968,198 @@ const SimpleBilling = () => {
                                                             boxSizing: 'border-box'
                                                         }}
                                                     />
+                                                    {isWeighted && (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                            <span style={{ fontSize: '0.62rem', fontWeight: '850', color: '#166534', background: '#DCFCE7', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                                                ⚖️ Sold by Weight ({item.unit || 'KG'})
+                                                            </span>
+                                                            <span style={{ fontSize: '0.64rem', color: '#15803D', fontWeight: '600' }}>
+                                                                Bag weight entered at billing
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
 
-                                            {/* Quantity with Smooth Stepper Buttons */}
+                                            {/* Rate: Main Branch decides price; Sub Branch only views */}
                                             <td style={{ padding: '0.65rem 0.75rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleQuantityChange(index, -1)}
-                                                        style={{
-                                                            width: '28px',
-                                                            height: '28px',
-                                                            borderRadius: '8px',
-                                                            border: '1px solid #CBD5E1',
-                                                            background: '#FFFFFF',
-                                                            color: '#475569',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            cursor: 'pointer',
-                                                            fontWeight: 900
-                                                        }}
-                                                    >
-                                                        <Minus size={13} strokeWidth={3} />
-                                                    </button>
-                                                    
+                                                <div style={{ position: 'relative' }}>
+                                                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', fontWeight: 800, fontSize: '0.85rem' }}>₹</span>
                                                     <input
                                                         type="number"
-                                                        min="1"
+                                                        min="0"
                                                         step="any"
-                                                        value={item.quantity}
-                                                        onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
+                                                        placeholder="0.00"
+                                                        disabled={!isMainBranch}
+                                                        readOnly={!isMainBranch}
+                                                        value={item.rate}
+                                                        onChange={(e) => {
+                                                            if (isMainBranch) {
+                                                                handleProductChange(index, 'rate', e.target.value);
+                                                            }
+                                                        }}
                                                         required
+                                                        title={isMainBranch ? "Main Branch: You can decide and edit the rate" : "Sub Branch: Rate decided by Main Branch (View Only)"}
                                                         style={{
-                                                            width: '50px',
-                                                            textAlign: 'center',
-                                                            padding: '0.5rem 0.25rem',
-                                                            borderRadius: '8px',
-                                                            border: '1px solid #CBD5E1',
+                                                            width: '100%',
+                                                            padding: '0.55rem 1.8rem 0.55rem 1.6rem',
+                                                            borderRadius: '10px',
+                                                            border: isMainBranch ? '1px solid #CBD5E1' : '1px dashed #CBD5E1',
                                                             fontSize: '0.88rem',
-                                                            fontWeight: 850,
-                                                            color: '#0F172A',
-                                                            background: '#FFFFFF',
-                                                            outline: 'none'
+                                                            fontWeight: 750,
+                                                            color: isMainBranch ? '#0F172A' : '#64748B',
+                                                            background: isMainBranch ? '#FFFFFF' : '#F1F5F9',
+                                                            outline: 'none',
+                                                            cursor: isMainBranch ? 'text' : 'not-allowed',
+                                                            boxSizing: 'border-box'
                                                         }}
                                                     />
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleQuantityChange(index, 1)}
-                                                        style={{
-                                                            width: '28px',
-                                                            height: '28px',
-                                                            borderRadius: '8px',
-                                                            border: '1px solid #CBD5E1',
-                                                            background: '#FFFFFF',
-                                                            color: '#166534',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            cursor: 'pointer',
-                                                            fontWeight: 900
-                                                        }}
-                                                    >
-                                                        <Plus size={13} strokeWidth={3} />
-                                                    </button>
+                                                    <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)' }}>
+                                                        {isMainBranch ? (
+                                                            <span style={{ fontSize: '0.65rem', color: '#10B981' }} title="Main Branch Rate Authority">👑</span>
+                                                        ) : (
+                                                            <Lock size={12} color="#94A3B8" title="Price fixed by Main Branch" />
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div style={{ fontSize: '0.64rem', color: '#64748B', marginTop: '2px', textAlign: 'right' }}>
+                                                    per {item.unit || (isWeighted ? 'KG' : 'Unit')}
                                                 </div>
                                             </td>
 
-                                            {/* Automatic Line Total */}
+                                            {/* Quantity or Weight depending on product type */}
+                                            <td style={{ padding: '0.65rem 0.75rem' }}>
+                                                {isWeighted ? (
+                                                    /* Weight Station Input with Quick Weight Pills */
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', background: '#FFFFFF', border: '1.5px solid #10B981', borderRadius: '8px', padding: '2px 6px', width: '100%', boxSizing: 'border-box', justifyContent: 'center' }}>
+                                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#166534', paddingRight: '4px' }}>⚖️ Weight:</span>
+                                                            <input
+                                                                type="number"
+                                                                step="0.001"
+                                                                min="0.001"
+                                                                value={item.quantity}
+                                                                onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
+                                                                placeholder="0.000"
+                                                                required
+                                                                style={{
+                                                                    width: '65px',
+                                                                    textAlign: 'center',
+                                                                    padding: '0.35rem 0.2rem',
+                                                                    borderRadius: '6px',
+                                                                    border: 'none',
+                                                                    fontSize: '0.88rem',
+                                                                    fontWeight: 850,
+                                                                    color: '#15803D',
+                                                                    background: 'transparent',
+                                                                    outline: 'none'
+                                                                }}
+                                                            />
+                                                            <span style={{ fontSize: '0.72rem', fontWeight: '850', color: '#166534', paddingLeft: '2px' }}>
+                                                                {item.unit || 'KG'}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Quick Bag Weight Presets for Fast Billing */}
+                                                        <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                                            {QUICK_WEIGHT_PRESETS.slice(1).map(p => (
+                                                                <button
+                                                                    key={p.label}
+                                                                    type="button"
+                                                                    onClick={() => handleProductChange(index, 'quantity', p.kg)}
+                                                                    style={{
+                                                                        padding: '1px 5px',
+                                                                        borderRadius: '4px',
+                                                                        border: (parseFloat(item.quantity) === p.kg) ? '1px solid #10B981' : '1px solid #CBD5E1',
+                                                                        background: (parseFloat(item.quantity) === p.kg) ? '#DCFCE7' : '#FFFFFF',
+                                                                        color: (parseFloat(item.quantity) === p.kg) ? '#166534' : '#475569',
+                                                                        fontSize: '0.62rem',
+                                                                        fontWeight: '800',
+                                                                        cursor: 'pointer'
+                                                                    }}
+                                                                >
+                                                                    {p.label}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    /* Discrete Quantity with Smooth Stepper Buttons */
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleQuantityChange(index, -1)}
+                                                            style={{
+                                                                width: '28px',
+                                                                height: '28px',
+                                                                borderRadius: '8px',
+                                                                border: '1px solid #CBD5E1',
+                                                                background: '#FFFFFF',
+                                                                color: '#475569',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                cursor: 'pointer',
+                                                                fontWeight: 900
+                                                            }}
+                                                        >
+                                                            <Minus size={13} strokeWidth={3} />
+                                                        </button>
+                                                        
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            step="any"
+                                                            value={item.quantity}
+                                                            onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
+                                                            required
+                                                            style={{
+                                                                width: '50px',
+                                                                textAlign: 'center',
+                                                                padding: '0.5rem 0.25rem',
+                                                                borderRadius: '8px',
+                                                                border: '1px solid #CBD5E1',
+                                                                fontSize: '0.88rem',
+                                                                fontWeight: 850,
+                                                                color: '#0F172A',
+                                                                background: '#FFFFFF',
+                                                                outline: 'none'
+                                                            }}
+                                                        />
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleQuantityChange(index, 1)}
+                                                            style={{
+                                                                width: '28px',
+                                                                height: '28px',
+                                                                borderRadius: '8px',
+                                                                border: '1px solid #CBD5E1',
+                                                                background: '#FFFFFF',
+                                                                color: '#166534',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                cursor: 'pointer',
+                                                                fontWeight: 900
+                                                            }}
+                                                        >
+                                                            <Plus size={13} strokeWidth={3} />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </td>
+
+                                            {/* Line Item Total */}
                                             <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 900, color: '#166534', fontSize: '0.95rem' }}>
-                                                ₹{itemTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                <div>
+                                                    ₹{itemTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </div>
+                                                {isWeighted && (
+                                                    <div style={{ fontSize: '0.64rem', color: '#64748B', fontWeight: '600' }}>
+                                                        {item.quantity} {item.unit || 'KG'} @ ₹{item.rate}
+                                                    </div>
+                                                )}
                                             </td>
 
                                             {/* Delete Row Button */}
@@ -1221,8 +1347,17 @@ const SimpleBilling = () => {
                                 <tbody>
                                     {submittedRecord.products.map((item, idx) => (
                                         <tr key={idx} style={{ borderBottom: '1px dotted #F1F5F9' }}>
-                                            <td style={{ padding: '4px 0', fontWeight: 600 }}>{item.name}</td>
-                                            <td style={{ padding: '4px 0', textAlign: 'center' }}>{item.quantity}</td>
+                                            <td style={{ padding: '4px 0', fontWeight: 600 }}>
+                                                {item.name}
+                                                {item.unit && item.unit !== 'PCS' && (
+                                                    <span style={{ fontSize: '0.65rem', color: '#166534', fontWeight: 700, display: 'block' }}>
+                                                        ⚖️ {item.unit}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: '4px 0', textAlign: 'center' }}>
+                                                {item.quantity} {item.unit && item.unit !== 'PCS' ? item.unit : ''}
+                                            </td>
                                             <td style={{ padding: '4px 0', textAlign: 'right' }}>₹{item.rate}</td>
                                             <td style={{ padding: '4px 0', textAlign: 'right', fontWeight: 700 }}>₹{item.total}</td>
                                         </tr>
