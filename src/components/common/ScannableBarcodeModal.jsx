@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
-import Barcode from 'react-barcode';
-import { X, Printer, Download, Copy, Check, Barcode as BarcodeIcon, Tag, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import JsBarcode from 'jsbarcode';
+import { X, Printer, Copy, Check, Barcode as BarcodeIcon, Tag, Sparkles } from 'lucide-react';
 
 /**
  * ScannableBarcodeModal
@@ -13,10 +13,8 @@ export const ScannableBarcodeModal = ({
     product = null,
     barcodeValue: explicitBarcode = null
 }) => {
-    const [copied, setCopied] = React.useState(false);
-    const barcodeContainerRef = useRef(null);
-
-    if (!isOpen) return null;
+    const [copied, setCopied] = useState(false);
+    const svgRef = useRef(null);
 
     const rawBarcode = explicitBarcode || 
         product?.barcode || 
@@ -24,21 +22,57 @@ export const ScannableBarcodeModal = ({
         product?.sku || 
         (product?.id ? `PROD-${product.id}` : '123456789012');
         
-    const cleanBarcode = String(rawBarcode).trim();
+    const cleanBarcode = String(rawBarcode || '').trim();
     const productName = product?.name || product?.title || product?.item_name || 'Product Barcode';
     const productSku = product?.sku || product?.rawProduct?.sku || '';
     const productCategory = product?.category || 'General';
-    const productPrice = product?.price ?? product?.selling_price ?? product?.unit_price ?? null;
+    const rawPrice = product?.price ?? product?.selling_price ?? product?.unit_price ?? null;
+    const productPrice = (rawPrice !== null && rawPrice !== undefined && !isNaN(Number(rawPrice)))
+        ? Number(rawPrice)
+        : null;
+
+    useEffect(() => {
+        if (!isOpen || !svgRef.current || !cleanBarcode) return;
+        try {
+            JsBarcode(svgRef.current, cleanBarcode, {
+                format: "CODE128",
+                width: 2.1,
+                height: 90,
+                fontSize: 15,
+                margin: 8,
+                background: "#FFFFFF",
+                lineColor: "#000000",
+                displayValue: true
+            });
+        } catch {
+            // Fallback: try default generic auto-format
+            try {
+                JsBarcode(svgRef.current, cleanBarcode, {
+                    width: 2.1,
+                    height: 90,
+                    fontSize: 15,
+                    margin: 8,
+                    background: "#FFFFFF",
+                    lineColor: "#000000",
+                    displayValue: true
+                });
+            } catch {
+                // Ignore rendering errors on invalid characters
+            }
+        }
+    }, [isOpen, cleanBarcode]);
+
+    if (!isOpen) return null;
 
     const handleCopy = () => {
+        if (!cleanBarcode) return;
         navigator.clipboard.writeText(cleanBarcode);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
 
     const handlePrint = () => {
-        const svgElement = barcodeContainerRef.current?.querySelector('svg');
-        const svgHtml = svgElement ? svgElement.outerHTML : '';
+        const svgHtml = svgRef.current ? svgRef.current.outerHTML : '';
 
         const printWindow = window.open('', '_blank', 'width=650,height=550');
         if (!printWindow) {
@@ -120,7 +154,7 @@ export const ScannableBarcodeModal = ({
                         <div class="barcode-box">
                             ${svgHtml}
                         </div>
-                        ${productPrice !== null ? `<div class="price">₹${Number(productPrice).toFixed(2)}</div>` : ''}
+                        ${productPrice !== null ? `<div class="price">₹${productPrice.toFixed(2)}</div>` : ''}
                     </div>
                     <script>
                         window.onload = function() {
@@ -238,7 +272,7 @@ export const ScannableBarcodeModal = ({
                             {productPrice !== null && (
                                 <>
                                     <span>•</span>
-                                    <span style={{ color: '#166534', fontWeight: '800' }}>₹{Number(productPrice).toFixed(2)}</span>
+                                    <span style={{ color: '#166534', fontWeight: '800' }}>₹{productPrice.toFixed(2)}</span>
                                 </>
                             )}
                         </div>
@@ -246,7 +280,6 @@ export const ScannableBarcodeModal = ({
 
                     {/* THE REAL SCANNABLE ZEBRA BARCODE CARD */}
                     <div 
-                        ref={barcodeContainerRef}
                         style={{
                             width: '100%',
                             background: '#FFFFFF',
@@ -258,20 +291,11 @@ export const ScannableBarcodeModal = ({
                             alignItems: 'center',
                             justifyContent: 'center',
                             boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-                            boxSizing: 'border-box'
+                            boxSizing: 'border-box',
+                            minHeight: '140px'
                         }}
                     >
-                        <Barcode
-                            value={cleanBarcode}
-                            format="CODE128"
-                            width={2.1}
-                            height={90}
-                            fontSize={15}
-                            margin={8}
-                            background="#FFFFFF"
-                            lineColor="#000000"
-                            displayValue={true}
-                        />
+                        <svg ref={svgRef} style={{ maxWidth: '100%' }} />
 
                         <div style={{
                             marginTop: '8px',
@@ -391,3 +415,4 @@ export const ScannableBarcodeModal = ({
 };
 
 export default ScannableBarcodeModal;
+
