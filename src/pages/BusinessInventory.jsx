@@ -33,7 +33,8 @@ import {
     Trash,
     DollarSign,
     Percent,
-    AlertCircle
+    AlertCircle,
+    Barcode
 } from 'lucide-react';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
@@ -1050,12 +1051,19 @@ const BusinessInventory = () => {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
-                                                        {[
-                                                            row.sku ? `SKU: ${row.sku}` : null,
-                                                            `Code: ${row.product_code || 'PRO-' + row.id}`
-                                                        ].filter(Boolean).join(' | ')}
-                                                    </span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
+                                                        <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                                                            {[
+                                                                row.sku ? `SKU: ${row.sku}` : null,
+                                                                `Code: ${row.product_code || 'PRO-' + row.id}`
+                                                            ].filter(Boolean).join(' | ')}
+                                                        </span>
+                                                        {row.barcode && (
+                                                            <span style={{ fontSize: '0.72rem', fontWeight: '800', background: '#F0FDF4', color: '#166534', padding: '1px 7px', borderRadius: '5px', border: '1px solid #BBF7D0', display: 'inline-flex', alignItems: 'center', gap: '4px', letterSpacing: '0.5px' }} title={`Barcode: ${row.barcode}`}>
+                                                                <Barcode size={12} color="#166534" /> {row.barcode}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>

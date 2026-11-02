@@ -204,7 +204,7 @@ const BusinessBarcode = () => {
         if (!id) return;
         const prod = stockProducts.find(p => String(p.id) === String(id));
         if (prod) {
-            const skuVal = prod.sku || prod.barcode || prod.code || `SKU-${prod.id}`;
+            const skuVal = prod.barcode || prod.sku || prod.code || `SKU-${prod.id}`;
             const titleVal = prod.name || prod.title || prod.product_name || prod.item_name || 'Inventory Product';
             const subVal = prod.subtitle || prod.description || (prod.category || prod.unit ? `Category: ${prod.category || 'General'}${prod.unit ? ' | Unit: ' + prod.unit : ''}` : '');
             const priceVal = String(prod.selling_price ?? prod.price ?? prod.rate ?? prod.unit_price ?? '0.00');
@@ -783,7 +783,14 @@ const BusinessBarcode = () => {
                                                             >
                                                                 <div>
                                                                     <div style={{ fontWeight: '750', fontSize: '0.88rem', color: '#0F172A' }}>{pName}</div>
-                                                                    <div style={{ fontSize: '0.73rem', color: '#64748B' }}>SKU: {pSku}</div>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.73rem', marginTop: '2px', flexWrap: 'wrap' }}>
+                                                                        {prod.barcode && (
+                                                                            <span style={{ fontWeight: '800', color: '#166534', background: '#DCFCE7', padding: '1px 6px', borderRadius: '4px', letterSpacing: '0.4px', border: '1px solid #BBF7D0' }}>
+                                                                                🏷️ {prod.barcode}
+                                                                            </span>
+                                                                        )}
+                                                                        {prod.sku && <span style={{ color: '#64748B' }}>SKU: {prod.sku}</span>}
+                                                                    </div>
                                                                 </div>
                                                                 <div style={{ fontWeight: '850', fontSize: '0.88rem', color: '#1B6B3A' }}>
                                                                     ₹{pPrice}

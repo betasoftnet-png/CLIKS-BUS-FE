@@ -4557,6 +4557,11 @@ const BusinessPOS = () => {
                                                     <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: '850', color: '#0F172A', lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{prod.name}</h4>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
                                                         {prod.sku && <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '500' }}>SKU: {prod.sku}</span>}
+                                                        {(prod.barcode || prod.rawProduct?.barcode) && (
+                                                            <span style={{ fontSize: '0.65rem', color: '#166534', fontWeight: '750', background: '#DCFCE7', border: '1px solid #BBF7D0', padding: '1px 5px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '2px', letterSpacing: '0.3px' }} title={`Barcode: ${prod.barcode || prod.rawProduct?.barcode}`}>
+                                                                <Barcode size={10} color="#166534" /> {prod.barcode || prod.rawProduct?.barcode}
+                                                            </span>
+                                                        )}
                                                         {isProductWeighted(prod) && (
                                                             <span style={{ fontSize: '0.6rem', fontWeight: '850', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 5px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
                                                                 ⚖️ Sold by Weight
@@ -7768,9 +7773,17 @@ const BusinessPOS = () => {
                                             {infoTargetProduct.category || 'General'}
                                         </span>
                                     </h3>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#64748B', marginTop: '2px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#64748B', marginTop: '2px', flexWrap: 'wrap' }}>
                                         {infoTargetProduct.sku && <span>SKU: <strong style={{ color: '#334155' }}>{infoTargetProduct.sku}</strong></span>}
                                         {infoTargetProduct.sku && <span>•</span>}
+                                        {(infoTargetProduct.barcode || infoTargetProduct.rawProduct?.barcode) && (
+                                            <>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#166534', fontWeight: '800', background: '#DCFCE7', padding: '1px 7px', borderRadius: '5px', border: '1px solid #BBF7D0' }}>
+                                                    <Barcode size={12} color="#166534" /> {infoTargetProduct.barcode || infoTargetProduct.rawProduct?.barcode}
+                                                </span>
+                                                <span>•</span>
+                                            </>
+                                        )}
                                         <span>Price: <strong style={{ color: '#0F172A' }}>{formatCurrency(infoTargetProduct.price || 0)}</strong> / {infoTargetProduct.unit || 'PCS'}</span>
                                     </div>
                                 </div>
