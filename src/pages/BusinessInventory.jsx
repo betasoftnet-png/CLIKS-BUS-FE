@@ -3,6 +3,7 @@ import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { productsService, hsnService, warehouseService, stockService } from '../services';
+import { generateEan13Barcode } from '../utils/barcodeScannerHelper';
 import {
     Package,
     Plus,
@@ -709,7 +710,7 @@ const BusinessInventory = () => {
             expired_stock: isUnlimited ? 0 : (parseFloat(formData.expired_stock) || 0),
             purchase_price: parseFloat(formData.purchase_price) || 0,
             selling_price: parseFloat(formData.selling_price) || 0,
-            barcode: formData.barcode,
+            barcode: (formData.barcode && String(formData.barcode).trim()) || generateEan13Barcode('890'),
             serial_number: formData.serial_number,
             batch_number: formData.batch_number,
             has_expiry: Boolean(formData.has_expiry),

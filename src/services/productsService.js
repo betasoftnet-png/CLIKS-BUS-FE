@@ -19,6 +19,7 @@ export const productsService = {
     },
 
     createProduct: (data) => apiClient.post('/products', data).then(res => res.data.data || res.data),
+    backfillBarcodes: () => apiClient.post('/products/backfill-barcodes').then(res => res.data.data || res.data),
 
     updateProduct: (id, data) => apiClient.put(`/products/${id}`, data).then(res => res.data.data || res.data),
 

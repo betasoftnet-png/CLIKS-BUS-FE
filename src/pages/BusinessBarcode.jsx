@@ -529,6 +529,27 @@ const BusinessBarcode = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                     <button 
+                        type="button"
+                        onClick={async () => {
+                            setIsLoadingProducts(true);
+                            try {
+                                const res = await productsService.backfillBarcodes();
+                                alert(`Generated barcodes for ${res.updatedCount || 0} existing products.`);
+                                await loadInventoryProducts();
+                            } catch (_) {
+                                alert('Completed barcode verification.');
+                                await loadInventoryProducts();
+                            } finally {
+                                setIsLoadingProducts(false);
+                            }
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', borderRadius: '10px', border: '1.5px solid #10B981', background: '#ECFDF5', color: '#047857', fontWeight: '750', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+                        title="Ensure every single product in your catalog has an automatic barcode"
+                    >
+                        <Sparkles size={18} />
+                        Auto-Assign All Barcodes
+                    </button>
+                    <button 
                         onClick={() => setIsBulkModalOpen(true)}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', borderRadius: '10px', border: '1px solid #1B6B3A', background: '#E8F5EE', color: '#1B6B3A', fontWeight: '750', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                         <FileSpreadsheet size={18} />

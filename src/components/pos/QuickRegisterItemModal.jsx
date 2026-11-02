@@ -1,11 +1,12 @@
 /* eslint-disable react/prop-types */
 import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Info, Loader2, Scale } from 'lucide-react';
+import { X, Plus, Info, Loader2, Scale, Barcode, RefreshCw } from 'lucide-react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { productsService, inventoryService, hsnService, stockService } from '../../services';
 import { CurrencyContext } from '../../context/CurrencyContext';
 import { isProductWeighted } from '../../utils/weightBillingHelper';
+import { generateEan13Barcode } from '../../utils/barcodeScannerHelper';
 
 const DEFAULT_CATEGORIES = [
     'General',
@@ -161,7 +162,7 @@ export const QuickRegisterItemModal = ({
                         : 18));
             setTaxRate(`${taxVal}% GST`);
             setSku(editingProduct.sku || '');
-            setBarcode(editingProduct.barcode || editingProduct.sku || '');
+            setBarcode(editingProduct.barcode || generateEan13Barcode('890'));
 
             // Fallback lookup in query cache if editingProduct doesn't have hsn_code
             let resolvedHsn = editingProduct.hsn_code || editingProduct.hsnCode || editingProduct.hsn || editingProduct.hsn_sac || editingProduct.rawProduct?.hsn_code || editingProduct.rawProduct?.hsnCode || '';
@@ -253,7 +254,7 @@ export const QuickRegisterItemModal = ({
             setIsCustomCategory(false);
             setTaxRate('18% GST');
             setSku(`SKU-${Date.now().toString().slice(-4)}`);
-            setBarcode(`SKU-${Date.now().toString().slice(-4)}`);
+            setBarcode(generateEan13Barcode('890'));
             setHsnCode('');
             setHsnQueryOverride('');
             setUserTypedHsnCode(false);
@@ -536,7 +537,7 @@ export const QuickRegisterItemModal = ({
         const defaultCategory = (category || '').trim() || 'General';
         const defaultUnit = (unit || '').trim() || 'PCS';
         const defaultSku = (sku || '').trim() || `SKU-${Date.now().toString().slice(-4)}`;
-        const defaultBarcode = (barcode || '').trim() || defaultSku;
+        const defaultBarcode = (barcode || '').trim() || generateEan13Barcode('890');
         const defaultHsnCode = (hsnCode || '').trim() || (hsnSuggestions.length > 0 ? (hsnSuggestions[0].hsnCode || hsnSuggestions[0].hsn_code) : '');
 
         const sPrice = parseFloat(sellingPrice) || 0;
@@ -910,17 +911,49 @@ export const QuickRegisterItemModal = ({
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>Barcode / SKU</label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
+                                    <Barcode size={13} color="#059669" /> Barcode (EAN-13)
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => setBarcode(generateEan13Barcode('890'))}
+                                    style={{
+                                        background: '#ECFDF5',
+                                        border: '1px solid #A7F3D0',
+                                        color: '#065F46',
+                                        fontSize: '0.62rem',
+                                        fontWeight: '700',
+                                        borderRadius: '6px',
+                                        padding: '1px 5px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '2px'
+                                    }}
+                                    title="Regenerate new unique EAN-13 barcode"
+                                >
+                                    <RefreshCw size={10} /> Auto-Gen
+                                </button>
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="890XXXXXXXXXX"
+                                value={barcode}
+                                onChange={(e) => setBarcode(e.target.value)}
+                                style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1.5px solid #10B981', background: '#F0FDF4', outline: 'none', fontSize: '0.85rem', fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.04em', color: '#065F46' }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>SKU Code</label>
                             <input
                                 type="text"
                                 value={sku}
-                                onChange={(e) => {
-                                    setSku(e.target.value);
-                                    setBarcode(e.target.value);
-                                }}
+                                onChange={(e) => setSku(e.target.value)}
                                 style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }}
                             />
                         </div>
+                    </div>
                         <div style={{ position: 'relative' }} ref={hsnContainerRef}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>HSN / SAC Code</label>
@@ -1110,7 +1143,6 @@ export const QuickRegisterItemModal = ({
                                 </div>
                             )}
                         </div>
-                    </div>
 
                     <button
                         type="submit"

@@ -4,6 +4,7 @@ import { X, PackagePlus, Loader2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { productsService } from '../../services';
 import { useCurrency } from '../../context/CurrencyContext';
+import { generateEan13Barcode } from '../../utils/barcodeScannerHelper';
 
 export const NewProductModal = ({ isOpen, onClose, onSuccess, onProductCreated }) => {
     const { currency } = useCurrency();
@@ -16,6 +17,7 @@ export const NewProductModal = ({ isOpen, onClose, onSuccess, onProductCreated }
     const [form, setForm] = useState({
         name: '',
         sku: '',
+        barcode: generateEan13Barcode('890'),
         category: 'General',
         primary_unit: 'pcs',
         purchase_price: '',
@@ -76,6 +78,7 @@ export const NewProductModal = ({ isOpen, onClose, onSuccess, onProductCreated }
         }
 
         const generatedSku = form.sku.trim() || `SKU-${Date.now().toString().slice(-6)}`;
+        const generatedBarcode = (form.barcode || '').trim() || generateEan13Barcode('890');
         const pPrice = parseFloat(form.purchase_price) || 0;
         const sPrice = parseFloat(form.selling_price) || (pPrice > 0 ? parseFloat((pPrice * 1.2).toFixed(2)) : 0);
         const submittedTax = (form.tax_percentage !== undefined && form.tax_percentage !== null && !isNaN(parseInt(form.tax_percentage, 10))) ? parseInt(form.tax_percentage, 10) : 18;
@@ -84,6 +87,7 @@ export const NewProductModal = ({ isOpen, onClose, onSuccess, onProductCreated }
             name: form.name.trim(),
             product_name: form.name.trim(),
             sku: generatedSku,
+            barcode: generatedBarcode,
             category: form.category || 'General',
             category_name: form.category || 'General',
             primary_unit: form.primary_unit || 'pcs',

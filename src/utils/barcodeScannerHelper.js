@@ -251,3 +251,30 @@ export const findProductByBarcodeOrQr = (searchCode, catalogList = []) => {
     return null;
 };
 
+/**
+ * Calculates GS1 Modulo-10 checksum digit for 12 numeric digits
+ */
+export const calculateEan13Checksum = (first12Digits) => {
+    const str = String(first12Digits).replace(/\D/g, '').padStart(12, '0').slice(-12);
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+        const digit = parseInt(str[i], 10);
+        sum += (i % 2 === 0) ? digit : digit * 3;
+    }
+    const rem = sum % 10;
+    return rem === 0 ? 0 : 10 - rem;
+};
+
+/**
+ * Generates a valid standard 13-digit EAN-13 barcode
+ */
+export const generateEan13Barcode = (prefix = '890') => {
+    const cleanPrefix = String(prefix || '890').slice(0, 3);
+    const nowStr = Date.now().toString().slice(-7);
+    const randPart = Math.floor(10 + Math.random() * 90).toString();
+    const first12 = `${cleanPrefix}${nowStr}${randPart}`;
+    const check = calculateEan13Checksum(first12);
+    return `${first12}${check}`;
+};
+
+
