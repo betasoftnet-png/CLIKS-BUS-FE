@@ -4561,35 +4561,6 @@ const BusinessPOS = () => {
                                                     <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: '850', color: '#0F172A', lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{prod.name}</h4>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
                                                         {prod.sku && <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '500' }}>SKU: {prod.sku}</span>}
-                                                        {(prod.barcode || prod.rawProduct?.barcode) && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setBarcodeModalProduct(prod);
-                                                                    setIsBarcodeModalOpen(true);
-                                                                }}
-                                                                style={{
-                                                                    fontSize: '0.65rem',
-                                                                    color: '#166534',
-                                                                    fontWeight: '800',
-                                                                    background: '#DCFCE7',
-                                                                    border: '1px solid #BBF7D0',
-                                                                    padding: '2px 6px',
-                                                                    borderRadius: '5px',
-                                                                    display: 'inline-flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '4px',
-                                                                    cursor: 'pointer',
-                                                                    transition: 'all 0.15s'
-                                                                }}
-                                                                title="Click to view full scannable barcode stripes for scanner gun"
-                                                            >
-                                                                <Barcode size={11} color="#166534" />
-                                                                <span>{prod.barcode || prod.rawProduct?.barcode}</span>
-                                                                <span style={{ fontSize: '0.58rem', color: '#15803D', background: '#BBF7D0', padding: '0 4px', borderRadius: '3px' }}>Scan</span>
-                                                            </button>
-                                                        )}
                                                         {isProductWeighted(prod) && (
                                                             <span style={{ fontSize: '0.6rem', fontWeight: '850', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 5px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
                                                                 ⚖️ Sold by Weight
