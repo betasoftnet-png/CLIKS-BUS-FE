@@ -3872,7 +3872,7 @@ const BusinessPOS = () => {
                         </div>
 
                         {/* Supermarket Barcode / QR Scanner Trigger */}
-                        <button
+                        {/* <button
                             type="button"
                             onClick={() => setIsCameraScannerOpen(true)}
                             style={{
@@ -3896,7 +3896,7 @@ const BusinessPOS = () => {
                         >
                             <Barcode size={18} color="#059669" />
                             <span>Scan QR / Barcode</span>
-                        </button>
+                        </button> */}
 
                         {/* Product Filter & Sort / List Dropdown (Icon Only) */}
                         <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={sortFilterDropdownRef}>
