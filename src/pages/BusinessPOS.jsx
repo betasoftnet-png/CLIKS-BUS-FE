@@ -2276,7 +2276,74 @@ const BusinessPOS = () => {
     };
 
     const handleOpenProductInfo = (prod) => {
+        if (!prod) return;
         setInfoTargetProduct(prod);
+
+        // Pre-populate productAnalyticsData with instantaneous fallback data
+        const rawStock = parseFloat(prod.quantity) || 0;
+        const isUnlimited = Boolean(prod.isUnlimited || prod.is_unlimited || rawStock >= 999000);
+        const rackLoc = prod.rack_location || prod.rack_number || prod.rack || prod.rawProduct?.rack_location || prod.rawProduct?.rack_number || prod.rawProduct?.rack || 'Not Assigned';
+        const expiryDate = prod.expiry_date || prod.rawProduct?.expiry_date || null;
+        let isExpired = false;
+        let daysToExpiry = null;
+        if (expiryDate) {
+            try {
+                const expTime = new Date(expiryDate).getTime();
+                daysToExpiry = Math.ceil((expTime - Date.now()) / (1000 * 60 * 60 * 24));
+                isExpired = daysToExpiry < 0;
+            } catch (e) {}
+        }
+        const hasWarranty = prod.has_warranty === 'Yes' || prod.has_warranty === true || Boolean(prod.warranty_period) || Boolean(prod.rawProduct?.warranty_period);
+        const warrantyPeriod = prod.warranty_period || prod.rawProduct?.warranty_period || (hasWarranty ? '1 Year Standard Warranty' : 'No Warranty');
+
+        setProductAnalyticsData({
+            product: {
+                id: prod.id,
+                name: prod.name,
+                sku: prod.sku,
+                category: prod.category || 'General',
+                unit: prod.unit || 'PCS',
+                price: prod.price || 0
+            },
+            stock: {
+                quantity: isUnlimited ? '∞' : rawStock,
+                unit: prod.unit || 'PCS',
+                is_unlimited: isUnlimited,
+                low_stock_threshold: prod.low_stock_threshold || prod.rawProduct?.low_stock_threshold || 5,
+                warehouse: prod.warehouse_id || prod.location || 'Main Godown',
+                status: isUnlimited ? 'In Stock (Unlimited)' : (rawStock <= 0 ? 'Out of Stock' : (rawStock < (prod.low_stock_threshold || 5) ? 'Low Stock' : 'In Stock'))
+            },
+            rack: {
+                rack_location: rackLoc,
+                shelf_number: prod.shelf_number || prod.rawProduct?.shelf_number || null,
+                bin_number: prod.bin_number || prod.rawProduct?.bin_number || null,
+                zone: prod.zone || prod.rawProduct?.zone || null,
+                formatted: rackLoc !== 'Not Assigned' ? `${rackLoc}${prod.shelf_number ? ` (Shelf ${prod.shelf_number})` : ''}` : 'Not Assigned'
+            },
+            expiry: {
+                expiry_date: expiryDate || 'N/A',
+                is_perishable: Boolean(prod.is_perishable || prod.rawProduct?.is_perishable),
+                batch_number: prod.batch_number || prod.rawProduct?.batch_number || null,
+                is_expired: isExpired,
+                days_remaining: daysToExpiry,
+                status: !expiryDate ? 'Non-Perishable / N/A' : (isExpired ? 'Expired' : (daysToExpiry !== null && daysToExpiry <= 30 ? `Expiring Soon (${daysToExpiry}d)` : `Valid (${daysToExpiry}d left)`))
+            },
+            warranty: {
+                has_warranty: hasWarranty,
+                warranty_period: warrantyPeriod,
+                status: hasWarranty ? `Active (${warrantyPeriod})` : 'No Warranty Available'
+            },
+            sales: {
+                total_sales_amount: 0,
+                total_quantity_sold: 0,
+                total_orders: 0,
+                unique_customers_count: 0,
+                unique_customers_list: [],
+                customer_breakdown: [],
+                transactions: [],
+                date_range: { range: productSalesRange, start_date: productSalesFromDate, end_date: productSalesToDate }
+            }
+        });
         setIsProductInfoModalOpen(true);
         fetchProductAnalytics(prod, productSalesRange, productSalesFromDate, productSalesToDate);
     };
@@ -7402,22 +7469,30 @@ const BusinessPOS = () => {
                                         </div>
 
                                         {/* 3. EXPIRY CARD */}
-                                        <div style={{ background: expiryInfo?.is_expired ? '#FEF2F2' : (expiryInfo?.days_remaining !== null && expiryInfo?.days_remaining <= 30 ? '#FFFBEB' : '#F8FAFC'), borderRadius: '12px', border: `1px solid ${expiryInfo?.is_expired ? '#FECACA' : (expiryInfo?.days_remaining !== null && expiryInfo?.days_remaining <= 30 ? '#FDE68A' : '#E2E8F0')}`, padding: '0.8rem 0.9rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '0.65rem', fontWeight: '800', color: expiryInfo?.is_expired ? '#991B1B' : '#475569', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <Clock size={13} /> Expiry
-                                                </span>
-                                                <span style={{ fontSize: '0.62rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px', background: expiryInfo?.is_expired ? '#FEE2E2' : (expiryInfo?.days_remaining !== null && expiryInfo?.days_remaining <= 30 ? '#FEF3C7' : '#F1F5F9'), color: expiryInfo?.is_expired ? '#DC2626' : (expiryInfo?.days_remaining !== null && expiryInfo?.days_remaining <= 30 ? '#D97706' : '#475569') }}>
-                                                    {expiryInfo?.status ? expiryInfo.status.split('(')[0].trim() : 'N/A'}
-                                                </span>
-                                            </div>
-                                            <div style={{ fontSize: '0.98rem', fontWeight: '900', color: expiryInfo?.is_expired ? '#B91C1C' : '#0F172A', letterSpacing: '-0.01em' }}>
-                                                {expiryInfo?.expiry_date && expiryInfo.expiry_date !== 'N/A' ? expiryInfo.expiry_date : 'Non-Perishable'}
-                                            </div>
-                                            <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
-                                                {expiryInfo?.batch_number ? `Batch: ${expiryInfo.batch_number}` : (expiryInfo?.days_remaining !== null ? `${expiryInfo.days_remaining} days remaining` : 'No expiry track')}
-                                            </div>
-                                        </div>
+                                        {(() => {
+                                            const hasDaysRemaining = expiryInfo?.days_remaining !== undefined && expiryInfo?.days_remaining !== null;
+                                            const isExpiringSoon = hasDaysRemaining && expiryInfo.days_remaining <= 30;
+                                            const isExpired = Boolean(expiryInfo?.is_expired);
+
+                                            return (
+                                                <div style={{ background: isExpired ? '#FEF2F2' : (isExpiringSoon ? '#FFFBEB' : '#F8FAFC'), borderRadius: '12px', border: `1px solid ${isExpired ? '#FECACA' : (isExpiringSoon ? '#FDE68A' : '#E2E8F0')}`, padding: '0.8rem 0.9rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ fontSize: '0.65rem', fontWeight: '800', color: isExpired ? '#991B1B' : '#475569', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            <Clock size={13} /> Expiry
+                                                        </span>
+                                                        <span style={{ fontSize: '0.62rem', fontWeight: '800', padding: '1px 6px', borderRadius: '4px', background: isExpired ? '#FEE2E2' : (isExpiringSoon ? '#FEF3C7' : '#F1F5F9'), color: isExpired ? '#DC2626' : (isExpiringSoon ? '#D97706' : '#475569') }}>
+                                                            {expiryInfo?.status ? expiryInfo.status.split('(')[0].trim() : 'N/A'}
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.98rem', fontWeight: '900', color: isExpired ? '#B91C1C' : '#0F172A', letterSpacing: '-0.01em' }}>
+                                                        {expiryInfo?.expiry_date && expiryInfo.expiry_date !== 'N/A' ? expiryInfo.expiry_date : 'Non-Perishable'}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
+                                                        {expiryInfo?.batch_number ? `Batch: ${expiryInfo.batch_number}` : (hasDaysRemaining ? `${expiryInfo.days_remaining} days remaining` : 'No expiry track')}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
 
                                         {/* 4. WARRANTY CARD */}
                                         <div style={{ background: warrantyInfo?.has_warranty ? '#F0FDF4' : '#F8FAFC', borderRadius: '12px', border: `1px solid ${warrantyInfo?.has_warranty ? '#BBF7D0' : '#E2E8F0'}`, padding: '0.8rem 0.9rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>

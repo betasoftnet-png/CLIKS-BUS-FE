@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Info, Loader2 } from 'lucide-react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { productsService, inventoryService, hsnService } from '../../services';
+import { productsService, inventoryService, hsnService, stockService } from '../../services';
 import { CurrencyContext } from '../../context/CurrencyContext';
 
 const DEFAULT_CATEGORIES = [
@@ -199,9 +199,9 @@ export const QuickRegisterItemModal = ({
                 const targetId = editingProduct.id ? String(editingProduct.id) : null;
 
                 Promise.all([
-                    productsService.getProducts().catch(() => []),
-                    inventoryService.getInventory().catch(() => []),
-                    stockService.getStocks().catch(() => [])
+                    productsService?.getProducts ? productsService.getProducts().catch(() => []) : Promise.resolve([]),
+                    inventoryService?.getInventory ? inventoryService.getInventory().catch(() => []) : Promise.resolve([]),
+                    stockService?.getStocks ? stockService.getStocks().catch(() => []) : Promise.resolve([])
                 ]).then(([prods, invs, stocks]) => {
                     const allItems = [...(prods || []), ...(invs || []), ...(stocks || [])];
                     const found = allItems.find(item => {
