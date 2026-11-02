@@ -7,6 +7,7 @@ import { productsService, inventoryService, hsnService, stockService } from '../
 import { CurrencyContext } from '../../context/CurrencyContext';
 import { isProductWeighted } from '../../utils/weightBillingHelper';
 import { generateEan13Barcode } from '../../utils/barcodeScannerHelper';
+import { ProductBarcodeGraphic } from '../common/ProductBarcodeGraphic';
 
 const DEFAULT_CATEGORIES = [
     'General',
@@ -943,6 +944,14 @@ export const QuickRegisterItemModal = ({
                                 onChange={(e) => setBarcode(e.target.value)}
                                 style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1.5px solid #10B981', background: '#F0FDF4', outline: 'none', fontSize: '0.85rem', fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.04em', color: '#065F46' }}
                             />
+                            {barcode && (
+                                <div style={{ marginTop: '0.4rem', background: '#FFFFFF', padding: '4px', borderRadius: '8px', border: '1px solid #BBF7D0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <ProductBarcodeGraphic value={barcode} width={1.5} height={42} fontSize={10} />
+                                    <span style={{ fontSize: '0.6rem', color: '#059669', fontWeight: '700' }}>
+                                        Scannable Barcode
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         <div>
                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>SKU Code</label>

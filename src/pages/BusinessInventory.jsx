@@ -40,6 +40,8 @@ import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency, useAuth } from '../context';
+import { ScannableBarcodeModal } from '../components/common/ScannableBarcodeModal';
+import { ProductBarcodeGraphic } from '../components/common/ProductBarcodeGraphic';
 
 const BusinessInventory = () => {
     const { currency, formatCurrency } = useCurrency();
@@ -48,6 +50,8 @@ const BusinessInventory = () => {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [colFilters, setColFilters] = React.useState({});
+    const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState(false);
+    const [barcodeModalProduct, setBarcodeModalProduct] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
     const [adjustType, setAdjustType] = useState('in'); // 'in' or 'out'
@@ -1059,9 +1063,34 @@ const BusinessInventory = () => {
                                                             ].filter(Boolean).join(' | ')}
                                                         </span>
                                                         {row.barcode && (
-                                                            <span style={{ fontSize: '0.72rem', fontWeight: '800', background: '#F0FDF4', color: '#166534', padding: '1px 7px', borderRadius: '5px', border: '1px solid #BBF7D0', display: 'inline-flex', alignItems: 'center', gap: '4px', letterSpacing: '0.5px' }} title={`Barcode: ${row.barcode}`}>
-                                                                <Barcode size={12} color="#166534" /> {row.barcode}
-                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setBarcodeModalProduct(row);
+                                                                    setIsBarcodeModalOpen(true);
+                                                                }}
+                                                                style={{
+                                                                    fontSize: '0.72rem',
+                                                                    fontWeight: '800',
+                                                                    background: '#F0FDF4',
+                                                                    color: '#166534',
+                                                                    padding: '2px 8px',
+                                                                    borderRadius: '6px',
+                                                                    border: '1px solid #BBF7D0',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '5px',
+                                                                    letterSpacing: '0.5px',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s'
+                                                                }}
+                                                                title="Click to view full scannable barcode stripes for scanner gun"
+                                                            >
+                                                                <Barcode size={13} color="#166534" /> 
+                                                                <span>{row.barcode}</span>
+                                                                <span style={{ fontSize: '0.62rem', background: '#BBF7D0', color: '#14532D', padding: '0 4px', borderRadius: '4px' }}>Scan</span>
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </div>
@@ -1428,8 +1457,26 @@ const BusinessInventory = () => {
                                     <input type="text" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Apple" />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Barcode Number</label>
-                                    <input type="text" value={formData.barcode} onChange={(e) => setFormData({ ...formData, barcode: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Scan/Enter" />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Barcode Number</label>
+                                        <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: '700' }}>Hardware Gun Compatible</span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <input type="text" value={formData.barcode} onChange={(e) => setFormData({ ...formData, barcode: e.target.value })} style={{ flex: 1, padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Scan/Enter barcode" />
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, barcode: generateEan13Barcode('890') })}
+                                            style={{ padding: '0.75rem 0.9rem', borderRadius: '12px', border: '1px solid #BBF7D0', background: '#F0FDF4', color: '#166534', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                            title="Auto-generate 13-digit barcode"
+                                        >
+                                            🔄 Auto
+                                        </button>
+                                    </div>
+                                    {formData.barcode && (
+                                        <div style={{ marginTop: '0.5rem', background: '#FFFFFF', padding: '8px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                            <ProductBarcodeGraphic value={formData.barcode} width={1.8} height={52} fontSize={12} />
+                                        </div>
+                                    )}
                                 </div>
                                 <div style={{ position: 'relative' }} ref={hsnInfoRef}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -2578,6 +2625,16 @@ const BusinessInventory = () => {
                     </div>
                 </div>
             )}
+
+            {/* SCANNABLE FULLSCREEN / PRINT BARCODE MODAL */}
+            <ScannableBarcodeModal
+                isOpen={isBarcodeModalOpen}
+                onClose={() => {
+                    setIsBarcodeModalOpen(false);
+                    setBarcodeModalProduct(null);
+                }}
+                product={barcodeModalProduct}
+            />
         </div>
     );
 };

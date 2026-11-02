@@ -82,6 +82,8 @@ import FilterableTableHead from '../components/FilterableTableHead';
 import QuickRegisterItemModal from '../components/pos/QuickRegisterItemModal';
 import { playPosBeep, parseBarcodeOrQr, findProductByBarcodeOrQr } from '../utils/barcodeScannerHelper';
 import CameraBarcodeScannerModal from '../components/pos/CameraBarcodeScannerModal';
+import { ScannableBarcodeModal } from '../components/common/ScannableBarcodeModal';
+import { ProductBarcodeGraphic } from '../components/common/ProductBarcodeGraphic';
 
 const BusinessPOS = () => {
     const { currency, formatCurrency } = useCurrency();
@@ -104,6 +106,8 @@ const BusinessPOS = () => {
     const [searchTarget, setSearchTarget] = useState('all');
     const [alphabetLetterFilter, setAlphabetLetterFilter] = useState('');
     const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false);
+    const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState(false);
+    const [barcodeModalProduct, setBarcodeModalProduct] = useState(null);
     const [scanNotification, setScanNotification] = useState(null);
     const scanNotificationTimerRef = React.useRef(null);
     const [isSortFilterDropdownOpen, setIsSortFilterDropdownOpen] = useState(false);
@@ -4558,9 +4562,33 @@ const BusinessPOS = () => {
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
                                                         {prod.sku && <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '500' }}>SKU: {prod.sku}</span>}
                                                         {(prod.barcode || prod.rawProduct?.barcode) && (
-                                                            <span style={{ fontSize: '0.65rem', color: '#166534', fontWeight: '750', background: '#DCFCE7', border: '1px solid #BBF7D0', padding: '1px 5px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '2px', letterSpacing: '0.3px' }} title={`Barcode: ${prod.barcode || prod.rawProduct?.barcode}`}>
-                                                                <Barcode size={10} color="#166534" /> {prod.barcode || prod.rawProduct?.barcode}
-                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setBarcodeModalProduct(prod);
+                                                                    setIsBarcodeModalOpen(true);
+                                                                }}
+                                                                style={{
+                                                                    fontSize: '0.65rem',
+                                                                    color: '#166534',
+                                                                    fontWeight: '800',
+                                                                    background: '#DCFCE7',
+                                                                    border: '1px solid #BBF7D0',
+                                                                    padding: '2px 6px',
+                                                                    borderRadius: '5px',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '4px',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s'
+                                                                }}
+                                                                title="Click to view full scannable barcode stripes for scanner gun"
+                                                            >
+                                                                <Barcode size={11} color="#166534" />
+                                                                <span>{prod.barcode || prod.rawProduct?.barcode}</span>
+                                                                <span style={{ fontSize: '0.58rem', color: '#15803D', background: '#BBF7D0', padding: '0 4px', borderRadius: '3px' }}>Scan</span>
+                                                            </button>
                                                         )}
                                                         {isProductWeighted(prod) && (
                                                             <span style={{ fontSize: '0.6rem', fontWeight: '850', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '1px 5px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
@@ -7802,6 +7830,64 @@ const BusinessPOS = () => {
 
                         {/* Modal Body */}
                         <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+
+                            {/* Section 0: SCANNABLE VISUAL ZEBRA BARCODE CARD */}
+                            <div style={{
+                                background: '#FFFFFF',
+                                border: '2px solid #E2E8F0',
+                                borderRadius: '16px',
+                                padding: '1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '1rem',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                            }}>
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '850', color: '#065F46', background: '#DCFCE7', padding: '2px 8px', borderRadius: '5px', textTransform: 'uppercase' }}>
+                                            Scannable Barcode (CODE 128)
+                                        </span>
+                                        <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Ready for handheld barcode scanner guns</span>
+                                    </div>
+                                    <div style={{ fontSize: '0.82rem', color: '#334155', fontWeight: '600' }}>
+                                        Value: <code style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px', color: '#0F172A', fontWeight: '800' }}>{infoTargetProduct.barcode || infoTargetProduct.rawProduct?.barcode || infoTargetProduct.sku || `PROD-${infoTargetProduct.id}`}</code>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <ProductBarcodeGraphic 
+                                        value={infoTargetProduct.barcode || infoTargetProduct.rawProduct?.barcode || infoTargetProduct.sku || `PROD-${infoTargetProduct.id}`}
+                                        width={2.0}
+                                        height={65}
+                                        fontSize={13}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setBarcodeModalProduct(infoTargetProduct);
+                                            setIsBarcodeModalOpen(true);
+                                        }}
+                                        style={{
+                                            border: '1px solid #BBF7D0',
+                                            background: '#F0FDF4',
+                                            color: '#166534',
+                                            padding: '8px 12px',
+                                            borderRadius: '10px',
+                                            fontSize: '0.78rem',
+                                            fontWeight: '800',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                                        }}
+                                    >
+                                        <Printer size={14} /> Full Screen / Print
+                                    </button>
+                                </div>
+                            </div>
 
                             {/* Section 1: 4 Core Property Cards (Stock, Rack, Expiry, Warranty) */}
                             {(() => {
@@ -11061,6 +11147,16 @@ const BusinessPOS = () => {
                     </div>
                 </div>
             )}
+
+            {/* SCANNABLE FULLSCREEN / PRINT BARCODE MODAL */}
+            <ScannableBarcodeModal
+                isOpen={isBarcodeModalOpen}
+                onClose={() => {
+                    setIsBarcodeModalOpen(false);
+                    setBarcodeModalProduct(null);
+                }}
+                product={barcodeModalProduct}
+            />
         </div>
     );
 };
