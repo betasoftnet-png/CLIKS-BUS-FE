@@ -60,7 +60,8 @@ import {
     Maximize,
     Minimize,
     Loader2,
-    Scale
+    Scale,
+    Image as ImageIcon
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -696,6 +697,21 @@ const BusinessPOS = () => {
         ? localPosAllowCredit
         : Boolean(loyaltyProgramSettings?.pos_allow_credit ?? loyaltyProgramSettings?.posAllowCredit ?? activeConfig?.pos_allow_credit ?? true);
 
+    // POS Pictures / Images Settings (Internal & Kiosk)
+    const [localPosShowImages, setLocalPosShowImages] = useState(() => {
+        try {
+            const stored = localStorage.getItem('pos_show_pictures');
+            if (stored !== null) return stored === 'true';
+        } catch {
+            // Ignore storage errors
+        }
+        return null;
+    });
+
+    const posShowImages = localPosShowImages !== null
+        ? localPosShowImages
+        : Boolean(loyaltyProgramSettings?.pos_show_images ?? loyaltyProgramSettings?.posShowImages ?? activeConfig?.pos_show_images ?? true);
+
     useEffect(() => {
         if (!posAllowCredit && isCreditMode) {
             setIsCreditMode(false);
@@ -1010,6 +1026,11 @@ const BusinessPOS = () => {
 
     const handleSavePosSettings = async (overrides = {}) => {
         setPosSettingsSaveStatus('saving');
+        const resolvedShowImages = overrides.pos_show_images !== undefined ? overrides.pos_show_images : posShowImages;
+        if (overrides.pos_show_images !== undefined) {
+            setLocalPosShowImages(overrides.pos_show_images);
+            try { localStorage.setItem('pos_show_pictures', String(overrides.pos_show_images)); } catch { /* ignore */ }
+        }
         const payload = {
             print_show_loyalty: overrides.print_show_loyalty !== undefined ? overrides.print_show_loyalty : printShowLoyalty,
             print_show_credit: overrides.print_show_credit !== undefined ? overrides.print_show_credit : printShowCredit,
@@ -1018,6 +1039,7 @@ const BusinessPOS = () => {
             pos_kiosk_pin: overrides.pos_kiosk_pin !== undefined ? overrides.pos_kiosk_pin : (localPosKioskPin !== null ? localPosKioskPin : posKioskPin),
             pos_kiosk_enabled: overrides.pos_kiosk_enabled !== undefined ? overrides.pos_kiosk_enabled : posKioskEnabled,
             pos_allow_credit: overrides.pos_allow_credit !== undefined ? overrides.pos_allow_credit : posAllowCredit,
+            pos_show_images: resolvedShowImages,
             pos_kiosk_config: overrides.pos_kiosk_config !== undefined ? overrides.pos_kiosk_config : kioskConfig
         };
 
@@ -3898,6 +3920,38 @@ const BusinessPOS = () => {
                             <span>Scan QR / Barcode</span>
                         </button> */}
 
+                        {/* Quick Picture In/Out Toggle for Internal POS */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const nextVal = !posShowImages;
+                                setLocalPosShowImages(nextVal);
+                                try { localStorage.setItem('pos_show_pictures', String(nextVal)); } catch { /* ignore */ }
+                                handleSavePosSettings({ pos_show_images: nextVal });
+                            }}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '0 0.85rem',
+                                height: '40px',
+                                borderRadius: '12px',
+                                border: posShowImages ? '1.5px solid #10B981' : '1px solid #CBD5E1',
+                                background: posShowImages ? '#ECFDF5' : '#FFFFFF',
+                                color: posShowImages ? '#047857' : '#64748B',
+                                fontSize: '0.8rem',
+                                fontWeight: '800',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.15s ease',
+                                boxShadow: posShowImages ? '0 1px 3px rgba(16, 185, 129, 0.12)' : 'none'
+                            }}
+                            title={posShowImages ? 'Product Pictures: ON in POS (Click to switch to compact text cards)' : 'Product Pictures: OFF in POS (Click to show product pictures on cards)'}
+                        >
+                            <ImageIcon size={16} color={posShowImages ? '#059669' : '#64748B'} />
+                            <span style={{ fontSize: '0.78rem' }}>{posShowImages ? 'Pictures: ON' : 'Pictures: OFF'}</span>
+                        </button>
+
                         {/* Product Filter & Sort / List Dropdown (Icon Only) */}
                         <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={sortFilterDropdownRef}>
                             <button
@@ -4554,6 +4608,53 @@ const BusinessPOS = () => {
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {/* Picture In Card Option (Internal POS) */}
+                                        {posShowImages && (() => {
+                                            const prodImg = prod.image_url || prod.imageUrl || prod.image || prod.photo || prod.photo_url || prod.thumbnail || prod.rawProduct?.image_url || prod.rawProduct?.imageUrl || prod.rawProduct?.image || null;
+                                            return (
+                                                <div style={{
+                                                    width: '100%',
+                                                    height: '110px',
+                                                    borderRadius: '10px',
+                                                    background: '#F8FAFC',
+                                                    border: '1px solid #F1F5F9',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    overflow: 'hidden',
+                                                    position: 'relative'
+                                                }}>
+                                                    {prodImg ? (
+                                                        <img
+                                                            src={prodImg}
+                                                            alt={prod.name}
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                            onError={(e) => {
+                                                                e.currentTarget.style.display = 'none';
+                                                                const fallback = e.currentTarget.nextElementSibling;
+                                                                if (fallback) fallback.style.display = 'flex';
+                                                            }}
+                                                        />
+                                                    ) : null}
+                                                    <div
+                                                        style={{
+                                                            display: prodImg ? 'none' : 'flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            gap: '4px',
+                                                            color: '#94A3B8'
+                                                        }}
+                                                    >
+                                                        <Package size={28} strokeWidth={1.5} color="#94A3B8" />
+                                                        <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>
+                                                            {prod.category || 'Product'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
 
                                         {/* Middle Row: Product Name + SKU on Left, "In Cart" Badge on Right */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', minHeight: '40px' }}>
@@ -8553,9 +8654,11 @@ const BusinessPOS = () => {
                             borderBottom: '1px solid #E2E8F0',
                             background: '#F1F5F9',
                             padding: '0.35rem 1rem 0',
-                            gap: '0.5rem'
+                            gap: '0.5rem',
+                            overflowX: 'auto'
                         }}>
                             {[
+                                { id: 'display', label: 'Picture & Display', icon: ImageIcon },
                                 { id: 'print', label: 'Receipt & Print', icon: Printer },
                                 { id: 'credit', label: 'Credit & Khata', icon: CreditCard },
                                 { id: 'kiosk', label: 'Customer View (Kiosk)', icon: Monitor }
@@ -8581,7 +8684,8 @@ const BusinessPOS = () => {
                                             cursor: 'pointer',
                                             boxShadow: isActive ? '0 -2px 6px rgba(0,0,0,0.04)' : 'none',
                                             borderBottom: isActive ? '2px solid #2563EB' : '2px solid transparent',
-                                            transition: 'all 0.15s ease'
+                                            transition: 'all 0.15s ease',
+                                            whiteSpace: 'nowrap'
                                         }}
                                     >
                                         <IconComp size={15} />
@@ -8593,6 +8697,167 @@ const BusinessPOS = () => {
 
                         {/* Modal Body / Tab Contents */}
                         <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            {/* TAB 0: PRODUCT PICTURES & DISPLAY OPTIONS */}
+                            {posSettingsTab === 'display' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                    {/* Header Banner */}
+                                    <div style={{ background: 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)', border: '1px solid #BBF7D0', borderRadius: '16px', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#166534', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <ImageIcon size={24} />
+                                        </div>
+                                        <div>
+                                            <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '850', color: '#14532D' }}>
+                                                Product Picture Display Options
+                                            </h4>
+                                            <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#166534', lineHeight: 1.4 }}>
+                                                Enable or disable visual product pictures on cards. Configurable independently for Internal POS (Cashier Counter) and Customer Kiosk.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Setting 1: Internal POS / Billing Terminal */}
+                                    <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                                            <div style={{ display: 'flex', gap: '12px' }}>
+                                                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#EFF6FF', color: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                    <Store size={20} />
+                                                </div>
+                                                <div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#0F172A' }}>
+                                                            Show Product Pictures in Internal POS
+                                                        </span>
+                                                        <span style={{ fontSize: '0.62rem', fontWeight: '800', background: '#DBEAFE', color: '#1E40AF', padding: '2px 7px', borderRadius: '5px', textTransform: 'uppercase' }}>
+                                                            Cashier Terminal
+                                                        </span>
+                                                    </div>
+                                                    <p style={{ margin: '4px 0 0', fontSize: '0.76rem', color: '#64748B', lineHeight: 1.45 }}>
+                                                        When enabled, every product card in the cashier billing catalog displays its photo thumbnail. Turn off for a compact, text-focused fast view.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Modern Switch Toggle */}
+                                            <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px', cursor: 'pointer', flexShrink: 0 }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={posShowImages}
+                                                    onChange={(e) => {
+                                                        const val = e.target.checked;
+                                                        setLocalPosShowImages(val);
+                                                        try { localStorage.setItem('pos_show_pictures', String(val)); } catch { /* ignore */ }
+                                                    }}
+                                                    style={{ opacity: 0, width: 0, height: 0 }}
+                                                />
+                                                <span style={{
+                                                    position: 'absolute',
+                                                    cursor: 'pointer',
+                                                    top: 0,
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    backgroundColor: posShowImages ? '#10B981' : '#CBD5E1',
+                                                    borderRadius: '34px',
+                                                    transition: 'all 0.25s'
+                                                }}>
+                                                    <span style={{
+                                                        position: 'absolute',
+                                                        height: '20px',
+                                                        width: '20px',
+                                                        left: posShowImages ? '24px' : '3px',
+                                                        bottom: '3px',
+                                                        backgroundColor: 'white',
+                                                        borderRadius: '50%',
+                                                        transition: 'all 0.25s',
+                                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                                    }} />
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* Setting 2: Customer View / Self-Order Kiosk */}
+                                    <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                                            <div style={{ display: 'flex', gap: '12px' }}>
+                                                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#F5F3FF', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                    <Monitor size={20} />
+                                                </div>
+                                                <div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#0F172A' }}>
+                                                            Show Product Pictures in Customer Kiosk
+                                                        </span>
+                                                        <span style={{ fontSize: '0.62rem', fontWeight: '800', background: '#EDE9FE', color: '#6D28D9', padding: '2px 7px', borderRadius: '5px', textTransform: 'uppercase' }}>
+                                                            Customer Kiosk
+                                                        </span>
+                                                    </div>
+                                                    <p style={{ margin: '4px 0 0', fontSize: '0.76rem', color: '#64748B', lineHeight: 1.45 }}>
+                                                        When enabled, self-ordering customer devices display rich product imagery. Turn off to reduce customer screen bandwidth or use a text-only menu.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Modern Switch Toggle */}
+                                            <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px', cursor: 'pointer', flexShrink: 0 }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={kioskConfig.showImages !== false}
+                                                    onChange={(e) => {
+                                                        handleUpdateKioskConfig({ showImages: e.target.checked });
+                                                    }}
+                                                    style={{ opacity: 0, width: 0, height: 0 }}
+                                                />
+                                                <span style={{
+                                                    position: 'absolute',
+                                                    cursor: 'pointer',
+                                                    top: 0,
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    backgroundColor: (kioskConfig.showImages !== false) ? '#7C3AED' : '#CBD5E1',
+                                                    borderRadius: '34px',
+                                                    transition: 'all 0.25s'
+                                                }}>
+                                                    <span style={{
+                                                        position: 'absolute',
+                                                        height: '20px',
+                                                        width: '20px',
+                                                        left: (kioskConfig.showImages !== false) ? '24px' : '3px',
+                                                        bottom: '3px',
+                                                        backgroundColor: 'white',
+                                                        borderRadius: '50%',
+                                                        transition: 'all 0.25s',
+                                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                                                    }} />
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* Live Status Summary Box */}
+                                    <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                            Active Status Summary
+                                        </span>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                            <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0.75rem', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '0.78rem', fontWeight: '750', color: '#1E293B' }}>Internal POS Cards</div>
+                                                <div style={{ fontSize: '0.74rem', fontWeight: '800', color: posShowImages ? '#10B981' : '#64748B', marginTop: '3px' }}>
+                                                    {posShowImages ? '🖼️ Pictures Visible' : '📝 Compact (Text Only)'}
+                                                </div>
+                                            </div>
+                                            <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0.75rem', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '0.78rem', fontWeight: '750', color: '#1E293B' }}>Customer Kiosk Cards</div>
+                                                <div style={{ fontSize: '0.74rem', fontWeight: '800', color: (kioskConfig.showImages !== false) ? '#7C3AED' : '#64748B', marginTop: '3px' }}>
+                                                    {(kioskConfig.showImages !== false) ? '🖼️ Pictures Visible' : '📝 Compact (Text Only)'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* TAB 1: RECEIPT & PRINT */}
                             {posSettingsTab === 'print' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -10073,24 +10338,47 @@ const BusinessPOS = () => {
                                                     >
                                                         <div>
                                                             {/* Product Image / Icon placeholder */}
-                                                            {showImg && (
-                                                                <div style={{
-                                                                    height: kioskConfig.gridColumns === 'large' ? '140px' : (kioskConfig.gridColumns === 'compact' ? '90px' : '110px'),
-                                                                    background: '#F1F5F9',
-                                                                    borderRadius: '10px',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center',
-                                                                    marginBottom: '0.75rem',
-                                                                    overflow: 'hidden'
-                                                                }}>
-                                                                    {prod.image_url ? (
-                                                                        <img src={prod.image_url} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                                    ) : (
-                                                                        <Package size={36} color="#94A3B8" />
-                                                                    )}
-                                                                </div>
-                                                            )}
+                                                            {showImg && (() => {
+                                                                const kImg = prod.image_url || prod.imageUrl || prod.image || prod.photo || prod.photo_url || prod.thumbnail || prod.rawProduct?.image_url || prod.rawProduct?.imageUrl || prod.rawProduct?.image || null;
+                                                                return (
+                                                                    <div style={{
+                                                                        height: kioskConfig.gridColumns === 'large' ? '140px' : (kioskConfig.gridColumns === 'compact' ? '90px' : '110px'),
+                                                                        background: '#F1F5F9',
+                                                                        borderRadius: '10px',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        marginBottom: '0.75rem',
+                                                                        overflow: 'hidden'
+                                                                    }}>
+                                                                        {kImg ? (
+                                                                            <img
+                                                                                src={kImg}
+                                                                                alt={prod.name}
+                                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                                onError={(e) => {
+                                                                                    e.currentTarget.style.display = 'none';
+                                                                                    if (e.currentTarget.nextElementSibling) {
+                                                                                        e.currentTarget.nextElementSibling.style.display = 'flex';
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                        ) : null}
+                                                                        <div
+                                                                            style={{
+                                                                                display: kImg ? 'none' : 'flex',
+                                                                                flexDirection: 'column',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'center',
+                                                                                gap: '4px',
+                                                                                color: '#94A3B8'
+                                                                            }}
+                                                                        >
+                                                                            <Package size={36} color="#94A3B8" />
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })()}
 
                                                             {/* Category Pill */}
                                                             {prod.category && (
