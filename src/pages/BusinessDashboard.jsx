@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency, useLanguage, useAuth, useBranch } from '../context';
 import {
@@ -39,7 +39,10 @@ import {
     Eye,
     EyeOff,
     RotateCcw,
-    Layers
+    Layers,
+    Search,
+    ExternalLink,
+    Filter
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -148,6 +151,15 @@ const BusinessDashboard = () => {
     const [hoveredSalesPoint, setHoveredSalesPoint] = useState(null);
     const [hoveredDonutSegment, setHoveredDonutSegment] = useState(null);
     const [dashboardPeriod, setDashboardPeriod] = useState('financial_year'); // 'today' | 'this_week' | 'this_month' | 'financial_year' | 'all_time'
+
+    // Modal states for Top Products and Expense Distribution drill-downs
+    const [isTopProductsModalOpen, setIsTopProductsModalOpen] = useState(false);
+    const [topProductsSearch, setTopProductsSearch] = useState('');
+    const [topProductsSort, setTopProductsSort] = useState('revenue'); // 'revenue' | 'volume'
+
+    const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+    const [selectedExpenseCategory, setSelectedExpenseCategory] = useState('All');
+    const [expenseSearchQuery, setExpenseSearchQuery] = useState('');
     
     const queryClient = useQueryClient();
 
@@ -366,6 +378,12 @@ const BusinessDashboard = () => {
         retry: false
     });
 
+    const { data: allExpensesData = [] } = useQuery({
+        queryKey: ['allExpensesDashboard', activeBranchId],
+        queryFn: () => expensesService.getExpenses(activeBranchId).catch(() => []),
+        retry: false
+    });
+
     const { data: purchasesData } = useQuery({
         queryKey: ['purchases', activeBranchId],
         queryFn: () => purchasesService.getPurchases(activeBranchId),
@@ -430,6 +448,67 @@ const BusinessDashboard = () => {
         value: parseFloat(cat.total_amount || cat.amount || cat.total || 0),
         pct: totalExpCategorySum > 0 ? ((parseFloat(cat.total_amount || cat.amount || cat.total || 0)) / totalExpCategorySum) * 100 : 0
     })).sort((a, b) => b.value - a.value);
+
+    // Top Products list and max quantity for progress bar calculation
+    const rawTopProducts = useMemo(() => {
+        const list = Array.isArray(topProducts)
+            ? topProducts
+            : (topProducts?.data || []);
+        return list;
+    }, [topProducts]);
+
+    const maxProductSoldQty = useMemo(() => {
+        if (!rawTopProducts || rawTopProducts.length === 0) return 1;
+        const max = Math.max(...rawTopProducts.map(p => Number(p.sold || p.total_quantity || 0)));
+        return max > 0 ? max : 1;
+    }, [rawTopProducts]);
+
+    const filteredTopProducts = useMemo(() => {
+        let list = [...rawTopProducts];
+        if (topProductsSearch.trim()) {
+            const q = topProductsSearch.toLowerCase();
+            list = list.filter(p => 
+                (p.name && p.name.toLowerCase().includes(q)) ||
+                (p.sku && p.sku.toLowerCase().includes(q)) ||
+                (p.category && p.category.toLowerCase().includes(q))
+            );
+        }
+        if (topProductsSort === 'volume') {
+            list.sort((a, b) => Number(b.sold ?? b.total_quantity ?? 0) - Number(a.sold ?? a.total_quantity ?? 0));
+        } else {
+            // 'revenue' default
+            list.sort((a, b) => Number(b.total_sales ?? 0) - Number(a.total_sales ?? 0));
+        }
+        return list;
+    }, [rawTopProducts, topProductsSearch, topProductsSort]);
+
+    // Raw expenses list for the detailed drill-down modal
+    const rawAllExpenses = useMemo(() => {
+        return Array.isArray(allExpensesData)
+            ? allExpensesData
+            : (allExpensesData?.data?.expenses || allExpensesData?.expenses || allExpensesData?.data || []);
+    }, [allExpensesData]);
+
+    const filteredModalExpenses = useMemo(() => {
+        let list = [...rawAllExpenses];
+        if (selectedExpenseCategory && selectedExpenseCategory !== 'All') {
+            list = list.filter(e => {
+                const cat = e.category_name || e.category || 'Operating';
+                return cat.toLowerCase() === selectedExpenseCategory.toLowerCase();
+            });
+        }
+        if (expenseSearchQuery.trim()) {
+            const q = expenseSearchQuery.toLowerCase();
+            list = list.filter(e => 
+                (e.expense_number && e.expense_number.toLowerCase().includes(q)) ||
+                (e.payee_name && e.payee_name.toLowerCase().includes(q)) ||
+                (e.description && e.description.toLowerCase().includes(q)) ||
+                (e.category_name && e.category_name.toLowerCase().includes(q)) ||
+                (e.payment_mode && e.payment_mode.toLowerCase().includes(q))
+            );
+        }
+        return list;
+    }, [rawAllExpenses, selectedExpenseCategory, expenseSearchQuery]);
 
     const stats = [
         { label: `Sales Revenue (${currentPeriodBadge})`, value: formatCurrency(totalSalesAmount), change: currentPeriodBadge, color: '#059669', icon: TrendingUp },
@@ -848,22 +927,69 @@ const BusinessDashboard = () => {
                                                         <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Top Performing Products</h2>
                                                         <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Highest volume contributors matrix.</p>
                                                     </div>
-                                                    <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase', background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '3px 8px', borderRadius: '12px' }}>Volume Matrix</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsTopProductsModalOpen(true)}
+                                                        style={{
+                                                            fontSize: '0.72rem',
+                                                            color: '#1B6B3A',
+                                                            fontWeight: '800',
+                                                            background: '#ECFDF5',
+                                                            border: '1px solid #A7F3D0',
+                                                            padding: '5px 12px',
+                                                            borderRadius: '12px',
+                                                            cursor: 'pointer',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '5px',
+                                                            transition: 'all 0.15s ease'
+                                                        }}
+                                                        onMouseEnter={e => e.currentTarget.style.background = '#D1FAE5'}
+                                                        onMouseLeave={e => e.currentTarget.style.background = '#ECFDF5'}
+                                                    >
+                                                        <span>View Details ({rawTopProducts.length})</span>
+                                                        <ExternalLink size={12} />
+                                                    </button>
                                                 </div>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                                    {topProducts && topProducts.length > 0 ? (
-                                                        (topProducts?.data || topProducts).slice(0, 3).map((prod, idx) => (
-                                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#F8FAFC', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', transition: 'all 0.2s ease' }}>
-                                                                <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '850', color: '#1B6B3A', fontSize: '0.85rem', border: '1px solid #DCF2E4' }}>
+                                                    {rawTopProducts && rawTopProducts.length > 0 ? (
+                                                        rawTopProducts.slice(0, 4).map((prod, idx) => (
+                                                            <div 
+                                                                key={idx} 
+                                                                onClick={() => setIsTopProductsModalOpen(true)}
+                                                                style={{ 
+                                                                    display: 'flex', 
+                                                                    alignItems: 'center', 
+                                                                    gap: '1rem', 
+                                                                    background: '#F8FAFC', 
+                                                                    padding: '0.9rem 1.15rem', 
+                                                                    borderRadius: '16px', 
+                                                                    border: '1px solid #E2E8F0', 
+                                                                    transition: 'all 0.2s ease',
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                                onMouseEnter={e => {
+                                                                    e.currentTarget.style.background = '#F0FDF4';
+                                                                    e.currentTarget.style.borderColor = '#86EFAC';
+                                                                }}
+                                                                onMouseLeave={e => {
+                                                                    e.currentTarget.style.background = '#F8FAFC';
+                                                                    e.currentTarget.style.borderColor = '#E2E8F0';
+                                                                }}
+                                                            >
+                                                                <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '850', color: '#1B6B3A', fontSize: '0.85rem', border: '1px solid #DCF2E4', flexShrink: 0 }}>
                                                                     #{idx + 1}
                                                                 </div>
-                                                                <div style={{ flex: 1 }}>
-                                                                    <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', margin: '0 0 0.15rem 0' }}>{prod.name || 'Active Item'}</h4>
-                                                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0, fontWeight: '650' }}>Sold: <span style={{ color: '#064E3B', fontWeight: '800' }}>{prod.total_quantity || prod.sold || 0} pcs</span></p>
+                                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                                    <h4 style={{ fontSize: '0.88rem', fontWeight: '800', color: '#1E293B', margin: '0 0 0.15rem 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prod.name || 'Active Item'}</h4>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '650' }}>Sold: <strong style={{ color: '#064E3B' }}>{prod.sold || prod.total_quantity || 0} pcs</strong></span>
+                                                                        {prod.sku && <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontFamily: 'monospace' }}>• {prod.sku}</span>}
+                                                                    </div>
                                                                 </div>
-                                                                <div style={{ textAlign: 'right' }}>
-                                                                    <div style={{ fontSize: '0.95rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(prod.total_sales || 0)}</div>
-                                                                    <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '800', textTransform: 'uppercase' }}>Revenue Driver</span>
+                                                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                                    <div style={{ fontSize: '0.92rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(prod.total_sales || 0)}</div>
+                                                                    <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '800', textTransform: 'uppercase' }}>Details →</span>
                                                                 </div>
                                                             </div>
                                                         ))
@@ -881,8 +1007,38 @@ const BusinessDashboard = () => {
                                     return (
                                         <div key="expense_distribution" className="col-span-1 lg:col-span-6" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', height: 'fit-content', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
                                             <div>
-                                                <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Expense Distribution</h2>
-                                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Expense allocation grouped by categories.</p>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                                    <div>
+                                                        <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Expense Distribution</h2>
+                                                        <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Expense allocation grouped by categories.</p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedExpenseCategory('All');
+                                                            setIsExpenseModalOpen(true);
+                                                        }}
+                                                        style={{
+                                                            fontSize: '0.72rem',
+                                                            color: '#D97706',
+                                                            fontWeight: '800',
+                                                            background: '#FEF3C7',
+                                                            border: '1px solid #FDE68A',
+                                                            padding: '5px 12px',
+                                                            borderRadius: '12px',
+                                                            cursor: 'pointer',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '5px',
+                                                            transition: 'all 0.15s ease'
+                                                        }}
+                                                        onMouseEnter={e => e.currentTarget.style.background = '#FDE68A'}
+                                                        onMouseLeave={e => e.currentTarget.style.background = '#FEF3C7'}
+                                                    >
+                                                        <span>Inspect Vouchers ({rawAllExpenses.length})</span>
+                                                        <ExternalLink size={12} />
+                                                    </button>
+                                                </div>
                                                 {finalExpenseCategories.length > 0 ? (
                                                     <>
                                                         <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', margin: '10px 0' }}>
@@ -918,6 +1074,10 @@ const BusinessDashboard = () => {
                                                                                 style={{ 
                                                                                     cursor: 'pointer', 
                                                                                     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)' 
+                                                                                }}
+                                                                                onClick={() => {
+                                                                                    setSelectedExpenseCategory(c.name);
+                                                                                    setIsExpenseModalOpen(true);
                                                                                 }}
                                                                                 onMouseEnter={() => setHoveredDonutSegment({ ...c, color })}
                                                                                 onMouseLeave={() => setHoveredDonutSegment(null)}
@@ -978,38 +1138,44 @@ const BusinessDashboard = () => {
                                                                 return (
                                                                     <div 
                                                                         key={c.name}
+                                                                        onClick={() => {
+                                                                            setSelectedExpenseCategory(c.name);
+                                                                            setIsExpenseModalOpen(true);
+                                                                        }}
                                                                         onMouseEnter={() => setHoveredDonutSegment({ ...c, color })}
                                                                         onMouseLeave={() => setHoveredDonutSegment(null)}
                                                                         style={{
                                                                             display: 'flex',
                                                                             alignItems: 'center',
                                                                             justifyContent: 'space-between',
-                                                                            background: isHovered ? '#F8FAFC' : 'transparent',
-                                                                            padding: '8px 10px',
+                                                                            background: isHovered ? '#F0FDF4' : '#F8FAFC',
+                                                                            padding: '8px 12px',
                                                                             borderRadius: '12px',
                                                                             border: '1px solid',
-                                                                            borderColor: isHovered ? '#E2E8F0' : 'transparent',
+                                                                            borderColor: isHovered ? '#86EFAC' : '#E2E8F0',
                                                                             cursor: 'pointer',
                                                                             transition: 'all 0.15s ease'
                                                                         }}
                                                                     >
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                                                                             <div style={{ width: '12px', height: '12px', borderRadius: '4px', backgroundColor: color, flexShrink: 0 }} />
                                                                             <span style={{ 
-                                                                                fontSize: '0.8rem', 
+                                                                                fontSize: '0.82rem', 
                                                                                 fontWeight: '800', 
-                                                                                color: isHovered ? '#0F172A' : '#475569',
+                                                                                color: isHovered ? '#064E3B' : '#334155',
                                                                                 whiteSpace: 'nowrap',
                                                                                 overflow: 'hidden',
-                                                                                textOverflow: 'ellipsis',
-                                                                                maxWidth: '120px'
+                                                                                textOverflow: 'ellipsis'
                                                                             }} title={c.name}>
                                                                                 {c.name}
                                                                             </span>
                                                                         </div>
-                                                                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                                            <div style={{ fontSize: '0.85rem', fontWeight: '850', color: '#1E293B' }}>{formatCurrency(c.value)}</div>
-                                                                            <span style={{ fontSize: '9px', fontWeight: '800', color: '#94A3B8' }}>{c.pct.toFixed(1)}%</span>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                                                                            <div style={{ textAlign: 'right' }}>
+                                                                                <div style={{ fontSize: '0.85rem', fontWeight: '850', color: '#1E293B' }}>{formatCurrency(c.value)}</div>
+                                                                                <span style={{ fontSize: '9px', fontWeight: '800', color: '#10B981' }}>{c.pct.toFixed(1)}%</span>
+                                                                            </div>
+                                                                            <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>→</span>
                                                                         </div>
                                                                     </div>
                                                                 );
@@ -1566,6 +1732,743 @@ const BusinessDashboard = () => {
                 )}
             </AnimatePresence>
             )}
+
+            {/* Top Performing Products Matrix Drill-Down Modal */}
+            <AnimatePresence>
+                {isTopProductsModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100vw',
+                            height: '100vh',
+                            background: 'rgba(15, 23, 42, 0.45)',
+                            backdropFilter: 'blur(6px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 9999,
+                            padding: '20px',
+                            boxSizing: 'border-box'
+                        }}
+                        onClick={() => setIsTopProductsModalOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 25 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 25 }}
+                            transition={{ type: "spring", duration: 0.35, bounce: 0.15 }}
+                            style={{
+                                width: '100%',
+                                maxWidth: '1050px',
+                                maxHeight: '90vh',
+                                background: '#FFFFFF',
+                                borderRadius: '24px',
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflow: 'hidden',
+                                border: '1px solid #E2E8F0'
+                            }}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Modal Header */}
+                            <div style={{
+                                padding: '20px 28px',
+                                borderBottom: '1px solid #E2E8F0',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                background: '#FAFCFD'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                    <div style={{
+                                        width: '44px',
+                                        height: '44px',
+                                        borderRadius: '14px',
+                                        background: '#ECFDF5',
+                                        border: '1px solid #A7F3D0',
+                                        color: '#059669',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <Package size={22} strokeWidth={2.5} />
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900', color: '#0F172A' }}>
+                                                Product Sales Performance Matrix
+                                            </h2>
+                                            <span style={{
+                                                background: '#E0F2FE',
+                                                color: '#0369A1',
+                                                fontSize: '0.72rem',
+                                                fontWeight: '800',
+                                                padding: '2px 8px',
+                                                borderRadius: '8px'
+                                            }}>
+                                                {currentPeriodBadge}
+                                            </span>
+                                        </div>
+                                        <p style={{ margin: '3px 0 0 0', fontSize: '0.82rem', color: '#64748B' }}>
+                                            Full ranked analytics of revenue contribution, sold units, and live inventory levels.
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsTopProductsModalOpen(false)}
+                                    style={{
+                                        width: '36px',
+                                        height: '36px',
+                                        borderRadius: '50%',
+                                        border: '1px solid #E2E8F0',
+                                        background: '#FFFFFF',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        color: '#64748B'
+                                    }}
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Modal Filter and Search Ribbon */}
+                            <div style={{
+                                padding: '16px 28px',
+                                background: '#FFFFFF',
+                                borderBottom: '1px solid #F1F5F9',
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '12px',
+                                alignItems: 'center',
+                                justifyContent: 'space-between'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 320px' }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        background: '#F8FAFC',
+                                        border: '1px solid #E2E8F0',
+                                        borderRadius: '12px',
+                                        padding: '7px 12px',
+                                        width: '100%'
+                                    }}>
+                                        <Search size={16} color="#94A3B8" />
+                                        <input
+                                            type="text"
+                                            value={topProductsSearch}
+                                            onChange={e => setTopProductsSearch(e.target.value)}
+                                            placeholder="Search by product name, SKU code, or category..."
+                                            style={{
+                                                border: 'none',
+                                                background: 'transparent',
+                                                outline: 'none',
+                                                fontSize: '0.82rem',
+                                                width: '100%',
+                                                color: '#1E293B'
+                                            }}
+                                        />
+                                        {topProductsSearch && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setTopProductsSearch('')}
+                                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8' }}
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '0.78rem', fontWeight: '750', color: '#64748B' }}>Sort:</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setTopProductsSort('revenue')}
+                                        style={{
+                                            padding: '6px 14px',
+                                            borderRadius: '10px',
+                                            fontSize: '0.78rem',
+                                            fontWeight: '800',
+                                            cursor: 'pointer',
+                                            border: topProductsSort === 'revenue' ? '1px solid #10B981' : '1px solid #E2E8F0',
+                                            background: topProductsSort === 'revenue' ? '#ECFDF5' : '#F8FAFC',
+                                            color: topProductsSort === 'revenue' ? '#064E3B' : '#64748B'
+                                        }}
+                                    >
+                                        Revenue (High → Low)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setTopProductsSort('volume')}
+                                        style={{
+                                            padding: '6px 14px',
+                                            borderRadius: '10px',
+                                            fontSize: '0.78rem',
+                                            fontWeight: '800',
+                                            cursor: 'pointer',
+                                            border: topProductsSort === 'volume' ? '1px solid #10B981' : '1px solid #E2E8F0',
+                                            background: topProductsSort === 'volume' ? '#ECFDF5' : '#F8FAFC',
+                                            color: topProductsSort === 'volume' ? '#064E3B' : '#64748B'
+                                        }}
+                                    >
+                                        Sold Volume (Units)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsTopProductsModalOpen(false);
+                                            navigate('/inventory/products');
+                                        }}
+                                        style={{
+                                            padding: '6px 12px',
+                                            borderRadius: '10px',
+                                            fontSize: '0.78rem',
+                                            fontWeight: '800',
+                                            border: '1px solid #CBD5E1',
+                                            background: '#FFFFFF',
+                                            color: '#334155',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '5px'
+                                        }}
+                                    >
+                                        <span>Catalog</span>
+                                        <ExternalLink size={12} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Scrollable Matrix Table */}
+                            <div style={{ flex: 1, overflowY: 'auto', padding: '0 28px 24px 28px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px', marginTop: '12px' }}>
+                                    <thead>
+                                        <tr style={{ color: '#64748B', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                            <th style={{ textAlign: 'left', padding: '8px 12px' }}>Rank</th>
+                                            <th style={{ textAlign: 'left', padding: '8px 12px' }}>Product & Details</th>
+                                            <th style={{ textAlign: 'left', padding: '8px 12px' }}>Category</th>
+                                            <th style={{ textAlign: 'center', padding: '8px 12px' }}>Units Sold</th>
+                                            <th style={{ textAlign: 'right', padding: '8px 12px' }}>Total Revenue</th>
+                                            <th style={{ textAlign: 'right', padding: '8px 12px' }}>Avg Rate</th>
+                                            <th style={{ textAlign: 'center', padding: '8px 12px' }}>Stock on Hand</th>
+                                            <th style={{ textAlign: 'right', padding: '8px 12px' }}>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredTopProducts.length > 0 ? (
+                                            filteredTopProducts.map((p, idx) => {
+                                                const soldCount = Number(p.sold || p.total_quantity || 0);
+                                                const volumePercent = Math.min(100, Math.round((soldCount / maxProductSoldQty) * 100));
+                                                const stockQty = Number(p.stock_quantity ?? 0);
+                                                return (
+                                                    <tr
+                                                        key={p.id || idx}
+                                                        style={{
+                                                            background: '#F8FAFC',
+                                                            borderRadius: '14px',
+                                                            transition: 'background 0.15s ease'
+                                                        }}
+                                                        onMouseEnter={e => e.currentTarget.style.background = '#F0FDF4'}
+                                                        onMouseLeave={e => e.currentTarget.style.background = '#F8FAFC'}
+                                                    >
+                                                        <td style={{ padding: '12px', borderTopLeftRadius: '14px', borderBottomLeftRadius: '14px' }}>
+                                                            <div style={{
+                                                                width: '32px',
+                                                                height: '32px',
+                                                                borderRadius: '10px',
+                                                                background: idx < 3 ? '#DCFCE7' : '#E2E8F0',
+                                                                color: idx < 3 ? '#166534' : '#475569',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                fontWeight: '900',
+                                                                fontSize: '0.8rem'
+                                                            }}>
+                                                                #{idx + 1}
+                                                            </div>
+                                                        </td>
+                                                        <td style={{ padding: '12px' }}>
+                                                            <div style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.88rem' }}>
+                                                                {p.name || 'Unnamed Product'}
+                                                            </div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
+                                                                <span style={{ fontSize: '0.72rem', color: '#64748B', fontFamily: 'monospace' }}>
+                                                                    SKU: {p.sku || 'N/A'}
+                                                                </span>
+                                                                {p.invoice_count > 0 && (
+                                                                    <span style={{ fontSize: '0.68rem', color: '#059669', background: '#D1FAE5', padding: '1px 6px', borderRadius: '6px', fontWeight: '750' }}>
+                                                                        {p.invoice_count} bills
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td style={{ padding: '12px' }}>
+                                                            <span style={{
+                                                                fontSize: '0.74rem',
+                                                                fontWeight: '750',
+                                                                background: '#EDE9FE',
+                                                                color: '#6D28D9',
+                                                                padding: '3px 8px',
+                                                                borderRadius: '8px'
+                                                            }}>
+                                                                {p.category || 'General'}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                                                            <div style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.88rem' }}>
+                                                                {soldCount} {p.unit || 'pcs'}
+                                                            </div>
+                                                            <div style={{
+                                                                width: '80px',
+                                                                height: '5px',
+                                                                background: '#E2E8F0',
+                                                                borderRadius: '999px',
+                                                                margin: '4px auto 0 auto',
+                                                                overflow: 'hidden'
+                                                            }}>
+                                                                <div style={{
+                                                                    width: `${volumePercent}%`,
+                                                                    height: '100%',
+                                                                    background: '#10B981',
+                                                                    borderRadius: '999px'
+                                                                }} />
+                                                            </div>
+                                                        </td>
+                                                        <td style={{ padding: '12px', textAlign: 'right' }}>
+                                                            <div style={{ fontWeight: '900', color: '#059669', fontSize: '0.92rem' }}>
+                                                                {formatCurrency(p.total_sales || 0)}
+                                                            </div>
+                                                        </td>
+                                                        <td style={{ padding: '12px', textAlign: 'right', fontSize: '0.82rem', color: '#475569', fontWeight: '750' }}>
+                                                            {formatCurrency(p.avg_price || 0)}
+                                                        </td>
+                                                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                                                            <span style={{
+                                                                display: 'inline-block',
+                                                                padding: '3px 10px',
+                                                                borderRadius: '8px',
+                                                                fontSize: '0.78rem',
+                                                                fontWeight: '800',
+                                                                background: stockQty > 0 ? '#ECFDF5' : '#FEF2F2',
+                                                                color: stockQty > 0 ? '#059669' : '#DC2626',
+                                                                border: `1px solid ${stockQty > 0 ? '#A7F3D0' : '#FECACA'}`
+                                                            }}>
+                                                                {stockQty} {p.unit || 'pcs'}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '12px', textAlign: 'right', borderTopRightRadius: '14px', borderBottomRightRadius: '14px' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setIsTopProductsModalOpen(false);
+                                                                    navigate(`/inventory/stock/${p.product_id || p.id}`);
+                                                                }}
+                                                                style={{
+                                                                    background: '#1B6B3A',
+                                                                    color: '#FFFFFF',
+                                                                    border: 'none',
+                                                                    padding: '5px 11px',
+                                                                    borderRadius: '8px',
+                                                                    fontSize: '0.72rem',
+                                                                    fontWeight: '800',
+                                                                    cursor: 'pointer',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '4px',
+                                                                    boxShadow: '0 2px 4px rgba(27, 107, 58, 0.2)'
+                                                                }}
+                                                            >
+                                                                <span>Stock Log</span>
+                                                                <ExternalLink size={11} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={8} style={{ textAlign: 'center', padding: '40px 10px', color: '#94A3B8', fontSize: '0.85rem' }}>
+                                                    No products found matching "{topProductsSearch}".
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div style={{
+                                padding: '12px 28px',
+                                borderTop: '1px solid #E2E8F0',
+                                background: '#F8FAFC',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                            }}>
+                                <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '700' }}>
+                                    Showing {filteredTopProducts.length} of {rawTopProducts.length} ranked products
+                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: '800' }}>
+                                        Total Revenue: <strong style={{ color: '#059669' }}>{formatCurrency(filteredTopProducts.reduce((acc, p) => acc + Number(p.total_sales || 0), 0))}</strong>
+                                    </span>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Expense Distribution & Voucher Ledger Drill-Down Modal */}
+            <AnimatePresence>
+                {isExpenseModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100vw',
+                            height: '100vh',
+                            background: 'rgba(15, 23, 42, 0.45)',
+                            backdropFilter: 'blur(6px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 9999,
+                            padding: '20px',
+                            boxSizing: 'border-box'
+                        }}
+                        onClick={() => setIsExpenseModalOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 25 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 25 }}
+                            transition={{ type: "spring", duration: 0.35, bounce: 0.15 }}
+                            style={{
+                                width: '100%',
+                                maxWidth: '1080px',
+                                maxHeight: '90vh',
+                                background: '#FFFFFF',
+                                borderRadius: '24px',
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflow: 'hidden',
+                                border: '1px solid #E2E8F0'
+                            }}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Modal Header */}
+                            <div style={{
+                                padding: '20px 28px',
+                                borderBottom: '1px solid #E2E8F0',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                background: '#FFFDF9'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                    <div style={{
+                                        width: '44px',
+                                        height: '44px',
+                                        borderRadius: '14px',
+                                        background: '#FEF3C7',
+                                        border: '1px solid #FDE68A',
+                                        color: '#D97706',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <Receipt size={22} strokeWidth={2.5} />
+                                    </div>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900', color: '#0F172A' }}>
+                                                Expense Distribution & Voucher Ledger
+                                            </h2>
+                                            <span style={{
+                                                background: '#FEF3C7',
+                                                color: '#B45309',
+                                                fontSize: '0.72rem',
+                                                fontWeight: '800',
+                                                padding: '2px 8px',
+                                                borderRadius: '8px'
+                                            }}>
+                                                {currentPeriodBadge}
+                                            </span>
+                                        </div>
+                                        <p style={{ margin: '3px 0 0 0', fontSize: '0.82rem', color: '#64748B' }}>
+                                            Inspect individual vouchers, payee details, and categorized expenditure.
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsExpenseModalOpen(false)}
+                                    style={{
+                                        width: '36px',
+                                        height: '36px',
+                                        borderRadius: '50%',
+                                        border: '1px solid #E2E8F0',
+                                        background: '#FFFFFF',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        color: '#64748B'
+                                    }}
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Category Filter Pills Ribbon */}
+                            <div style={{
+                                padding: '12px 28px',
+                                background: '#F8FAFC',
+                                borderBottom: '1px solid #E2E8F0',
+                                display: 'flex',
+                                gap: '8px',
+                                overflowX: 'auto',
+                                alignItems: 'center'
+                            }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedExpenseCategory('All')}
+                                    style={{
+                                        padding: '6px 14px',
+                                        borderRadius: '999px',
+                                        fontSize: '0.78rem',
+                                        fontWeight: '800',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        border: selectedExpenseCategory === 'All' ? '1.5px solid #D97706' : '1px solid #CBD5E1',
+                                        background: selectedExpenseCategory === 'All' ? '#FEF3C7' : '#FFFFFF',
+                                        color: selectedExpenseCategory === 'All' ? '#92400E' : '#475569'
+                                    }}
+                                >
+                                    All Categories ({rawAllExpenses.length})
+                                </button>
+                                {finalExpenseCategories.map((c, idx) => {
+                                    const isSelected = selectedExpenseCategory.toLowerCase() === c.name.toLowerCase();
+                                    const dotColor = DONUT_COLORS[idx % DONUT_COLORS.length];
+                                    return (
+                                        <button
+                                            key={c.name}
+                                            type="button"
+                                            onClick={() => setSelectedExpenseCategory(c.name)}
+                                            style={{
+                                                padding: '6px 14px',
+                                                borderRadius: '999px',
+                                                fontSize: '0.78rem',
+                                                fontWeight: '800',
+                                                cursor: 'pointer',
+                                                whiteSpace: 'nowrap',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                border: isSelected ? '1.5px solid #1B6B3A' : '1px solid #E2E8F0',
+                                                background: isSelected ? '#ECFDF5' : '#FFFFFF',
+                                                color: isSelected ? '#064E3B' : '#334155'
+                                            }}
+                                        >
+                                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: dotColor }} />
+                                            <span>{c.name}</span>
+                                            <span style={{ fontSize: '0.7rem', color: '#64748B' }}>({formatCurrency(c.value)})</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Search and Action Bar */}
+                            <div style={{
+                                padding: '14px 28px',
+                                background: '#FFFFFF',
+                                borderBottom: '1px solid #F1F5F9',
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '12px',
+                                alignItems: 'center',
+                                justifyContent: 'space-between'
+                            }}>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    background: '#F8FAFC',
+                                    border: '1px solid #E2E8F0',
+                                    borderRadius: '12px',
+                                    padding: '7px 12px',
+                                    flex: '1 1 300px'
+                                }}>
+                                    <Search size={16} color="#94A3B8" />
+                                    <input
+                                        type="text"
+                                        value={expenseSearchQuery}
+                                        onChange={e => setExpenseSearchQuery(e.target.value)}
+                                        placeholder="Search by voucher #, payee name, notes, or payment mode..."
+                                        style={{
+                                            border: 'none',
+                                            background: 'transparent',
+                                            outline: 'none',
+                                            fontSize: '0.82rem',
+                                            width: '100%',
+                                            color: '#1E293B'
+                                        }}
+                                    />
+                                    {expenseSearchQuery && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setExpenseSearchQuery('')}
+                                            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8' }}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    )}
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsExpenseModalOpen(false);
+                                        navigate('/finance/expenses');
+                                    }}
+                                    style={{
+                                        padding: '7px 14px',
+                                        borderRadius: '10px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: '800',
+                                        border: '1px solid #D97706',
+                                        background: '#FFFBEB',
+                                        color: '#B45309',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}
+                                >
+                                    <span>Open Full Expense Manager</span>
+                                    <ExternalLink size={13} />
+                                </button>
+                            </div>
+
+                            {/* Scrollable Vouchers Ledger Table */}
+                            <div style={{ flex: 1, overflowY: 'auto', padding: '0 28px 24px 28px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px', marginTop: '12px' }}>
+                                    <thead>
+                                        <tr style={{ color: '#64748B', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                            <th style={{ textAlign: 'left', padding: '8px 12px' }}>Voucher #</th>
+                                            <th style={{ textAlign: 'left', padding: '8px 12px' }}>Date</th>
+                                            <th style={{ textAlign: 'left', padding: '8px 12px' }}>Category</th>
+                                            <th style={{ textAlign: 'left', padding: '8px 12px' }}>Payee / Vendor</th>
+                                            <th style={{ textAlign: 'left', padding: '8px 12px' }}>Payment Mode</th>
+                                            <th style={{ textAlign: 'right', padding: '8px 12px' }}>Amount</th>
+                                            <th style={{ textAlign: 'left', padding: '8px 12px' }}>Description / Purpose</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredModalExpenses.length > 0 ? (
+                                            filteredModalExpenses.map((e, idx) => {
+                                                const voucherNum = e.expense_number || e.voucher_number || (`EXP-${e.id}`);
+                                                const dateStr = e.date || e.expense_date || (e.created_at ? e.created_at.split('T')[0] : 'N/A');
+                                                const catName = e.category_name || e.category || 'General';
+                                                const payeeName = e.payee_name || e.vendor_name || e.party_name || 'General Outflow';
+                                                const payMode = e.payment_mode || e.payment_type || 'Cash';
+                                                const amountVal = parseFloat(e.amount || e.total_amount || 0);
+
+                                                return (
+                                                    <tr
+                                                        key={e.id || idx}
+                                                        style={{
+                                                            background: '#F8FAFC',
+                                                            borderRadius: '14px',
+                                                            transition: 'background 0.15s ease'
+                                                        }}
+                                                        onMouseEnter={el => el.currentTarget.style.background = '#FFFBEB'}
+                                                        onMouseLeave={el => el.currentTarget.style.background = '#F8FAFC'}
+                                                    >
+                                                        <td style={{ padding: '12px', borderTopLeftRadius: '14px', borderBottomLeftRadius: '14px', fontWeight: '850', color: '#1E293B', fontSize: '0.82rem', fontFamily: 'monospace' }}>
+                                                            {voucherNum}
+                                                        </td>
+                                                        <td style={{ padding: '12px', fontSize: '0.8rem', color: '#64748B', whiteSpace: 'nowrap' }}>
+                                                            {dateStr}
+                                                        </td>
+                                                        <td style={{ padding: '12px' }}>
+                                                            <span style={{
+                                                                fontSize: '0.74rem',
+                                                                fontWeight: '800',
+                                                                background: '#FEF3C7',
+                                                                color: '#92400E',
+                                                                padding: '3px 8px',
+                                                                borderRadius: '8px'
+                                                            }}>
+                                                                {catName}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: '12px', fontWeight: '800', color: '#1E293B', fontSize: '0.85rem' }}>
+                                                            {payeeName}
+                                                        </td>
+                                                        <td style={{ padding: '12px', fontSize: '0.78rem', color: '#475569', fontWeight: '700' }}>
+                                                            {payMode}
+                                                        </td>
+                                                        <td style={{ padding: '12px', textAlign: 'right' }}>
+                                                            <div style={{ fontWeight: '900', color: '#DC2626', fontSize: '0.92rem' }}>
+                                                                {formatCurrency(amountVal)}
+                                                            </div>
+                                                        </td>
+                                                        <td style={{ padding: '12px', fontSize: '0.78rem', color: '#64748B', maxWidth: '240px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderTopRightRadius: '14px', borderBottomRightRadius: '14px' }} title={e.description || e.notes || '-'}>
+                                                            {e.description || e.notes || '-'}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={7} style={{ textAlign: 'center', padding: '40px 10px', color: '#94A3B8', fontSize: '0.85rem' }}>
+                                                    No expense vouchers found for category "{selectedExpenseCategory}" {expenseSearchQuery ? `matching "${expenseSearchQuery}"` : ''}.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div style={{
+                                padding: '12px 28px',
+                                borderTop: '1px solid #E2E8F0',
+                                background: '#F8FAFC',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                            }}>
+                                <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '700' }}>
+                                    Showing {filteredModalExpenses.length} of {rawAllExpenses.length} expense vouchers
+                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: '800' }}>
+                                        Filtered Outflow Total: <strong style={{ color: '#DC2626' }}>{formatCurrency(filteredModalExpenses.reduce((acc, e) => acc + parseFloat(e.amount || 0), 0))}</strong>
+                                    </span>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
