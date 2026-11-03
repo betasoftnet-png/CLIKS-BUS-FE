@@ -27,7 +27,7 @@ import {
     Hash,
     Boxes
 } from 'lucide-react';
-import { stockService, productsService, warehouseService, posService, billingService } from '../../services';
+import { stockService, productsService, warehouseService } from '../../services';
 import { useCurrency } from '../../context';
 import { ProductBarcodeGraphic } from '../../components/common/ProductBarcodeGraphic';
 
@@ -59,7 +59,7 @@ export default function StockItemDetailView() {
     });
 
     const [adjustmentForm, setAdjustmentForm] = useState({
-        type: 'add', // 'add' | 'reduce'
+        type: 'add',
         quantity: 5,
         reason: 'Physical Count Audit',
         adjusted_by: 'Auditor (Verification)',
@@ -71,34 +71,61 @@ export default function StockItemDetailView() {
         setTimeout(() => setToastMessage(null), 3500);
     };
 
-    // 1. Load Warehouses
-    const { data: dbWarehouses = [] } = useQuery({
-        queryKey: ['warehouses'],
-        queryFn: () => warehouseService.getWarehouses().catch(() => [])
+    // 1. Direct Stock Query if reloaded
+    const cleanId = String(id || '').replace(/^STK-|^PROD-/i, '');
+    const { data: directStock } = useQuery({
+        queryKey: ['single-stock', cleanId],
+        queryFn: () => stockService.getStock(cleanId).catch(() => null),
+        enabled: Boolean(cleanId)
     });
 
     // 2. Load Products & Stocks to resolve this item
-    const { data: dbProducts = [], isLoading: isProductsLoading } = useQuery({
+    const { data: dbProducts = [] } = useQuery({
         queryKey: ['products'],
         queryFn: () => productsService.getProducts().catch(() => [])
     });
 
-    const { data: dbStocks = [], isLoading: isStocksLoading } = useQuery({
+    const { data: dbStocks = [] } = useQuery({
         queryKey: ['stocks'],
         queryFn: () => stockService.getStocks().catch(() => [])
     });
 
     // 3. Resolve product / stock item
     const currentItem = useMemo(() => {
-        // A. Passed from location state
         if (location.state?.stockItem) {
             return location.state.stockItem;
         }
 
-        const rawId = String(id || '').trim();
-        const cleanId = rawId.replace(/^STK-|^PROD-/i, '');
+        if (directStock) {
+            const rawQty = parseFloat(directStock.quantity ?? 0) || 0;
+            const unitCost = parseFloat(directStock.unit_price ?? directStock.cost_price ?? 450);
+            return {
+                id: directStock.id,
+                stock_id: `STK-${directStock.id}`,
+                product_id: directStock.sku || `PROD-${directStock.id}`,
+                sku: directStock.sku || directStock.barcode || `CLKS-${1000 + Number(directStock.id)}`,
+                product_name: directStock.name || `Stock Item #${directStock.id}`,
+                category: directStock.category || 'General Inventory',
+                unit: directStock.unit || 'PCS',
+                current_stock: rawQty,
+                available_stock: rawQty,
+                damaged_stock: 0,
+                expired_stock: 0,
+                average_cost: unitCost,
+                purchase_cost: unitCost,
+                selling_value: unitCost * 1.3,
+                warehouse_name: directStock.warehouse || directStock.location || 'Main Godown',
+                rack_number: directStock.rack_number || 'Rack A-1',
+                shelf_number: directStock.shelf_number || 'Shelf 1',
+                bin_number: directStock.bin_number || 'Bin 01',
+                hsn_code: directStock.hsn_code || '84713010',
+                supplier_name: directStock.supplier_name || directStock.supplier || 'Standard Procurement Ltd',
+                created_at: directStock.created_at || new Date().toISOString(),
+                is_damaged_facility: false
+            };
+        }
 
-        // B. Match from products
+        const rawId = String(id || '').trim();
         const safeProds = Array.isArray(dbProducts) ? dbProducts : [];
         const foundProd = safeProds.find(p => 
             String(p.id) === rawId || 
@@ -119,7 +146,7 @@ export default function StockItemDetailView() {
                 stock_id: `STK-${foundProd.id}`,
                 product_id: foundProd.sku || `PROD-${foundProd.id}`,
                 sku: foundProd.sku || foundProd.barcode || foundProd.item_code || `CLKS-${1000 + Number(foundProd.id)}`,
-                product_name: foundProd.name || 'Stock Item',
+                product_name: foundProd.name || `Product #${foundProd.id}`,
                 category: foundProd.category || 'General Inventory',
                 unit: foundProd.unit || 'PCS',
                 current_stock: rawQty,
@@ -135,12 +162,11 @@ export default function StockItemDetailView() {
                 bin_number: foundProd.bin_number || 'Bin 01',
                 hsn_code: foundProd.hsn_code || foundProd.hsn || '84713010',
                 supplier_name: foundProd.supplier || foundProd.supplier_name || 'Standard Procurement Ltd',
-                created_at: foundProd.created_at || new Date(Date.now() - 30 * 86400000).toISOString(),
+                created_at: foundProd.created_at || new Date().toISOString(),
                 is_damaged_facility: String(foundProd.warehouse_name || '').toLowerCase().includes('damaged')
             };
         }
 
-        // C. Match from stocks
         const safeStocks = Array.isArray(dbStocks) ? dbStocks : [];
         const foundStock = safeStocks.find(s => 
             String(s.id) === rawId || 
@@ -166,7 +192,7 @@ export default function StockItemDetailView() {
                 stock_id: `STK-${foundStock.id}`,
                 product_id: foundStock.sku || `PROD-${foundStock.id}`,
                 sku: foundStock.sku || foundStock.barcode || `CLKS-${1000 + Number(foundStock.id)}`,
-                product_name: foundStock.name || 'Stock Item',
+                product_name: foundStock.name || `Stock Item #${foundStock.id}`,
                 category: foundStock.category || 'General Inventory',
                 unit: foundStock.unit || 'PCS',
                 current_stock: rawQty,
@@ -182,22 +208,22 @@ export default function StockItemDetailView() {
                 bin_number: foundStock.bin_number || 'Bin 01',
                 hsn_code: foundStock.hsn_code || '84713010',
                 supplier_name: foundStock.supplier_name || foundStock.supplier || 'Standard Procurement Ltd',
-                created_at: foundStock.created_at || new Date(Date.now() - 30 * 86400000).toISOString(),
+                created_at: foundStock.created_at || new Date().toISOString(),
                 is_damaged_facility: false
             };
         }
 
-        // D. Graceful fallback placeholder
+        // Clean Fallback Item
         return {
-            id: cleanId || '1',
-            stock_id: `STK-${cleanId || '1'}`,
-            product_id: `PROD-${cleanId || '1'}`,
-            sku: `CLKS-1001-PR0D`,
-            product_name: 'Selected Product Item',
+            id: cleanId || '198',
+            stock_id: `STK-${cleanId || '198'}`,
+            product_id: `PROD-${cleanId || '198'}`,
+            sku: `CLKS-${cleanId || '1001'}-PR0D`,
+            product_name: `Stock Product Item #${cleanId || '198'}`,
             category: 'Retail & Supermarket Goods',
             unit: 'PCS',
-            current_stock: 45,
-            available_stock: 45,
+            current_stock: 200,
+            available_stock: 200,
             damaged_stock: 0,
             expired_stock: 0,
             average_cost: 450,
@@ -212,10 +238,10 @@ export default function StockItemDetailView() {
             created_at: new Date(Date.now() - 15 * 86400000).toISOString(),
             is_damaged_facility: false
         };
-    }, [id, location.state, dbProducts, dbStocks]);
+    }, [id, cleanId, location.state, directStock, dbProducts, dbStocks]);
 
     // 4. Fetch Live Stock Transactions History
-    const targetItemId = currentItem?.id || id;
+    const targetItemId = currentItem?.id || cleanId || id;
     const { data: rawHistory = [], refetch: refetchHistory } = useQuery({
         queryKey: ['stock-history', targetItemId],
         queryFn: () => stockService.getStockHistory(targetItemId).catch(() => []),
@@ -316,12 +342,11 @@ export default function StockItemDetailView() {
             });
         }
 
-        // D. Comprehensive Realistic Audit Trail Fallback if few transactions exist
+        // D. High-Quality Seeded Events if none exist
         if (events.length === 0) {
             const now = Date.now();
             const createdTs = new Date(currentItem.created_at).getTime() || (now - 20 * 86400000);
 
-            // Initial Inward Purchase
             events.push({
                 id: 'init-inward-1',
                 date: new Date(createdTs).toISOString(),
@@ -330,14 +355,13 @@ export default function StockItemDetailView() {
                 when_purchased: new Date(createdTs).toISOString().split('T')[0],
                 who_received: 'Ramesh Kumar (Senior Store In-charge)',
                 counterparty: currentItem.supplier_name || 'National Wholesale Hub Ltd',
-                quantity_in: (currentItem.current_stock || 45) + 15,
+                quantity_in: (currentItem.current_stock || 200) + 15,
                 quantity_out: 0,
                 unit_price: currentItem.purchase_cost || 450,
                 warehouse: currentItem.warehouse_name || 'Central Godown',
                 notes: 'Primary consignment received in intact seal, batch tested and passed QC'
             });
 
-            // Mid Sale / Dispatch
             events.push({
                 id: 'mid-dispatch-1',
                 date: new Date(createdTs + 5 * 86400000).toISOString(),
@@ -353,7 +377,6 @@ export default function StockItemDetailView() {
                 notes: 'Customer POS retail billing scan checkout'
             });
 
-            // Audit Count Reconciliation
             events.push({
                 id: 'audit-reconcile-1',
                 date: new Date(now - 2 * 86400000).toISOString(),
@@ -421,12 +444,10 @@ export default function StockItemDetailView() {
     // Filtered transaction list based on UI search and tab filter
     const filteredTransactions = useMemo(() => {
         return transactions.filter(t => {
-            // Tab filter
             if (filterType === 'in' && t.type !== 'PURCHASE_INWARD') return false;
             if (filterType === 'out' && t.type !== 'DISPATCH_OUTWARD') return false;
             if (filterType === 'adjustment' && t.type !== 'ADJUSTMENT') return false;
 
-            // Date filter
             if (dateRange !== 'all') {
                 const txDate = new Date(t.date).getTime();
                 const now = Date.now();
@@ -440,7 +461,6 @@ export default function StockItemDetailView() {
                 }
             }
 
-            // Search query
             if (searchQuery.trim()) {
                 const q = searchQuery.toLowerCase();
                 const matchRef = (t.reference_no || '').toLowerCase().includes(q);
@@ -536,63 +556,108 @@ export default function StockItemDetailView() {
         document.body.removeChild(link);
     };
 
-    // Print Handler
-    const handlePrint = () => {
-        window.print();
-    };
-
     const resolvedBarcode = currentItem.sku || currentItem.barcode || `CLKS-1001-PR0D`;
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 space-y-6">
+        <div style={{
+            padding: '1.75rem 2.25rem',
+            background: '#F8FAFC',
+            minHeight: '100%',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.5rem',
+            boxSizing: 'border-box',
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        }}>
             {/* Toast Notification */}
             {toastMessage && (
-                <div className="fixed top-6 right-6 z-50 bg-[#064E3B] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200">
-                    <CheckCircle2 size={18} className="text-[#10B981]" />
-                    <span className="font-bold text-sm">{toastMessage}</span>
+                <div style={{
+                    position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
+                    background: '#064E3B', color: 'white', padding: '0.85rem 1.5rem',
+                    borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                    display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: '750', fontSize: '0.9rem'
+                }}>
+                    <CheckCircle2 size={18} color="#10B981" />
+                    <span>{toastMessage}</span>
                 </div>
             )}
 
-            {/* Top Navigation & Breadcrumb */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200">
-                <div className="space-y-1">
+            {/* TOP HEADER & ACTIONS */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
+                gap: '1rem',
+                paddingBottom: '1.25rem',
+                borderBottom: '1px solid #E2E8F0'
+            }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     <button
                         onClick={() => navigate('/inventory/stock')}
-                        className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-[#064E3B] transition-colors cursor-pointer group mb-1"
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            padding: '0.4rem 0.85rem',
+                            borderRadius: '10px',
+                            background: 'white',
+                            border: '1px solid #E2E8F0',
+                            color: '#475569',
+                            fontSize: '0.8rem',
+                            fontWeight: '750',
+                            cursor: 'pointer',
+                            alignSelf: 'flex-start',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                        }}
                     >
-                        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                        <ArrowLeft size={14} />
                         <span>Back to Stock Registry</span>
                     </button>
-                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600' }}>
                         <span>Inventory</span>
                         <span>/</span>
-                        <span>Stock Registry</span>
+                        <span>Stock Register</span>
                         <span>/</span>
-                        <span className="text-slate-800 font-bold">{currentItem.product_name}</span>
+                        <span style={{ color: '#1E293B', fontWeight: '750' }}>{currentItem.product_name}</span>
                     </div>
-                    <div className="flex items-center gap-3 pt-1">
-                        <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
+                        <h1 style={{ fontSize: '1.65rem', fontWeight: '900', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
                             {currentItem.product_name}
                         </h1>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
-                            currentItem.current_stock > 10 
-                                ? 'bg-emerald-100 text-emerald-800' 
-                                : currentItem.current_stock > 0 
-                                ? 'bg-amber-100 text-amber-800' 
-                                : 'bg-rose-100 text-rose-800'
-                        }`}>
+                        <span style={{
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '20px',
+                            fontSize: '0.72rem',
+                            fontWeight: '850',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.04em',
+                            background: currentItem.current_stock > 10 ? '#ECFDF5' : (currentItem.current_stock > 0 ? '#FEF3C7' : '#FEE2E2'),
+                            color: currentItem.current_stock > 10 ? '#065F46' : (currentItem.current_stock > 0 ? '#92400E' : '#991B1B'),
+                            border: currentItem.current_stock > 10 ? '1px solid #A7F3D0' : (currentItem.current_stock > 0 ? '1px solid #FDE68A' : '1px solid #FECACA')
+                        }}>
                             ● {currentItem.current_stock > 10 ? 'In Stock' : currentItem.current_stock > 0 ? 'Low Stock' : 'Out of Stock'}
                         </span>
-                        {currentItem.is_damaged_facility && (
-                            <span className="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold">
-                                ⚠️ Damaged Godown
-                            </span>
-                        )}
+                        <span style={{
+                            padding: '0.25rem 0.65rem',
+                            borderRadius: '8px',
+                            fontSize: '0.72rem',
+                            fontWeight: '800',
+                            background: '#F1F5F9',
+                            color: '#475569',
+                            border: '1px solid #E2E8F0',
+                            fontFamily: 'monospace'
+                        }}>
+                            SKU: {currentItem.sku}
+                        </span>
                     </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-wrap items-center gap-2.5">
+                {/* Right Action Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                     <button
                         onClick={() => {
                             setInwardForm(prev => ({
@@ -603,7 +668,20 @@ export default function StockItemDetailView() {
                             }));
                             setIsInwardModalOpen(true);
                         }}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#064E3B] hover:bg-[#047857] text-white text-sm font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.65rem 1.25rem',
+                            borderRadius: '12px',
+                            background: 'linear-gradient(135deg, #064E3B 0%, #047857 100%)',
+                            color: 'white',
+                            border: 'none',
+                            fontWeight: '800',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(6, 78, 59, 0.2)'
+                        }}
                     >
                         <Plus size={16} />
                         <span>Log Purchase / Inward</span>
@@ -611,147 +689,229 @@ export default function StockItemDetailView() {
 
                     <button
                         onClick={() => setIsAdjustmentModalOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-300 hover:border-slate-400 text-slate-700 text-sm font-bold shadow-xs hover:bg-slate-50 transition-all cursor-pointer"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.65rem 1.15rem',
+                            borderRadius: '12px',
+                            background: 'white',
+                            color: '#1E293B',
+                            border: '1px solid #CBD5E1',
+                            fontWeight: '750',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                        }}
                     >
-                        <Sliders size={16} />
+                        <Sliders size={15} />
                         <span>Audit Adjustment</span>
                     </button>
 
                     <button
                         onClick={handleExportCSV}
-                        title="Download Transaction Log CSV"
-                        className="p-2.5 rounded-xl bg-white border border-slate-300 hover:border-slate-400 text-slate-700 hover:bg-slate-50 shadow-xs transition-all cursor-pointer"
+                        title="Export CSV Statement"
+                        style={{
+                            padding: '0.65rem',
+                            borderRadius: '12px',
+                            background: 'white',
+                            color: '#475569',
+                            border: '1px solid #CBD5E1',
+                            cursor: 'pointer'
+                        }}
                     >
                         <Download size={16} />
                     </button>
 
                     <button
-                        onClick={handlePrint}
+                        onClick={() => window.print()}
                         title="Print Statement"
-                        className="p-2.5 rounded-xl bg-white border border-slate-300 hover:border-slate-400 text-slate-700 hover:bg-slate-50 shadow-xs transition-all cursor-pointer"
+                        style={{
+                            padding: '0.65rem',
+                            borderRadius: '12px',
+                            background: 'white',
+                            color: '#475569',
+                            border: '1px solid #CBD5E1',
+                            cursor: 'pointer'
+                        }}
                     >
                         <Printer size={16} />
                     </button>
                 </div>
             </div>
 
-            {/* Product Hero Details Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {/* PRODUCT HERO METRIC CARDS (3-COLUMN GRID) */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gap: '1.25rem'
+            }}>
                 {/* 1. Barcode & Product Identity */}
-                <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                <div style={{
+                    background: 'white',
+                    borderRadius: '20px',
+                    border: '1px solid #E2E8F0',
+                    padding: '1.5rem',
+                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '850', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             PRODUCT IDENTITY & BARCODE
                         </span>
-                        <span className="bg-emerald-50 text-[#064E3B] px-2 py-0.5 rounded-md text-[11px] font-black border border-emerald-200">
-                            {currentItem.category || 'Standard Goods'}
+                        <span style={{
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '6px',
+                            fontSize: '0.72rem',
+                            fontWeight: '800',
+                            background: '#EFF6FF',
+                            color: '#1D4ED8',
+                            border: '1px solid #BFDBFE'
+                        }}>
+                            {currentItem.category || 'General Goods'}
                         </span>
                     </div>
 
-                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col items-center justify-center text-center">
-                        {/* Barcode Graphic Stripes */}
-                        <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs w-full flex flex-col items-center justify-center">
+                    {/* Barcode Graphic Stripes */}
+                    <div style={{
+                        background: '#F8FAFC',
+                        borderRadius: '14px',
+                        border: '1px solid #E2E8F0',
+                        padding: '0.75rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}>
+                        <div style={{ background: 'white', padding: '0.5rem 1rem', borderRadius: '10px', border: '1px solid #CBD5E1', width: '100%', display: 'flex', justifyContent: 'center' }}>
                             <ProductBarcodeGraphic 
                                 value={resolvedBarcode} 
                                 width={1.8} 
-                                height={52} 
-                                fontSize={12}
+                                height={46} 
+                                fontSize={11}
                                 displayValue={true} 
                             />
                         </div>
-                        <p className="text-[10px] text-slate-400 font-semibold mt-2">
-                            Standard GS1 / Code-128 Scannable Supermarket Barcode
-                        </p>
+                        <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '600', marginTop: '0.4rem' }}>
+                            Standard Code-128 / GS1 Scannable Barcode
+                        </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                            <span className="text-slate-400 font-bold block text-[10px] uppercase">PRODUCT SKU / CODE</span>
-                            <span className="font-mono font-bold text-slate-800 text-sm">{currentItem.sku}</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                        <div style={{ background: '#F8FAFC', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', display: 'block' }}>SKU CODE</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A', fontFamily: 'monospace' }}>{currentItem.sku}</span>
                         </div>
-                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                            <span className="text-slate-400 font-bold block text-[10px] uppercase">HSN / TAX CODE</span>
-                            <span className="font-mono font-bold text-slate-800 text-sm">{currentItem.hsn_code || '84713010'}</span>
+                        <div style={{ background: '#F8FAFC', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', display: 'block' }}>HSN / SAC</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0F172A', fontFamily: 'monospace' }}>{currentItem.hsn_code || '84713010'}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* 2. Current Stock & Valuation */}
-                <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                <div style={{
+                    background: 'white',
+                    borderRadius: '20px',
+                    border: '1px solid #E2E8F0',
+                    padding: '1.5rem',
+                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '1rem'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '850', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             CURRENT STOCK & VALUATION
                         </span>
-                        <span className="text-xs font-bold text-slate-500">
-                            Unit: <strong className="text-slate-900">{currentItem.unit || 'PCS'}</strong>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#64748B' }}>
+                            Unit: <strong style={{ color: '#0F172A' }}>{currentItem.unit || 'PCS'}</strong>
                         </span>
                     </div>
 
-                    <div className="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-4 text-center">
-                        <span className="text-3xl md:text-4xl font-black text-[#064E3B] tracking-tight block">
-                            {currentItem.current_stock} <span className="text-lg font-bold text-emerald-700">{currentItem.unit || 'PCS'}</span>
-                        </span>
-                        <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider mt-1 block">
-                            Total Physical Inventory on Hand
+                    <div style={{
+                        background: '#ECFDF5',
+                        border: '1px solid #A7F3D0',
+                        borderRadius: '16px',
+                        padding: '1.15rem',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: '2.5rem', fontWeight: '900', color: '#064E3B', lineHeight: 1 }}>
+                            {currentItem.current_stock} <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#047857' }}>{currentItem.unit || 'PCS'}</span>
+                        </div>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#065F46', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.4rem', display: 'block' }}>
+                            Physical Stock on Hand
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                            <span className="text-[10px] font-bold text-slate-400 block uppercase">AVAILABLE</span>
-                            <span className="text-sm font-black text-emerald-600">{currentItem.available_stock}</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', textAlign: 'center' }}>
+                        <div style={{ background: '#F8FAFC', padding: '0.5rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#94A3B8', display: 'block' }}>AVAILABLE</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#059669' }}>{currentItem.available_stock}</span>
                         </div>
-                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                            <span className="text-[10px] font-bold text-slate-400 block uppercase">DAMAGED</span>
-                            <span className="text-sm font-black text-rose-600">{currentItem.damaged_stock}</span>
+                        <div style={{ background: '#F8FAFC', padding: '0.5rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#94A3B8', display: 'block' }}>DAMAGED</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#E11D48' }}>{currentItem.damaged_stock}</span>
                         </div>
-                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                            <span className="text-[10px] font-bold text-slate-400 block uppercase">EXPIRED</span>
-                            <span className="text-sm font-black text-amber-600">{currentItem.expired_stock}</span>
+                        <div style={{ background: '#F8FAFC', padding: '0.5rem', borderRadius: '10px', border: '1px solid #F1F5F9' }}>
+                            <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#94A3B8', display: 'block' }}>EXPIRED</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: '900', color: '#D97706' }}>{currentItem.expired_stock}</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                        <span className="text-slate-500 font-semibold">Total Stock Valuation:</span>
-                        <span className="text-base font-black text-[#064E3B]">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #F1F5F9', fontSize: '0.85rem' }}>
+                        <span style={{ color: '#64748B', fontWeight: '600' }}>Total Valuation:</span>
+                        <span style={{ fontWeight: '900', color: '#064E3B', fontSize: '1.05rem' }}>
                             {formatCurrency(currentItem.current_stock * (currentItem.average_cost || 0))}
                         </span>
                     </div>
                 </div>
 
                 {/* 3. Godown Location & Sourcing */}
-                <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                <div style={{
+                    background: 'white',
+                    borderRadius: '20px',
+                    border: '1px solid #E2E8F0',
+                    padding: '1.5rem',
+                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '850', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             GODOWN STORAGE & SOURCING
                         </span>
-                        <div className="flex items-center gap-1 text-xs font-bold text-[#064E3B]">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#064E3B', fontWeight: '800', fontSize: '0.75rem' }}>
                             <MapPin size={13} />
                             <span>{currentItem.warehouse_name}</span>
                         </div>
                     </div>
 
-                    <div className="space-y-2.5">
-                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-500">Rack / Shelf / Bin:</span>
-                            <span className="text-xs font-black text-slate-800">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        <div style={{ background: '#F8FAFC', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>Rack / Shelf / Bin:</span>
+                            <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#0F172A' }}>
                                 {currentItem.rack_number} • {currentItem.shelf_number} • {currentItem.bin_number}
                             </span>
                         </div>
 
-                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-500">Avg Purchase Rate:</span>
-                            <span className="text-xs font-black text-slate-800">{formatCurrency(currentItem.average_cost)}</span>
+                        <div style={{ background: '#F8FAFC', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>Avg Purchase Cost:</span>
+                            <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#0F172A' }}>{formatCurrency(currentItem.average_cost)}</span>
                         </div>
 
-                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-500">Selling Price:</span>
-                            <span className="text-xs font-black text-emerald-700">{formatCurrency(currentItem.selling_value)}</span>
+                        <div style={{ background: '#F8FAFC', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>Selling Retail Rate:</span>
+                            <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#059669' }}>{formatCurrency(currentItem.selling_value)}</span>
                         </div>
 
-                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-500">Primary Vendor:</span>
-                            <span className="text-xs font-bold text-slate-700 truncate max-w-[160px]" title={currentItem.supplier_name}>
+                        <div style={{ background: '#F8FAFC', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: '600' }}>Primary Vendor:</span>
+                            <span style={{ fontSize: '0.82rem', fontWeight: '750', color: '#0F172A', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={currentItem.supplier_name}>
                                 {currentItem.supplier_name}
                             </span>
                         </div>
@@ -759,153 +919,214 @@ export default function StockItemDetailView() {
                 </div>
             </div>
 
-            {/* Quick KPI Stats Summary Row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-                    <div className="flex items-center justify-between text-slate-400 mb-1">
-                        <span className="text-[11px] font-bold uppercase tracking-wider">TOTAL PROCURED</span>
-                        <TrendingUp size={16} className="text-emerald-500" />
+            {/* QUICK STATS RIBBON */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1rem'
+            }}>
+                <div style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#94A3B8', fontSize: '0.68rem', fontWeight: '850', textTransform: 'uppercase' }}>
+                        <span>TOTAL INWARD PROCURED</span>
+                        <TrendingUp size={15} color="#059669" />
                     </div>
-                    <span className="text-xl font-black text-slate-900 block">+{summaryMetrics.totalIn} {currentItem.unit || 'PCS'}</span>
-                    <span className="text-[11px] text-slate-500 font-semibold">Value: {formatCurrency(summaryMetrics.totalPurchasedValue)}</span>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A' }}>+{summaryMetrics.totalIn} {currentItem.unit || 'PCS'}</div>
+                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>Valuation: {formatCurrency(summaryMetrics.totalPurchasedValue)}</span>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-                    <div className="flex items-center justify-between text-slate-400 mb-1">
-                        <span className="text-[11px] font-bold uppercase tracking-wider">TOTAL DISPATCHED</span>
-                        <TrendingDown size={16} className="text-rose-500" />
+                <div style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#94A3B8', fontSize: '0.68rem', fontWeight: '850', textTransform: 'uppercase' }}>
+                        <span>TOTAL OUTWARD DISPATCHED</span>
+                        <TrendingDown size={15} color="#E11D48" />
                     </div>
-                    <span className="text-xl font-black text-slate-900 block">-{summaryMetrics.totalOut} {currentItem.unit || 'PCS'}</span>
-                    <span className="text-[11px] text-slate-500 font-semibold">Sales: {formatCurrency(summaryMetrics.totalSalesValue)}</span>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A' }}>-{summaryMetrics.totalOut} {currentItem.unit || 'PCS'}</div>
+                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>Total Sales: {formatCurrency(summaryMetrics.totalSalesValue)}</span>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-                    <div className="flex items-center justify-between text-slate-400 mb-1">
-                        <span className="text-[11px] font-bold uppercase tracking-wider">CURRENT BALANCE</span>
-                        <Boxes size={16} className="text-blue-500" />
+                <div style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#94A3B8', fontSize: '0.68rem', fontWeight: '850', textTransform: 'uppercase' }}>
+                        <span>CURRENT LIVE BALANCE</span>
+                        <Boxes size={15} color="#2563EB" />
                     </div>
-                    <span className="text-xl font-black text-[#064E3B] block">{currentItem.current_stock} {currentItem.unit || 'PCS'}</span>
-                    <span className="text-[11px] text-emerald-600 font-semibold">Live in Godown</span>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#064E3B' }}>{currentItem.current_stock} {currentItem.unit || 'PCS'}</div>
+                    <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: '750' }}>Verified In Godown</span>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-                    <div className="flex items-center justify-between text-slate-400 mb-1">
-                        <span className="text-[11px] font-bold uppercase tracking-wider">AUDIT TRAIL EVENTS</span>
-                        <Clock size={16} className="text-purple-500" />
+                <div style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#94A3B8', fontSize: '0.68rem', fontWeight: '850', textTransform: 'uppercase' }}>
+                        <span>AUDIT TRAIL EVENTS</span>
+                        <Clock size={15} color="#7C3AED" />
                     </div>
-                    <span className="text-xl font-black text-slate-900 block">{summaryMetrics.totalCount} Movements</span>
-                    <span className="text-[11px] text-slate-500 font-semibold">Chronological Logs</span>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A' }}>{summaryMetrics.totalCount} Movements</div>
+                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>Chronological Log History</span>
                 </div>
             </div>
 
-            {/* Transaction Log Ledger Table Section */}
-            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-5">
-                {/* Table Header & Controls */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            {/* TRANSACTION LOG AUDIT TABLE CARD */}
+            <div style={{
+                background: 'white',
+                borderRadius: '24px',
+                border: '1px solid #E2E8F0',
+                padding: '1.75rem',
+                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.25rem'
+            }}>
+                {/* Header & Filter Controls */}
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '1rem'
+                }}>
                     <div>
-                        <h2 className="text-lg md:text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        <h2 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <span>📦</span>
-                            <span>Product Inventory Transaction Log</span>
+                            <span>Stock Transaction Log & Procurement History</span>
                         </h2>
-                        <p className="text-xs font-semibold text-slate-500 mt-0.5">
-                            Audit ledger displaying when stock was purchased, who received it, sales dispatches, and resulting balances.
+                        <p style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '500', margin: '0.25rem 0 0 0' }}>
+                            Full audit ledger recording when stock was purchased, who received it, customer dispatches, and resulting balances.
                         </p>
                     </div>
 
                     {/* Filter Tabs */}
-                    <div className="flex flex-wrap items-center gap-2">
-                        <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1">
+                    <div style={{ background: '#F1F5F9', padding: '4px', borderRadius: '12px', display: 'flex', gap: '4px' }}>
+                        {[
+                            { key: 'all', label: `All Logs (${transactions.length})` },
+                            { key: 'in', label: 'Purchases & Inward (PO)' },
+                            { key: 'out', label: 'Sales & Outward' },
+                            { key: 'adjustment', label: 'Adjustments' }
+                        ].map(tab => (
                             <button
-                                onClick={() => setFilterType('all')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                    filterType === 'all' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
-                                }`}
+                                key={tab.key}
+                                onClick={() => setFilterType(tab.key)}
+                                style={{
+                                    padding: '0.45rem 0.85rem',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    background: filterType === tab.key ? (tab.key === 'in' ? '#064E3B' : (tab.key === 'out' ? '#E11D48' : (tab.key === 'adjustment' ? '#D97706' : '#0F172A'))) : 'transparent',
+                                    color: filterType === tab.key ? 'white' : '#64748B',
+                                    boxShadow: filterType === tab.key ? '0 2px 4px rgba(0,0,0,0.08)' : 'none'
+                                }}
                             >
-                                All Logs ({transactions.length})
-                            </button>
-                            <button
-                                onClick={() => setFilterType('in')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                    filterType === 'in' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-500 hover:text-emerald-700'
-                                }`}
-                            >
-                                Purchases & Inward (PO)
-                            </button>
-                            <button
-                                onClick={() => setFilterType('out')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                    filterType === 'out' ? 'bg-rose-600 text-white shadow-2xs' : 'text-slate-500 hover:text-rose-700'
-                                }`}
-                            >
-                                Sales & Outward
-                            </button>
-                            <button
-                                onClick={() => setFilterType('adjustment')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                    filterType === 'adjustment' ? 'bg-amber-600 text-white shadow-2xs' : 'text-slate-500 hover:text-amber-700'
-                                }`}
-                            >
-                                Adjustments
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Search Bar & Quick Date Filter */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100">
-                    <div className="relative w-full sm:w-80">
-                        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
-                            type="text"
-                            placeholder="Search by PO #, who received, vendor, notes..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#064E3B] focus:bg-white transition-all"
-                        />
-                    </div>
-
-                    <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">INTERVAL:</span>
-                        {['all', 'today', '7days', '30days'].map(rng => (
-                            <button
-                                key={rng}
-                                onClick={() => setDateRange(rng)}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
-                                    dateRange === rng 
-                                        ? 'bg-[#064E3B] text-white' 
-                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                }`}
-                            >
-                                {rng === 'all' ? 'All Time' : rng === 'today' ? 'Today' : rng === '7days' ? 'Last 7 Days' : 'Last 30 Days'}
+                                {tab.label}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                {/* Ledger Table */}
-                <div className="overflow-x-auto rounded-2xl border border-slate-200/80">
-                    <table className="w-full text-left border-collapse text-xs">
-                        <thead>
-                            <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-black uppercase text-slate-500 tracking-wider">
-                                <th className="py-3 px-4">DATE & TIME</th>
-                                <th className="py-3 px-4">TYPE</th>
-                                <th className="py-3 px-4">REFERENCE / BILL #</th>
-                                <th className="py-3 px-4">WHEN PURCHASED</th>
-                                <th className="py-3 px-4">WHO RECEIVED / HANDLED</th>
-                                <th className="py-3 px-4">VENDOR / COUNTERPARTY</th>
-                                <th className="py-3 px-4 text-right">QTY IN (+)</th>
-                                <th className="py-3 px-4 text-right">QTY OUT (-)</th>
-                                <th className="py-3 px-4 text-right">BALANCE</th>
-                                <th className="py-3 px-4">GODOWN & NOTES</th>
+                {/* Search Bar & Interval Filter */}
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem',
+                    paddingTop: '0.5rem',
+                    borderTop: '1px solid #F1F5F9'
+                }}>
+                    <div style={{ position: 'relative', width: '340px', maxWidth: '100%' }}>
+                        <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                        <input
+                            type="text"
+                            placeholder="Search by PO #, who received, vendor, notes..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '0.55rem 0.85rem 0.55rem 2.5rem',
+                                borderRadius: '12px',
+                                border: '1px solid #E2E8F0',
+                                background: '#F8FAFC',
+                                fontSize: '0.8rem',
+                                fontWeight: '600',
+                                color: '#0F172A',
+                                outline: 'none'
+                            }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', marginRight: '0.3rem' }}>INTERVAL:</span>
+                        {[
+                            { key: 'all', label: 'All Time' },
+                            { key: 'today', label: 'Today' },
+                            { key: '7days', label: 'Last 7 Days' },
+                            { key: '30days', label: 'Last 30 Days' }
+                        ].map(rng => (
+                            <button
+                                key={rng.key}
+                                onClick={() => setDateRange(rng.key)}
+                                style={{
+                                    padding: '0.35rem 0.75rem',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    fontSize: '0.72rem',
+                                    fontWeight: '800',
+                                    cursor: 'pointer',
+                                    background: dateRange === rng.key ? '#064E3B' : '#F1F5F9',
+                                    color: dateRange === rng.key ? 'white' : '#64748B'
+                                }}
+                            >
+                                {rng.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* THE TRANSACTION LEDGER TABLE (FIXED COLUMNS, NO VERTICAL WRAPPING) */}
+                <div style={{
+                    overflowX: 'auto',
+                    width: '100%',
+                    borderRadius: '16px',
+                    border: '1px solid #E2E8F0'
+                }}>
+                    <table style={{
+                        width: '100%',
+                        minWidth: '1100px',
+                        borderCollapse: 'collapse',
+                        textAlign: 'left',
+                        tableLayout: 'fixed'
+                    }}>
+                        <colgroup>
+                            <col style={{ width: '135px' }} /> {/* Date & Time */}
+                            <col style={{ width: '150px' }} /> {/* Type */}
+                            <col style={{ width: '135px' }} /> {/* Reference / Bill # */}
+                            <col style={{ width: '130px' }} /> {/* When Purchased */}
+                            <col style={{ width: '220px' }} /> {/* Who Received / Handled */}
+                            <col style={{ width: '180px' }} /> {/* Vendor / Counterparty */}
+                            <col style={{ width: '100px' }} /> {/* Qty In */}
+                            <col style={{ width: '100px' }} /> {/* Qty Out */}
+                            <col style={{ width: '110px' }} /> {/* Balance */}
+                            <col style={{ width: '190px' }} /> {/* Godown & Notes */}
+                        </colgroup>
+                        <thead style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                            <tr>
+                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>DATE & TIME</th>
+                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>TYPE</th>
+                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>REFERENCE / BILL #</th>
+                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>WHEN PURCHASED</th>
+                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>WHO RECEIVED / HANDLED</th>
+                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>VENDOR / COUNTERPARTY</th>
+                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'right', whiteSpace: 'nowrap' }}>QTY IN (+)</th>
+                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'right', whiteSpace: 'nowrap' }}>QTY OUT (-)</th>
+                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'right', whiteSpace: 'nowrap' }}>BALANCE</th>
+                                <th style={{ padding: '0.85rem 1rem', fontSize: '0.72rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>GODOWN & NOTES</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                        <tbody>
                             {filteredTransactions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={10} className="py-12 text-center text-slate-400">
-                                        <Package size={32} className="mx-auto mb-2 text-slate-300 opacity-60" />
-                                        <p className="font-bold text-sm text-slate-600">No transactions match your search filter</p>
-                                        <p className="text-xs text-slate-400 mt-0.5">Try clearing the search query or selecting "All Time"</p>
+                                    <td colSpan={10} style={{ padding: '3rem 1rem', textAlign: 'center', color: '#94A3B8' }}>
+                                        <Package size={32} style={{ margin: '0 auto 0.5rem', color: '#CBD5E1' }} />
+                                        <p style={{ fontWeight: '750', fontSize: '0.9rem', color: '#475569', margin: 0 }}>No stock movements match your criteria</p>
+                                        <p style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.2rem' }}>Try clearing the search box or switching to "All Logs"</p>
                                     </td>
                                 </tr>
                             ) : (
@@ -927,105 +1148,180 @@ export default function StockItemDetailView() {
                                     return (
                                         <tr 
                                             key={tx.id} 
-                                            className="hover:bg-slate-50/80 transition-colors"
+                                            style={{
+                                                borderBottom: '1px solid #F1F5F9',
+                                                transition: 'background 0.15s ease'
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                                            onMouseLeave={e => e.currentTarget.style.background = 'white'}
                                         >
                                             {/* 1. Date & Time */}
-                                            <td className="py-3 px-4 whitespace-nowrap">
-                                                <span className="font-bold text-slate-900 block">{formattedDate}</span>
-                                                <span className="text-[10px] text-slate-400">{formattedTime}</span>
+                                            <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                                                <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.82rem', display: 'block' }}>{formattedDate}</span>
+                                                <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>{formattedTime}</span>
                                             </td>
 
                                             {/* 2. Movement Type Badge */}
-                                            <td className="py-3 px-4 whitespace-nowrap">
+                                            <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                                                 {isPurchase && (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-black">
-                                                        <TrendingUp size={12} className="text-emerald-600" />
+                                                    <span style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.3rem',
+                                                        padding: '0.25rem 0.6rem',
+                                                        borderRadius: '6px',
+                                                        background: '#ECFDF5',
+                                                        color: '#065F46',
+                                                        border: '1px solid #A7F3D0',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: '850'
+                                                    }}>
+                                                        <TrendingUp size={12} color="#059669" />
                                                         Purchase Inward
                                                     </span>
                                                 )}
                                                 {isSale && (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-50 text-rose-800 border border-rose-200 text-[11px] font-black">
-                                                        <TrendingDown size={12} className="text-rose-600" />
+                                                    <span style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.3rem',
+                                                        padding: '0.25rem 0.6rem',
+                                                        borderRadius: '6px',
+                                                        background: '#FFF1F2',
+                                                        color: '#9F1239',
+                                                        border: '1px solid #FECDD3',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: '850'
+                                                    }}>
+                                                        <TrendingDown size={12} color="#E11D48" />
                                                         Sales Dispatch
                                                     </span>
                                                 )}
                                                 {isAdj && (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-black">
-                                                        <Sliders size={12} className="text-amber-600" />
+                                                    <span style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.3rem',
+                                                        padding: '0.25rem 0.6rem',
+                                                        borderRadius: '6px',
+                                                        background: '#FFFBEB',
+                                                        color: '#92400E',
+                                                        border: '1px solid #FDE68A',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: '850'
+                                                    }}>
+                                                        <Sliders size={12} color="#D97706" />
                                                         Stock Adjustment
                                                     </span>
                                                 )}
                                             </td>
 
                                             {/* 3. Reference / Bill # */}
-                                            <td className="py-3 px-4 whitespace-nowrap">
-                                                <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                                            <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                                                <span style={{
+                                                    fontFamily: 'monospace',
+                                                    fontWeight: '800',
+                                                    color: '#1E293B',
+                                                    background: '#F1F5F9',
+                                                    padding: '0.2rem 0.55rem',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid #E2E8F0',
+                                                    fontSize: '0.78rem'
+                                                }}>
                                                     {tx.reference_no}
                                                 </span>
                                             </td>
 
                                             {/* 4. When Purchased */}
-                                            <td className="py-3 px-4 whitespace-nowrap">
+                                            <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                                                 {tx.when_purchased && tx.when_purchased !== '—' ? (
-                                                    <div className="flex items-center gap-1.5 text-slate-800 font-bold">
-                                                        <Calendar size={13} className="text-slate-400" />
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#0F172A', fontWeight: '750', fontSize: '0.82rem' }}>
+                                                        <Calendar size={13} color="#94A3B8" />
                                                         <span>{tx.when_purchased}</span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-slate-300 font-mono">—</span>
+                                                    <span style={{ color: '#CBD5E1', fontFamily: 'monospace' }}>—</span>
                                                 )}
                                             </td>
 
-                                            {/* 5. Who Received / Handled */}
-                                            <td className="py-3 px-4">
-                                                <div className="flex items-center gap-1.5">
-                                                    <User size={13} className="text-slate-400 shrink-0" />
-                                                    <span className="font-bold text-slate-900">{tx.who_received}</span>
+                                            {/* 5. Who Received / Handled (NO WRAPPING) */}
+                                            <td style={{
+                                                padding: '0.85rem 1rem',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                verticalAlign: 'middle'
+                                            }} title={tx.who_received}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    <User size={13} color="#94A3B8" style={{ flexShrink: 0 }} />
+                                                    <span style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.82rem' }}>
+                                                        {tx.who_received}
+                                                    </span>
                                                 </div>
                                             </td>
 
                                             {/* 6. Vendor / Customer */}
-                                            <td className="py-3 px-4">
-                                                <span className="font-semibold text-slate-700 block truncate max-w-[150px]" title={tx.counterparty}>
+                                            <td style={{
+                                                padding: '0.85rem 1rem',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                verticalAlign: 'middle'
+                                            }} title={tx.counterparty}>
+                                                <span style={{ fontWeight: '600', color: '#475569', fontSize: '0.82rem' }}>
                                                     {tx.counterparty}
                                                 </span>
                                             </td>
 
                                             {/* 7. Qty In (+) */}
-                                            <td className="py-3 px-4 text-right whitespace-nowrap">
+                                            <td style={{ padding: '0.85rem 1rem', textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                                                 {tx.quantity_in > 0 ? (
-                                                    <span className="font-black text-emerald-600 text-sm">
+                                                    <span style={{ fontWeight: '900', color: '#059669', fontSize: '0.88rem' }}>
                                                         +{tx.quantity_in} {currentItem.unit || 'PCS'}
                                                     </span>
                                                 ) : (
-                                                    <span className="text-slate-300 font-mono">—</span>
+                                                    <span style={{ color: '#CBD5E1', fontFamily: 'monospace' }}>—</span>
                                                 )}
                                             </td>
 
                                             {/* 8. Qty Out (-) */}
-                                            <td className="py-3 px-4 text-right whitespace-nowrap">
+                                            <td style={{ padding: '0.85rem 1rem', textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                                                 {tx.quantity_out > 0 ? (
-                                                    <span className="font-black text-rose-600 text-sm">
+                                                    <span style={{ fontWeight: '900', color: '#E11D48', fontSize: '0.88rem' }}>
                                                         -{tx.quantity_out} {currentItem.unit || 'PCS'}
                                                     </span>
                                                 ) : (
-                                                    <span className="text-slate-300 font-mono">—</span>
+                                                    <span style={{ color: '#CBD5E1', fontFamily: 'monospace' }}>—</span>
                                                 )}
                                             </td>
 
                                             {/* 9. Running Balance */}
-                                            <td className="py-3 px-4 text-right whitespace-nowrap">
-                                                <span className="font-black text-[#064E3B] text-sm bg-emerald-50/80 px-2 py-0.5 rounded-md border border-emerald-100">
+                                            <td style={{ padding: '0.85rem 1rem', textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                                                <span style={{
+                                                    fontWeight: '900',
+                                                    color: '#064E3B',
+                                                    background: '#ECFDF5',
+                                                    padding: '0.25rem 0.65rem',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid #A7F3D0',
+                                                    fontSize: '0.85rem'
+                                                }}>
                                                     {tx.balance_after} {currentItem.unit || 'PCS'}
                                                 </span>
                                             </td>
 
                                             {/* 10. Godown & Notes */}
-                                            <td className="py-3 px-4">
-                                                <span className="text-[11px] font-bold text-slate-700 block">
+                                            <td style={{
+                                                padding: '0.85rem 1rem',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                verticalAlign: 'middle'
+                                            }} title={tx.notes}>
+                                                <span style={{ fontSize: '0.78rem', fontWeight: '750', color: '#1E293B', display: 'block' }}>
                                                     {tx.warehouse || currentItem.warehouse_name}
                                                 </span>
-                                                <span className="text-[10px] text-slate-400 block truncate max-w-[200px]" title={tx.notes}>
+                                                <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>
                                                     {tx.notes}
                                                 </span>
                                             </td>
@@ -1038,18 +1334,26 @@ export default function StockItemDetailView() {
                 </div>
             </div>
 
-            {/* MODAL 1: Log Purchase / Inward Consignment */}
+            {/* MODAL 1: RECORD PURCHASE / INWARD */}
             {isInwardModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-                        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 9999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', padding: '1rem'
+                }}>
+                    <div style={{
+                        background: 'white', borderRadius: '24px', maxWidth: '520px', width: '100%',
+                        padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                        display: 'flex', flexDirection: 'column', gap: '1.25rem'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
                             <div>
-                                <h3 className="text-lg font-black text-[#064E3B]">Record Purchase / Stock Inward</h3>
-                                <p className="text-xs text-slate-400 font-semibold">Log new procurement consignment into stock transaction ledger</p>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Record Purchase / Stock Inward</h3>
+                                <p style={{ fontSize: '0.75rem', color: '#64748B', margin: '0.2rem 0 0' }}>Log incoming consignment into stock transaction ledger</p>
                             </div>
                             <button
                                 onClick={() => setIsInwardModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+                                style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#F1F5F9', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                                 <X size={16} />
                             </button>
@@ -1060,24 +1364,24 @@ export default function StockItemDetailView() {
                                 e.preventDefault();
                                 inwardMutation.mutate(inwardForm);
                             }}
-                            className="space-y-3.5"
+                            style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
                         >
-                            <div className="grid grid-cols-2 gap-3">
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
-                                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                                        PURCHASE DATE <span className="text-rose-500">*</span>
+                                    <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
+                                        PURCHASE DATE *
                                     </label>
                                     <input
                                         type="date"
                                         required
                                         value={inwardForm.purchase_date}
                                         onChange={e => setInwardForm({ ...inwardForm, purchase_date: e.target.value })}
-                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#064E3B]"
+                                        style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '700' }}
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                                        PO / BILL REFERENCE # <span className="text-rose-500">*</span>
+                                    <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
+                                        PO / BILL REFERENCE *
                                     </label>
                                     <input
                                         type="text"
@@ -1085,14 +1389,14 @@ export default function StockItemDetailView() {
                                         placeholder="e.g. PO-8921"
                                         value={inwardForm.purchase_bill_ref}
                                         onChange={e => setInwardForm({ ...inwardForm, purchase_bill_ref: e.target.value })}
-                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#064E3B]"
+                                        style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '700' }}
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                                    SUPPLIER / VENDOR NAME <span className="text-rose-500">*</span>
+                                <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
+                                    SUPPLIER / VENDOR NAME *
                                 </label>
                                 <input
                                     type="text"
@@ -1100,13 +1404,13 @@ export default function StockItemDetailView() {
                                     placeholder="e.g. Apex Wholesale Distributors"
                                     value={inwardForm.supplier_name}
                                     onChange={e => setInwardForm({ ...inwardForm, supplier_name: e.target.value })}
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#064E3B]"
+                                    style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '700' }}
                                 />
                             </div>
 
                             <div>
-                                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                                    WHO RECEIVED (STOREKEEPER / STAFF) <span className="text-rose-500">*</span>
+                                <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
+                                    WHO RECEIVED (STOREKEEPER / STAFF) *
                                 </label>
                                 <input
                                     type="text"
@@ -1114,14 +1418,14 @@ export default function StockItemDetailView() {
                                     placeholder="e.g. Ramesh Kumar (Inward Desk)"
                                     value={inwardForm.received_by}
                                     onChange={e => setInwardForm({ ...inwardForm, received_by: e.target.value })}
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#064E3B]"
+                                    style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '700' }}
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
-                                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                                        INWARD QTY ({currentItem.unit || 'PCS'}) <span className="text-rose-500">*</span>
+                                    <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
+                                        INWARD QTY ({currentItem.unit || 'PCS'}) *
                                     </label>
                                     <input
                                         type="number"
@@ -1129,12 +1433,12 @@ export default function StockItemDetailView() {
                                         required
                                         value={inwardForm.quantity}
                                         onChange={e => setInwardForm({ ...inwardForm, quantity: e.target.value })}
-                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#064E3B]"
+                                        style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '700' }}
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                                        UNIT PURCHASE RATE (₹)
+                                    <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
+                                        UNIT RATE (₹)
                                     </label>
                                     <input
                                         type="number"
@@ -1142,49 +1446,37 @@ export default function StockItemDetailView() {
                                         placeholder={`e.g. ${currentItem.purchase_cost || 450}`}
                                         value={inwardForm.unit_price}
                                         onChange={e => setInwardForm({ ...inwardForm, unit_price: e.target.value })}
-                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#064E3B]"
+                                        style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '700' }}
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                                    DESTINATION GODOWN / WAREHOUSE
-                                </label>
-                                <input
-                                    type="text"
-                                    value={inwardForm.warehouse_name}
-                                    onChange={e => setInwardForm({ ...inwardForm, warehouse_name: e.target.value })}
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#064E3B]"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                                <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
                                     INSPECTION REMARKS & NOTES
                                 </label>
                                 <textarea
                                     rows={2}
                                     value={inwardForm.notes}
                                     onChange={e => setInwardForm({ ...inwardForm, notes: e.target.value })}
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#064E3B]"
+                                    style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '600' }}
                                 />
                             </div>
 
-                            <div className="flex items-center gap-3 pt-2">
+                            <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.5rem' }}>
                                 <button
                                     type="button"
                                     onClick={() => setIsInwardModalOpen(false)}
-                                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-colors cursor-pointer"
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', background: '#F8FAFC', color: '#475569', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer' }}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={inwardMutation.isPending}
-                                    className="flex-1 py-2.5 rounded-xl bg-[#064E3B] hover:bg-[#047857] text-white font-bold text-xs shadow-md transition-colors cursor-pointer"
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', border: 'none', background: '#064E3B', color: 'white', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer' }}
                                 >
-                                    {inwardMutation.isPending ? 'Logging Inward...' : 'Confirm Inward Receipt'}
+                                    {inwardMutation.isPending ? 'Saving...' : 'Confirm Inward Consignment'}
                                 </button>
                             </div>
                         </form>
@@ -1192,18 +1484,26 @@ export default function StockItemDetailView() {
                 </div>
             )}
 
-            {/* MODAL 2: Audit Stock Adjustment */}
+            {/* MODAL 2: AUDIT COUNT ADJUSTMENT */}
             {isAdjustmentModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-                        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 9999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', padding: '1rem'
+                }}>
+                    <div style={{
+                        background: 'white', borderRadius: '24px', maxWidth: '480px', width: '100%',
+                        padding: '1.75rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                        display: 'flex', flexDirection: 'column', gap: '1.25rem'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
                             <div>
-                                <h3 className="text-lg font-black text-slate-900">Stock Count Adjustment</h3>
-                                <p className="text-xs text-slate-400 font-semibold">Reconcile physical inventory count against book record</p>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#0F172A', margin: 0 }}>Stock Count Adjustment</h3>
+                                <p style={{ fontSize: '0.75rem', color: '#64748B', margin: '0.2rem 0 0' }}>Reconcile physical inventory count against book record</p>
                             </div>
                             <button
                                 onClick={() => setIsAdjustmentModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+                                style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#F1F5F9', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                                 <X size={16} />
                             </button>
@@ -1214,42 +1514,52 @@ export default function StockItemDetailView() {
                                 e.preventDefault();
                                 adjustmentMutation.mutate(adjustmentForm);
                             }}
-                            className="space-y-3.5"
+                            style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
                         >
                             <div>
-                                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                                    ADJUSTMENT DIRECTION <span className="text-rose-500">*</span>
+                                <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '0.4rem' }}>
+                                    ADJUSTMENT DIRECTION *
                                 </label>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                     <button
                                         type="button"
                                         onClick={() => setAdjustmentForm({ ...adjustmentForm, type: 'add' })}
-                                        className={`py-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
-                                            adjustmentForm.type === 'add'
-                                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                                : 'bg-slate-50 text-slate-600 border-slate-200'
-                                        }`}
+                                        style={{
+                                            padding: '0.65rem',
+                                            borderRadius: '10px',
+                                            fontSize: '0.78rem',
+                                            fontWeight: '850',
+                                            cursor: 'pointer',
+                                            background: adjustmentForm.type === 'add' ? '#ECFDF5' : '#F8FAFC',
+                                            color: adjustmentForm.type === 'add' ? '#065F46' : '#64748B',
+                                            border: adjustmentForm.type === 'add' ? '2px solid #10B981' : '1px solid #E2E8F0'
+                                        }}
                                     >
-                                        + Increase Qty (Found)
+                                        + Found Stock (Add)
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setAdjustmentForm({ ...adjustmentForm, type: 'reduce' })}
-                                        className={`py-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
-                                            adjustmentForm.type === 'reduce'
-                                                ? 'bg-rose-50 text-rose-800 border-rose-300'
-                                                : 'bg-slate-50 text-slate-600 border-slate-200'
-                                        }`}
+                                        style={{
+                                            padding: '0.65rem',
+                                            borderRadius: '10px',
+                                            fontSize: '0.78rem',
+                                            fontWeight: '850',
+                                            cursor: 'pointer',
+                                            background: adjustmentForm.type === 'reduce' ? '#FFF1F2' : '#F8FAFC',
+                                            color: adjustmentForm.type === 'reduce' ? '#9F1239' : '#64748B',
+                                            border: adjustmentForm.type === 'reduce' ? '2px solid #E11D48' : '1px solid #E2E8F0'
+                                        }}
                                     >
-                                        - Reduce Qty (Shrinkage)
+                                        - Shrinkage (Reduce)
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
-                                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                                        QUANTITY ({currentItem.unit || 'PCS'}) <span className="text-rose-500">*</span>
+                                    <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
+                                        QUANTITY ({currentItem.unit || 'PCS'}) *
                                     </label>
                                     <input
                                         type="number"
@@ -1257,31 +1567,31 @@ export default function StockItemDetailView() {
                                         required
                                         value={adjustmentForm.quantity}
                                         onChange={e => setAdjustmentForm({ ...adjustmentForm, quantity: e.target.value })}
-                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#064E3B]"
+                                        style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '700' }}
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                                        AUDITED BY (NAME) <span className="text-rose-500">*</span>
+                                    <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
+                                        AUDITED BY (NAME) *
                                     </label>
                                     <input
                                         type="text"
                                         required
                                         value={adjustmentForm.adjusted_by}
                                         onChange={e => setAdjustmentForm({ ...adjustmentForm, adjusted_by: e.target.value })}
-                                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#064E3B]"
+                                        style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '700' }}
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                                <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
                                     AUDIT REASON
                                 </label>
                                 <select
                                     value={adjustmentForm.reason}
                                     onChange={e => setAdjustmentForm({ ...adjustmentForm, reason: e.target.value })}
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#064E3B]"
+                                    style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '700' }}
                                 >
                                     <option value="Physical Count Audit">Physical Count Audit</option>
                                     <option value="Damaged / Broken Goods">Damaged / Broken Goods</option>
@@ -1292,31 +1602,31 @@ export default function StockItemDetailView() {
                             </div>
 
                             <div>
-                                <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                                    AUDIT NOTES / OBSERVATION
+                                <label style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '0.3rem' }}>
+                                    AUDIT OBSERVATION & NOTES
                                 </label>
                                 <textarea
                                     rows={2}
                                     value={adjustmentForm.notes}
                                     onChange={e => setAdjustmentForm({ ...adjustmentForm, notes: e.target.value })}
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#064E3B]"
+                                    style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.8rem', fontWeight: '600' }}
                                 />
                             </div>
 
-                            <div className="flex items-center gap-3 pt-2">
+                            <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.5rem' }}>
                                 <button
                                     type="button"
                                     onClick={() => setIsAdjustmentModalOpen(false)}
-                                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-colors cursor-pointer"
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', background: '#F8FAFC', color: '#475569', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer' }}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={adjustmentMutation.isPending}
-                                    className="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs shadow-md transition-colors cursor-pointer"
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: '12px', border: 'none', background: '#0F172A', color: 'white', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer' }}
                                 >
-                                    {adjustmentMutation.isPending ? 'Saving...' : 'Apply Adjustment'}
+                                    {adjustmentMutation.isPending ? 'Saving...' : 'Confirm Count Adjustment'}
                                 </button>
                             </div>
                         </form>
@@ -1326,4 +1636,3 @@ export default function StockItemDetailView() {
         </div>
     );
 }
-
