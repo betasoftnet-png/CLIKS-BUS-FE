@@ -50,6 +50,7 @@ import BusinessReports from './pages/BusinessReports';
 import BusinessSuppliers from './pages/BusinessSuppliers';
 import BusinessReturns from './pages/BusinessReturns';
 import BusinessStock from './pages/inventory/Stock';
+import StockItemDetailView from './pages/inventory/StockItemDetailView';
 import BusinessWarehouse from './pages/BusinessWarehouse';
 import BusinessPayments from './pages/payments/Transaction';
 import BusinessWallet from './pages/BusinessWallet';
@@ -308,7 +309,9 @@ function AuthenticatedApp() {
 
                 <Route path="/sales/returns" element={<BusinessReturns />} />
                 <Route path="/inventory/stock" element={<BusinessStock />} />
+                <Route path="/inventory/stock/:id" element={<StockItemDetailView />} />
                 <Route path="/inventory/stock-items" element={<BusinessStock />} />
+                <Route path="/inventory/stock-items/:id" element={<StockItemDetailView />} />
                 <Route path="/purchases/suppliers" element={<BusinessSuppliers />} />
                 <Route path="/payments" element={<Navigate to="/payments/people" replace />} />
                 <Route path="/payments/people" element={<BusinessPeople />} />

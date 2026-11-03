@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { stockService, warehouseService, productsService, posService, billingService } from '../services';
@@ -39,6 +40,7 @@ const BarChartIcon = ({ size = 16 }) => (
 );
 
 const BusinessStock = () => {
+    const navigate = useNavigate();
     const { formatCurrency } = useCurrency();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('registry');
@@ -978,7 +980,16 @@ const BusinessStock = () => {
                                 {filteredStocks.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((st) => {
                                     const valuation = st.current_stock * st.average_cost;
                                     return (
-                                        <tr key={st.stock_id} onClick={() => setSelectedStock(st)} style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background='#F8FAFC'} onMouseLeave={e => e.currentTarget.style.background='white'}>
+                                        <tr 
+                                            key={st.stock_id} 
+                                            onClick={() => {
+                                                const targetId = st.id || st.product_id || st.stock_id;
+                                                navigate(`/inventory/stock/${targetId}`, { state: { stockItem: st } });
+                                            }} 
+                                            style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s' }} 
+                                            onMouseEnter={e => e.currentTarget.style.background='#F8FAFC'} 
+                                            onMouseLeave={e => e.currentTarget.style.background='white'}
+                                        >
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.95rem' }}>{st.product_name}</p>
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Product ID: {st.product_id}</span>
