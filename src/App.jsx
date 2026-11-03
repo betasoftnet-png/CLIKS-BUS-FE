@@ -286,6 +286,7 @@ function AuthenticatedApp() {
                 <Route path="/barcode" element={<BusinessBarcode />} />
                 <Route path="/inventory/barcode" element={<Navigate to="/barcode" replace />} />
                 <Route path="/sales/invoice" element={<BusinessBilling />} />
+                <Route path="/sales/invoices" element={<Navigate to="/sales/invoice" replace />} />
                 <Route path="/sales/eway" element={<Navigate to="/sales/invoice?tab=eway" replace />} />
                 <Route path="/sales/einvoice" element={<Navigate to="/sales/invoice?tab=einvoice" replace />} />
                 <Route path="/sales/orders" element={<BusinessSalesOrders />} />
@@ -316,9 +317,9 @@ function AuthenticatedApp() {
                 <Route path="/payments" element={<Navigate to="/payments/people" replace />} />
                 <Route path="/payments/people" element={<BusinessPeople />} />
                 <Route path="/payments/transaction" element={<BusinessPayments key="transaction" />} />
-                <Route path="/payments/wallet" element={<Navigate to="/payments/people" replace />} />
+                <Route path="/payments/wallet" element={<BusinessPurposeWallet />} />
                 <Route path="/payments/segregation" element={<BusinessPurposeWallet />} />
-                <Route path="/payments/rewards" element={<Navigate to="/payments/people" replace />} />
+                <Route path="/payments/rewards" element={<Navigate to="/sales/loyalty" replace />} />
                 <Route path="/payments/plan" element={<BusinessPaymentPlan />} />
                 <Route path="/payments/planner" element={<BusinessPaymentPlan />} />
 

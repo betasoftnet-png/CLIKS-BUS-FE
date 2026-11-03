@@ -96,10 +96,11 @@ const DEFAULT_DASHBOARD_FEATURES = [
 
 const MASTER_SHORTCUTS = [
     // 🌟 Priority Invoicing & Point-of-Sale
-    { id: 'new_invoice', label: 'New Invoice', path: '/sales/invoices?create=true', icon: Plus, color: '#10B981' },
+    { id: 'new_invoice', label: 'New Invoice', path: '/sales/invoice?create=true', icon: Plus, color: '#10B981' },
     { id: 'sales_orders', label: 'Sales Orders', path: '/sales/orders', icon: ShoppingBag, color: '#2563EB' },
     { id: 'new_product', label: 'Add Product', path: '/inventory/products?create=true', icon: Package, color: '#059669' },
     { id: 'pos_billing', label: 'POS Billing', path: '/pos', icon: ShoppingCart, color: '#D97706' },
+    { id: 'simple_billing', label: 'Simple Billing', path: '/billing/simple', icon: Receipt, color: '#10B981' },
 
     // 💼 Operational Expense & HR Shortcuts
     { id: 'new_expense', label: 'Add Expense', path: '/finance/expenses?create=true', icon: Receipt, color: '#EF4444' },
@@ -112,7 +113,7 @@ const MASTER_SHORTCUTS = [
     { id: 'onboard_staff', label: 'Onboard Staff', path: '/hr/staff?create=true', icon: UserPlus, color: '#059669' },
     { id: 'gst_filing', label: 'GST Records', path: '/finance/gst', icon: BarChart3, color: '#F59E0B' },
     { id: 'marketing_hub', label: 'Marketing Hub', path: '/marketing', icon: Target, color: '#E11D48' },
-    { id: 'ca_hub', label: 'FIN-PRO Audit Hub', path: '/ca', icon: Briefcase, color: '#004aad' },
+    { id: 'ca_hub', label: 'FIN-PRO Audit Center', path: '/finance/fintech', icon: Briefcase, color: '#004aad' },
 
     // 📦 Deep-linked Procurement & Returns
     { id: 'purchase_bills', label: 'Purchase Bills', path: '/purchases/purchases?tab=purchase-bills', icon: Receipt, color: '#0891B2' },
@@ -123,6 +124,7 @@ const MASTER_SHORTCUTS = [
 
     // ⚙️ Inventory, Logistics & Barcoding
     { id: 'stock_management', label: 'Stock Management', path: '/inventory/stock', icon: Activity, color: '#2563EB' },
+    { id: 'product_categories', label: 'Categories', path: '/inventory/categories', icon: Package, color: '#D97706' },
     { id: 'warehouse_godown', label: 'Godown/Warehouse', path: '/inventory/warehouse', icon: Warehouse, color: '#0284C7' },
     { id: 'barcode_gen', label: 'Barcode Generator', path: '/barcode', icon: Barcode, color: '#4F46E5' },
 
@@ -130,9 +132,12 @@ const MASTER_SHORTCUTS = [
     { id: 'split_collect', label: 'Split & Collect', path: '/payments/split-collect', icon: Users2, color: '#DB2777' },
     { id: 'payments_ledger', label: 'Payments Ledger', path: '/payments/transaction', icon: Coins, color: '#16A34A' },
     { id: 'company_wallet', label: 'Company Wallet', path: '/payments/wallet', icon: Wallet, color: '#7C3AED' },
-    { id: 'loyalty_rewards', label: 'Loyalty Rewards', path: '/payments/rewards', icon: Gift, color: '#EA580C' },
+    { id: 'payment_people', label: 'People & Payees', path: '/payments/people', icon: Users, color: '#0284C7' },
+    { id: 'payment_plan', label: 'Payment Planner', path: '/payments/plan', icon: Calendar, color: '#8B5CF6' },
+    { id: 'loyalty_rewards', label: 'Loyalty Rewards', path: '/sales/loyalty', icon: Gift, color: '#EA580C' },
     { id: 'staff_payroll', label: 'Staff Payroll', path: '/hr/payroll', icon: FileText, color: '#D97706' },
     { id: 'accounting_ledger', label: 'Double Entry Accounting', path: '/finance/accounting', icon: FileText, color: '#4F46E5' },
+    { id: 'reports_hub', label: 'Business Reports', path: '/reports', icon: BarChart3, color: '#3B82F6' },
 
     // 🚚 Operations, Customization & CRM
     { id: 'delivery_challan', label: 'Delivery Challan', path: '/sales/delivery', icon: Truck, color: '#0891B2' },
@@ -176,8 +181,11 @@ const BusinessDashboard = () => {
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed)) {
-                    return parsed.filter(id => validIds.includes(id));
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    const validSaved = parsed.filter(id => validIds.includes(id));
+                    // Keep valid saved choices and automatically include any newly available master shortcuts
+                    const missing = validIds.filter(id => !parsed.includes(id));
+                    return [...validSaved, ...missing];
                 }
             } catch(e) {}
         }
@@ -226,13 +234,16 @@ const BusinessDashboard = () => {
                                userSettingsData?.dashboard_shortcuts ?? 
                                userSettingsData?.data?.dashboardShortcuts ?? 
                                userSettingsData?.dashboardShortcuts;
-        if (Array.isArray(cloudShortcuts)) {
-            const validIds = MASTER_SHORTCUTS.map(s => s.id);
+        const validIds = MASTER_SHORTCUTS.map(s => s.id);
+        if (Array.isArray(cloudShortcuts) && cloudShortcuts.length > 0) {
             const filtered = cloudShortcuts.filter(id => validIds.includes(id));
-            setSelectedShortcuts(filtered);
-            setModalSelectedShortcuts(filtered);
+            // Keep saved and automatically merge newly added shortcuts so all options stay synced
+            const missing = validIds.filter(id => !cloudShortcuts.includes(id));
+            const merged = [...filtered, ...missing];
+            setSelectedShortcuts(merged);
+            setModalSelectedShortcuts(merged);
             try {
-                localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(filtered));
+                localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(merged));
             } catch (e) {}
         }
 
@@ -1611,33 +1622,57 @@ const BusinessDashboard = () => {
                                 <span style={{ fontSize: '0.82rem', fontWeight: '700', color: '#475569' }}>
                                     {modalSelectedShortcuts.length} of {MASTER_SHORTCUTS.length} shortcuts active
                                 </span>
-                                <button
-                                    type="button"
-                                    onClick={handleToggleSelectAllModal}
-                                    style={{
-                                        background: isAllModalSelected ? '#FEF2F2' : '#EFF6FF',
-                                        color: isAllModalSelected ? '#DC2626' : '#2563EB',
-                                        border: `1px solid ${isAllModalSelected ? '#FECACA' : '#BFDBFE'}`,
-                                        borderRadius: '8px',
-                                        padding: '4px 12px',
-                                        fontSize: '0.8rem',
-                                        fontWeight: '750',
-                                        cursor: 'pointer',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '6px',
-                                        transition: 'all 0.15s ease'
-                                    }}
-                                    onMouseOver={(e) => {
-                                        e.currentTarget.style.opacity = '0.85';
-                                    }}
-                                    onMouseOut={(e) => {
-                                        e.currentTarget.style.opacity = '1';
-                                    }}
-                                >
-                                    <CheckCheck size={14} />
-                                    {isAllModalSelected ? 'Deselect All' : 'Select All'}
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setModalSelectedShortcuts(MASTER_SHORTCUTS.map(s => s.id))}
+                                        style={{
+                                            background: '#F0FDF4',
+                                            color: '#166534',
+                                            border: '1px solid #BBF7D0',
+                                            borderRadius: '8px',
+                                            padding: '4px 12px',
+                                            fontSize: '0.8rem',
+                                            fontWeight: '750',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '5px',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                        title="Sync and select all available module shortcuts"
+                                    >
+                                        <RotateCcw size={13} />
+                                        Sync All
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleToggleSelectAllModal}
+                                        style={{
+                                            background: isAllModalSelected ? '#FEF2F2' : '#EFF6FF',
+                                            color: isAllModalSelected ? '#DC2626' : '#2563EB',
+                                            border: `1px solid ${isAllModalSelected ? '#FECACA' : '#BFDBFE'}`,
+                                            borderRadius: '8px',
+                                            padding: '4px 12px',
+                                            fontSize: '0.8rem',
+                                            fontWeight: '750',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                        onMouseOver={(e) => {
+                                            e.currentTarget.style.opacity = '0.85';
+                                        }}
+                                        onMouseOut={(e) => {
+                                            e.currentTarget.style.opacity = '1';
+                                        }}
+                                    >
+                                        <CheckCheck size={14} />
+                                        {isAllModalSelected ? 'Deselect All' : 'Select All'}
+                                    </button>
+                                </div>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '360px', overflowY: 'auto', paddingRight: '4px', marginBottom: '1.75rem' }}>
