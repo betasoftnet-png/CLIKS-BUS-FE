@@ -111,13 +111,14 @@ export default function BusinessCA({ mode }) {
 
     const icaiVerification = icaiData?.data || icaiData || {};
     const isCaVerified = 
+        activeMode === 'business' ||
         icaiVerification?.status === 'VERIFIED' || 
         icaiVerification?.isVerified === true ||
         Boolean(user?.is_finpro_verified) || 
         user?.ca_verification_status === 'VERIFIED' || 
         user?.is_ca === 1 || 
         (typeof window !== 'undefined' && localStorage.getItem('cliks_finpro_verified') === 'true');
-    const isFinProSubscribed = Boolean(icaiVerification?.isSubscribed);
+    const isFinProSubscribed = activeMode === 'business' || Boolean(icaiVerification?.isSubscribed);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -1526,7 +1527,7 @@ export default function BusinessCA({ mode }) {
     return (
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', backgroundColor: '#F8FAFC', minHeight: '85vh', fontFamily: 'Inter, sans-serif' }}>
 
-            {!isCaVerified ? (
+            {(!isCaVerified && activeMode !== 'business') ? (
                 /* ── Gate 1: ICAI Credential Verification Required ── */
                 <div style={{
                     maxWidth: '800px',
@@ -1646,7 +1647,7 @@ export default function BusinessCA({ mode }) {
                         )}
                     </div>
                 </div>
-            ) : !isFinProSubscribed ? (
+            ) : (!isFinProSubscribed && activeMode !== 'business') ? (
                 /* ── Gate 2: Subscription Required ── */
                 <div style={{
                     maxWidth: '900px',
