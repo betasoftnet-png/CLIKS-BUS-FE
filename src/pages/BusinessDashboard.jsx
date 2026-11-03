@@ -147,6 +147,7 @@ const BusinessDashboard = () => {
     // States for custom interactive SVGs
     const [hoveredSalesPoint, setHoveredSalesPoint] = useState(null);
     const [hoveredDonutSegment, setHoveredDonutSegment] = useState(null);
+    const [dashboardPeriod, setDashboardPeriod] = useState('financial_year'); // 'today' | 'this_week' | 'this_month' | 'financial_year' | 'all_time'
     
     const queryClient = useQueryClient();
 
@@ -342,8 +343,8 @@ const BusinessDashboard = () => {
 
     // Analytics Queries
     const { data: dashboardSummary } = useQuery({
-        queryKey: ['dashboardSummary', activeBranchId],
-        queryFn: () => reportsService.getDashboardSummary(activeBranchId),
+        queryKey: ['dashboardSummary', activeBranchId, dashboardPeriod],
+        queryFn: () => reportsService.getDashboardSummary({ branch_id: activeBranchId, period: dashboardPeriod }),
         retry: false
     });
 
@@ -385,33 +386,39 @@ const BusinessDashboard = () => {
     const purchasesAggregate = rawPurchases.reduce((acc, p) => 
         acc + (parseFloat(p.grand_total ?? p.total_amount ?? p.total ?? p.amount ?? 0) || 0), 0);
 
-    const summaryPurchases = dashboardSummary?.total_purchases 
-        ?? dashboardSummary?.data?.total_purchases 
-        ?? dashboardSummary?.purchases_total 
-        ?? dashboardSummary?.data?.purchases_total;
+    // Read period-scoped breakdown or fall back to total
+    const activeBreakdown = dashboardSummary?.breakdown?.[dashboardPeriod];
 
-    const totalPurchasesAmount = (summaryPurchases !== undefined && summaryPurchases !== null && !isNaN(Number(summaryPurchases)))
-        ? Number(summaryPurchases)
-        : (purchasesAggregate || 0);
+    const totalPurchasesAmount = activeBreakdown?.purchases !== undefined
+        ? Number(activeBreakdown.purchases)
+        : ((dashboardSummary?.total_purchases !== undefined && dashboardSummary?.total_purchases !== null && !isNaN(Number(dashboardSummary.total_purchases)))
+            ? Number(dashboardSummary.total_purchases)
+            : (purchasesAggregate || 0));
 
-    const summarySales = dashboardSummary?.total_sales 
-        ?? dashboardSummary?.data?.total_sales 
-        ?? dashboardSummary?.sales_total;
+    const totalSalesAmount = activeBreakdown?.sales !== undefined
+        ? Number(activeBreakdown.sales)
+        : ((dashboardSummary?.total_sales !== undefined && dashboardSummary?.total_sales !== null && !isNaN(Number(dashboardSummary.total_sales)))
+            ? Number(dashboardSummary.total_sales)
+            : (Number(salesOverview?.total_sales ?? salesOverview?.data?.total_sales) || 0));
 
-    const totalSalesAmount = (summarySales !== undefined && summarySales !== null && !isNaN(Number(summarySales)))
-        ? Number(summarySales)
-        : (Number(salesOverview?.total_sales ?? salesOverview?.data?.total_sales) || 0);
-
-    const summaryExpenses = dashboardSummary?.total_expenses 
-        ?? dashboardSummary?.data?.total_expenses;
-
-    const totalExpensesAmount = (summaryExpenses !== undefined && summaryExpenses !== null && !isNaN(Number(summaryExpenses)))
-        ? Number(summaryExpenses)
-        : ((expensesCategoryReport && expensesCategoryReport.length > 0)
-            ? expensesCategoryReport.reduce((acc, e) => acc + (parseFloat(e.total_amount || e.total || 0)), 0)
-            : 0);
+    const totalExpensesAmount = activeBreakdown?.expenses !== undefined
+        ? Number(activeBreakdown.expenses)
+        : ((dashboardSummary?.total_expenses !== undefined && dashboardSummary?.total_expenses !== null && !isNaN(Number(dashboardSummary.total_expenses)))
+            ? Number(dashboardSummary.total_expenses)
+            : ((expensesCategoryReport && expensesCategoryReport.length > 0)
+                ? expensesCategoryReport.reduce((acc, e) => acc + (parseFloat(e.total_amount || e.total || 0)), 0)
+                : 0));
 
     const estimatedNetProfit = totalSalesAmount - totalExpensesAmount;
+
+    const periodLabelMap = {
+        today: 'Today',
+        this_week: 'This Week',
+        this_month: 'This Month',
+        financial_year: dashboardSummary?.fy_label || 'FY 2026-27',
+        all_time: 'All Time'
+    };
+    const currentPeriodBadge = periodLabelMap[dashboardPeriod] || 'FY 2026-27';
 
     const DONUT_COLORS = ['#1B6B3A', '#10B981', '#059669', '#34D399', '#6EE7B7', '#A7F3D0'];
 
@@ -425,10 +432,10 @@ const BusinessDashboard = () => {
     })).sort((a, b) => b.value - a.value);
 
     const stats = [
-        { label: t('totalSalesRevenue', 'Total Sales Revenue'), value: formatCurrency(totalSalesAmount), change: t('live', 'Live'), color: '#059669', icon: TrendingUp },
-        { label: t('totalPurchases', 'Total Purchases'), value: formatCurrency(totalPurchasesAmount), change: t('live', 'Live'), color: '#2563EB', icon: ShoppingCart },
-        { label: t('totalExpenses', 'Total Expenses'), value: formatCurrency(totalExpensesAmount), change: t('live', 'Live'), color: '#D97706', icon: Receipt },
-        { label: t('estNetProfit', 'Est. Net Profit'), value: formatCurrency(estimatedNetProfit), change: t('live', 'Live'), color: estimatedNetProfit >= 0 ? '#10B981' : '#DC2626', icon: ArrowUpRight },
+        { label: `Sales Revenue (${currentPeriodBadge})`, value: formatCurrency(totalSalesAmount), change: currentPeriodBadge, color: '#059669', icon: TrendingUp },
+        { label: `Purchases (${currentPeriodBadge})`, value: formatCurrency(totalPurchasesAmount), change: currentPeriodBadge, color: '#2563EB', icon: ShoppingCart },
+        { label: `Expenses (${currentPeriodBadge})`, value: formatCurrency(totalExpensesAmount), change: currentPeriodBadge, color: '#D97706', icon: Receipt },
+        { label: `Est. Net Profit (${currentPeriodBadge})`, value: formatCurrency(estimatedNetProfit), change: currentPeriodBadge, color: estimatedNetProfit >= 0 ? '#10B981' : '#DC2626', icon: ArrowUpRight },
     ];
 
     // Data formatters for Custom SVG Sales Graph
@@ -494,7 +501,45 @@ const BusinessDashboard = () => {
                         }
                     </p>
                 </div>
-                <div className="dashboard-header-actions">
+                <div className="dashboard-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    {/* Period Filter Pill Switcher */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        background: '#F1F5F9',
+                        padding: '4px',
+                        borderRadius: '14px',
+                        border: '1px solid #E2E8F0',
+                        gap: '4px'
+                    }}>
+                        {[
+                            { id: 'today', label: 'Today' },
+                            { id: 'this_week', label: 'This Week' },
+                            { id: 'this_month', label: 'This Month' },
+                            { id: 'financial_year', label: dashboardSummary?.fy_label || 'FY 2026-27' },
+                            { id: 'all_time', label: 'All Time' }
+                        ].map(p => (
+                            <button
+                                key={p.id}
+                                onClick={() => setDashboardPeriod(p.id)}
+                                style={{
+                                    padding: '0.45rem 0.85rem',
+                                    borderRadius: '10px',
+                                    border: 'none',
+                                    fontWeight: '800',
+                                    fontSize: '0.78rem',
+                                    cursor: 'pointer',
+                                    background: dashboardPeriod === p.id ? '#1B6B3A' : 'transparent',
+                                    color: dashboardPeriod === p.id ? 'white' : '#64748B',
+                                    boxShadow: dashboardPeriod === p.id ? '0 2px 4px rgba(27, 107, 58, 0.2)' : 'none',
+                                    transition: 'all 0.15s ease'
+                                }}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
+
                     <button
                         onClick={handleOpenDashboardCustomise}
                         style={{
@@ -548,6 +593,40 @@ const BusinessDashboard = () => {
                                                         <p style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1E293B' }}>{stat.value}</p>
                                                     </div>
                                                 ))}
+                                            </div>
+
+                                            {/* Period Comparison Ribbon */}
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                background: 'white',
+                                                borderRadius: '16px',
+                                                border: '1px solid #E2E8F0',
+                                                padding: '0.85rem 1.25rem',
+                                                marginTop: '0.85rem',
+                                                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                                                flexWrap: 'wrap',
+                                                gap: '0.75rem'
+                                            }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: '800', color: '#0F172A' }}>
+                                                    <span style={{ fontSize: '1rem' }}>⏱️</span>
+                                                    <span>Sales By Timeframe:</span>
+                                                    <span style={{ background: '#ECFDF5', color: '#065F46', padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '850', border: '1px solid #A7F3D0' }}>
+                                                        Viewing: {currentPeriodBadge}
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.78rem', fontWeight: '750', color: '#64748B', flexWrap: 'wrap' }}>
+                                                    <span>Today: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.today?.sales || 0)}</strong></span>
+                                                    <span style={{ color: '#CBD5E1' }}>•</span>
+                                                    <span>This Week: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.this_week?.sales || 0)}</strong></span>
+                                                    <span style={{ color: '#CBD5E1' }}>•</span>
+                                                    <span>This Month: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.this_month?.sales || 0)}</strong></span>
+                                                    <span style={{ color: '#CBD5E1' }}>•</span>
+                                                    <span>{dashboardSummary?.fy_label || 'Current FY'}: <strong style={{ color: '#064E3B' }}>{formatCurrency(dashboardSummary?.breakdown?.financial_year?.sales || 0)}</strong></span>
+                                                    <span style={{ color: '#CBD5E1' }}>•</span>
+                                                    <span>All-Time: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.all_time?.sales || 0)}</strong></span>
+                                                </div>
                                             </div>
                                         </div>
                                     );
