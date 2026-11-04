@@ -92,12 +92,11 @@ export const AuthProvider = ({ children }) => {
             });
         } catch (e) {}
 
-        localStorage.setItem('books_auth_token', targetAccount.token);
-        if (targetAccount.bnxToken) {
-            localStorage.setItem('bnx_auth_token', targetAccount.bnxToken);
-        } else {
-            localStorage.removeItem('bnx_auth_token');
-        }
+        const nextBooksToken = targetAccount.token;
+        const nextBnxToken = targetAccount.bnxToken || targetAccount.token;
+
+        localStorage.setItem('books_auth_token', nextBooksToken);
+        localStorage.setItem('bnx_auth_token', nextBnxToken);
 
         if (targetAccount.profilePhoto) {
             localStorage.setItem('profile_photo', targetAccount.profilePhoto);
@@ -105,15 +104,15 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('profile_photo');
         }
 
-        setToken(targetAccount.token);
-        setUser(targetAccount);
+        setToken(nextBooksToken);
+        setUser({ ...targetAccount, bnxToken: nextBnxToken });
 
-        // Update timestamps in accounts
+        // Update timestamps in accounts and ensure bnxToken is saved
         setAccounts(prev => {
             const updated = prev.map(a => {
                 const matches = (a.email && targetAccount.email && a.email.toLowerCase() === targetAccount.email.toLowerCase()) ||
                                 (a.id && targetAccount.id && String(a.id) === String(targetAccount.id));
-                return matches ? { ...a, ...targetAccount, lastActive: Date.now() } : a;
+                return matches ? { ...a, ...targetAccount, bnxToken: nextBnxToken, lastActive: Date.now() } : a;
             });
             try {
                 localStorage.setItem('cliks_multi_accounts', JSON.stringify(updated));
