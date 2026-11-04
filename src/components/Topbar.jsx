@@ -510,8 +510,12 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
     };
 
     const handleLogout = () => {
-        logout();
-        navigate('/');
+        const hasRemaining = logout();
+        if (!hasRemaining) {
+            navigate('/');
+        } else {
+            navigate('/dashboard');
+        }
     };
 
     // Synchronous Persistent Module Derivation

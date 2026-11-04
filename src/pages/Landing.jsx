@@ -203,7 +203,9 @@ export default function Landing() {
     const [processedCode, setProcessedCode] = useState(null);
 
     const CLIENT_ID = 'cliks-business';
-    const REDIRECT_URI = 'https://cliksbusiness.com/';
+    const REDIRECT_URI = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+        ? `${window.location.origin}/`
+        : 'https://cliksbusiness.com/';
     const BNX_AUTH_URL = 'https://www.b2auth.com';
     const BNX_API_URL = 'https://api.bnxmail.com';
 
@@ -291,26 +293,21 @@ export default function Landing() {
     }, [location]);
 
     useEffect(() => {
-        if (isAuthenticated) {
-            navigate('/dashboard', { replace: true });
-        }
-    }, [isAuthenticated, user, navigate]);
-
-    useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 40);
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
     useEffect(() => {
-        if (isAuthenticated) return;
         const urlParams = new URLSearchParams(location.search);
         const code = urlParams.get('code');
         if (code && code !== processedCode) {
             setProcessedCode(code);
             handleOAuthCallback(code);
+        } else if (isAuthenticated && !code && !isProcessingAuth) {
+            navigate('/dashboard', { replace: true });
         }
-    }, [location, processedCode, handleOAuthCallback, isAuthenticated]);
+    }, [location, processedCode, handleOAuthCallback, isAuthenticated, isProcessingAuth, navigate]);
 
     const handleLogin = (e) => {
         if (e) e.preventDefault();

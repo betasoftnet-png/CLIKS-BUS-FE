@@ -10,6 +10,14 @@ import { AuthContext } from './auth-context';
 
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('books_auth_token'));
+    const [accounts, setAccounts] = useState(() => {
+        try {
+            const raw = localStorage.getItem('cliks_multi_accounts');
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            return [];
+        }
+    });
     const [user, setUser] = useState(() => {
         try {
             const raw = localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token');
@@ -40,18 +48,109 @@ export const AuthProvider = ({ children }) => {
 
     const isLoggingOutRef = React.useRef(false);
 
-    const logout = React.useCallback(() => {
-        if (isLoggingOutRef.current) return;
-        isLoggingOutRef.current = true;
+    // Helper to persist account entries in multi-account store
+    const saveOrUpdateAccount = React.useCallback((accData) => {
+        if (!accData || (!accData.id && !accData.email)) return;
+        setAccounts(prev => {
+            const key = accData.email ? accData.email.toLowerCase() : String(accData.id);
+            const index = prev.findIndex(a => 
+                (a.email && a.email.toLowerCase() === key) || (a.id && String(a.id) === key)
+            );
+            let updated;
+            if (index >= 0) {
+                updated = [...prev];
+                updated[index] = { ...updated[index], ...accData, lastActive: Date.now() };
+            } else {
+                updated = [...prev, { ...accData, lastActive: Date.now() }];
+            }
+            try {
+                localStorage.setItem('cliks_multi_accounts', JSON.stringify(updated));
+            } catch (e) {}
+            return updated;
+        });
+    }, []);
 
-        const currentToken = localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token');
-        if (currentToken && currentToken !== 'mock-test-token') {
+    // Switch active account seamlessly
+    const switchAccount = React.useCallback(async (targetAccount) => {
+        if (!targetAccount || !targetAccount.token) return;
+
+        try {
             caService.setUserOffline().catch(() => {});
+        } catch (e) {}
+
+        // Clear tenant keys, preserve shortcuts and cliks_multi_accounts
+        Object.keys(localStorage).forEach(key => {
+            if (key !== 'cliks_dashboard_shortcuts' && key !== 'cliks_multi_accounts' && (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_'))) {
+                localStorage.removeItem(key);
+            }
+        });
+        try {
+            Object.keys(sessionStorage).forEach(key => {
+                if (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_')) {
+                    sessionStorage.removeItem(key);
+                }
+            });
+        } catch (e) {}
+
+        localStorage.setItem('books_auth_token', targetAccount.token);
+        if (targetAccount.bnxToken) {
+            localStorage.setItem('bnx_auth_token', targetAccount.bnxToken);
+        } else {
+            localStorage.removeItem('bnx_auth_token');
         }
+
+        if (targetAccount.profilePhoto) {
+            localStorage.setItem('profile_photo', targetAccount.profilePhoto);
+        } else {
+            localStorage.removeItem('profile_photo');
+        }
+
+        setToken(targetAccount.token);
+        setUser(targetAccount);
+
+        // Update timestamps in accounts
+        setAccounts(prev => {
+            const updated = prev.map(a => {
+                const matches = (a.email && targetAccount.email && a.email.toLowerCase() === targetAccount.email.toLowerCase()) ||
+                                (a.id && targetAccount.id && String(a.id) === String(targetAccount.id));
+                return matches ? { ...a, ...targetAccount, lastActive: Date.now() } : a;
+            });
+            try {
+                localStorage.setItem('cliks_multi_accounts', JSON.stringify(updated));
+            } catch (e) {}
+            return updated;
+        });
+
+        queryClient.clear();
+        queryClient.invalidateQueries();
+
+        // Refresh profile in background for active account
+        try {
+            const profile = await profileService.getProfile();
+            const uName = profile.username || profile.name || (profile.email ? profile.email.split('@')[0] : 'User');
+            setUser(prev => {
+                const merged = { ...prev, ...profile, name: uName, username: profile.username || uName };
+                return merged;
+            });
+        } catch (e) {
+            console.warn('[switchAccount] Profile fetch warning:', e);
+        }
+    }, [queryClient]);
+
+    // Sign out of all accounts
+    const logoutAll = React.useCallback(() => {
+        try {
+            const currentToken = localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token');
+            if (currentToken && currentToken !== 'mock-test-token') {
+                caService.setUserOffline().catch(() => {});
+            }
+        } catch (e) {}
+
         localStorage.removeItem('books_auth_token');
         localStorage.removeItem('bnx_auth_token');
-        
-        // Clear all local and session storage keys to prevent data leakage across accounts (preserve UI layout preferences)
+        localStorage.removeItem('profile_photo');
+        localStorage.removeItem('cliks_multi_accounts');
+
         Object.keys(localStorage).forEach(key => {
             if (key !== 'cliks_dashboard_shortcuts' && (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_'))) {
                 localStorage.removeItem(key);
@@ -65,15 +164,97 @@ export const AuthProvider = ({ children }) => {
             });
         } catch (e) {}
 
+        setAccounts([]);
         setToken(null);
         setUser(null);
-        // Clear query cache to prevent User B from seeing User A's cached data
+        queryClient.clear();
+    }, [queryClient]);
+
+    // Remove single account from multi-account list
+    const removeAccount = React.useCallback((accountIdOrEmail) => {
+        const key = String(accountIdOrEmail).toLowerCase();
+        let remaining = [];
+        setAccounts(prev => {
+            remaining = prev.filter(a => 
+                (a.id && String(a.id).toLowerCase() !== key) &&
+                (a.email && String(a.email).toLowerCase() !== key)
+            );
+            try {
+                localStorage.setItem('cliks_multi_accounts', JSON.stringify(remaining));
+            } catch (e) {}
+            return remaining;
+        });
+
+        const isCurrent = (user?.email && user.email.toLowerCase() === key) ||
+                          (user?.id && String(user.id).toLowerCase() === key);
+
+        if (isCurrent) {
+            if (remaining.length > 0) {
+                switchAccount(remaining[0]);
+            } else {
+                logoutAll();
+            }
+        }
+    }, [user, switchAccount, logoutAll]);
+
+    // Sign out current account; switches to remaining account if one exists, else full logout
+    const logout = React.useCallback(() => {
+        if (isLoggingOutRef.current) return false;
+        isLoggingOutRef.current = true;
+
+        const currentToken = localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token');
+        if (currentToken && currentToken !== 'mock-test-token') {
+            caService.setUserOffline().catch(() => {});
+        }
+
+        let storedAccounts = [];
+        try {
+            storedAccounts = JSON.parse(localStorage.getItem('cliks_multi_accounts') || '[]');
+        } catch (e) {}
+
+        const currentKey = user?.email?.toLowerCase() || (user?.id ? String(user.id).toLowerCase() : null);
+        const remaining = storedAccounts.filter(a => 
+            (a.email && a.email.toLowerCase() !== currentKey) &&
+            (a.id && String(a.id).toLowerCase() !== currentKey)
+        );
+
+        if (remaining.length > 0) {
+            localStorage.setItem('cliks_multi_accounts', JSON.stringify(remaining));
+            setAccounts(remaining);
+            isLoggingOutRef.current = false;
+            switchAccount(remaining[0]);
+            return true;
+        }
+
+        // No accounts left, full logout
+        localStorage.removeItem('books_auth_token');
+        localStorage.removeItem('bnx_auth_token');
+        localStorage.removeItem('cliks_multi_accounts');
+        localStorage.removeItem('profile_photo');
+        
+        Object.keys(localStorage).forEach(key => {
+            if (key !== 'cliks_dashboard_shortcuts' && (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_'))) {
+                localStorage.removeItem(key);
+            }
+        });
+        try {
+            Object.keys(sessionStorage).forEach(key => {
+                if (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_')) {
+                    sessionStorage.removeItem(key);
+                }
+            });
+        } catch (e) {}
+
+        setAccounts([]);
+        setToken(null);
+        setUser(null);
         queryClient.clear();
 
         setTimeout(() => {
             isLoggingOutRef.current = false;
         }, 1500);
-    }, [queryClient]);
+        return false;
+    }, [queryClient, user, switchAccount]);
 
     useEffect(() => {
         const initAuth = async () => {
@@ -103,12 +284,28 @@ export const AuthProvider = ({ children }) => {
             try {
                 const userData = await profileService.getProfile();
                 const uName = userData.username || userData.name || (userData.email ? userData.email.split('@')[0] : 'User');
-                setUser(prev => ({
-                    ...prev,
-                    ...userData,
-                    username: userData.username || prev?.username || uName,
-                    name: uName
-                }));
+                setUser(prev => {
+                    const fullUser = {
+                        ...prev,
+                        ...userData,
+                        username: userData.username || prev?.username || uName,
+                        name: uName
+                    };
+                    saveOrUpdateAccount({
+                        id: fullUser.id,
+                        email: fullUser.email,
+                        name: fullUser.name || uName,
+                        username: fullUser.username || uName,
+                        role: fullUser.role || 'business',
+                        tier: fullUser.tier || 'Free Plan',
+                        token: token,
+                        bnxToken: localStorage.getItem('bnx_auth_token') || token,
+                        is_sub_id: fullUser.is_sub_id,
+                        branch_id: fullUser.branch_id,
+                        branch_name: fullUser.branch_name
+                    });
+                    return fullUser;
+                });
             } catch (error) {
                 console.error('[AuthContext] Failed to fetch profile:', error);
                 // Only logout on 401 Unauthorized to prevent loops on other errors
@@ -121,7 +318,7 @@ export const AuthProvider = ({ children }) => {
         };
 
         initAuth();
-    }, [token, logout]);
+    }, [token, logout, saveOrUpdateAccount]);
 
     useEffect(() => {
         const handleUnauthorized = () => {
@@ -135,15 +332,24 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const handleStorageChange = (e) => {
-            if (!e.key || e.key === 'books_auth_token' || e.key === 'bnx_auth_token') {
-                console.warn('[AuthContext] Auth session changed or switched in another tab. Logging out this tab.');
-                logout();
+            if (e.key === 'books_auth_token' || e.key === 'bnx_auth_token') {
+                const currentToken = localStorage.getItem('books_auth_token');
+                if (!currentToken) {
+                    logout();
+                } else if (currentToken !== token) {
+                    setToken(currentToken);
+                }
+            } else if (e.key === 'cliks_multi_accounts') {
+                try {
+                    const accs = JSON.parse(e.newValue || '[]');
+                    setAccounts(accs);
+                } catch (err) {}
             }
         };
 
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
-    }, [logout]);
+    }, [logout, token]);
 
     useEffect(() => {
         if (user) {
@@ -285,9 +491,9 @@ export const AuthProvider = ({ children }) => {
             } catch (e) {}
         }
 
-        // Clear all previous local and session storage keys before logging in a new user (preserve UI layout preferences)
+        // Clear previous session storage keys before logging in a new user (preserve UI layout preferences & cliks_multi_accounts)
         Object.keys(localStorage).forEach(key => {
-            if (key !== 'cliks_dashboard_shortcuts' && (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_'))) {
+            if (key !== 'cliks_dashboard_shortcuts' && key !== 'cliks_multi_accounts' && (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_'))) {
                 localStorage.removeItem(key);
             }
         });
@@ -303,6 +509,23 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('bnx_auth_token', bnxToken);
         setToken(accessToken);
         setUser(newUser);
+
+        // Record or update this account in the multi-account store
+        const accountEntry = {
+            id: newUser.id,
+            email: newUser.email,
+            name: newUser.name || newUser.username || (newUser.email ? newUser.email.split('@')[0] : 'User'),
+            username: newUser.username || (newUser.email ? newUser.email.split('@')[0] : 'User'),
+            role: newUser.role || 'business',
+            tier: newUser.tier || 'Free Plan',
+            token: accessToken,
+            bnxToken: bnxToken,
+            is_sub_id: newUser.is_sub_id,
+            branch_id: newUser.branch_id,
+            branch_name: newUser.branch_name,
+            lastActive: Date.now()
+        };
+        saveOrUpdateAccount(accountEntry);
 
         // Invalidate and refetch all queries to ensure new user data is loaded
         queryClient.invalidateQueries();
@@ -372,6 +595,10 @@ export const AuthProvider = ({ children }) => {
         user,
         token,
         loading,
+        accounts,
+        switchAccount,
+        removeAccount,
+        logoutAll,
         ssoLogin,
         adminLogin,
         supportAgentLogin,

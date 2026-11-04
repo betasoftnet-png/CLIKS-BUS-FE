@@ -10,7 +10,7 @@ export function ProfileDropdown({
     onLogout,
 }) {
     const [open, setOpen] = useState(false);
-    const { user } = useAuth();
+    const { user, accounts = [], switchAccount, removeAccount, logoutAll } = useAuth();
     const navigate = useNavigate();
     const dropdownRef = useRef(null);
 
@@ -335,6 +335,26 @@ export function ProfileDropdown({
 
     const displayEmail = user?.email || "Guest";
     const displayName = user?.username || user?.name || "User";
+
+    const otherAccounts = (accounts || []).filter(acc => {
+        const isCurrentEmail = acc.email && user?.email && acc.email.toLowerCase() === user.email.toLowerCase();
+        const isCurrentId = acc.id && user?.id && String(acc.id) === String(user.id);
+        return !isCurrentEmail && !isCurrentId;
+    });
+
+    const handleAddAccount = () => {
+        const CLIENT_ID = 'cliks-business';
+        const redirectUri = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+            ? `${window.location.origin}/`
+            : 'https://cliksbusiness.com/';
+        const BNX_AUTH_URL = 'https://www.b2auth.com';
+        const state = 'cliks-business-add-account';
+        try {
+            sessionStorage.setItem('cliks_adding_account', 'true');
+        } catch (e) {}
+
+        window.location.href = `${BNX_AUTH_URL}/?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&mode=business&prompt=login`;
+    };
 
     // Calculate dynamic trust score
     const getBetaTrustScore = () => {
@@ -900,6 +920,154 @@ export function ProfileDropdown({
                                         <UserCog size={14} color="#4b5563" />
                                         Manage your account
                                     </button>
+
+                                    {/* Other Logged-in IDs & Account Switcher */}
+                                    {otherAccounts.length > 0 && (
+                                        <div style={{
+                                            width: '100%',
+                                            marginTop: '14px',
+                                            paddingTop: '12px',
+                                            borderTop: '1px solid #f1f5f9',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '6px'
+                                        }}>
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                padding: '0 4px',
+                                                fontSize: '11px',
+                                                fontWeight: '800',
+                                                color: '#64748b',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.05em'
+                                            }}>
+                                                <span>Other Logged-in IDs ({otherAccounts.length})</span>
+                                                <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '600' }}>Click to switch</span>
+                                            </div>
+
+                                            <div style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '6px',
+                                                maxHeight: '170px',
+                                                overflowY: 'auto'
+                                            }}>
+                                                {otherAccounts.map((acc, idx) => {
+                                                    const accName = acc.name || acc.username || (acc.email ? acc.email.split('@')[0] : 'User');
+                                                    const accEmail = acc.email || acc.id || '';
+                                                    const accInitial = (accName || accEmail || 'U').charAt(0).toUpperCase();
+
+                                                    return (
+                                                        <div
+                                                            key={acc.id || acc.email || idx}
+                                                            onClick={() => {
+                                                                switchAccount(acc);
+                                                                setOpen(false);
+                                                            }}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'space-between',
+                                                                padding: '8px 10px',
+                                                                borderRadius: '12px',
+                                                                border: '1px solid #e2e8f0',
+                                                                backgroundColor: '#f8fafc',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.15s ease',
+                                                                textAlign: 'left'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                e.currentTarget.style.backgroundColor = '#f1f5f9';
+                                                                e.currentTarget.style.borderColor = '#cbd5e1';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                                e.currentTarget.style.backgroundColor = '#f8fafc';
+                                                                e.currentTarget.style.borderColor = '#e2e8f0';
+                                                            }}
+                                                            title={`Switch to ${accName} (${accEmail})`}
+                                                        >
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                                                                <div style={{
+                                                                    width: '28px',
+                                                                    height: '28px',
+                                                                    borderRadius: '50%',
+                                                                    backgroundColor: '#10b981',
+                                                                    color: '#ffffff',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    fontWeight: '800',
+                                                                    fontSize: '12px',
+                                                                    flexShrink: 0
+                                                                }}>
+                                                                    {acc.profilePhoto ? (
+                                                                        <img src={acc.profilePhoto} alt={accName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                                                    ) : (
+                                                                        accInitial
+                                                                    )}
+                                                                </div>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, textAlign: 'left' }}>
+                                                                    <div style={{
+                                                                        fontSize: '12px',
+                                                                        fontWeight: '700',
+                                                                        color: '#1e293b',
+                                                                        overflow: 'hidden',
+                                                                        textOverflow: 'ellipsis',
+                                                                        whiteSpace: 'nowrap'
+                                                                    }}>
+                                                                        {accName}
+                                                                    </div>
+                                                                    <div style={{
+                                                                        fontSize: '11px',
+                                                                        color: '#64748b',
+                                                                        overflow: 'hidden',
+                                                                        textOverflow: 'ellipsis',
+                                                                        whiteSpace: 'nowrap'
+                                                                    }}>
+                                                                        {accEmail}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    removeAccount(acc.email || acc.id);
+                                                                }}
+                                                                title="Remove account from list"
+                                                                style={{
+                                                                    background: 'transparent',
+                                                                    border: 'none',
+                                                                    color: '#94a3b8',
+                                                                    cursor: 'pointer',
+                                                                    padding: '4px',
+                                                                    borderRadius: '6px',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    marginLeft: '4px',
+                                                                    flexShrink: 0
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.color = '#ef4444';
+                                                                    e.currentTarget.style.backgroundColor = '#fee2e2';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.color = '#94a3b8';
+                                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                                }}
+                                                            >
+                                                                <X size={14} />
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 0' }}>
@@ -936,9 +1104,7 @@ export function ProfileDropdown({
                                     )}
 
                                     <button
-                                        onClick={() => {
-                                            window.location.href = '/login';
-                                        }}
+                                        onClick={handleAddAccount}
                                         style={styles.menuItem}
                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -948,7 +1114,11 @@ export function ProfileDropdown({
                                     </button>
 
                                     <button
-                                        onClick={() => { onLogout?.(); setOpen(false); }}
+                                        onClick={() => {
+                                            logoutAll?.();
+                                            setOpen(false);
+                                            navigate('/');
+                                        }}
                                         style={styles.menuItem}
                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
