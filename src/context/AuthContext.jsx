@@ -61,12 +61,22 @@ export const AuthProvider = ({ children }) => {
             const raw = localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token');
             if (raw && raw.includes('.')) {
                 const payload = JSON.parse(atob(raw.split('.')[1]));
-                const uName = payload.username || (payload.email ? payload.email.split('@')[0] : 'User');
+                const uEmail = (payload.email || '').toLowerCase();
+                let cachedAcc = null;
+                try {
+                    const stored = JSON.parse(localStorage.getItem('cliks_multi_accounts') || '[]');
+                    cachedAcc = stored.find(a => a.email && a.email.toLowerCase() === uEmail);
+                } catch (e) {}
+
+                const dName = cachedAcc?.displayName || payload.displayName || payload.display_name || null;
+                const fName = cachedAcc?.fullName || payload.fullName || payload.full_name || null;
+                const uName = dName || fName || cachedAcc?.name || payload.name || payload.username || (uEmail ? uEmail.split('@')[0] : 'User');
                 return {
                     id: payload.id,
                     username: payload.username || uName,
                     name: uName,
-                    fullName: uName,
+                    displayName: dName,
+                    fullName: fName,
                     email: payload.email,
                     role: payload.role,
                     account_type: payload.account_type || payload.accountType || 'business',
@@ -361,25 +371,48 @@ export const AuthProvider = ({ children }) => {
             try {
                 const userData = await profileService.getProfile();
                 const uEmail = (userData.email || '').toLowerCase();
-                const uName = userData.username || userData.name || (uEmail ? uEmail.split('@')[0] : 'User');
 
                 // Only attach bnxToken if the token in localStorage genuinely belongs to this user's email
                 const currentBnx = localStorage.getItem('bnx_auth_token');
                 const bnxEmail = getEmailFromToken(currentBnx);
                 const validBnxToken = (bnxEmail && bnxEmail === uEmail) ? currentBnx : null;
 
+                // Also fetch BNX Mail user profile if bnxToken is available to get displayName and fullName
+                let bnxData = null;
+                if (validBnxToken) {
+                    try {
+                        const bnxRes = await fetch('https://api.bnxmail.com/api/users/me', {
+                            headers: { 'Authorization': `Bearer ${validBnxToken}` }
+                        });
+                        const bnxJson = await bnxRes.json().catch(() => ({}));
+                        if (bnxRes.ok && (bnxJson.success || bnxJson.data)) {
+                            bnxData = bnxJson.data || bnxJson;
+                        }
+                    } catch (e) {
+                        console.warn('[AuthContext] BNX profile fetch notice:', e.message);
+                    }
+                }
+
+                const dName = bnxData?.displayName || bnxData?.display_name || userData.displayName || userData.display_name || null;
+                const fName = bnxData?.fullName || bnxData?.full_name || userData.fullName || userData.full_name || null;
+                const effectiveName = dName || fName || userData.name || userData.username || (uEmail ? uEmail.split('@')[0] : 'User');
+
                 setUser(prev => {
                     const fullUser = {
                         ...prev,
                         ...userData,
-                        username: userData.username || prev?.username || uName,
-                        name: uName
+                        displayName: dName,
+                        fullName: fName,
+                        username: userData.username || prev?.username || effectiveName,
+                        name: effectiveName
                     };
                     saveOrUpdateAccount({
                         id: fullUser.id,
                         email: fullUser.email,
-                        name: fullUser.name || uName,
-                        username: fullUser.username || uName,
+                        displayName: dName,
+                        fullName: fName,
+                        name: effectiveName,
+                        username: fullUser.username || effectiveName,
                         role: fullUser.role || 'business',
                         tier: fullUser.tier || 'Free Plan',
                         token: token,
@@ -575,6 +608,26 @@ export const AuthProvider = ({ children }) => {
             } catch (e) {}
         }
 
+        // Fetch profile from BNX Mail to resolve displayName and fullName
+        let bnxData = null;
+        try {
+            const bnxRes = await fetch('https://api.bnxmail.com/api/users/me', {
+                headers: { 'Authorization': `Bearer ${bnxToken}` }
+            });
+            const bnxJson = await bnxRes.json().catch(() => ({}));
+            if (bnxRes.ok && (bnxJson.success || bnxJson.data)) {
+                bnxData = bnxJson.data || bnxJson;
+            }
+        } catch (e) {}
+
+        const ssoDisplayName = bnxData?.displayName || bnxData?.display_name || newUser.displayName || newUser.display_name || null;
+        const ssoFullName = bnxData?.fullName || bnxData?.full_name || newUser.fullName || newUser.full_name || null;
+        const ssoEffectiveName = ssoDisplayName || ssoFullName || newUser.name || newUser.username || (newUser.email ? newUser.email.split('@')[0] : 'User');
+
+        newUser.displayName = ssoDisplayName;
+        newUser.fullName = ssoFullName;
+        newUser.name = ssoEffectiveName;
+
         // Clear previous session storage keys before logging in a new user (preserve UI layout preferences & cliks_multi_accounts)
         Object.keys(localStorage).forEach(key => {
             if (key !== 'cliks_dashboard_shortcuts' && key !== 'cliks_multi_accounts' && (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_'))) {
@@ -598,7 +651,9 @@ export const AuthProvider = ({ children }) => {
         const accountEntry = {
             id: newUser.id,
             email: newUser.email,
-            name: newUser.name || newUser.username || (newUser.email ? newUser.email.split('@')[0] : 'User'),
+            displayName: ssoDisplayName,
+            fullName: ssoFullName,
+            name: ssoEffectiveName,
             username: newUser.username || (newUser.email ? newUser.email.split('@')[0] : 'User'),
             role: newUser.role || 'business',
             tier: newUser.tier || 'Free Plan',

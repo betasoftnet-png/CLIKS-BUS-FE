@@ -334,7 +334,16 @@ export function ProfileDropdown({
     const countryFlag = countryFlagObj ? countryFlagObj.flag : "🌐";
 
     const displayEmail = user?.email || "Guest";
-    const displayName = user?.username || user?.name || "User";
+    // If the user has a display name, display that; otherwise display the full name of the logged in user
+    const displayName = (user?.displayName && String(user.displayName).trim())
+        ? String(user.displayName).trim()
+        : (user?.display_name && String(user.display_name).trim())
+            ? String(user.display_name).trim()
+            : (user?.fullName && String(user.fullName).trim())
+                ? String(user.fullName).trim()
+                : (user?.full_name && String(user.full_name).trim())
+                    ? String(user.full_name).trim()
+                    : user?.name || user?.username || (user?.email ? user.email.split('@')[0] : "User");
 
     const otherAccounts = (accounts || []).filter(acc => {
         if (!acc || !acc.email) return false;
@@ -960,7 +969,15 @@ export function ProfileDropdown({
                                                 overflowY: 'auto'
                                             }}>
                                                 {otherAccounts.map((acc, idx) => {
-                                                    const accName = acc.name || acc.username || (acc.email ? acc.email.split('@')[0] : 'User');
+                                                    const accName = (acc.displayName && String(acc.displayName).trim())
+                                                        ? String(acc.displayName).trim()
+                                                        : (acc.display_name && String(acc.display_name).trim())
+                                                            ? String(acc.display_name).trim()
+                                                            : (acc.fullName && String(acc.fullName).trim())
+                                                                ? String(acc.fullName).trim()
+                                                                : (acc.full_name && String(acc.full_name).trim())
+                                                                    ? String(acc.full_name).trim()
+                                                                    : acc.name || acc.username || (acc.email ? acc.email.split('@')[0] : 'User');
                                                     const accEmail = acc.email || acc.id || '';
                                                     const accInitial = (accName || accEmail || 'U').charAt(0).toUpperCase();
 
