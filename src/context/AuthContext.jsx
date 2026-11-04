@@ -19,24 +19,74 @@ const getEmailFromToken = (tok) => {
     }
 };
 
-// Sanitize account entries from storage to prevent token mismatches across accounts
+// Retrieve multi-account BNX tokens dictionary from localStorage
+export const getMultiBnxTokens = () => {
+    try {
+        const raw = localStorage.getItem('cliks_bnx_tokens');
+        return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+        return {};
+    }
+};
+
+// Store a BNX token mapped to all identifiers of an account in multi-account store
+export const saveBnxTokenForAccount = (token, identifiers = []) => {
+    if (!token || typeof token !== 'string') return;
+    try {
+        const tokensMap = getMultiBnxTokens();
+        identifiers.filter(Boolean).forEach(id => {
+            const cleanKey = String(id).toLowerCase().trim();
+            if (cleanKey) {
+                tokensMap[cleanKey] = token;
+                try {
+                    localStorage.setItem(`bnx_token_${cleanKey}`, token);
+                } catch (e) {}
+            }
+        });
+        localStorage.setItem('cliks_bnx_tokens', JSON.stringify(tokensMap));
+    } catch (e) {}
+};
+
+// Find the BNX token for a target account from all available multi-account stores
+export const findBnxTokenForAccount = (account) => {
+    if (!account) return null;
+    if (account.bnxToken && typeof account.bnxToken === 'string') return account.bnxToken;
+    const tokensMap = getMultiBnxTokens();
+
+    const keys = [
+        account.email,
+        account.email?.toLowerCase(),
+        account.username,
+        account.username?.toLowerCase(),
+        account.email?.split('@')[0]?.toLowerCase(),
+        account.id ? String(account.id) : null
+    ].filter(Boolean);
+
+    for (const rawKey of keys) {
+        const key = String(rawKey).toLowerCase().trim();
+        if (tokensMap[key]) return tokensMap[key];
+        try {
+            const direct = localStorage.getItem(`bnx_token_${key}`);
+            if (direct) return direct;
+        } catch (e) {}
+    }
+    return null;
+};
+
+// Sanitize and sync account entries with multi-account BNX tokens store
 const sanitizeAccounts = (rawList) => {
     if (!Array.isArray(rawList)) return [];
     return rawList.map(acc => {
         if (!acc || !acc.email) return acc;
         const accEmail = acc.email.toLowerCase();
-        let bnxToken = acc.bnxToken;
+        let bnxToken = acc.bnxToken || findBnxTokenForAccount(acc);
         if (bnxToken) {
-            const bnxEmail = getEmailFromToken(bnxToken);
-            if (bnxEmail && bnxEmail !== accEmail) {
-                console.warn(`[MultiAccount] Discarding mismatched bnxToken for ${accEmail} (belongs to ${bnxEmail})`);
-                bnxToken = null;
-            }
+            saveBnxTokenForAccount(bnxToken, [accEmail, acc.username, accEmail.split('@')[0]]);
         }
         return {
             ...acc,
             email: accEmail,
-            bnxToken
+            bnxToken: bnxToken || null
         };
     });
 };
@@ -101,14 +151,10 @@ export const AuthProvider = ({ children }) => {
         if (!accData || !accData.email) return;
         const targetEmail = accData.email.toLowerCase();
 
-        // Validate incoming bnxToken: does it belong to targetEmail?
-        let incomingBnxToken = accData.bnxToken || null;
+        // Check if bnxToken is supplied or stored in multi-account BNX token dictionary
+        const incomingBnxToken = accData.bnxToken || findBnxTokenForAccount(accData);
         if (incomingBnxToken) {
-            const bnxEmail = getEmailFromToken(incomingBnxToken);
-            if (bnxEmail && bnxEmail !== targetEmail) {
-                console.warn(`[MultiAccount] Refusing to attach bnxToken of ${bnxEmail} to ${targetEmail}`);
-                incomingBnxToken = null;
-            }
+            saveBnxTokenForAccount(incomingBnxToken, [targetEmail, accData.username, targetEmail.split('@')[0]]);
         }
 
         setAccounts(prev => {
@@ -118,8 +164,8 @@ export const AuthProvider = ({ children }) => {
             let updated;
             if (index >= 0) {
                 const existing = list[index];
-                // Preserve existing valid bnxToken if incoming token is missing or invalid
-                const finalBnxToken = incomingBnxToken || existing.bnxToken || null;
+                // Preserve valid bnxToken from any available source
+                const finalBnxToken = incomingBnxToken || existing.bnxToken || findBnxTokenForAccount(existing) || null;
 
                 const merged = {
                     ...existing,
@@ -134,7 +180,7 @@ export const AuthProvider = ({ children }) => {
                 updated = [...list, {
                     ...accData,
                     email: targetEmail,
-                    bnxToken: incomingBnxToken,
+                    bnxToken: incomingBnxToken || null,
                     lastActive: Date.now()
                 }];
             }
@@ -164,9 +210,14 @@ export const AuthProvider = ({ children }) => {
         const freshTarget = storedAccounts.find(a => a.email && a.email.toLowerCase() === targetEmail) || targetAccount;
         if (!freshTarget || !freshTarget.token) return;
 
-        // Clear tenant keys, preserve shortcuts and cliks_multi_accounts
+        // Clear tenant keys, preserve shortcuts, cliks_multi_accounts, and multi-account BNX tokens
         Object.keys(localStorage).forEach(key => {
-            if (key !== 'cliks_dashboard_shortcuts' && key !== 'cliks_multi_accounts' && (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_'))) {
+            if (key !== 'cliks_dashboard_shortcuts' &&
+                key !== 'cliks_multi_accounts' &&
+                key !== 'cliks_bnx_tokens' &&
+                !key.startsWith('bnx_token_') &&
+                !key.startsWith('bnx_auth_token_') &&
+                (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_'))) {
                 localStorage.removeItem(key);
             }
         });
@@ -179,22 +230,13 @@ export const AuthProvider = ({ children }) => {
         } catch (e) {}
 
         const nextBooksToken = freshTarget.token;
-        let nextBnxToken = freshTarget.bnxToken || null;
-
-        // Ensure bnxToken strictly belongs to targetEmail
-        if (nextBnxToken) {
-            const bnxEmail = getEmailFromToken(nextBnxToken);
-            if (bnxEmail && bnxEmail !== targetEmail) {
-                console.warn(`[switchAccount] Stored bnxToken belonged to ${bnxEmail}, not ${targetEmail}`);
-                nextBnxToken = null;
-            }
-        }
+        // Retrieve BNX token for this account from multi-account store
+        const nextBnxToken = freshTarget.bnxToken || findBnxTokenForAccount(freshTarget) || null;
 
         localStorage.setItem('books_auth_token', nextBooksToken);
         if (nextBnxToken) {
             localStorage.setItem('bnx_auth_token', nextBnxToken);
-        } else {
-            localStorage.removeItem('bnx_auth_token');
+            saveBnxTokenForAccount(nextBnxToken, [targetEmail, freshTarget.username, targetEmail.split('@')[0]]);
         }
 
         if (freshTarget.profilePhoto) {
@@ -229,10 +271,14 @@ export const AuthProvider = ({ children }) => {
 
         localStorage.removeItem('books_auth_token');
         localStorage.removeItem('bnx_auth_token');
+        localStorage.removeItem('cliks_bnx_tokens');
         localStorage.removeItem('profile_photo');
         localStorage.removeItem('cliks_multi_accounts');
 
         Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('bnx_token_') || key.startsWith('bnx_auth_token_')) {
+                localStorage.removeItem(key);
+            }
             if (key !== 'cliks_dashboard_shortcuts' && (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_'))) {
                 localStorage.removeItem(key);
             }
@@ -265,6 +311,14 @@ export const AuthProvider = ({ children }) => {
             } catch (e) {}
             return remaining;
         });
+
+        try {
+            const map = getMultiBnxTokens();
+            delete map[key];
+            localStorage.setItem('cliks_bnx_tokens', JSON.stringify(map));
+            localStorage.removeItem(`bnx_token_${key}`);
+            localStorage.removeItem(`bnx_auth_token_${key}`);
+        } catch (e) {}
 
         const isCurrent = (user?.email && user.email.toLowerCase() === key) ||
                           (user?.id && String(user.id).toLowerCase() === key);
@@ -372,10 +426,12 @@ export const AuthProvider = ({ children }) => {
                 const userData = await profileService.getProfile();
                 const uEmail = (userData.email || '').toLowerCase();
 
-                // Only attach bnxToken if the token in localStorage genuinely belongs to this user's email
-                const currentBnx = localStorage.getItem('bnx_auth_token');
-                const bnxEmail = getEmailFromToken(currentBnx);
-                const validBnxToken = (bnxEmail && bnxEmail === uEmail) ? currentBnx : null;
+                // Look up BNX token from multi-account store or current localStorage
+                let validBnxToken = findBnxTokenForAccount(userData) || localStorage.getItem('bnx_auth_token') || null;
+                if (validBnxToken) {
+                    saveBnxTokenForAccount(validBnxToken, [uEmail, userData.username, uEmail.split('@')[0]]);
+                    localStorage.setItem('bnx_auth_token', validBnxToken);
+                }
 
                 // Also fetch BNX Mail user profile if bnxToken is available to get displayName and fullName
                 let bnxData = null;
@@ -628,9 +684,24 @@ export const AuthProvider = ({ children }) => {
         newUser.fullName = ssoFullName;
         newUser.name = ssoEffectiveName;
 
-        // Clear previous session storage keys before logging in a new user (preserve UI layout preferences & cliks_multi_accounts)
+        // Save BNX token into multi-account token store immediately under all aliases
+        const tokenAliases = [
+            newUser.email,
+            newUser.username,
+            bnxData?.email,
+            bnxData?.username,
+            getEmailFromToken(bnxToken)
+        ].filter(Boolean);
+        saveBnxTokenForAccount(bnxToken, tokenAliases);
+
+        // Clear previous session storage keys before logging in a new user (preserve UI layout preferences, cliks_multi_accounts & multi-account BNX tokens)
         Object.keys(localStorage).forEach(key => {
-            if (key !== 'cliks_dashboard_shortcuts' && key !== 'cliks_multi_accounts' && (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_'))) {
+            if (key !== 'cliks_dashboard_shortcuts' &&
+                key !== 'cliks_multi_accounts' &&
+                key !== 'cliks_bnx_tokens' &&
+                !key.startsWith('bnx_token_') &&
+                !key.startsWith('bnx_auth_token_') &&
+                (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_'))) {
                 localStorage.removeItem(key);
             }
         });
