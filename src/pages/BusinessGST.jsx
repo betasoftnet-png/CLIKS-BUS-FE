@@ -29,7 +29,8 @@ import {
     Trash2,
     Download,
     Eye,
-    Printer
+    Printer,
+    ShieldCheck
 } from 'lucide-react';
 import VerifyVendorInvoiceModal from '../components/tax/VerifyVendorInvoiceModal';
 import GSTR3BTab from '../components/tax/GSTR3BTab';
@@ -418,25 +419,96 @@ const BusinessGST = () => {
         queryKey: ['profile'],
         queryFn: () => profileService.getProfile()
     });
-    const businessProfile = businessProfileRaw?.data || businessProfileRaw;
+    const businessProfile = businessProfileRaw?.data || businessProfileRaw || {};
 
-    const activeProfile = businessProfile || JSON.parse(localStorage.getItem('cliks_org_profile') || localStorage.getItem('cliks_business_config') || '{}');
+    const [liveOrgProfile, setLiveOrgProfile] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('cliks_org_profile') || '{}');
+        } catch (e) {
+            return {};
+        }
+    });
+
+    const [liveBusinessConfig, setLiveBusinessConfig] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('cliks_business_config') || '{}');
+        } catch (e) {
+            return {};
+        }
+    });
+
+    useEffect(() => {
+        const handleOrgUpdate = (e) => {
+            if (e.detail) setLiveOrgProfile(e.detail);
+        };
+        const handleConfigUpdate = (e) => {
+            if (e.detail) setLiveBusinessConfig(e.detail);
+        };
+        window.addEventListener('cliksOrgProfileUpdated', handleOrgUpdate);
+        window.addEventListener('cliksConfigUpdated', handleConfigUpdate);
+        return () => {
+            window.removeEventListener('cliksOrgProfileUpdated', handleOrgUpdate);
+            window.removeEventListener('cliksConfigUpdated', handleConfigUpdate);
+        };
+    }, []);
+
+    const resolvedGstin = liveOrgProfile.gstin || 
+                          liveOrgProfile.gstinRef || 
+                          liveBusinessConfig.gstinRef || 
+                          liveBusinessConfig.gstin || 
+                          dbSettings.gstin || 
+                          dbSettings.gstinRef || 
+                          businessProfile?.gstin || 
+                          businessProfile?.gstinRef || 
+                          '';
+
+    const resolvedBusinessName = liveOrgProfile.business_name || 
+                                 liveOrgProfile.legal_name || 
+                                 liveOrgProfile.companyName || 
+                                 liveBusinessConfig.companyName || 
+                                 liveBusinessConfig.business_name || 
+                                 dbSettings.legal_name || 
+                                 dbSettings.companyName || 
+                                 dbSettings.business_name || 
+                                 businessProfile?.business_name || 
+                                 businessProfile?.name || 
+                                 businessProfile?.username || 
+                                 '';
+
+    const resolvedState = liveOrgProfile.state_registered || 
+                          liveOrgProfile.state || 
+                          liveBusinessConfig.stateRegistered || 
+                          liveBusinessConfig.state_registered || 
+                          dbSettings.place_of_business || 
+                          dbSettings.stateRegistered || 
+                          businessProfile?.state_registered || 
+                          '';
+
+    const resolvedStateCode = (resolvedGstin && resolvedGstin.length >= 2)
+                              ? resolvedGstin.slice(0, 2)
+                              : (dbSettings.state_code || (resolvedState ? '05' : ''));
+
+    const resolvedAddress = liveOrgProfile.address || 
+                            liveBusinessConfig.registeredAddress || 
+                            dbSettings.registeredAddress || 
+                            businessProfile?.address || 
+                            '';
 
     const defaultSender = {
-      legal_name: activeProfile.business_name || activeProfile.legal_name || activeProfile.companyName || "Welton Consignor",
-      gstin: activeProfile.gstin || activeProfile.gstinRef || "05AAAPG7885R002",
-      state: activeProfile.state_registered || activeProfile.stateRegistered || "Uttarakhand",
-      state_code: (activeProfile.gstin ? activeProfile.gstin.slice(0, 2) : (activeProfile.gstinRef ? activeProfile.gstinRef.slice(0, 2) : "05")),
-      address: activeProfile.address || activeProfile.registeredAddress || "Dehradun Central Road",
-      location: activeProfile.city || (activeProfile.address ? activeProfile.address.split(',')[0]?.trim() : "Dehradun") || "Dehradun",
-      pincode: activeProfile.pincode || 248001
+      legal_name: resolvedBusinessName || 'My Business',
+      gstin: resolvedGstin,
+      state: resolvedState || '',
+      state_code: resolvedStateCode || '',
+      address: resolvedAddress,
+      location: liveOrgProfile.city || (resolvedAddress ? resolvedAddress.split(',')[0]?.trim() : '') || '',
+      pincode: liveOrgProfile.pincode || liveBusinessConfig.pincode || ''
     };
 
     // Business GST registration metadata
     const gstProfile = {
         gstin: defaultSender.gstin,
         legal_name: defaultSender.legal_name,
-        business_type: dbSettings.business_type || 'Private Limited',
+        business_type: dbSettings.business_type || liveBusinessConfig.verticalType || 'Regular Taxpayer',
         place_of_business: defaultSender.state,
         state_code: defaultSender.state_code
     };
@@ -898,33 +970,59 @@ const BusinessGST = () => {
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+            {/* Header with GSTIN placed directly to the right side of heading */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
                         <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}>
                             <PercentCircle size={18} />
                         </div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>GST & Tax Compliance</h1>
+                        <h1 style={{ fontSize: '1.45rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>GST & Tax Compliance</h1>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Prepare returns, authenticate tax records, and reconcile purchase ITC.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.82rem', fontWeight: '500', margin: 0 }}>Prepare returns, authenticate tax records, and reconcile purchase ITC.</p>
                 </div>
-            </div>
 
-            {/* Registration Metadata Alert */}
-            <div style={{ background: 'white', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '9px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
-                        <Award size={18} />
+                {/* Right side of heading: Compact GST & Organization Badge */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    background: 'white',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '12px',
+                    border: '1px solid #E2E8F0',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                }}>
+                    <div style={{
+                        width: '34px',
+                        height: '34px',
+                        borderRadius: '9px',
+                        background: '#EFF6FF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#1D4ED8',
+                        flexShrink: 0
+                    }}>
+                        <ShieldCheck size={18} />
                     </div>
-                    <div>
-                        <h4 style={{ fontWeight: '800', color: '#0F172A', fontSize: '0.95rem', margin: 0 }}>Government GSTIN Registered</h4>
-                        <p style={{ color: '#64748B', fontSize: '0.8rem', margin: 0 }}>Legal Name: {gstProfile.legal_name} | Type: {gstProfile.business_type}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: '850', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>GSTIN</span>
+                            <span style={{
+                                fontSize: '0.92rem',
+                                fontWeight: '900',
+                                color: gstProfile.gstin ? '#1D4ED8' : '#94A3B8',
+                                fontFamily: 'monospace',
+                                letterSpacing: '0.02em'
+                            }}>
+                                {gstProfile.gstin || 'Not Configured'}
+                            </span>
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: '600', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${gstProfile.legal_name || 'Business'} | ${gstProfile.place_of_business || '—'}`}>
+                            {gstProfile.legal_name || 'Business'} {gstProfile.place_of_business ? `• ${gstProfile.place_of_business} (${gstProfile.state_code})` : ''}
+                        </div>
                     </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: '1rem', fontWeight: '850', color: '#1D4ED8' }}>{gstProfile.gstin}</span>
-                    <p style={{ color: '#64748B', fontSize: '0.75rem', margin: 0 }}>Place of Supply Code: {gstProfile.state_code} ({gstProfile.place_of_business})</p>
                 </div>
             </div>
 
