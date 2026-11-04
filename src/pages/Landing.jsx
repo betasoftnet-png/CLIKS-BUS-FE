@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useSpring, useTransform } from 'framer-motion';
 import {
     ArrowRight, ShieldCheck, TrendingUp, TrendingDown,
     PlayCircle, Users, Shield, Star, CreditCard, LineChart,
@@ -10,14 +10,112 @@ import {
     Award, ChevronRight, ChevronDown, DollarSign, PieChart,
     LayoutDashboard, Loader2, AlertCircle, ArrowLeft, Building2,
     Sliders, RefreshCw, Smartphone, Printer, CheckCircle2,
-    ExternalLink, Menu, X, ArrowUpRight, Cpu
+    ExternalLink, Menu, X, ArrowUpRight, Cpu, Plus, Minus
 } from 'lucide-react';
 
 import logoPng from '../assets/cliks.png';
 import { useAuth } from '../context';
 import referralService from '../services/referralService';
 
-// Module Interactive Showcase Configuration
+// Animated Count-Up on Scroll
+function StatCounter({ end, prefix = '', suffix = '', duration = 1600 }) {
+    const [displayVal, setDisplayVal] = useState(0);
+    const [isVisible, setIsVisible] = useState(false);
+    const ref = useRef(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                setIsVisible(true);
+                observer.disconnect();
+            }
+        }, { threshold: 0.3 });
+        if (ref.current) observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        if (!isVisible) return;
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            // Ease out cubic
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            setDisplayVal(Math.floor(easeOut * end));
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            } else {
+                setDisplayVal(end);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }, [isVisible, end, duration]);
+
+    return (
+        <span ref={ref}>
+            {prefix}{displayVal.toLocaleString('en-IN')}{suffix}
+        </span>
+    );
+}
+
+// 3D Tilt & Mouse Spotlight Card
+function SpotlightCard({ children, style = {}, className = '' }) {
+    const cardRef = useRef(null);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const [isHovered, setIsHovered] = useState(false);
+
+    const handleMouseMove = (e) => {
+        if (!cardRef.current) return;
+        const rect = cardRef.current.getBoundingClientRect();
+        setMousePos({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        });
+    };
+
+    return (
+        <motion.div
+            ref={cardRef}
+            onMouseMove={handleMouseMove}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            whileHover={{ y: -6, transition: { type: 'spring', stiffness: 350, damping: 20 } }}
+            style={{
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: '20px',
+                border: isHovered ? '1px solid #10B981' : '1px solid #E2E8F0',
+                background: '#FFFFFF',
+                transition: 'border-color 0.25s ease, box-shadow 0.25s ease',
+                boxShadow: isHovered
+                    ? '0 20px 40px -15px rgba(6, 78, 59, 0.12), 0 0 1px 1px rgba(16, 185, 129, 0.2)'
+                    : '0 4px 6px -1px rgba(0,0,0,0.02)',
+                ...style
+            }}
+        >
+            {/* Spotlight Gradient */}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    pointerEvents: 'none',
+                    opacity: isHovered ? 1 : 0,
+                    transition: 'opacity 0.3s ease',
+                    background: `radial-gradient(400px circle at ${mousePos.x}px ${mousePos.y}px, rgba(16, 185, 129, 0.08), transparent 80%)`,
+                    zIndex: 1
+                }}
+            />
+            <div style={{ position: 'relative', zIndex: 2 }}>
+                {children}
+            </div>
+        </motion.div>
+    );
+}
+
 const MODULE_SHOWCASE = [
     {
         id: 'invoicing',
@@ -30,22 +128,7 @@ const MODULE_SHOWCASE = [
             { label: 'Avg Invoicing Speed', value: '< 15 secs' },
             { label: 'E-Way Auto Generated', value: '100% Tax Compliant' },
             { label: 'Direct WhatsApp Dispatch', value: 'Instant Delivery' }
-        ],
-        previewData: {
-            title: 'Tax Invoice — B2B Verified',
-            code: 'INV-2026-9841',
-            date: '04 Nov 2026',
-            party: 'Mahalaxmi Wholesale Distributors Pvt Ltd',
-            gstin: '27AABCU9603R1ZM',
-            items: [
-                { desc: 'Industrial Grade Heavy Bearings (SKU-HB90)', hsn: '8482', qty: '120 PCS', rate: '₹1,250', tax: '18% GST', total: '₹1,77,000' },
-                { desc: 'Synthetic Lubricant Grease Drum (50L)', hsn: '2710', qty: '15 UNITS', rate: '₹4,800', tax: '18% GST', total: '₹84,960' }
-            ],
-            subtotal: '₹2,61,960',
-            cgst: '₹23,576.40',
-            sgst: '₹23,576.40',
-            grandTotal: '₹3,09,112.80'
-        }
+        ]
     },
     {
         id: 'inventory',
@@ -58,43 +141,20 @@ const MODULE_SHOWCASE = [
             { label: 'Real-Time Sync Accuracy', value: '99.98%' },
             { label: 'Stock Valuation Method', value: 'FIFO & Weighted Avg' },
             { label: 'Transit Loss Reduction', value: 'Down by 78%' }
-        ],
-        previewData: {
-            title: 'Central Godown Matrix — Live Physical Counts',
-            godowns: [
-                { name: 'Central Godown A (Bhiwandi, MH)', skus: '4,120 SKUs', capacity: '86% Utilized', status: 'Optimal' },
-                { name: 'Showroom North Transit (Delhi NCR)', skus: '1,890 SKUs', capacity: '64% Utilized', status: 'Optimal' },
-                { name: 'South Distribution Hub (Bangalore)', skus: '3,450 SKUs', capacity: '92% Utilized', status: 'Reorder High' }
-            ],
-            recentAdjustment: {
-                item: 'Alloy Drill Bit Set (12mm-24mm)',
-                ref: 'AUD-ADJ-2026',
-                auditor: 'Rajesh Nair (Internal Audit)',
-                diff: '+250 PCS'
-            }
-        }
+        ]
     },
     {
         id: 'accounting',
         name: 'Finance & Audit Center',
         badge: 'Double-Entry System',
-        icon: BanknoteIcon,
+        icon: CreditCard,
         headline: 'Automated Accounting Journals & Real-Time Chartered Accountant Portal',
         description: 'Every sale, purchase bill, and expense automatically posts to your general ledger. Give your ICAI-verified CA read-only direct portal access for painless quarterly tax filings.',
         metrics: [
             { label: 'CA Audit Readiness', value: '1-Click Export' },
             { label: 'Automatic Journal Entries', value: 'Zero Manual Entry' },
             { label: 'Reconciliation Speed', value: '5x Faster' }
-        ],
-        previewData: {
-            title: 'Automated General Ledger & ITC Reconciliation',
-            accounts: [
-                { name: 'HDFC Current Bank Account', type: 'Asset', balance: '₹42,85,910.40', trend: '+14.2%' },
-                { name: 'Input Tax Credit Pool (GSTR-2B Claimed)', type: 'Tax Asset', balance: '₹8,45,210.00', trend: 'Reconciled' },
-                { name: 'Accounts Payable (Raw Material Vendors)', type: 'Liability', balance: '₹14,20,500.00', trend: 'Due in 15d' }
-            ],
-            auditBadge: 'ICAI Fin-Pro Verified • 100% Reconciled'
-        }
+        ]
     },
     {
         id: 'payroll',
@@ -107,23 +167,9 @@ const MODULE_SHOWCASE = [
             { label: 'Payroll Processing Time', value: '< 2 minutes' },
             { label: 'Direct Bank NEFT File', value: 'Ready to Upload' },
             { label: 'Compliance Tracking', value: 'PF, ESI & TDS Ready' }
-        ],
-        previewData: {
-            title: 'Payroll Disbursement Register — November 2026',
-            disbursements: [
-                { name: 'Sanjay Sharma', role: 'Plant Supervisor', net: '₹58,400', status: 'Approved for Bank Disbursal' },
-                { name: 'Ananya Deshmukh', role: 'Senior Tax Accountant', net: '₹72,000', status: 'Approved for Bank Disbursal' },
-                { name: 'Karthik Pillai', role: 'Warehouse Logistics Lead', net: '₹44,500', status: 'Processing' }
-            ],
-            totalPayroll: '₹18,45,900',
-            reimbursementVouchers: '14 Approved Claims'
-        }
+        ]
     }
 ];
-
-function BanknoteIcon(props) {
-    return <CreditCard {...props} />;
-}
 
 export default function Landing() {
     const navigate = useNavigate();
@@ -134,9 +180,22 @@ export default function Landing() {
     const [pricingAnnual, setPricingAnnual] = useState(true);
     const [openFaqIndex, setOpenFaqIndex] = useState(0);
 
+    // Interactive Live Invoice Sandbox State
+    const [simulatedQty, setSimulatedQty] = useState(120);
+    const [simulatedRate, setSimulatedRate] = useState(1250);
+    const [simulatedGstRate, setSimulatedGstRate] = useState(18);
+
     // Interactive ROI Calculator State
     const [monthlyTurnover, setMonthlyTurnover] = useState(25); // In Lakhs
     const [monthlyInvoices, setMonthlyInvoices] = useState(350);
+
+    // Smooth Top Scroll Progress Indicator
+    const { scrollYProgress } = useScroll();
+    const scaleX = useSpring(scrollYProgress, {
+        stiffness: 100,
+        damping: 30,
+        restDelta: 0.001
+    });
 
     const { isAuthenticated, user, ssoLogin } = useAuth();
     const [isProcessingAuth, setIsProcessingAuth] = useState(false);
@@ -148,19 +207,22 @@ export default function Landing() {
     const BNX_AUTH_URL = 'https://www.b2auth.com';
     const BNX_API_URL = 'https://api.bnxmail.com';
 
-    // Calculation estimates
+    // Interactive Invoice Calculation
+    const simSubtotal = useMemo(() => simulatedQty * simulatedRate, [simulatedQty, simulatedRate]);
+    const simTaxAmount = useMemo(() => (simSubtotal * simulatedGstRate) / 100, [simSubtotal, simulatedGstRate]);
+    const simGrandTotal = useMemo(() => simSubtotal + simTaxAmount, [simSubtotal, simTaxAmount]);
+
+    // ROI calculation estimates
     const estimatedItcRecovered = useMemo(() => {
-        // Average 2.8% leakage caught by automated GSTR-2B reconciliation
         const yearlyTurnover = monthlyTurnover * 12 * 100000;
-        return Math.round((yearlyTurnover * 0.028));
+        return Math.round(yearlyTurnover * 0.028);
     }, [monthlyTurnover]);
 
     const estimatedHoursSaved = useMemo(() => {
-        // approx 1.8 mins per manual invoice entry + audit time
         return Math.round((monthlyInvoices * 1.8 * 12) / 60);
     }, [monthlyInvoices]);
 
-    // Handle OAuth Callback
+    // OAuth Callback Handler
     const handleOAuthCallback = React.useCallback(async (code) => {
         setIsProcessingAuth(true);
         setAuthError('');
@@ -344,13 +406,30 @@ export default function Landing() {
 
     return (
         <div style={{
-            fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+            fontFamily: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
             color: '#0F172A',
             background: '#FAFCFA',
             minHeight: '100vh',
-            overflowX: 'hidden'
+            overflowX: 'hidden',
+            position: 'relative'
         }}>
-            {/* 1. TOP ANNOUNCEMENT BAR */}
+            {/* 1. TOP SCROLL PROGRESS INDICATOR */}
+            <motion.div
+                style={{
+                    scaleX,
+                    transformOrigin: '0%',
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '3px',
+                    background: 'linear-gradient(90deg, #10B981, #059669, #064E3B)',
+                    zIndex: 1000,
+                    boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)'
+                }}
+            />
+
+            {/* 2. TOP ANNOUNCEMENT BAR */}
             <div style={{
                 background: 'linear-gradient(90deg, #064E3B 0%, #047857 50%, #064E3B 100%)',
                 color: '#ECFDF5',
@@ -369,16 +448,16 @@ export default function Landing() {
                     borderRadius: '12px', fontSize: '0.68rem', fontWeight: '900', textTransform: 'uppercase'
                 }}>GST 2.0</span>
                 <span>Automated GSTR-1 & GSTR-2B Input Tax Credit reconciliation is now live for all Indian enterprises.</span>
-                <span onClick={() => scrollToSection('features')} style={{ textDecoration: 'underline', cursor: 'pointer', opacity: 0.95 }}>
+                <span onClick={() => scrollToSection('modules')} style={{ textDecoration: 'underline', cursor: 'pointer', opacity: 0.95 }}>
                     See Capabilities →
                 </span>
             </div>
 
-            {/* 2. STICKY GLASS NAVBAR */}
+            {/* 3. STICKY GLASS NAVBAR */}
             <header style={{
                 position: 'sticky',
                 top: 0,
-                zIndex: 100,
+                zIndex: 90,
                 background: scrolled ? 'rgba(255, 255, 255, 0.94)' : 'rgba(250, 252, 250, 0.85)',
                 backdropFilter: 'blur(16px)',
                 WebkitBackdropFilter: 'blur(16px)',
@@ -394,7 +473,12 @@ export default function Landing() {
                     justifyContent: 'space-between'
                 }}>
                     {/* Brand Logo */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                    <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
+                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    >
                         <img src={logoPng} alt="CLIKS" style={{ width: '34px', height: '34px', objectFit: 'contain' }} />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                             <span style={{ fontSize: '1.25rem', fontWeight: '900', color: '#064E3B', letterSpacing: '-0.02em' }}>
@@ -413,15 +497,14 @@ export default function Landing() {
                                 BUSINESS
                             </span>
                         </div>
-                    </div>
+                    </motion.div>
 
                     {/* Desktop Navigation Links */}
                     <nav style={{ display: 'flex', alignItems: 'center', gap: '2rem' }} className="desktop-nav">
                         {[
                             { label: 'Platform Modules', target: 'modules' },
-                            { label: 'GST & Compliance', target: 'compliance' },
-                            { label: 'Interactive Demo', target: 'showcase' },
-                            { label: 'ROI Calculator', target: 'calculator' },
+                            { label: 'Interactive Sandbox', target: 'showcase' },
+                            { label: 'Live ROI Calculator', target: 'calculator' },
                             { label: 'Enterprise Pricing', target: 'pricing' }
                         ].map((link, i) => (
                             <button
@@ -446,7 +529,9 @@ export default function Landing() {
 
                     {/* Right CTA */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                        <button
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={handleLogin}
                             style={{
                                 background: 'transparent',
@@ -463,9 +548,11 @@ export default function Landing() {
                             onMouseLeave={e => { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.color = '#1E293B'; }}
                         >
                             Sign In
-                        </button>
+                        </motion.button>
 
-                        <button
+                        <motion.button
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
                             onClick={handleLogin}
                             style={{
                                 background: 'linear-gradient(135deg, #064E3B 0%, #047857 100%)',
@@ -479,15 +566,12 @@ export default function Landing() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '0.45rem',
-                                boxShadow: '0 4px 12px rgba(6, 78, 59, 0.22)',
-                                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                                boxShadow: '0 4px 12px rgba(6, 78, 59, 0.22)'
                             }}
-                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 18px rgba(6, 78, 59, 0.28)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(6, 78, 59, 0.22)'; }}
                         >
                             <span>Launch Console</span>
                             <ArrowRight size={14} />
-                        </button>
+                        </motion.button>
 
                         {/* Mobile Toggle */}
                         <button
@@ -523,7 +607,7 @@ export default function Landing() {
                                 gap: '1rem'
                             }}
                         >
-                            {['modules', 'compliance', 'showcase', 'calculator', 'pricing'].map((id) => (
+                            {['modules', 'showcase', 'calculator', 'pricing'].map((id) => (
                                 <button
                                     key={id}
                                     onClick={() => scrollToSection(id)}
@@ -549,13 +633,72 @@ export default function Landing() {
                 </AnimatePresence>
             </header>
 
-            {/* 3. HERO SECTION */}
+            {/* 4. HERO SECTION WITH FLOATING AMBIENT PILLS */}
             <section style={{
                 padding: '4.5rem 1.5rem 3.5rem',
                 maxWidth: '1240px',
                 margin: '0 auto',
-                textAlign: 'center'
+                textAlign: 'center',
+                position: 'relative'
             }}>
+                {/* Floating ambient badge 1 (Left) */}
+                <motion.div
+                    animate={{ y: [0, -10, 0] }}
+                    transition={{ repeat: Infinity, duration: 4.5, ease: 'easeInOut' }}
+                    style={{
+                        position: 'absolute',
+                        left: '2%',
+                        top: '15%',
+                        background: 'white',
+                        padding: '0.65rem 1rem',
+                        borderRadius: '14px',
+                        border: '1px solid #E2E8F0',
+                        boxShadow: '0 12px 24px -6px rgba(6, 78, 59, 0.08)',
+                        display: 'none',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        zIndex: 2
+                    }}
+                    className="floating-desktop-pill"
+                >
+                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+                        <Receipt size={16} />
+                    </div>
+                    <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: '0.78rem', fontWeight: '850', color: '#0F172A' }}>INV-2026-9841</div>
+                        <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: '700' }}>✓ ₹3,09,112 Paid (GSTN Authenticated)</div>
+                    </div>
+                </motion.div>
+
+                {/* Floating ambient badge 2 (Right) */}
+                <motion.div
+                    animate={{ y: [0, 10, 0] }}
+                    transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut', delay: 0.5 }}
+                    style={{
+                        position: 'absolute',
+                        right: '2%',
+                        top: '25%',
+                        background: 'white',
+                        padding: '0.65rem 1rem',
+                        borderRadius: '14px',
+                        border: '1px solid #E2E8F0',
+                        boxShadow: '0 12px 24px -6px rgba(6, 78, 59, 0.08)',
+                        display: 'none',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        zIndex: 2
+                    }}
+                    className="floating-desktop-pill"
+                >
+                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#DCF2E4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#064E3B' }}>
+                        <ShieldCheck size={16} />
+                    </div>
+                    <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: '0.78rem', fontWeight: '850', color: '#0F172A' }}>GSTR-2B Auto-Reconciled</div>
+                        <div style={{ fontSize: '0.68rem', color: '#065F46', fontWeight: '700' }}>100% ITC Eligible Claimed</div>
+                    </div>
+                </motion.div>
+
                 {/* Status Pill */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
@@ -579,7 +722,7 @@ export default function Landing() {
                     <span>BUILT FOR INDIAN ENTERPRISE, DISTRIBUTORS & WHOLESALE NETWORKS</span>
                 </motion.div>
 
-                {/* Primary Hero Typography */}
+                {/* Primary Hero Heading */}
                 <motion.h1
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -613,7 +756,7 @@ export default function Landing() {
                     Streamline GST tax invoicing, multi-godown physical stock, double-entry ledgers, staff payroll, and direct Chartered Accountant audit trails in one unified, ultra-fast workspace.
                 </motion.p>
 
-                {/* Main Hero Actions */}
+                {/* Hero CTA Row */}
                 <motion.div
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -627,7 +770,9 @@ export default function Landing() {
                         marginBottom: '2.5rem'
                     }}
                 >
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
                         onClick={handleLogin}
                         style={{
                             display: 'flex',
@@ -641,17 +786,16 @@ export default function Landing() {
                             fontSize: '0.95rem',
                             fontWeight: '850',
                             cursor: 'pointer',
-                            boxShadow: '0 8px 24px rgba(6, 78, 59, 0.25)',
-                            transition: 'all 0.2s ease'
+                            boxShadow: '0 8px 24px rgba(6, 78, 59, 0.25)'
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(6, 78, 59, 0.32)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(6, 78, 59, 0.25)'; }}
                     >
                         <span>Start Free Enterprise Trial</span>
                         <ArrowRight size={17} />
-                    </button>
+                    </motion.button>
 
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => scrollToSection('showcase')}
                         style={{
                             display: 'flex',
@@ -665,28 +809,30 @@ export default function Landing() {
                             fontSize: '0.95rem',
                             fontWeight: '750',
                             cursor: 'pointer',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
-                            transition: 'all 0.2s ease'
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#064E3B'; e.currentTarget.style.background = '#F8FAFC'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.background = 'white'; }}
                     >
                         <PlayCircle size={17} color="#065F46" />
                         <span>Interactive Workspace Tour</span>
-                    </button>
+                    </motion.button>
                 </motion.div>
 
-                {/* Compliance & Security Credential Ribbons */}
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '1.75rem',
-                    flexWrap: 'wrap',
-                    color: '#64748B',
-                    fontSize: '0.8rem',
-                    fontWeight: '650'
-                }}>
+                {/* Trust Credentials */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.45 }}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '1.75rem',
+                        flexWrap: 'wrap',
+                        color: '#64748B',
+                        fontSize: '0.8rem',
+                        fontWeight: '650'
+                    }}
+                >
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         <ShieldCheck size={16} color="#059669" /> Bank-Grade 256-bit TLS Encryption
                     </span>
@@ -699,22 +845,67 @@ export default function Landing() {
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         <RefreshCw size={16} color="#059669" /> Real-Time Multi-Branch Sync
                     </span>
-                </div>
+                </motion.div>
             </section>
 
-            {/* 4. SHOWSTOPPER: THE INTERACTIVE LIVE CONSOLE SHOWCASE */}
+            {/* 5. STATS WITH LIVE ANIMATED COUNTERS */}
+            <section style={{
+                maxWidth: '1240px',
+                margin: '0 auto 4rem',
+                padding: '0 1.5rem'
+            }}>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: '-40px' }}
+                    style={{
+                        background: 'linear-gradient(135deg, #064E3B 0%, #065F46 50%, #047857 100%)',
+                        borderRadius: '24px',
+                        padding: '2.5rem 2rem',
+                        color: 'white',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                        gap: '2rem',
+                        boxShadow: '0 20px 40px rgba(6, 78, 59, 0.18)'
+                    }}
+                >
+                    {[
+                        { end: 5000, prefix: '', suffix: '+', label: 'Active Indian Enterprises' },
+                        { end: 1200, prefix: '₹', suffix: ' Cr+', label: 'Transactions Processed' },
+                        { end: 99, prefix: '', suffix: '.98%', label: 'Cloud Enterprise SLA Uptime' },
+                        { end: 32, prefix: '', suffix: '+', label: 'Connected ERP & Tax Modules' }
+                    ].map((stat, i) => (
+                        <div key={i} style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '2.4rem', fontWeight: '900', letterSpacing: '-0.02em', color: '#FFFFFF' }}>
+                                <StatCounter end={stat.end} prefix={stat.prefix} suffix={stat.suffix} />
+                            </div>
+                            <div style={{ fontSize: '0.82rem', color: '#A7F3D0', fontWeight: '700', marginTop: '0.25rem' }}>
+                                {stat.label}
+                            </div>
+                        </div>
+                    ))}
+                </motion.div>
+            </section>
+
+            {/* 6. SHOWSTOPPER: THE INTERACTIVE LIVE CONSOLE SHOWCASE */}
             <section id="showcase" style={{
                 maxWidth: '1240px',
                 margin: '0 auto 5rem',
                 padding: '0 1.5rem'
             }}>
-                <div style={{
-                    background: '#FFFFFF',
-                    borderRadius: '24px',
-                    border: '1px solid #E2E8F0',
-                    boxShadow: '0 25px 60px -15px rgba(6, 78, 59, 0.12), 0 0 1px 1px rgba(0,0,0,0.02)',
-                    overflow: 'hidden'
-                }}>
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: '-60px' }}
+                    transition={{ duration: 0.6 }}
+                    style={{
+                        background: '#FFFFFF',
+                        borderRadius: '24px',
+                        border: '1px solid #E2E8F0',
+                        boxShadow: '0 25px 60px -15px rgba(6, 78, 59, 0.12), 0 0 1px 1px rgba(0,0,0,0.02)',
+                        overflow: 'hidden'
+                    }}
+                >
                     {/* Console Header Bar */}
                     <div style={{
                         background: 'linear-gradient(135deg, #064E3B 0%, #065F46 100%)',
@@ -762,14 +953,15 @@ export default function Landing() {
                         </div>
                     </div>
 
-                    {/* Interactive Tab Controller */}
+                    {/* Interactive Tab Controller with Sliding Indicator */}
                     <div style={{
                         display: 'flex',
                         background: '#F8FAFC',
                         borderBottom: '1px solid #E2E8F0',
                         padding: '0.5rem 1rem',
                         overflowX: 'auto',
-                        gap: '0.4rem'
+                        gap: '0.4rem',
+                        position: 'relative'
                     }}>
                         {MODULE_SHOWCASE.map((mod) => {
                             const isSelected = mod.id === activeTabId;
@@ -789,10 +981,11 @@ export default function Landing() {
                                         fontSize: '0.82rem',
                                         fontWeight: '800',
                                         whiteSpace: 'nowrap',
-                                        transition: 'all 0.15s ease',
+                                        position: 'relative',
                                         background: isSelected ? 'white' : 'transparent',
                                         color: isSelected ? '#064E3B' : '#64748B',
-                                        boxShadow: isSelected ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
+                                        boxShadow: isSelected ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                                        transition: 'color 0.15s ease'
                                     }}
                                 >
                                     <IconComp size={15} color={isSelected ? '#064E3B' : '#94A3B8'} />
@@ -815,7 +1008,7 @@ export default function Landing() {
                     {/* Interactive Workspace Body */}
                     <div style={{ padding: '2rem' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 1.9fr)', gap: '2rem', alignItems: 'start' }}>
-                            {/* Left Description Column */}
+                            {/* Left Column */}
                             <div>
                                 <span style={{
                                     fontSize: '0.72rem',
@@ -852,17 +1045,19 @@ export default function Landing() {
                                     ))}
                                 </div>
 
-                                <button
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
                                     onClick={handleLogin}
                                     style={{
                                         width: '100%',
-                                        padding: '0.8rem',
+                                        padding: '0.85rem',
                                         borderRadius: '12px',
                                         background: '#064E3B',
                                         color: 'white',
                                         border: 'none',
                                         fontWeight: '800',
-                                        fontSize: '0.85rem',
+                                        fontSize: '0.88rem',
                                         cursor: 'pointer',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -870,12 +1065,12 @@ export default function Landing() {
                                         gap: '0.5rem'
                                     }}
                                 >
-                                    <span>Try {activeShowcase.name} Live</span>
+                                    <span>Try {activeShowcase.name} In Live Session</span>
                                     <ArrowRight size={15} />
-                                </button>
+                                </motion.button>
                             </div>
 
-                            {/* Right Live Interactive Simulation Panel */}
+                            {/* Right Live Simulation Panel */}
                             <div style={{
                                 background: '#F8FAFC',
                                 borderRadius: '18px',
@@ -887,8 +1082,8 @@ export default function Landing() {
                                     <div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.75rem' }}>
                                             <div>
-                                                <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#0F172A' }}>{activeShowcase.previewData.title}</div>
-                                                <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>Voucher Ref: {activeShowcase.previewData.code} • Date: {activeShowcase.previewData.date}</div>
+                                                <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#0F172A' }}>Tax Invoice — B2B Interactive Simulator</div>
+                                                <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>Try adjusting quantity or tax rate below to see live calculations</div>
                                             </div>
                                             <span style={{
                                                 padding: '0.25rem 0.65rem',
@@ -903,41 +1098,89 @@ export default function Landing() {
                                             </span>
                                         </div>
 
-                                        <div style={{ background: 'white', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0', marginBottom: '1rem' }}>
-                                            <div style={{ fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>BILLED TO (B2B CUSTOMER)</div>
-                                            <div style={{ fontSize: '0.88rem', fontWeight: '850', color: '#0F172A', marginTop: '0.15rem' }}>{activeShowcase.previewData.party}</div>
-                                            <div style={{ fontSize: '0.75rem', color: '#475569', fontFamily: 'monospace', fontWeight: '750' }}>GSTIN: {activeShowcase.previewData.gstin}</div>
+                                        {/* Interactive Simulation Controls */}
+                                        <div style={{
+                                            background: 'white',
+                                            borderRadius: '12px',
+                                            padding: '1rem',
+                                            border: '1px solid #E2E8F0',
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(3, 1fr)',
+                                            gap: '0.75rem',
+                                            marginBottom: '1rem'
+                                        }}>
+                                            <div>
+                                                <label style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', display: 'block', marginBottom: '0.3rem' }}>
+                                                    QUANTITY (PCS)
+                                                </label>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    <button
+                                                        onClick={() => setSimulatedQty(Math.max(10, simulatedQty - 10))}
+                                                        style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#F8FAFC', cursor: 'pointer', fontWeight: '800' }}
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A', minWidth: '40px', textAlign: 'center' }}>
+                                                        {simulatedQty}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => setSimulatedQty(simulatedQty + 10)}
+                                                        style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#F8FAFC', cursor: 'pointer', fontWeight: '800' }}
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', display: 'block', marginBottom: '0.3rem' }}>
+                                                    RATE PER UNIT
+                                                </label>
+                                                <div style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A', paddingTop: '0.2rem' }}>
+                                                    ₹{simulatedRate.toLocaleString('en-IN')}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label style={{ fontSize: '0.68rem', fontWeight: '800', color: '#64748B', display: 'block', marginBottom: '0.3rem' }}>
+                                                    GST MATRIX RATE
+                                                </label>
+                                                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                                    {[5, 12, 18, 28].map(rate => (
+                                                        <button
+                                                            key={rate}
+                                                            onClick={() => setSimulatedGstRate(rate)}
+                                                            style={{
+                                                                padding: '0.2rem 0.45rem',
+                                                                borderRadius: '6px',
+                                                                border: 'none',
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: '800',
+                                                                cursor: 'pointer',
+                                                                background: simulatedGstRate === rate ? '#064E3B' : '#F1F5F9',
+                                                                color: simulatedGstRate === rate ? 'white' : '#64748B'
+                                                            }}
+                                                        >
+                                                            {rate}%
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.78rem', marginBottom: '1rem' }}>
-                                            <thead>
-                                                <tr style={{ borderBottom: '1px solid #E2E8F0', color: '#64748B' }}>
-                                                    <th style={{ padding: '0.45rem' }}>Item Description</th>
-                                                    <th style={{ padding: '0.45rem' }}>HSN</th>
-                                                    <th style={{ padding: '0.45rem' }}>Qty</th>
-                                                    <th style={{ padding: '0.45rem', textAlign: 'right' }}>Total</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {activeShowcase.previewData.items.map((it, idx) => (
-                                                    <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.65rem 0.45rem', fontWeight: '750', color: '#0F172A' }}>{it.desc}</td>
-                                                        <td style={{ padding: '0.65rem 0.45rem', color: '#64748B', fontFamily: 'monospace' }}>{it.hsn}</td>
-                                                        <td style={{ padding: '0.65rem 0.45rem', color: '#475569', fontWeight: '700' }}>{it.qty}</td>
-                                                        <td style={{ padding: '0.65rem 0.45rem', textAlign: 'right', fontWeight: '850', color: '#064E3B' }}>{it.total}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-
-                                        <div style={{ background: '#ECFDF5', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #A7F3D0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        {/* Dynamic Live Invoice Math */}
+                                        <div style={{ background: '#ECFDF5', padding: '1rem', borderRadius: '12px', border: '1px solid #A7F3D0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <div>
-                                                <div style={{ fontSize: '0.72rem', color: '#065F46', fontWeight: '750' }}>Total GST (CGST 9% + SGST 9%)</div>
-                                                <div style={{ fontSize: '0.78rem', color: '#064E3B', fontWeight: '850' }}>₹47,152.80</div>
+                                                <div style={{ fontSize: '0.72rem', color: '#065F46', fontWeight: '750' }}>Tax Breakdown ({simulatedGstRate}% GST)</div>
+                                                <div style={{ fontSize: '0.85rem', color: '#064E3B', fontWeight: '850' }}>
+                                                    CGST: ₹{(simTaxAmount / 2).toLocaleString('en-IN', { maximumFractionDigits: 2 })} + SGST: ₹{(simTaxAmount / 2).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                                </div>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
-                                                <div style={{ fontSize: '0.72rem', color: '#065F46', fontWeight: '750' }}>Final Amount</div>
-                                                <div style={{ fontSize: '1.2rem', fontWeight: '900', color: '#064E3B' }}>{activeShowcase.previewData.grandTotal}</div>
+                                                <div style={{ fontSize: '0.72rem', color: '#065F46', fontWeight: '750' }}>Invoice Grand Total</div>
+                                                <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#064E3B' }}>
+                                                    ₹{simGrandTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -946,10 +1189,14 @@ export default function Landing() {
                                 {activeTabId === 'inventory' && (
                                     <div>
                                         <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#0F172A', marginBottom: '0.85rem' }}>
-                                            {activeShowcase.previewData.title}
+                                            Central Godown Matrix — Live Physical Counts
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1rem' }}>
-                                            {activeShowcase.previewData.godowns.map((g, idx) => (
+                                            {[
+                                                { name: 'Central Godown A (Bhiwandi, MH)', skus: '4,120 SKUs', capacity: '86% Utilized', status: 'Optimal' },
+                                                { name: 'Showroom North Transit (Delhi NCR)', skus: '1,890 SKUs', capacity: '64% Utilized', status: 'Optimal' },
+                                                { name: 'South Distribution Hub (Bangalore)', skus: '3,450 SKUs', capacity: '92% Utilized', status: 'Reorder High' }
+                                            ].map((g, idx) => (
                                                 <div key={idx} style={{ background: 'white', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <div>
                                                         <div style={{ fontWeight: '800', fontSize: '0.85rem', color: '#0F172A' }}>{g.name}</div>
@@ -962,27 +1209,24 @@ export default function Landing() {
                                                 </div>
                                             ))}
                                         </div>
-
-                                        <div style={{ background: '#FFFBEB', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #FDE68A', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div style={{ fontSize: '0.75rem', color: '#92400E', fontWeight: '750' }}>
-                                                Last Inward Reconcile: <strong>{activeShowcase.previewData.recentAdjustment.item}</strong> ({activeShowcase.previewData.recentAdjustment.ref})
-                                            </div>
-                                            <span style={{ fontSize: '0.82rem', fontWeight: '900', color: '#B45309' }}>{activeShowcase.previewData.recentAdjustment.diff}</span>
-                                        </div>
                                     </div>
                                 )}
 
                                 {activeTabId === 'accounting' && (
                                     <div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-                                            <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#0F172A' }}>{activeShowcase.previewData.title}</div>
+                                            <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#0F172A' }}>Automated General Ledger & ITC Reconciliation</div>
                                             <span style={{ fontSize: '0.7rem', fontWeight: '850', color: '#047857', background: '#DCF2E4', padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
-                                                {activeShowcase.previewData.auditBadge}
+                                                ICAI Fin-Pro Verified • 100% Reconciled
                                             </span>
                                         </div>
 
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                                            {activeShowcase.previewData.accounts.map((acc, idx) => (
+                                            {[
+                                                { name: 'HDFC Current Bank Account', type: 'Asset', balance: '₹42,85,910.40', trend: '+14.2%' },
+                                                { name: 'Input Tax Credit Pool (GSTR-2B Claimed)', type: 'Tax Asset', balance: '₹8,45,210.00', trend: 'Reconciled' },
+                                                { name: 'Accounts Payable (Raw Material Vendors)', type: 'Liability', balance: '₹14,20,500.00', trend: 'Due in 15d' }
+                                            ].map((acc, idx) => (
                                                 <div key={idx} style={{ background: 'white', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <div>
                                                         <div style={{ fontWeight: '800', fontSize: '0.85rem', color: '#0F172A' }}>{acc.name}</div>
@@ -1001,10 +1245,14 @@ export default function Landing() {
                                 {activeTabId === 'payroll' && (
                                     <div>
                                         <div style={{ fontSize: '0.9rem', fontWeight: '900', color: '#0F172A', marginBottom: '0.85rem' }}>
-                                            {activeShowcase.previewData.title}
+                                            Payroll Disbursement Register — November 2026
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1rem' }}>
-                                            {activeShowcase.previewData.disbursements.map((emp, idx) => (
+                                            {[
+                                                { name: 'Sanjay Sharma', role: 'Plant Supervisor', net: '₹58,400', status: 'Approved for Bank Disbursal' },
+                                                { name: 'Ananya Deshmukh', role: 'Senior Tax Accountant', net: '₹72,000', status: 'Approved for Bank Disbursal' },
+                                                { name: 'Karthik Pillai', role: 'Warehouse Logistics Lead', net: '₹44,500', status: 'Processing' }
+                                            ].map((emp, idx) => (
                                                 <div key={idx} style={{ background: 'white', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <div>
                                                         <div style={{ fontWeight: '800', fontSize: '0.85rem', color: '#0F172A' }}>{emp.name}</div>
@@ -1017,25 +1265,15 @@ export default function Landing() {
                                                 </div>
                                             ))}
                                         </div>
-
-                                        <div style={{ background: '#ECFDF5', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #A7F3D0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div>
-                                                <div style={{ fontSize: '0.72rem', color: '#065F46', fontWeight: '750' }}>Total Batch Net Salary</div>
-                                                <div style={{ fontSize: '1.15rem', fontWeight: '900', color: '#064E3B' }}>{activeShowcase.previewData.totalPayroll}</div>
-                                            </div>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#065F46', background: 'white', padding: '0.3rem 0.75rem', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
-                                                {activeShowcase.previewData.reimbursementVouchers}
-                                            </span>
-                                        </div>
                                     </div>
                                 )}
                             </div>
                         </div>
                     </div>
-                </div>
+                </motion.div>
             </section>
 
-            {/* 5. CORE ARCHITECTURAL MODULE MATRIX ("Everything Your Enterprise Runs On") */}
+            {/* 7. CORE ARCHITECTURAL MODULES WITH SPOTLIGHT HOVER CARDS */}
             <section id="modules" style={{
                 background: '#FFFFFF',
                 padding: '5rem 1.5rem',
@@ -1101,77 +1339,55 @@ export default function Landing() {
                                 tag: 'POS & WhatsApp'
                             }
                         ].map((card, i) => (
-                            <div
-                                key={i}
-                                style={{
-                                    background: '#F8FAFC',
-                                    borderRadius: '20px',
-                                    border: '1px solid #E2E8F0',
-                                    padding: '1.75rem',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    justifyContent: 'space-between',
-                                    transition: 'all 0.2s ease',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                                }}
-                                onMouseEnter={e => {
-                                    e.currentTarget.style.transform = 'translateY(-3px)';
-                                    e.currentTarget.style.borderColor = '#A7F3D0';
-                                    e.currentTarget.style.background = '#FFFFFF';
-                                    e.currentTarget.style.boxShadow = '0 12px 28px rgba(6, 78, 59, 0.08)';
-                                }}
-                                onMouseLeave={e => {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.borderColor = '#E2E8F0';
-                                    e.currentTarget.style.background = '#F8FAFC';
-                                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
-                                }}
-                            >
-                                <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                                        <div style={{
-                                            width: '42px', height: '42px', borderRadius: '12px', background: '#ECFDF5',
-                                            border: '1px solid #A7F3D0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#065F46'
-                                        }}>
-                                            <card.icon size={20} />
-                                        </div>
-                                        <span style={{
-                                            fontSize: '0.68rem', fontWeight: '850', color: '#065F46', background: '#DCF2E4',
-                                            padding: '0.2rem 0.6rem', borderRadius: '6px'
-                                        }}>
-                                            {card.tag}
-                                        </span>
+                            <SpotlightCard key={i} style={{ padding: '1.85rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                    <div style={{
+                                        width: '44px', height: '44px', borderRadius: '12px', background: '#ECFDF5',
+                                        border: '1px solid #A7F3D0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#065F46'
+                                    }}>
+                                        <card.icon size={22} />
                                     </div>
-                                    <h3 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.65rem' }}>
-                                        {card.title}
-                                    </h3>
-                                    <p style={{ fontSize: '0.85rem', color: '#64748B', lineHeight: 1.6, margin: 0, fontWeight: '500' }}>
-                                        {card.desc}
-                                    </p>
+                                    <span style={{
+                                        fontSize: '0.68rem', fontWeight: '850', color: '#065F46', background: '#DCF2E4',
+                                        padding: '0.2rem 0.6rem', borderRadius: '6px'
+                                    }}>
+                                        {card.tag}
+                                    </span>
                                 </div>
-                            </div>
+                                <h3 style={{ fontSize: '1.18rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.65rem' }}>
+                                    {card.title}
+                                </h3>
+                                <p style={{ fontSize: '0.85rem', color: '#64748B', lineHeight: 1.6, margin: 0, fontWeight: '500' }}>
+                                    {card.desc}
+                                </p>
+                            </SpotlightCard>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* 6. INTERACTIVE ROI & ITC RECOVERY CALCULATOR */}
+            {/* 8. INTERACTIVE ROI & ITC RECOVERY CALCULATOR */}
             <section id="calculator" style={{
                 padding: '5rem 1.5rem',
                 maxWidth: '1240px',
                 margin: '0 auto'
             }}>
-                <div style={{
-                    background: 'linear-gradient(135deg, #064E3B 0%, #065F46 100%)',
-                    borderRadius: '24px',
-                    padding: '3rem 2.5rem',
-                    color: 'white',
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.3fr)',
-                    gap: '3rem',
-                    alignItems: 'center',
-                    boxShadow: '0 20px 50px rgba(6, 78, 59, 0.25)'
-                }}>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true, margin: '-50px' }}
+                    style={{
+                        background: 'linear-gradient(135deg, #064E3B 0%, #065F46 100%)',
+                        borderRadius: '24px',
+                        padding: '3rem 2.5rem',
+                        color: 'white',
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1.3fr)',
+                        gap: '3rem',
+                        alignItems: 'center',
+                        boxShadow: '0 20px 50px rgba(6, 78, 59, 0.25)'
+                    }}
+                >
                     <div>
                         <span style={{ fontSize: '0.75rem', fontWeight: '900', color: '#6EE7B7', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                             LIVE SAVINGS SIMULATION
@@ -1253,7 +1469,9 @@ export default function Landing() {
                             </span>
                         </div>
 
-                        <button
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={handleLogin}
                             style={{
                                 background: 'white',
@@ -1274,12 +1492,12 @@ export default function Landing() {
                         >
                             <span>Claim Your Enterprise ROI Free</span>
                             <ArrowRight size={15} color="#064E3B" />
-                        </button>
+                        </motion.button>
                     </div>
-                </div>
+                </motion.div>
             </section>
 
-            {/* 7. TRANSPARENT ENTERPRISE PRICING */}
+            {/* 9. TRANSPARENT ENTERPRISE PRICING */}
             <section id="pricing" style={{
                 background: '#FFFFFF',
                 padding: '5rem 1.5rem',
@@ -1397,18 +1615,15 @@ export default function Landing() {
                                 popular: false
                             }
                         ].map((plan, i) => (
-                            <div
+                            <SpotlightCard
                                 key={i}
                                 style={{
-                                    background: plan.popular ? '#FFFFFF' : '#F8FAFC',
-                                    borderRadius: '24px',
                                     border: plan.popular ? '2px solid #064E3B' : '1px solid #E2E8F0',
                                     padding: '2.25rem 2rem',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     justifyContent: 'space-between',
-                                    position: 'relative',
-                                    boxShadow: plan.popular ? '0 20px 40px rgba(6, 78, 59, 0.12)' : 'none'
+                                    position: 'relative'
                                 }}
                             >
                                 {plan.popular && (
@@ -1440,7 +1655,9 @@ export default function Landing() {
                                     </div>
                                 </div>
 
-                                <button
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
                                     onClick={handleLogin}
                                     style={{
                                         width: '100%',
@@ -1457,14 +1674,14 @@ export default function Landing() {
                                     }}
                                 >
                                     {plan.cta}
-                                </button>
-                            </div>
+                                </motion.button>
+                            </SpotlightCard>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* 8. FAQ ACCORDION */}
+            {/* 10. FAQ ACCORDION WITH ANIMATE PRESENCE */}
             <section style={{
                 maxWidth: '860px',
                 margin: '0 auto 6rem',
@@ -1523,24 +1740,35 @@ export default function Landing() {
                                     }}
                                 >
                                     <span>{faq.q}</span>
-                                    <ChevronDown
-                                        size={18}
-                                        color="#064E3B"
-                                        style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease', flexShrink: 0 }}
-                                    />
+                                    <motion.div
+                                        animate={{ rotate: isOpen ? 180 : 0 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        <ChevronDown size={18} color="#064E3B" />
+                                    </motion.div>
                                 </button>
-                                {isOpen && (
-                                    <div style={{ padding: '0 1.35rem 1.15rem', color: '#475569', fontSize: '0.85rem', lineHeight: 1.6, borderTop: '1px solid #F1F5F9' }}>
-                                        <p style={{ margin: '0.75rem 0 0 0' }}>{faq.a}</p>
-                                    </div>
-                                )}
+                                <AnimatePresence>
+                                    {isOpen && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.25, ease: 'easeInOut' }}
+                                            style={{ overflow: 'hidden' }}
+                                        >
+                                            <div style={{ padding: '0 1.35rem 1.15rem', color: '#475569', fontSize: '0.85rem', lineHeight: 1.6, borderTop: '1px solid #F1F5F9' }}>
+                                                <p style={{ margin: '0.75rem 0 0 0' }}>{faq.a}</p>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         );
                     })}
                 </div>
             </section>
 
-            {/* 9. BOTTOM ENTERPRISE CTA BANNER */}
+            {/* 11. BOTTOM CTA BANNER */}
             <section style={{
                 background: 'linear-gradient(135deg, #064E3B 0%, #042F24 100%)',
                 color: 'white',
@@ -1557,7 +1785,9 @@ export default function Landing() {
                     <p style={{ color: '#D1FAE5', fontSize: '1rem', lineHeight: 1.6, maxWidth: '600px', margin: '0 auto 2.25rem' }}>
                         Join thousands of enterprises, distributors, and retail chains operating on CLIKS. Setup takes under 2 minutes.
                     </p>
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
                         onClick={handleLogin}
                         style={{
                             background: '#FFFFFF',
@@ -1571,19 +1801,16 @@ export default function Landing() {
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '0.55rem',
-                            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-                            transition: 'all 0.2s ease'
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
                         }}
-                        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                        onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
                     >
                         <span>Launch Your Business Console</span>
                         <ArrowRight size={18} color="#064E3B" />
-                    </button>
+                    </motion.button>
                 </div>
             </section>
 
-            {/* 10. REFINED FOOTER */}
+            {/* 12. FOOTER */}
             <footer style={{
                 background: '#042F24',
                 color: 'rgba(255,255,255,0.7)',
@@ -1608,7 +1835,7 @@ export default function Landing() {
 
                     <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
                         <span onClick={() => scrollToSection('modules')} style={{ cursor: 'pointer' }}>Modules</span>
-                        <span onClick={() => scrollToSection('compliance')} style={{ cursor: 'pointer' }}>GST Compliance</span>
+                        <span onClick={() => scrollToSection('showcase')} style={{ cursor: 'pointer' }}>Sandbox</span>
                         <span onClick={() => scrollToSection('pricing')} style={{ cursor: 'pointer' }}>Pricing</span>
                         <span onClick={handleLogin} style={{ cursor: 'pointer', color: '#6EE7B7' }}>Sign In</span>
                     </div>
