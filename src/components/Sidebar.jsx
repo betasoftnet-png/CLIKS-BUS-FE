@@ -80,6 +80,7 @@ import storageLogo from '../assets/storagelogo.png';
 
 const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, handleItemClick, isAdmin = false, isSales = false, isSupport = false, user }) => {
     const { t } = useLanguage();
+    const location = useLocation();
     const displayLabel = (t && typeof t === 'function') ? t(item.label, item.label) : item.label;
 
     if (item.permission && !hasAccess(user, item.permission)) {
@@ -90,7 +91,21 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     const isActive = activeItem === item.label;
     const hasChildren = !!item.children && item.children.length > 0;
     const isOpen = !!openMenus[item.label];
-    const isChildActive = hasChildren && item.children.some(child => activeItem === child.label);
+
+    const isChildActive = React.useMemo(() => {
+        if (!hasChildren) return false;
+        const currentPath = (location.pathname || '').toLowerCase();
+        return item.children.some(child => {
+            if (activeItem && activeItem === child.label) return true;
+            if (child.path) {
+                const childPath = child.path.split('?')[0].toLowerCase();
+                if (currentPath === childPath) return true;
+                if (childPath !== '/' && currentPath.startsWith(childPath + '/')) return true;
+                if (childPath !== '/' && currentPath.startsWith(childPath)) return true;
+            }
+            return false;
+        });
+    }, [hasChildren, item.children, activeItem, location.pathname]);
 
     const isBetaClub = item.label === 'PARTNER LAUNCH DESK' || item.label === 'CAPITAL MATRIX' || item.label === 'BETA Club';
     const isCa = item.label === 'FIN-PRO';
@@ -135,14 +150,21 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
     }
 
     if (hasChildren) {
+        // Highlight parent if it is directly active, or if any child inside is active (especially when closed)
+        const isClosedChildActive = !isOpen && isChildActive;
+        const isParentActive = isActive || isClosedChildActive;
+
         return (
             <div className="sidebar-group" style={{ marginBottom: '6px' }}>
                 <button
-                    className={`sidebar-item has-children ${isOpen ? 'open' : ''} ${isActive ? 'active' : ''}`}
+                    className={`sidebar-item has-children ${isOpen ? 'open' : ''} ${isParentActive ? 'active' : ''} ${isChildActive ? 'child-selected' : ''}`}
                     onClick={() => toggleMenu(item.label)}
                     style={{
-                        background: backgroundStyle,
-                        color: activeText
+                        background: isClosedChildActive ? activeBg : (isOpen && isChildActive ? `${activeBg}60` : backgroundStyle),
+                        color: isParentActive ? darkTextColor : activeText,
+                        border: isClosedChildActive ? `1px solid ${primaryColor}40` : (isOpen && isChildActive ? `1px solid ${primaryColor}25` : 'none'),
+                        borderRadius: '8px',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}
                 >
                     <div className="flex items-center gap-3">
@@ -153,9 +175,31 @@ const MenuItem = ({ item, isChild = false, activeItem, openMenus, toggleMenu, ha
                         ) : (
                             <IconComp size={20} style={{ color: (isActive && !isBetaClub && !isCa) ? '#ffffff' : primaryColor }} />
                         )}
-                        <span className="sidebar-label" style={{ fontWeight: '750', color: darkTextColor }}>{displayLabel}</span>
+                        <span className="sidebar-label" style={{ fontWeight: (isParentActive || isChildActive) ? '850' : '750', color: darkTextColor }}>
+                            {displayLabel}
+                        </span>
                     </div>
-                    {isOpen ? <ChevronDown size={16} style={{ color: darkTextColor }} /> : <ChevronRight size={16} style={{ color: darkTextColor }} />}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {isClosedChildActive && (
+                            <span 
+                                style={{ 
+                                    width: '7px', 
+                                    height: '7px', 
+                                    borderRadius: '50%', 
+                                    backgroundColor: primaryColor, 
+                                    boxShadow: `0 0 8px ${primaryColor}`,
+                                    display: 'inline-block' 
+                                }} 
+                                title={`${item.label} active`} 
+                            />
+                        )}
+                        {isOpen ? (
+                            <ChevronDown size={16} style={{ color: darkTextColor }} />
+                        ) : (
+                            <ChevronRight size={16} style={{ color: darkTextColor }} />
+                        )}
+                    </div>
                 </button>
 
                 {isOpen && (
