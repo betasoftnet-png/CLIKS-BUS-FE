@@ -578,6 +578,15 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 ]
             },
             {
+                label: 'Purchases',
+                icon: ShoppingCart,
+                permission: PERMISSIONS.PURCHASES_ALL,
+                children: [
+                    { label: 'Purchase Invoice', icon: ShoppingCart, path: '/purchases/purchases', permission: PERMISSIONS.PUR_SEC_ALL },
+                    { label: 'Suppliers', icon: UsersRound, path: '/purchases/suppliers', permission: PERMISSIONS.PUR_SUPP_ALL }
+                ]
+            },
+            {
                 label: 'Sales',
                 icon: TrendingUp,
                 permission: PERMISSIONS.SALES_ALL,
@@ -585,15 +594,6 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                     { label: 'Sales Invoice', icon: Receipt, path: '/sales/invoice', permission: PERMISSIONS.SALES_SEC_ALL },
                     { label: 'Loyalty Points', icon: Award, path: '/sales/loyalty', permission: PERMISSIONS.SALES_ALL },
                     { label: 'Customers', icon: Users, path: '/sales/customers', permission: PERMISSIONS.SALES_CUST_ALL }
-                ]
-            },
-            {
-                label: 'Purchases',
-                icon: ShoppingCart,
-                permission: PERMISSIONS.PURCHASES_ALL,
-                children: [
-                    { label: 'Purchase Invoice', icon: ShoppingCart, path: '/purchases/purchases', permission: PERMISSIONS.PUR_SEC_ALL },
-                    { label: 'Suppliers', icon: UsersRound, path: '/purchases/suppliers', permission: PERMISSIONS.PUR_SUPP_ALL }
                 ]
             },
             {
