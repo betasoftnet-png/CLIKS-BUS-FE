@@ -337,9 +337,9 @@ export function ProfileDropdown({
     const displayName = user?.username || user?.name || "User";
 
     const otherAccounts = (accounts || []).filter(acc => {
-        const isCurrentEmail = acc.email && user?.email && acc.email.toLowerCase() === user.email.toLowerCase();
-        const isCurrentId = acc.id && user?.id && String(acc.id) === String(user.id);
-        return !isCurrentEmail && !isCurrentId;
+        if (!acc || !acc.email) return false;
+        if (!user || !user.email) return true;
+        return acc.email.toLowerCase() !== user.email.toLowerCase();
     });
 
     const handleAddAccount = () => {

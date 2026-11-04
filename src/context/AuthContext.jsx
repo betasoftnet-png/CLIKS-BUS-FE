@@ -8,12 +8,50 @@ import { caService } from '../services/caService';
 import { isFeatureAllowed, getPlanDuration, calculateDaysRemaining } from '../utils/subscriptionUtils';
 import { AuthContext } from './auth-context';
 
+// Safely extract email or sub identifier from JWT
+const getEmailFromToken = (tok) => {
+    if (!tok || typeof tok !== 'string' || !tok.includes('.')) return null;
+    try {
+        const payload = JSON.parse(atob(tok.split('.')[1]));
+        return (payload.email || payload.sub || '').toLowerCase();
+    } catch (e) {
+        return null;
+    }
+};
+
+// Sanitize account entries from storage to prevent token mismatches across accounts
+const sanitizeAccounts = (rawList) => {
+    if (!Array.isArray(rawList)) return [];
+    return rawList.map(acc => {
+        if (!acc || !acc.email) return acc;
+        const accEmail = acc.email.toLowerCase();
+        let bnxToken = acc.bnxToken;
+        if (bnxToken) {
+            const bnxEmail = getEmailFromToken(bnxToken);
+            if (bnxEmail && bnxEmail !== accEmail) {
+                console.warn(`[MultiAccount] Discarding mismatched bnxToken for ${accEmail} (belongs to ${bnxEmail})`);
+                bnxToken = null;
+            }
+        }
+        return {
+            ...acc,
+            email: accEmail,
+            bnxToken
+        };
+    });
+};
+
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('books_auth_token'));
     const [accounts, setAccounts] = useState(() => {
         try {
             const raw = localStorage.getItem('cliks_multi_accounts');
-            return raw ? JSON.parse(raw) : [];
+            const parsed = raw ? JSON.parse(raw) : [];
+            const sanitized = sanitizeAccounts(parsed);
+            if (raw && JSON.stringify(sanitized) !== raw) {
+                localStorage.setItem('cliks_multi_accounts', JSON.stringify(sanitized));
+            }
+            return sanitized;
         } catch (e) {
             return [];
         }
@@ -48,21 +86,49 @@ export const AuthProvider = ({ children }) => {
 
     const isLoggingOutRef = React.useRef(false);
 
-    // Helper to persist account entries in multi-account store
+    // Helper to persist account entries in multi-account store strictly by email
     const saveOrUpdateAccount = React.useCallback((accData) => {
-        if (!accData || (!accData.id && !accData.email)) return;
+        if (!accData || !accData.email) return;
+        const targetEmail = accData.email.toLowerCase();
+
+        // Validate incoming bnxToken: does it belong to targetEmail?
+        let incomingBnxToken = accData.bnxToken || null;
+        if (incomingBnxToken) {
+            const bnxEmail = getEmailFromToken(incomingBnxToken);
+            if (bnxEmail && bnxEmail !== targetEmail) {
+                console.warn(`[MultiAccount] Refusing to attach bnxToken of ${bnxEmail} to ${targetEmail}`);
+                incomingBnxToken = null;
+            }
+        }
+
         setAccounts(prev => {
-            const key = accData.email ? accData.email.toLowerCase() : String(accData.id);
-            const index = prev.findIndex(a => 
-                (a.email && a.email.toLowerCase() === key) || (a.id && String(a.id) === key)
-            );
+            const list = Array.isArray(prev) ? prev : [];
+            const index = list.findIndex(a => a.email && a.email.toLowerCase() === targetEmail);
+
             let updated;
             if (index >= 0) {
-                updated = [...prev];
-                updated[index] = { ...updated[index], ...accData, lastActive: Date.now() };
+                const existing = list[index];
+                // Preserve existing valid bnxToken if incoming token is missing or invalid
+                const finalBnxToken = incomingBnxToken || existing.bnxToken || null;
+
+                const merged = {
+                    ...existing,
+                    ...accData,
+                    email: targetEmail,
+                    bnxToken: finalBnxToken,
+                    lastActive: Date.now()
+                };
+                updated = [...list];
+                updated[index] = merged;
             } else {
-                updated = [...prev, { ...accData, lastActive: Date.now() }];
+                updated = [...list, {
+                    ...accData,
+                    email: targetEmail,
+                    bnxToken: incomingBnxToken,
+                    lastActive: Date.now()
+                }];
             }
+
             try {
                 localStorage.setItem('cliks_multi_accounts', JSON.stringify(updated));
             } catch (e) {}
@@ -70,13 +136,23 @@ export const AuthProvider = ({ children }) => {
         });
     }, []);
 
-    // Switch active account seamlessly
-    const switchAccount = React.useCallback(async (targetAccount) => {
-        if (!targetAccount || !targetAccount.token) return;
+    // Switch active account seamlessly with full context sync
+    const switchAccount = React.useCallback((targetAccount) => {
+        if (!targetAccount || !targetAccount.email) return;
+        const targetEmail = targetAccount.email.toLowerCase();
 
         try {
             caService.setUserOffline().catch(() => {});
         } catch (e) {}
+
+        // Read directly from freshest localStorage
+        let storedAccounts = [];
+        try {
+            storedAccounts = JSON.parse(localStorage.getItem('cliks_multi_accounts') || '[]');
+        } catch (e) {}
+
+        const freshTarget = storedAccounts.find(a => a.email && a.email.toLowerCase() === targetEmail) || targetAccount;
+        if (!freshTarget || !freshTarget.token) return;
 
         // Clear tenant keys, preserve shortcuts and cliks_multi_accounts
         Object.keys(localStorage).forEach(key => {
@@ -92,49 +168,45 @@ export const AuthProvider = ({ children }) => {
             });
         } catch (e) {}
 
-        const nextBooksToken = targetAccount.token;
-        const nextBnxToken = targetAccount.bnxToken || targetAccount.token;
+        const nextBooksToken = freshTarget.token;
+        let nextBnxToken = freshTarget.bnxToken || null;
+
+        // Ensure bnxToken strictly belongs to targetEmail
+        if (nextBnxToken) {
+            const bnxEmail = getEmailFromToken(nextBnxToken);
+            if (bnxEmail && bnxEmail !== targetEmail) {
+                console.warn(`[switchAccount] Stored bnxToken belonged to ${bnxEmail}, not ${targetEmail}`);
+                nextBnxToken = null;
+            }
+        }
 
         localStorage.setItem('books_auth_token', nextBooksToken);
-        localStorage.setItem('bnx_auth_token', nextBnxToken);
+        if (nextBnxToken) {
+            localStorage.setItem('bnx_auth_token', nextBnxToken);
+        } else {
+            localStorage.removeItem('bnx_auth_token');
+        }
 
-        if (targetAccount.profilePhoto) {
-            localStorage.setItem('profile_photo', targetAccount.profilePhoto);
+        if (freshTarget.profilePhoto) {
+            localStorage.setItem('profile_photo', freshTarget.profilePhoto);
         } else {
             localStorage.removeItem('profile_photo');
         }
 
-        setToken(nextBooksToken);
-        setUser({ ...targetAccount, bnxToken: nextBnxToken });
-
-        // Update timestamps in accounts and ensure bnxToken is saved
-        setAccounts(prev => {
-            const updated = prev.map(a => {
-                const matches = (a.email && targetAccount.email && a.email.toLowerCase() === targetAccount.email.toLowerCase()) ||
-                                (a.id && targetAccount.id && String(a.id) === String(targetAccount.id));
-                return matches ? { ...a, ...targetAccount, bnxToken: nextBnxToken, lastActive: Date.now() } : a;
-            });
-            try {
-                localStorage.setItem('cliks_multi_accounts', JSON.stringify(updated));
-            } catch (e) {}
-            return updated;
+        // Update timestamps in cliks_multi_accounts
+        const updatedAccounts = storedAccounts.map(a => {
+            if (a.email && a.email.toLowerCase() === targetEmail) {
+                return { ...a, lastActive: Date.now(), ...(nextBnxToken ? { bnxToken: nextBnxToken } : {}) };
+            }
+            return a;
         });
-
-        queryClient.clear();
-        queryClient.invalidateQueries();
-
-        // Refresh profile in background for active account
         try {
-            const profile = await profileService.getProfile();
-            const uName = profile.username || profile.name || (profile.email ? profile.email.split('@')[0] : 'User');
-            setUser(prev => {
-                const merged = { ...prev, ...profile, name: uName, username: profile.username || uName };
-                return merged;
-            });
-        } catch (e) {
-            console.warn('[switchAccount] Profile fetch warning:', e);
-        }
-    }, [queryClient]);
+            localStorage.setItem('cliks_multi_accounts', JSON.stringify(updatedAccounts));
+        } catch (e) {}
+
+        // Reload page to guarantee clean context, fresh cache, and immediate token sync
+        window.location.href = '/dashboard';
+    }, []);
 
     // Sign out of all accounts
     const logoutAll = React.useCallback(() => {
@@ -261,6 +333,12 @@ export const AuthProvider = ({ children }) => {
                 setLoading(false);
                 return;
             }
+
+            // If OAuth code is in URL, Landing page is processing incoming callback; do not race
+            if (typeof window !== 'undefined' && window.location.search && window.location.search.includes('code=')) {
+                return;
+            }
+
             if (token === 'mock-test-token') {
                 const now = new Date();
                 const mockExpiry = new Date(now.getTime() + 342 * 24 * 60 * 60 * 1000).toISOString();
@@ -282,7 +360,14 @@ export const AuthProvider = ({ children }) => {
 
             try {
                 const userData = await profileService.getProfile();
-                const uName = userData.username || userData.name || (userData.email ? userData.email.split('@')[0] : 'User');
+                const uEmail = (userData.email || '').toLowerCase();
+                const uName = userData.username || userData.name || (uEmail ? uEmail.split('@')[0] : 'User');
+
+                // Only attach bnxToken if the token in localStorage genuinely belongs to this user's email
+                const currentBnx = localStorage.getItem('bnx_auth_token');
+                const bnxEmail = getEmailFromToken(currentBnx);
+                const validBnxToken = (bnxEmail && bnxEmail === uEmail) ? currentBnx : null;
+
                 setUser(prev => {
                     const fullUser = {
                         ...prev,
@@ -298,7 +383,7 @@ export const AuthProvider = ({ children }) => {
                         role: fullUser.role || 'business',
                         tier: fullUser.tier || 'Free Plan',
                         token: token,
-                        bnxToken: localStorage.getItem('bnx_auth_token') || token,
+                        bnxToken: validBnxToken,
                         is_sub_id: fullUser.is_sub_id,
                         branch_id: fullUser.branch_id,
                         branch_name: fullUser.branch_name
