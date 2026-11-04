@@ -413,20 +413,22 @@ export function ProfileDropdown({
         dropdownMenu: {
             position: 'absolute',
             right: 0,
-            top: 'calc(100% + 10px)',
+            top: 'calc(100% + 8px)',
             zIndex: 1000,
-            width: '290px',
-            borderRadius: '24px',
+            width: '320px',
+            maxHeight: 'min(560px, calc(100vh - 80px))',
+            overflowY: 'auto',
+            borderRadius: '20px',
             backgroundColor: '#ffffff',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-            border: '1px solid #e5e7eb',
-            overflow: 'hidden',
-            padding: '8px',
+            boxShadow: '0 12px 32px -4px rgba(16, 24, 40, 0.14), 0 4px 12px -2px rgba(16, 24, 40, 0.08)',
+            border: '1px solid #e2e8f0',
+            padding: '6px',
+            scrollbarWidth: 'thin',
         },
         header: {
-            padding: '16px',
+            padding: '12px',
             borderBottom: '1px solid #f3f4f6',
-            marginBottom: '8px',
+            marginBottom: '6px',
         },
         signedInText: {
             fontSize: '11px',
@@ -437,7 +439,7 @@ export function ProfileDropdown({
             marginBottom: '4px',
         },
         emailText: {
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: 700,
             color: '#111827',
             whiteSpace: 'nowrap',
@@ -447,16 +449,16 @@ export function ProfileDropdown({
         menuItem: {
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             width: '100%',
             textAlign: 'left',
-            padding: '10px 12px',
-            fontSize: '14px',
+            padding: '8px 10px',
+            fontSize: '13px',
             fontWeight: 600,
-            color: '#4b5563',
+            color: '#374151',
             backgroundColor: 'transparent',
             border: 'none',
-            borderRadius: '10px',
+            borderRadius: '8px',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
         },
@@ -710,24 +712,24 @@ export function ProfileDropdown({
                                     display: 'flex',
                                     flexDirection: 'column',
                                     alignItems: 'center',
-                                    padding: '24px 16px 18px 16px',
+                                    padding: '16px 12px 12px 12px',
                                     borderBottom: '1px solid #f3f4f6',
                                     textAlign: 'center'
                                 }}>
                                     {/* Avatar circular */}
                                     <div style={{
                                         position: 'relative',
-                                        width: '80px',
-                                        height: '80px',
+                                        width: '58px',
+                                        height: '58px',
                                         borderRadius: '50%',
                                         backgroundColor: '#1A73E8',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         color: '#ffffff',
-                                        fontSize: '32px',
-                                        fontWeight: '700',
-                                        marginBottom: '12px',
+                                        fontSize: '24px',
+                                        fontWeight: '750',
+                                        marginBottom: '8px',
                                         boxShadow: '0 4px 12px rgba(26, 115, 232, 0.15)',
                                         overflow: 'visible'
                                     }}>
@@ -745,10 +747,10 @@ export function ProfileDropdown({
                                             }}
                                             style={{
                                                 position: 'absolute',
-                                                bottom: '0',
-                                                right: '0',
-                                                width: '26px',
-                                                height: '26px',
+                                                bottom: '-2px',
+                                                right: '-2px',
+                                                width: '22px',
+                                                height: '22px',
                                                 borderRadius: '50%',
                                                 backgroundColor: '#ffffff',
                                                 border: '1px solid #d1d5db',
@@ -759,13 +761,13 @@ export function ProfileDropdown({
                                                 cursor: 'pointer'
                                             }}
                                         >
-                                            <Camera size={13} color="#5f6368" />
+                                            <Camera size={11} color="#5f6368" />
                                         </div>
 
                                         {isCameraMenuOpen && (
                                             <div style={{
                                                 position: 'absolute',
-                                                top: '90px',
+                                                top: '68px',
                                                 left: '50%',
                                                 transform: 'translateX(-50%)',
                                                 backgroundColor: '#ffffff',
@@ -840,23 +842,25 @@ export function ProfileDropdown({
 
                                     {/* User Name */}
                                     <div style={{
-                                        fontSize: '16px',
-                                        fontWeight: '700',
-                                        color: '#202124',
-                                        marginBottom: '2px'
+                                        fontSize: '14.5px',
+                                        fontWeight: '750',
+                                        color: '#111827',
+                                        marginBottom: '2px',
+                                        lineHeight: 1.2
                                     }}>
                                         {displayName}
                                     </div>
 
                                     {/* Email */}
                                     <div style={{
-                                        fontSize: '13px',
-                                        color: '#5f6368',
-                                        marginBottom: '8px',
+                                        fontSize: '12px',
+                                        color: '#6b7280',
+                                        marginBottom: '4px',
                                         maxWidth: '100%',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap'
+                                        whiteSpace: 'nowrap',
+                                        fontWeight: '500'
                                     }}>
                                         {displayEmail}
                                     </div>
@@ -865,16 +869,16 @@ export function ProfileDropdown({
                                     <div style={{
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '6px',
+                                        gap: '5px',
                                         justifyContent: 'center',
-                                        fontSize: '13px',
+                                        fontSize: '12px',
                                         fontWeight: '700',
                                         color: '#16A34A',
-                                        marginTop: '4px',
-                                        marginBottom: '14px'
+                                        marginTop: '2px',
+                                        marginBottom: '10px'
                                     }}>
-                                        <CheckCircle2 size={14} color="#16A34A" />
-                                        <span>Make it Primary</span>
+                                        <CheckCircle2 size={13} color="#16A34A" />
+                                        <span>Active Account</span>
                                     </div>
 
                                     {/* Manage Account Button */}
@@ -896,16 +900,16 @@ export function ProfileDropdown({
                                         style={{
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: '8px',
-                                            padding: '8px 16px',
+                                            gap: '7px',
+                                            padding: '6px 14px',
                                             borderRadius: '999px',
                                             border: '1px solid #e5e7eb',
                                             backgroundColor: '#ffffff',
-                                            fontSize: '13px',
+                                            fontSize: '12px',
                                             fontWeight: '700',
-                                            color: '#1f2937',
+                                            color: '#374151',
                                             cursor: 'pointer',
-                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                                             transition: 'all 0.15s ease'
                                         }}
                                         onMouseEnter={(e) => {
@@ -917,7 +921,7 @@ export function ProfileDropdown({
                                             e.currentTarget.style.borderColor = '#e5e7eb';
                                         }}
                                     >
-                                        <UserCog size={14} color="#4b5563" />
+                                        <UserCog size={13} color="#4b5563" />
                                         Manage your account
                                     </button>
 
@@ -925,33 +929,34 @@ export function ProfileDropdown({
                                     {otherAccounts.length > 0 && (
                                         <div style={{
                                             width: '100%',
-                                            marginTop: '14px',
-                                            paddingTop: '12px',
+                                            marginTop: '10px',
+                                            paddingTop: '8px',
                                             borderTop: '1px solid #f1f5f9',
                                             display: 'flex',
                                             flexDirection: 'column',
-                                            gap: '6px'
+                                            gap: '4px'
                                         }}>
                                             <div style={{
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'space-between',
-                                                padding: '0 4px',
+                                                padding: '2px 4px 4px 4px',
                                                 fontSize: '11px',
-                                                fontWeight: '800',
-                                                color: '#64748b',
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '0.05em'
+                                                fontWeight: '750',
+                                                color: '#94a3b8',
+                                                letterSpacing: '0.02em'
                                             }}>
-                                                <span>Other Logged-in IDs ({otherAccounts.length})</span>
-                                                <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '600' }}>Click to switch</span>
+                                                <span>Switch account</span>
+                                                <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '600' }}>
+                                                    {otherAccounts.length} {otherAccounts.length === 1 ? 'other ID' : 'other IDs'}
+                                                </span>
                                             </div>
 
                                             <div style={{
                                                 display: 'flex',
                                                 flexDirection: 'column',
-                                                gap: '6px',
-                                                maxHeight: '170px',
+                                                gap: '3px',
+                                                maxHeight: '130px',
                                                 overflowY: 'auto'
                                             }}>
                                                 {otherAccounts.map((acc, idx) => {
@@ -970,21 +975,21 @@ export function ProfileDropdown({
                                                                 display: 'flex',
                                                                 alignItems: 'center',
                                                                 justifyContent: 'space-between',
-                                                                padding: '8px 10px',
-                                                                borderRadius: '12px',
-                                                                border: '1px solid #e2e8f0',
-                                                                backgroundColor: '#f8fafc',
+                                                                padding: '6px 8px',
+                                                                borderRadius: '10px',
+                                                                border: '1px solid #f1f5f9',
+                                                                backgroundColor: '#fbfcfd',
                                                                 cursor: 'pointer',
                                                                 transition: 'all 0.15s ease',
                                                                 textAlign: 'left'
                                                             }}
                                                             onMouseEnter={(e) => {
                                                                 e.currentTarget.style.backgroundColor = '#f1f5f9';
-                                                                e.currentTarget.style.borderColor = '#cbd5e1';
+                                                                e.currentTarget.style.borderColor = '#e2e8f0';
                                                             }}
                                                             onMouseLeave={(e) => {
-                                                                e.currentTarget.style.backgroundColor = '#f8fafc';
-                                                                e.currentTarget.style.borderColor = '#e2e8f0';
+                                                                e.currentTarget.style.backgroundColor = '#fbfcfd';
+                                                                e.currentTarget.style.borderColor = '#f1f5f9';
                                                             }}
                                                             title={`Switch to ${accName} (${accEmail})`}
                                                         >
@@ -993,12 +998,12 @@ export function ProfileDropdown({
                                                                     width: '28px',
                                                                     height: '28px',
                                                                     borderRadius: '50%',
-                                                                    backgroundColor: '#10b981',
+                                                                    backgroundColor: '#059669',
                                                                     color: '#ffffff',
                                                                     display: 'flex',
                                                                     alignItems: 'center',
                                                                     justifyContent: 'center',
-                                                                    fontWeight: '800',
+                                                                    fontWeight: '750',
                                                                     fontSize: '12px',
                                                                     flexShrink: 0
                                                                 }}>
@@ -1008,7 +1013,7 @@ export function ProfileDropdown({
                                                                         accInitial
                                                                     )}
                                                                 </div>
-                                                                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, textAlign: 'left' }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, textAlign: 'left', lineHeight: 1.25 }}>
                                                                     <div style={{
                                                                         fontSize: '12px',
                                                                         fontWeight: '700',
@@ -1024,7 +1029,8 @@ export function ProfileDropdown({
                                                                         color: '#64748b',
                                                                         overflow: 'hidden',
                                                                         textOverflow: 'ellipsis',
-                                                                        whiteSpace: 'nowrap'
+                                                                        whiteSpace: 'nowrap',
+                                                                        fontWeight: '500'
                                                                     }}>
                                                                         {accEmail}
                                                                     </div>
@@ -1037,7 +1043,7 @@ export function ProfileDropdown({
                                                                     e.stopPropagation();
                                                                     removeAccount(acc.email || acc.id);
                                                                 }}
-                                                                title="Remove account from list"
+                                                                title="Remove account from device"
                                                                 style={{
                                                                     background: 'transparent',
                                                                     border: 'none',
@@ -1049,7 +1055,8 @@ export function ProfileDropdown({
                                                                     alignItems: 'center',
                                                                     justifyContent: 'center',
                                                                     marginLeft: '4px',
-                                                                    flexShrink: 0
+                                                                    flexShrink: 0,
+                                                                    transition: 'all 0.15s ease'
                                                                 }}
                                                                 onMouseEnter={(e) => {
                                                                     e.currentTarget.style.color = '#ef4444';
@@ -1060,7 +1067,7 @@ export function ProfileDropdown({
                                                                     e.currentTarget.style.backgroundColor = 'transparent';
                                                                 }}
                                                             >
-                                                                <X size={14} />
+                                                                <X size={13} />
                                                             </button>
                                                         </div>
                                                     );
@@ -1070,7 +1077,7 @@ export function ProfileDropdown({
                                     )}
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '8px 0' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', padding: '4px 0 2px 0' }}>
                                     {/* Manage Branches - strictly visible to OWNER only */}
                                     {isOwner && (
                                         <button
@@ -1082,7 +1089,7 @@ export function ProfileDropdown({
                                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                         >
-                                            <Building size={18} color="#5f6368" />
+                                            <Building size={16} color="#5f6368" />
                                             <span>Manage Branches</span>
                                         </button>
                                     )}
@@ -1098,7 +1105,7 @@ export function ProfileDropdown({
                                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                         >
-                                            <Users size={18} color="#5f6368" />
+                                            <Users size={16} color="#5f6368" />
                                             <span>{isBranchManager ? 'Manage Showroom Sub-IDs' : 'Manage SubIDs'}</span>
                                         </button>
                                     )}
@@ -1109,7 +1116,7 @@ export function ProfileDropdown({
                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
-                                        <UserPlus size={18} color="#5f6368" />
+                                        <UserPlus size={16} color="#5f6368" />
                                         <span>Add another account</span>
                                     </button>
 
@@ -1123,11 +1130,11 @@ export function ProfileDropdown({
                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
-                                        <LogOut size={18} color="#5f6368" />
+                                        <LogOut size={16} color="#5f6368" />
                                         <span>Sign out of all accounts</span>
                                     </button>
 
-                                    <div style={{ height: '1px', backgroundColor: '#f3f4f6', margin: '6px 8px' }} />
+                                    <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 6px' }} />
 
                                     <button
                                         onClick={() => { onLogout?.(); setOpen(false); }}
@@ -1135,7 +1142,7 @@ export function ProfileDropdown({
                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
-                                        <LogOut size={18} />
+                                        <LogOut size={16} />
                                         Sign out
                                     </button>
                                 </div>
