@@ -302,18 +302,17 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
     const isFinProVerified = React.useMemo(() => {
         const vStatus = icaiVerification?.status || user?.ca_verification_status;
         const isVer = icaiVerification?.isVerified === true || user?.is_finpro_verified === true || user?.is_ca === 1 || user?.role === 'ca';
-        const isLocalVerified = typeof window !== 'undefined' && localStorage.getItem('cliks_finpro_verified') === 'true';
-        return vStatus === 'VERIFIED' || isVer || (isLocalVerified && vStatus !== 'REJECTED');
+        return vStatus === 'VERIFIED' || isVer;
     }, [icaiVerification, user]);
 
     React.useEffect(() => {
         if (typeof window === 'undefined') return;
-        if (icaiVerification?.status === 'VERIFIED' || icaiVerification?.isVerified) {
+        if (isFinProVerified) {
             localStorage.setItem('cliks_finpro_verified', 'true');
-        } else if (icaiVerification?.status === 'REJECTED') {
+        } else {
             localStorage.removeItem('cliks_finpro_verified');
         }
-    }, [icaiVerification]);
+    }, [isFinProVerified]);
 
     const [isSearchExpanded, setIsSearchExpanded] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');

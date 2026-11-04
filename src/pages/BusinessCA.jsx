@@ -110,24 +110,27 @@ export default function BusinessCA({ mode }) {
     });
 
     const icaiVerification = icaiData?.data || icaiData || {};
-    const isCaVerified = 
-        activeMode === 'business' ||
+    const isAccountIcaiVerified = 
         icaiVerification?.status === 'VERIFIED' || 
         icaiVerification?.isVerified === true ||
         Boolean(user?.is_finpro_verified) || 
         user?.ca_verification_status === 'VERIFIED' || 
         user?.is_ca === 1 || 
-        (typeof window !== 'undefined' && localStorage.getItem('cliks_finpro_verified') === 'true');
+        user?.role === 'ca';
+
+    // In business mode (/finance/fintech), Audit Center is accessible to all business accounts.
+    // In personal CA mode (/ca), access is restricted to verified ICAI CA members.
+    const isCaVerified = activeMode === 'business' || isAccountIcaiVerified;
     const isFinProSubscribed = activeMode === 'business' || Boolean(icaiVerification?.isSubscribed);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        if (isCaVerified) {
+        if (isAccountIcaiVerified) {
             localStorage.setItem('cliks_finpro_verified', 'true');
-        } else if (icaiVerification?.status === 'REJECTED') {
+        } else {
             localStorage.removeItem('cliks_finpro_verified');
         }
-    }, [isCaVerified, icaiVerification?.status]);
+    }, [isAccountIcaiVerified]);
 
     const activateSubscriptionMutation = useMutation({
         mutationFn: (planName) => caService.activateFinproSubscription({ planName }),
