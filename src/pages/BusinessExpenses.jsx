@@ -324,7 +324,7 @@ const BusinessExpenses = ({ defaultTab }) => {
         payee_name: item.payee_name || '-',
         payee_phone: item.payee_phone || '',
         payee_gstin: item.payee_gstin || '',
-        expense_amount: parseFloat(item.expense_amount) || 0,
+        expense_amount: parseFloat(item.expense_amount || item.amount) || 0,
         gst_percentage: parseFloat(item.gst_percentage) || 0,
         subtotal: parseFloat(item.subtotal) || 0,
         tax_amount: parseFloat(item.tax_amount) || 0,
@@ -347,10 +347,11 @@ const BusinessExpenses = ({ defaultTab }) => {
         };
     });
 
-    // Merge default categories with custom categories created under budgets
-    const defaultCategories = ['Rent', 'Electricity', 'Internet', 'Salary', 'Fuel', 'General', 'Staff Welfare & Reimbursement'];
+    // Merge default categories with custom categories created under budgets & existing expenses
+    const defaultCategories = ['Rent', 'Electricity', 'Internet', 'Salary', 'Fuel', 'General', 'Staff Welfare & Reimbursement', 'Inventory Purchases'];
     const budgetCategories = budgets.map(b => b.category_name).filter(name => name !== 'Uncategorized');
-    const categoryOptions = Array.from(new Set([...defaultCategories, ...budgetCategories]));
+    const expenseCategories = expenses.map(e => e.category_name).filter(Boolean);
+    const categoryOptions = Array.from(new Set([...defaultCategories, ...budgetCategories, ...expenseCategories]));
 
     const claims = dbClaims.map(item => {
         const datePart = (item.date || (item.created_at || '').split('T')[0] || '').replace(/-/g, '');

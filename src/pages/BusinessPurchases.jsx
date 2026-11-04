@@ -353,6 +353,9 @@ const BusinessPurchases = () => {
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            queryClient.invalidateQueries({ queryKey: ['allExpensesDashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
             setIsCreateModalOpen(false);
             setFormItems([{
                 product_id: '',
@@ -375,6 +378,9 @@ const BusinessPurchases = () => {
         mutationFn: ({ id, data }) => purchasesService.updatePurchase(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            queryClient.invalidateQueries({ queryKey: ['allExpensesDashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
             alert('Purchase successfully updated!');
         }
     });
