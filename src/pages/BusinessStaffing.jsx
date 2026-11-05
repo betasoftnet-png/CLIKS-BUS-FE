@@ -431,14 +431,6 @@ const BusinessStaffing = () => {
 
     // Trigger instant onboarding flow from dashboard shortcuts
     const [searchParams, setSearchParams] = useSearchParams();
-    React.useEffect(() => {
-        if (searchParams.get('create') === 'true') {
-            const nextCode = `CLK-00${(dbEmployees.length || 0) + 1}`;
-            setNewEmp({ ...initialEmpState, employee_code: nextCode });
-            setIsOnboardModalOpen(true);
-            setSearchParams({}, { replace: true });
-        }
-    }, [searchParams, setSearchParams, dbEmployees.length]);
 
     const queryClient = useQueryClient();
 
@@ -866,6 +858,16 @@ const BusinessStaffing = () => {
 
     // Form onboarding states
     const [newEmp, setNewEmp] = useState(initialEmpState);
+
+    // Trigger instant onboarding flow from dashboard shortcuts
+    React.useEffect(() => {
+        if (searchParams.get('create') === 'true') {
+            const nextCode = `CLK-00${(dbEmployees.length || 0) + 1}`;
+            setNewEmp({ ...initialEmpState, employee_code: nextCode });
+            setIsOnboardModalOpen(true);
+            setSearchParams({}, { replace: true });
+        }
+    }, [searchParams, setSearchParams, dbEmployees.length]);
 
     // Form performance review states
     const [perfForm, setPerfForm] = useState({
