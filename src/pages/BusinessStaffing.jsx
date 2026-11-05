@@ -549,13 +549,23 @@ const BusinessStaffing = () => {
     });
 
     const filteredClaims = claims.filter(cl => {
-        const matchesSearch = !reimbSearchTerm || 
-            cl.employee_name.toLowerCase().includes(reimbSearchTerm.toLowerCase()) ||
-            cl.travel_expense.toLowerCase().includes(reimbSearchTerm.toLowerCase()) ||
-            `CLM-${cl.claim_id}`.toLowerCase().includes(reimbSearchTerm.toLowerCase()) ||
-            cl.claim_amount.toString().includes(reimbSearchTerm);
+        const term = (reimbSearchTerm || '').trim().toLowerCase();
+        const matchesSearch = !term || 
+            (cl.employee_name && cl.employee_name.toLowerCase().includes(term)) ||
+            (cl.travel_expense && cl.travel_expense.toLowerCase().includes(term)) ||
+            (cl.display_claim_id && cl.display_claim_id.toLowerCase().includes(term)) ||
+            `CLM-${cl.claim_id}`.toLowerCase().includes(term) ||
+            String(cl.claim_id).toLowerCase().includes(term) ||
+            (cl.reimbursement_status && cl.reimbursement_status.toLowerCase().includes(term)) ||
+            cl.claim_amount.toString().includes(term);
 
-        const matchesStatus = reimbStatusFilter === 'All' || cl.reimbursement_status.toLowerCase() === reimbStatusFilter.toLowerCase();
+        const statusLower = (cl.reimbursement_status || '').toLowerCase();
+        let matchesStatus = true;
+        if (reimbStatusFilter === 'Pending') {
+            matchesStatus = statusLower.includes('pending');
+        } else if (reimbStatusFilter !== 'All') {
+            matchesStatus = statusLower === reimbStatusFilter.toLowerCase();
+        }
 
         return matchesSearch && matchesStatus;
     });
@@ -1653,10 +1663,10 @@ const BusinessStaffing = () => {
                                         setReimbStatusFilter(e.target.value);
                                         setReimbCurrentPage(1);
                                     }}
-                                    style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#475569', fontWeight: '600' }}
+                                    style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.85rem', color: '#475569', fontWeight: '600', cursor: 'pointer' }}
                                 >
                                     <option value="All">All Claims</option>
-                                    <option value="Pending">Pending</option>
+                                    <option value="Pending">Pending Approval</option>
                                     <option value="Approved">Approved</option>
                                     <option value="Paid">Paid</option>
                                     <option value="Rejected">Rejected</option>
@@ -1676,7 +1686,7 @@ const BusinessStaffing = () => {
                                         <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Receipt Details</th>
                                         <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
                                         <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Claim Amount</th>
-                                        <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
+                                        <th style={{ padding: '0.85rem 1.25rem', fontSize: '0.72rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center', whiteSpace: 'nowrap', minWidth: '160px' }}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1703,54 +1713,104 @@ const BusinessStaffing = () => {
                                                     </div>
                                                 </td>
                                                 <td style={{ padding: '1rem 1.25rem' }}>
-                                                    <span style={{
-                                                        padding: '0.2rem 0.5rem', borderRadius: '6px',
-                                                        background: cl.reimbursement_status === 'Approved' ? '#E8F0FE' : (cl.reimbursement_status === 'Paid' ? '#E6F4EA' : (cl.reimbursement_status === 'Rejected' ? '#FCE8E6' : '#FEF3C7')),
-                                                        color: cl.reimbursement_status === 'Approved' ? '#1A73E8' : (cl.reimbursement_status === 'Paid' ? '#137333' : (cl.reimbursement_status === 'Rejected' ? '#C5221F' : '#B45309')),
-                                                        fontWeight: '800', fontSize: '0.72rem'
-                                                    }}>{cl.reimbursement_status.toUpperCase()}</span>
+                                                    {(() => {
+                                                        const s = (cl.reimbursement_status || '').toLowerCase();
+                                                        const isApproved = s === 'approved';
+                                                        const isPaid = s === 'paid';
+                                                        const isRejected = s === 'rejected';
+                                                        return (
+                                                            <span style={{
+                                                                padding: '0.25rem 0.6rem', borderRadius: '6px',
+                                                                background: isApproved ? '#E8F0FE' : (isPaid ? '#E6F4EA' : (isRejected ? '#FCE8E6' : '#FEF3C7')),
+                                                                color: isApproved ? '#1A73E8' : (isPaid ? '#137333' : (isRejected ? '#C5221F' : '#B45309')),
+                                                                fontWeight: '800', fontSize: '0.72rem', whiteSpace: 'nowrap'
+                                                            }}>
+                                                                {cl.reimbursement_status ? cl.reimbursement_status.toUpperCase() : 'PENDING APPROVAL'}
+                                                            </span>
+                                                        );
+                                                    })()}
                                                 </td>
                                                 <td style={{ padding: '1rem 1.25rem', fontWeight: '850', color: '#7C3AED', fontSize: '0.88rem' }}>{formatCurrency(cl.claim_amount)}</td>
-                                                <td style={{ padding: '1.25rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                                                    {cl.reimbursement_status === 'Pending' && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => approveClaimMutation.mutate(cl.claim_id)}
-                                                                style={{ border: 'none', background: '#E6F4EA', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#137333' }}
-                                                            >
-                                                                Approve
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    const reason = prompt("Enter optional rejection reason:");
-                                                                    if (reason !== null) {
-                                                                        rejectClaimMutation.mutate({ id: cl.claim_id, reason });
-                                                                    }
-                                                                }}
-                                                                style={{ border: 'none', background: '#FCE8E6', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#C5221F' }}
-                                                            >
-                                                                Reject
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                    {cl.reimbursement_status === 'Approved' && (
-                                                        <button
-                                                            onClick={() => {
-                                                                setPayingClaimId(cl.claim_id);
-                                                                setPaymentDetails(prev => ({
-                                                                    ...prev,
-                                                                    paymentDate: new Date().toISOString().split('T')[0]
-                                                                }));
-                                                                setIsPaymentModalOpen(true);
-                                                            }}
-                                                            style={{ border: 'none', background: '#E8F0FE', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#1A73E8' }}
-                                                        >
-                                                            Mark as Paid
-                                                        </button>
-                                                    )}
-                                                    {(cl.reimbursement_status === 'Paid' || cl.reimbursement_status === 'Rejected') && (
-                                                        <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600', padding: '4px 0' }}>Settled</span>
-                                                    )}
+                                                <td style={{ padding: '1rem 1.25rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                                    <div style={{ display: 'inline-flex', gap: '0.45rem', justifyContent: 'center', alignItems: 'center' }}>
+                                                        {(() => {
+                                                            const s = (cl.reimbursement_status || '').toLowerCase();
+                                                            const isPending = s.includes('pending');
+                                                            const isApproved = s === 'approved';
+                                                            const isPaid = s === 'paid';
+                                                            const isRejected = s === 'rejected';
+
+                                                            if (isPending) {
+                                                                return (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => approveClaimMutation.mutate(cl.claim_id)}
+                                                                            disabled={approveClaimMutation.isPending}
+                                                                            style={{ border: 'none', background: '#E6F4EA', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '800', color: '#137333', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                                                                            title="Approve this claim"
+                                                                        >
+                                                                            {approveClaimMutation.isPending ? '...' : 'Approve'}
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                const reason = prompt("Enter optional rejection reason:");
+                                                                                if (reason !== null) {
+                                                                                    rejectClaimMutation.mutate({ id: cl.claim_id, reason });
+                                                                                }
+                                                                            }}
+                                                                            disabled={rejectClaimMutation.isPending}
+                                                                            style={{ border: 'none', background: '#FCE8E6', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '800', color: '#C5221F', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                                                                            title="Reject this claim"
+                                                                        >
+                                                                            {rejectClaimMutation.isPending ? '...' : 'Reject'}
+                                                                        </button>
+                                                                    </>
+                                                                );
+                                                            }
+
+                                                            if (isApproved) {
+                                                                return (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setPayingClaimId(cl.claim_id);
+                                                                            setPaymentDetails(prev => ({
+                                                                                ...prev,
+                                                                                paymentDate: new Date().toISOString().split('T')[0]
+                                                                            }));
+                                                                            setIsPaymentModalOpen(true);
+                                                                        }}
+                                                                        style={{ border: 'none', background: '#E8F0FE', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '800', color: '#1A73E8', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                                                                        title="Mark claim as Paid"
+                                                                    >
+                                                                        Mark as Paid
+                                                                    </button>
+                                                                );
+                                                            }
+
+                                                            if (isPaid) {
+                                                                return (
+                                                                    <span style={{ fontSize: '0.72rem', color: '#137333', fontWeight: '800', background: '#E6F4EA', padding: '4px 10px', borderRadius: '6px' }}>
+                                                                        ✓ Paid & Settled
+                                                                    </span>
+                                                                );
+                                                            }
+
+                                                            if (isRejected) {
+                                                                return (
+                                                                    <span style={{ fontSize: '0.72rem', color: '#C5221F', fontWeight: '800', background: '#FCE8E6', padding: '4px 10px', borderRadius: '6px' }}>
+                                                                        ✕ Rejected
+                                                                    </span>
+                                                                );
+                                                            }
+
+                                                            return (
+                                                                <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600' }}>Settled</span>
+                                                            );
+                                                        })()}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
