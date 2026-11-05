@@ -435,10 +435,12 @@ const BusinessStaffing = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     React.useEffect(() => {
         if (searchParams.get('create') === 'true') {
+            const nextCode = `CLK-00${(dbEmployees.length || 0) + 1}`;
+            setNewEmp({ ...initialEmpState, employee_code: nextCode });
             setIsOnboardModalOpen(true);
             setSearchParams({}, { replace: true });
         }
-    }, [searchParams, setSearchParams]);
+    }, [searchParams, setSearchParams, dbEmployees.length]);
 
     const queryClient = useQueryClient();
 
@@ -560,7 +562,9 @@ const BusinessStaffing = () => {
                     deduct_tds: data.deduct_tds,
                     monthly_leave_quota: data.monthly_leave_quota,
                     annual_bonus: data.annual_bonus,
-                    weekly_off: data.weekly_off
+                    weekly_off: data.weekly_off,
+                    esi_number: data.esi_number,
+                    employee_code: data.employee_code
                 });
             }
             return res;
@@ -758,7 +762,7 @@ const BusinessStaffing = () => {
         const addrMeta = safeParse(e.address);
         return {
             employee_id: e.id,
-            employee_code: `CLK-00${e.id}`,
+            employee_code: e.employee_code || addrMeta.employee_code || addrMeta.employee_id || `CLK-00${e.id}`,
             employee_status: e.status || 'active',
             joining_date: e.hire_date || addrMeta.joining_date || '2026-05-08',
             first_name: e.name ? e.name.split(' ')[0] : 'Karan',
@@ -768,24 +772,25 @@ const BusinessStaffing = () => {
             blood_group: e.blood_group || addrMeta.blood_group || 'O+',
             phone_number: e.phone || '+91 91111 22222',
             email: e.email || 'karan.mehra@clikbusiness.com',
-            emergency_contact_name: e.emergency_contact ? (safeParse(e.emergency_contact).name || 'Suresh Mehra') : 'Suresh Mehra (Father)',
-            emergency_contact_number: e.emergency_contact ? (safeParse(e.emergency_contact).phone || '+91 91111 00000') : '+91 91111 00000',
+            emergency_contact_name: e.emergency_contact ? (safeParse(e.emergency_contact).name || '') : '',
+            emergency_contact_number: e.emergency_contact ? (safeParse(e.emergency_contact).phone || '') : '',
             address_line_1: e.address ? (addrMeta.line1 || '') : (e.address || ''),
             city: e.city || addrMeta.city || '',
             state: e.state || addrMeta.state || '',
             pincode: e.pincode || addrMeta.pincode || '',
             deduct_tds: addrMeta.deduct_tds !== undefined ? Boolean(addrMeta.deduct_tds) : (e.deduct_tds !== undefined ? Boolean(e.deduct_tds) : false),
             department_name: e.department || 'Operations',
-            designation_name: e.designation || addrMeta.designation_name || 'Inventory Associate',
-            reporting_manager: e.reporting_manager || addrMeta.reporting_manager || 'Ankit Sharma (Sales Lead)',
+            designation_name: e.designation || addrMeta.designation_name || 'Staff',
+            reporting_manager: e.reporting_manager || addrMeta.reporting_manager || '',
             employment_type: e.employment_type || addrMeta.employment_type || 'Full-time',
             salary_type: e.salary_type || addrMeta.salary_type || 'Monthly',
-            basic_salary: parseFloat(e.salary) || 35000,
-            bank_name: e.bank_details ? (safeParse(e.bank_details).bank_name || 'HDFC Bank') : 'HDFC Bank',
-            account_number: e.bank_details ? (safeParse(e.bank_details).account_number || '50100223344551') : '50100223344551',
-            ifsc_code: e.bank_details ? (safeParse(e.bank_details).ifsc_code || 'HDFC0000124') : 'HDFC0000124',
-            pf_number: e.pf_number || addrMeta.pf_number || 'MH/BAN/0011223/001',
-            pan_number: e.pan_number || addrMeta.pan_number || 'ABCDE1234F',
+            basic_salary: parseFloat(e.salary) || 0,
+            bank_name: e.bank_details ? (safeParse(e.bank_details).bank_name || '') : '',
+            account_number: e.bank_details ? (safeParse(e.bank_details).account_number || '') : '',
+            ifsc_code: e.bank_details ? (safeParse(e.bank_details).ifsc_code || '') : '',
+            pf_number: e.pf_number || addrMeta.pf_number || '',
+            pan_number: e.pan_number || addrMeta.pan_number || '',
+            esi_number: e.esi_number || addrMeta.esi_number || '',
             aadhaar_file: 'aadhaar_arun.pdf',
             pan_file: 'pan_arun.pdf',
             shift_name: e.shift ? (typeof e.shift === 'string' && e.shift.startsWith('{') ? (safeParse(e.shift).shift || safeParse(e.shift).shift_name || e.shift) : e.shift) : (addrMeta.shift_name || 'General Shift (9 AM - 6 PM)'),
@@ -802,6 +807,7 @@ const BusinessStaffing = () => {
 
     // Initial empty employee form state
     const initialEmpState = {
+        employee_code: '',
         first_name: '',
         last_name: '',
         gender: 'Male',
@@ -813,8 +819,11 @@ const BusinessStaffing = () => {
         bank_name: '',
         account_number: '',
         ifsc_code: '',
+        esi_number: '',
+        pf_number: '',
+        pan_number: '',
         shift_name: 'General Shift (9 AM - 6 PM)',
-        leave_balance: 18,
+        leave_balance: defaultLeaveQuota * 12 || 18,
         monthly_leave_quota: defaultLeaveQuota,
         annual_bonus: '',
         annual_bonus_pct: 10,
@@ -823,15 +832,13 @@ const BusinessStaffing = () => {
         blood_group: 'O+',
         employment_type: 'Full-time',
         joining_date: new Date().toISOString().split('T')[0],
-        reporting_manager: 'Ankit Sharma (Sales Lead)',
+        reporting_manager: '',
         address_line_1: '',
         city: '',
         state: '',
         pincode: '',
         emergency_contact_name: '',
         emergency_contact_number: '',
-        pf_number: '',
-        pan_number: '',
         deduct_tds: false
     };
 
@@ -855,24 +862,38 @@ const BusinessStaffing = () => {
             alert(`You have reached the maximum limit of ${maxStaff} staff profiles for your ${activePlan}. Upgrade your subscription plan for additional staff capacity.`);
             return;
         }
-        const finalDesignation = newEmp.designation_name || 'Sales Executive';
-        const finalSalary = parseFloat(newEmp.basic_salary) || 35000;
-        const finalBankName = newEmp.bank_name || 'HDFC Bank';
-        const finalAccountNo = newEmp.account_number || '50100223344551';
-        const finalIfsc = newEmp.ifsc_code || 'HDFC0000124';
-        const finalPf = newEmp.pf_number || 'MH/BAN/0011223/001';
-        const finalPan = newEmp.pan_number || 'ABCDE1234F';
-        const finalManager = newEmp.reporting_manager || 'Ankit Sharma (Sales Lead)';
-        const finalShift = newEmp.shift_name || 'Morning Shift (6 AM - 2 PM)';
-        const finalAddress = newEmp.address_line_1 || '';
-        const finalCity = newEmp.city || '';
-        const finalState = newEmp.state || '';
-        const finalPincode = newEmp.pincode || '';
-        const finalEmergName = newEmp.emergency_contact_name || '';
-        const finalEmergPhone = newEmp.emergency_contact_number || '';
+
+        // Emergency contact cannot be same as staff contact
+        const cleanStaffPhone = (newEmp.phone_number || '').replace(/[^0-9]/g, '');
+        const cleanEmergPhone = (newEmp.emergency_contact_number || '').replace(/[^0-9]/g, '');
+        if (cleanStaffPhone && cleanEmergPhone) {
+            if (cleanStaffPhone === cleanEmergPhone || (cleanStaffPhone.length >= 10 && cleanEmergPhone.length >= 10 && cleanStaffPhone.slice(-10) === cleanEmergPhone.slice(-10))) {
+                alert('Emergency contact number cannot be the same as the staff phone number. Please enter a different emergency contact number.');
+                return;
+            }
+        }
+
+        const finalEmployeeCode = (newEmp.employee_code || '').trim() || `CLK-00${(dbEmployees.length || 0) + 1}`;
+        const finalDesignation = (newEmp.designation_name || '').trim() || 'Staff';
+        const finalSalary = newEmp.basic_salary !== '' && newEmp.basic_salary !== undefined ? (parseFloat(newEmp.basic_salary) || 0) : 0;
+        const finalBankName = (newEmp.bank_name || '').trim();
+        const finalAccountNo = (newEmp.account_number || '').trim();
+        const finalIfsc = (newEmp.ifsc_code || '').trim();
+        const finalPf = (newEmp.pf_number || '').trim();
+        const finalPan = (newEmp.pan_number || '').trim();
+        const finalEsi = (newEmp.esi_number || '').trim();
+        const finalManager = (newEmp.reporting_manager || '').trim();
+        const finalShift = newEmp.shift_name || 'General Shift (9 AM - 6 PM)';
+        const finalAddress = (newEmp.address_line_1 || '').trim();
+        const finalCity = (newEmp.city || '').trim();
+        const finalState = (newEmp.state || '').trim();
+        const finalPincode = (newEmp.pincode || '').trim();
+        const finalEmergName = (newEmp.emergency_contact_name || '').trim();
+        const finalEmergPhone = (newEmp.emergency_contact_number || '').trim();
         const finalMonthlyQuota = newEmp.monthly_leave_quota !== undefined && newEmp.monthly_leave_quota !== '' ? parseFloat(newEmp.monthly_leave_quota) : defaultLeaveQuota;
         const finalBonus = newEmp.annual_bonus !== undefined && newEmp.annual_bonus !== '' ? parseFloat(newEmp.annual_bonus) : null;
         const finalWeeklyOff = newEmp.weekly_off || 'Sunday Off';
+        const finalLeaveBalance = (defaultLeaveQuota * 12) || 18;
 
         createEmpMutation.mutate({
             name: `${newEmp.first_name} ${newEmp.last_name}`,
@@ -882,13 +903,15 @@ const BusinessStaffing = () => {
             salary: finalSalary,
             status: 'active',
             hire_date: newEmp.joining_date || new Date().toISOString().split('T')[0],
-            department: newEmp.department_name,
+            department: newEmp.department_name || 'Operations',
             designation: finalDesignation,
             gender: newEmp.gender,
             date_of_birth: newEmp.date_of_birth,
-            blood_group: newEmp.blood_group,
-            employment_type: newEmp.employment_type,
+            blood_group: newEmp.blood_group || 'O+',
+            employment_type: newEmp.employment_type || 'Full-time',
             reporting_manager: finalManager,
+            employee_code: finalEmployeeCode,
+            esi_number: finalEsi,
             shift: JSON.stringify({ shift: finalShift, shift_name: finalShift }),
             monthly_leave_quota: finalMonthlyQuota,
             annual_bonus: finalBonus,
@@ -908,9 +931,11 @@ const BusinessStaffing = () => {
                 gender: newEmp.gender,
                 employment_type: newEmp.employment_type,
                 reporting_manager: finalManager,
+                employee_code: finalEmployeeCode,
                 pan_number: finalPan,
                 pf_number: finalPf,
-                leave_balance: parseInt(newEmp.leave_balance) || 14,
+                esi_number: finalEsi,
+                leave_balance: finalLeaveBalance,
                 designation_name: finalDesignation,
                 joining_date: newEmp.joining_date
             }),
@@ -923,7 +948,7 @@ const BusinessStaffing = () => {
             }),
             pf_number: finalPf,
             pan_number: finalPan,
-            leave_balance: parseInt(newEmp.leave_balance) || 14
+            leave_balance: finalLeaveBalance
         });
     };
 
@@ -951,6 +976,17 @@ const BusinessStaffing = () => {
     // Handle employee profile edit save
     const handleEditSubmit = (e) => {
         e.preventDefault();
+
+        // Emergency contact cannot be same as staff contact
+        const cleanStaffPhone = (editForm.phone || '').replace(/[^0-9]/g, '');
+        const cleanEmergPhone = (editForm.emergency_contact_number || '').replace(/[^0-9]/g, '');
+        if (cleanStaffPhone && cleanEmergPhone) {
+            if (cleanStaffPhone === cleanEmergPhone || (cleanStaffPhone.length >= 10 && cleanEmergPhone.length >= 10 && cleanStaffPhone.slice(-10) === cleanEmergPhone.slice(-10))) {
+                alert('Emergency contact number cannot be the same as the staff phone number. Please enter a different emergency contact number.');
+                return;
+            }
+        }
+
         const finalMonthlyQuota = editForm.monthly_leave_quota !== undefined && editForm.monthly_leave_quota !== '' ? parseFloat(editForm.monthly_leave_quota) : defaultLeaveQuota;
         const finalBonus = editForm.annual_bonus !== undefined && editForm.annual_bonus !== '' ? parseFloat(editForm.annual_bonus) : null;
         const finalWeeklyOff = editForm.weekly_off || 'Sunday Off';
@@ -965,6 +1001,8 @@ const BusinessStaffing = () => {
             salary: parseFloat(editForm.basic_salary) || 0,
             status: editForm.employee_status,
             hire_date: editForm.joining_date,
+            employee_code: editForm.employee_code,
+            esi_number: editForm.esi_number,
             shift: JSON.stringify({ shift: finalShift, shift_name: finalShift }),
             monthly_leave_quota: finalMonthlyQuota,
             annual_bonus: finalBonus,
@@ -984,8 +1022,10 @@ const BusinessStaffing = () => {
                 gender: editForm.gender,
                 employment_type: editForm.employment_type,
                 reporting_manager: editForm.reporting_manager,
+                employee_code: editForm.employee_code,
                 pan_number: editForm.pan_number,
                 pf_number: editForm.pf_number,
+                esi_number: editForm.esi_number,
                 leave_balance: parseInt(editForm.leave_balance) || 14,
                 designation_name: editForm.designation,
                 joining_date: editForm.joining_date,
@@ -1072,6 +1112,7 @@ const BusinessStaffing = () => {
     const handleOpenEditMode = (emp) => {
         setEditForm({
             employee_id: emp.employee_id,
+            employee_code: emp.employee_code || '',
             first_name: emp.first_name,
             last_name: emp.last_name,
             email: emp.email,
@@ -1097,6 +1138,7 @@ const BusinessStaffing = () => {
             ifsc_code: emp.ifsc_code,
             pf_number: emp.pf_number,
             pan_number: emp.pan_number,
+            esi_number: emp.esi_number || '',
             leave_balance: emp.leave_balance,
             salary_type: emp.salary_type,
             performance_rating: emp.performance_rating,
@@ -1132,7 +1174,8 @@ const BusinessStaffing = () => {
                     </button>
                     <button
                         onClick={() => {
-                            setNewEmp(initialEmpState);
+                            const nextCode = `CLK-00${(dbEmployees.length || 0) + 1}`;
+                            setNewEmp({ ...initialEmpState, employee_code: nextCode });
                             setIsOnboardModalOpen(true);
                         }}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}
@@ -1741,22 +1784,35 @@ const BusinessStaffing = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                                 {/* Personal details section */}
                                 <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
-                                    <h4 style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><User size={16} /> Personal Details</h4>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                        <h4 style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <User size={16} /> Personal Details
+                                        </h4>
+                                        <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#EF4444', background: '#FEF2F2', border: '1px solid #FEE2E2', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                            * Mandatory Section
+                                        </span>
+                                    </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>First Name</label>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>
+                                                    First Name <span style={{ color: '#EF4444' }}>*</span>
+                                                </label>
                                                 <input required type="text" value={newEmp.first_name} onChange={(e) => setNewEmp({ ...newEmp, first_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Arun" />
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Last Name</label>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>
+                                                    Last Name <span style={{ color: '#EF4444' }}>*</span>
+                                                </label>
                                                 <input required type="text" value={newEmp.last_name} onChange={(e) => setNewEmp({ ...newEmp, last_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Kumar" />
                                             </div>
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.5rem' }}>
                                             <div>
                                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>Date of Birth</label>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B' }}>
+                                                        Date of Birth <span style={{ color: '#EF4444' }}>*</span>
+                                                    </label>
                                                     {calculateAge(newEmp.date_of_birth) !== null && (
                                                         <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.1rem 0.4rem', borderRadius: '6px' }}>
                                                             Age: {calculateAge(newEmp.date_of_birth)} yrs
@@ -1773,8 +1829,10 @@ const BusinessStaffing = () => {
                                                 />
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Gender</label>
-                                                <select value={newEmp.gender} onChange={(e) => setNewEmp({ ...newEmp, gender: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white', boxSizing: 'border-box' }}>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>
+                                                    Gender <span style={{ color: '#EF4444' }}>*</span>
+                                                </label>
+                                                <select required value={newEmp.gender} onChange={(e) => setNewEmp({ ...newEmp, gender: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white', boxSizing: 'border-box' }}>
                                                     <option>Male</option>
                                                     <option>Female</option>
                                                     <option>Other</option>
@@ -1800,7 +1858,9 @@ const BusinessStaffing = () => {
                                                 </select>
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Phone</label>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>
+                                                    Phone <span style={{ color: '#EF4444' }}>*</span>
+                                                </label>
                                                 <input 
                                                     required 
                                                     type="text" 
@@ -1817,15 +1877,24 @@ const BusinessStaffing = () => {
                                             </div>
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Corporate Email (BNX / Company Mail)</label>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>
+                                                Corporate Email (BNX / Company Mail) <span style={{ color: '#EF4444' }}>*</span>
+                                            </label>
                                             <input required type="email" value={newEmp.email} onChange={(e) => setNewEmp({ ...newEmp, email: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="arun.kumar@bnxmail.com" />
                                         </div>
                                     </div>
                                 </div>
                                 
-                                {/* Job Details section */}
+                                {/* Job Details section (Optional) */}
                                 <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
-                                    <h4 style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Briefcase size={16} /> Job & Designation</h4>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                        <h4 style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <Briefcase size={16} /> Job & Designation
+                                        </h4>
+                                        <span style={{ fontSize: '0.68rem', fontWeight: '750', color: '#64748B', background: '#F1F5F9', border: '1px solid #E2E8F0', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                            Optional
+                                        </span>
+                                    </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                             <div>
@@ -1839,7 +1908,7 @@ const BusinessStaffing = () => {
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Designation Title</label>
-                                                <input type="text" value={newEmp.designation_name} onChange={(e) => setNewEmp({ ...newEmp, designation_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Sales Executive (Default)" />
+                                                <input type="text" value={newEmp.designation_name} onChange={(e) => setNewEmp({ ...newEmp, designation_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. Sales Executive (Optional)" />
                                             </div>
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
@@ -1857,14 +1926,14 @@ const BusinessStaffing = () => {
                                                 <input type="date" value={newEmp.joining_date} onChange={(e) => setNewEmp({ ...newEmp, joining_date: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                             </div>
                                         </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.5rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Reporting Manager</label>
-                                                <input type="text" value={newEmp.reporting_manager} onChange={(e) => setNewEmp({ ...newEmp, reporting_manager: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Ankit Sharma (Sales Lead) (Default)" />
+                                                <input type="text" value={newEmp.reporting_manager} onChange={(e) => setNewEmp({ ...newEmp, reporting_manager: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. Ankit Sharma (Optional)" />
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Leaves Bal</label>
-                                                <input type="number" value={newEmp.leave_balance} onChange={(e) => setNewEmp({ ...newEmp, leave_balance: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Employee ID / Code</label>
+                                                <input type="text" value={newEmp.employee_code} onChange={(e) => setNewEmp({ ...newEmp, employee_code: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. CLK-001 or EMP-2026-001" />
                                             </div>
                                         </div>
                                         <div>
@@ -1880,35 +1949,46 @@ const BusinessStaffing = () => {
                                 </div>
                             </div>
                             
-                            {/* Payroll & Banking section */}
+                            {/* Payroll & Banking section (Optional) */}
                             <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
-                                <h4 style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CreditCard size={16} /> Payroll & Financial Structure</h4>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <h4 style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <CreditCard size={16} /> Payroll & Financial Structure
+                                    </h4>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '750', color: '#64748B', background: '#F1F5F9', border: '1px solid #E2E8F0', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                        Optional
+                                    </span>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem' }}>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Basic Monthly Salary (INR)</label>
-                                        <input type="number" value={newEmp.basic_salary} onChange={(e) => setNewEmp({ ...newEmp, basic_salary: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="35000 (Default)" />
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Basic Salary (INR/mo)</label>
+                                        <input type="number" value={newEmp.basic_salary} onChange={(e) => setNewEmp({ ...newEmp, basic_salary: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 35000 (Optional)" />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PAN Number</label>
-                                        <input type="text" value={newEmp.pan_number} onChange={(e) => setNewEmp({ ...newEmp, pan_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="ABCDE1234F (Default)" />
+                                        <input type="text" value={newEmp.pan_number} onChange={(e) => setNewEmp({ ...newEmp, pan_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. ABCDE1234F" />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PF Number</label>
-                                        <input type="text" value={newEmp.pf_number} onChange={(e) => setNewEmp({ ...newEmp, pf_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="MH/BAN/0011223/001 (Default)" />
+                                        <input type="text" value={newEmp.pf_number} onChange={(e) => setNewEmp({ ...newEmp, pf_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. MH/BAN/0011223" />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>ESI Number</label>
+                                        <input type="text" value={newEmp.esi_number} onChange={(e) => setNewEmp({ ...newEmp, esi_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 31001234560001" />
                                     </div>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '0.85rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Bank Name</label>
-                                        <input type="text" value={newEmp.bank_name} onChange={(e) => setNewEmp({ ...newEmp, bank_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="HDFC Bank (Default)" />
+                                        <input type="text" value={newEmp.bank_name} onChange={(e) => setNewEmp({ ...newEmp, bank_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. HDFC Bank (Optional)" />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Bank Account Number</label>
-                                        <input type="text" value={newEmp.account_number} onChange={(e) => setNewEmp({ ...newEmp, account_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="50100223344551 (Default)" />
+                                        <input type="text" value={newEmp.account_number} onChange={(e) => setNewEmp({ ...newEmp, account_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 50100223344551 (Optional)" />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>IFSC Code</label>
-                                        <input type="text" value={newEmp.ifsc_code} onChange={(e) => setNewEmp({ ...newEmp, ifsc_code: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="HDFC0000124 (Default)" />
+                                        <input type="text" value={newEmp.ifsc_code} onChange={(e) => setNewEmp({ ...newEmp, ifsc_code: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. HDFC0000124 (Optional)" />
                                     </div>
                                 </div>
                                 <div style={{ marginTop: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F1F5F9', padding: '0.65rem 0.85rem', borderRadius: '10px' }}>
@@ -1928,13 +2008,20 @@ const BusinessStaffing = () => {
                                 </div>
                             </div>
                             
-                            {/* Contact Info section */}
+                            {/* Contact Info section (Optional) */}
                             <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
-                                <h4 style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MapPin size={16} /> Address & Emergency Details</h4>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <h4 style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <MapPin size={16} /> Address & Emergency Details
+                                    </h4>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: '750', color: '#64748B', background: '#F1F5F9', border: '1px solid #E2E8F0', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                        Optional
+                                    </span>
+                                </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Residential Address Line 1</label>
-                                        <input type="text" value={newEmp.address_line_1} onChange={(e) => setNewEmp({ ...newEmp, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 12, Mohamadh Ali Street" />
+                                        <input type="text" value={newEmp.address_line_1} onChange={(e) => setNewEmp({ ...newEmp, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 12, Mohamadh Ali Street (Optional)" />
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                                         <div>
@@ -1953,11 +2040,40 @@ const BusinessStaffing = () => {
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.0rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Emergency Contact Name</label>
-                                            <input type="text" value={newEmp.emergency_contact_name} onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. Vijay Kumar" />
+                                            <input type="text" value={newEmp.emergency_contact_name} onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. Vijay Kumar (Optional)" />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Emergency Phone</label>
-                                            <input type="text" value={newEmp.emergency_contact_number} onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. +91 98765 99911" />
+                                            <input 
+                                                type="text" 
+                                                value={newEmp.emergency_contact_number} 
+                                                onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_number: e.target.value })} 
+                                                style={{ 
+                                                    width: '100%', 
+                                                    padding: '0.55rem', 
+                                                    borderRadius: '8px', 
+                                                    border: (() => {
+                                                        const cleanStaff = (newEmp.phone_number || '').replace(/[^0-9]/g, '');
+                                                        const cleanEmerg = (newEmp.emergency_contact_number || '').replace(/[^0-9]/g, '');
+                                                        const isSame = cleanStaff && cleanEmerg && (cleanStaff === cleanEmerg || (cleanStaff.length >= 10 && cleanEmerg.length >= 10 && cleanStaff.slice(-10) === cleanEmerg.slice(-10)));
+                                                        return isSame ? '1.5px solid #EF4444' : '1px solid #CBD5E1';
+                                                    })(), 
+                                                    outline: 'none', 
+                                                    fontSize: '0.85rem', 
+                                                    boxSizing: 'border-box' 
+                                                }} 
+                                                placeholder="e.g. 9876599911 (Optional)" 
+                                            />
+                                            {(() => {
+                                                const cleanStaff = (newEmp.phone_number || '').replace(/[^0-9]/g, '');
+                                                const cleanEmerg = (newEmp.emergency_contact_number || '').replace(/[^0-9]/g, '');
+                                                const isSame = cleanStaff && cleanEmerg && (cleanStaff === cleanEmerg || (cleanStaff.length >= 10 && cleanEmerg.length >= 10 && cleanStaff.slice(-10) === cleanEmerg.slice(-10)));
+                                                return isSame ? (
+                                                    <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.3rem', display: 'block' }}>
+                                                        ⚠️ Emergency contact cannot be the same as staff phone number
+                                                    </span>
+                                                ) : null;
+                                            })()}
                                         </div>
                                     </div>
                                 </div>
@@ -2164,7 +2280,7 @@ const BusinessStaffing = () => {
                                                     </div>
                                                     <div>
                                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Designation Title</label>
-                                                        <input required type="text" value={editForm.designation || ''} onChange={(e) => setEditForm({ ...editForm, designation: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                        <input type="text" value={editForm.designation || ''} onChange={(e) => setEditForm({ ...editForm, designation: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
@@ -2179,12 +2295,18 @@ const BusinessStaffing = () => {
                                                     </div>
                                                     <div>
                                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Joined Date</label>
-                                                        <input required type="date" value={editForm.joining_date || ''} onChange={(e) => setEditForm({ ...editForm, joining_date: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                        <input type="date" value={editForm.joining_date || ''} onChange={(e) => setEditForm({ ...editForm, joining_date: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                                     </div>
                                                 </div>
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Reporting Manager</label>
-                                                    <input type="text" value={editForm.reporting_manager || ''} onChange={(e) => setEditForm({ ...editForm, reporting_manager: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Reporting Manager</label>
+                                                        <input type="text" value={editForm.reporting_manager || ''} onChange={(e) => setEditForm({ ...editForm, reporting_manager: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                    </div>
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Employee ID / Code</label>
+                                                        <input type="text" value={editForm.employee_code || ''} onChange={(e) => setEditForm({ ...editForm, employee_code: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. CLK-001" />
+                                                    </div>
                                                 </div>
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Assigned Shift</label>
@@ -2202,10 +2324,10 @@ const BusinessStaffing = () => {
                                     {/* Payroll & Banking section */}
                                     <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
                                         <h4 style={{ fontSize: '0.9rem', fontWeight: '850', color: '#0F172A', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CreditCard size={16} /> Payroll & Financial Structure</h4>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem' }}>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Basic Monthly Salary (INR)</label>
-                                                <input required type="number" value={editForm.basic_salary || ''} onChange={(e) => setEditForm({ ...editForm, basic_salary: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Basic Monthly Salary</label>
+                                                <input type="number" value={editForm.basic_salary || ''} onChange={(e) => setEditForm({ ...editForm, basic_salary: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PAN Number</label>
@@ -2214,6 +2336,10 @@ const BusinessStaffing = () => {
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PF Number</label>
                                                 <input type="text" value={editForm.pf_number || ''} onChange={(e) => setEditForm({ ...editForm, pf_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>ESI Number</label>
+                                                <input type="text" value={editForm.esi_number || ''} onChange={(e) => setEditForm({ ...editForm, esi_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 31001234560001" />
                                             </div>
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '0.85rem' }}>
@@ -2238,16 +2364,44 @@ const BusinessStaffing = () => {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Residential Address Line 1</label>
-                                                <input required type="text" value={editForm.address_line_1 || ''} onChange={(e) => setEditForm({ ...editForm, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                <input type="text" value={editForm.address_line_1 || ''} onChange={(e) => setEditForm({ ...editForm, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.0rem' }}>
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Emergency Contact Name</label>
-                                                    <input required type="text" value={editForm.emergency_contact_name || ''} onChange={(e) => setEditForm({ ...editForm, emergency_contact_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                    <input type="text" value={editForm.emergency_contact_name || ''} onChange={(e) => setEditForm({ ...editForm, emergency_contact_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                                 </div>
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Emergency Phone</label>
-                                                    <input required type="text" value={editForm.emergency_contact_number || ''} onChange={(e) => setEditForm({ ...editForm, emergency_contact_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                    <input 
+                                                        type="text" 
+                                                        value={editForm.emergency_contact_number || ''} 
+                                                        onChange={(e) => setEditForm({ ...editForm, emergency_contact_number: e.target.value })} 
+                                                        style={{ 
+                                                            width: '100%', 
+                                                            padding: '0.55rem', 
+                                                            borderRadius: '8px', 
+                                                            border: (() => {
+                                                                const cleanStaff = (editForm.phone || '').replace(/[^0-9]/g, '');
+                                                                const cleanEmerg = (editForm.emergency_contact_number || '').replace(/[^0-9]/g, '');
+                                                                const isSame = cleanStaff && cleanEmerg && (cleanStaff === cleanEmerg || (cleanStaff.length >= 10 && cleanEmerg.length >= 10 && cleanStaff.slice(-10) === cleanEmerg.slice(-10)));
+                                                                return isSame ? '1.5px solid #EF4444' : '1px solid #CBD5E1';
+                                                            })(), 
+                                                            outline: 'none', 
+                                                            fontSize: '0.85rem', 
+                                                            boxSizing: 'border-box' 
+                                                        }} 
+                                                    />
+                                                    {(() => {
+                                                        const cleanStaff = (editForm.phone || '').replace(/[^0-9]/g, '');
+                                                        const cleanEmerg = (editForm.emergency_contact_number || '').replace(/[^0-9]/g, '');
+                                                        const isSame = cleanStaff && cleanEmerg && (cleanStaff === cleanEmerg || (cleanStaff.length >= 10 && cleanEmerg.length >= 10 && cleanStaff.slice(-10) === cleanEmerg.slice(-10)));
+                                                        return isSame ? (
+                                                            <span style={{ color: '#EF4444', fontSize: '0.7rem', fontWeight: '750', marginTop: '0.3rem', display: 'block' }}>
+                                                                ⚠️ Emergency contact cannot be the same as staff phone number
+                                                            </span>
+                                                        ) : null;
+                                                    })()}
                                                 </div>
                                             </div>
                                         </div>
@@ -2335,13 +2489,14 @@ const BusinessStaffing = () => {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', fontSize: '0.85rem' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Basic Salary</span> <span style={{ fontWeight: '850', color: '#064E3B' }}>{formatCurrency(currentSelectedEmployee.basic_salary)}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>PAN Number</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.pan_number}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B', fontWeight: '600' }}>PF Number</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.pf_number}</span></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>PAN Number</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.pan_number || '-'}</span></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>PF Number</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.pf_number || '-'}</span></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B', fontWeight: '600' }}>ESI Number</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.esi_number || '-'}</span></div>
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Bank Name</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.bank_name}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Account Number</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.account_number}</span></div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Bank IFSC</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.ifsc_code}</span></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Bank Name</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.bank_name || '-'}</span></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Account Number</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.account_number || '-'}</span></div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Bank IFSC</span> <span style={{ fontWeight: '750', color: '#0F172A' }}>{currentSelectedEmployee.ifsc_code || '-'}</span></div>
                                             </div>
                                         </div>
                                     </div>
