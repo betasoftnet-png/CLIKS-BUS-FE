@@ -34,6 +34,7 @@ export default function ProcessMonthlyPayrollModal({
     special_allowance: '',
     bonus_amount: '',
     apply_pf: true,
+    apply_tds: false,
     esi_deduction: '',
     tds_deduction: ''
   });
@@ -53,7 +54,11 @@ export default function ProcessMonthlyPayrollModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (onProcessSubmitted) {
-      onProcessSubmitted(payForm);
+      onProcessSubmitted({
+        ...payForm,
+        tds_deduction: payForm.apply_tds ? (parseFloat(payForm.tds_deduction) || 0) : 0,
+        pf_deduction: payForm.apply_pf ? Math.round((parseFloat(payForm.basic_salary) || 0) * 0.12) : 0
+      });
     }
     onClose();
   };
@@ -189,8 +194,8 @@ export default function ProcessMonthlyPayrollModal({
           </div>
 
           {/* Statutory Deductions */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="flex flex-col justify-center">
+          <div className="grid grid-cols-2 gap-3 mb-2">
+            <div className="flex flex-col justify-center bg-gray-50 p-2.5 rounded-xl border border-gray-100">
               <label className="flex items-center gap-1.5 text-xs font-bold text-gray-800 cursor-pointer">
                 <input
                   type="checkbox"
@@ -206,6 +211,22 @@ export default function ProcessMonthlyPayrollModal({
                   : 'PF Exempt'}
               </span>
             </div>
+            <div className="flex flex-col justify-center bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-gray-800 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={payForm.apply_tds}
+                  onChange={(e) => setPayForm((prev) => ({ ...prev, apply_tds: e.target.checked, tds_deduction: e.target.checked ? (prev.tds_deduction || Math.round((parseFloat(prev.basic_salary) || 0) * 0.05)) : 0 }))}
+                  className="w-4 h-4 accent-purple-600 rounded cursor-pointer"
+                />
+                <span>Deduct TDS</span>
+              </label>
+              <span className="text-[10px] text-gray-500 mt-1">
+                {payForm.apply_tds ? 'TDS Active' : 'No TDS Deduction'}
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
                 ESI Deduction
@@ -229,11 +250,12 @@ export default function ProcessMonthlyPayrollModal({
                 type="number"
                 min="0"
                 step="any"
-                placeholder="e.g. 100"
-                value={payForm.tds_deduction}
+                placeholder={payForm.apply_tds ? "e.g. 100" : "TDS Exempt (0)"}
+                disabled={!payForm.apply_tds}
+                value={payForm.apply_tds ? payForm.tds_deduction : ''}
                 onKeyDown={preventNegativeKeys}
                 onChange={handleFieldChange('tds_deduction')}
-                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                className={`w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none ${!payForm.apply_tds ? 'opacity-50 cursor-not-allowed' : ''}`}
               />
             </div>
           </div>

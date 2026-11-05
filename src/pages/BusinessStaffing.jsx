@@ -595,10 +595,11 @@ const BusinessStaffing = () => {
             email: e.email || 'karan.mehra@clikbusiness.com',
             emergency_contact_name: e.emergency_contact ? (safeParse(e.emergency_contact).name || 'Suresh Mehra') : 'Suresh Mehra (Father)',
             emergency_contact_number: e.emergency_contact ? (safeParse(e.emergency_contact).phone || '+91 91111 00000') : '+91 91111 00000',
-            address_line_1: e.address ? (addrMeta.line1 || 'Plot 102, Anna Nagar') : 'Plot 102, Anna Nagar',
-            city: e.city || addrMeta.city || 'Chennai',
-            state: e.state || addrMeta.state || 'Tamil Nadu',
-            pincode: e.pincode || addrMeta.pincode || '600040',
+            address_line_1: e.address ? (addrMeta.line1 || '') : (e.address || ''),
+            city: e.city || addrMeta.city || '',
+            state: e.state || addrMeta.state || '',
+            pincode: e.pincode || addrMeta.pincode || '',
+            deduct_tds: addrMeta.deduct_tds !== undefined ? Boolean(addrMeta.deduct_tds) : (e.deduct_tds !== undefined ? Boolean(e.deduct_tds) : false),
             department_name: e.department || 'Operations',
             designation_name: e.designation || addrMeta.designation_name || 'Inventory Associate',
             reporting_manager: e.reporting_manager || addrMeta.reporting_manager || 'Ankit Sharma (Sales Lead)',
@@ -647,7 +648,8 @@ const BusinessStaffing = () => {
         emergency_contact_name: '',
         emergency_contact_number: '',
         pf_number: '',
-        pan_number: ''
+        pan_number: '',
+        deduct_tds: false
     };
 
     // Form onboarding states
@@ -679,12 +681,12 @@ const BusinessStaffing = () => {
         const finalPan = newEmp.pan_number || 'ABCDE1234F';
         const finalManager = newEmp.reporting_manager || 'Ankit Sharma (Sales Lead)';
         const finalShift = newEmp.shift_name || 'Morning Shift (6 AM - 2 PM)';
-        const finalAddress = newEmp.address_line_1 || 'Plot No. 12, Anna Nagar';
-        const finalCity = newEmp.city || 'Chennai';
-        const finalState = newEmp.state || 'Tamil Nadu';
-        const finalPincode = newEmp.pincode || '600040';
-        const finalEmergName = newEmp.emergency_contact_name || 'Vijay Kumar (Father)';
-        const finalEmergPhone = newEmp.emergency_contact_number || '+91 98765 99911';
+        const finalAddress = newEmp.address_line_1 || '';
+        const finalCity = newEmp.city || '';
+        const finalState = newEmp.state || '';
+        const finalPincode = newEmp.pincode || '';
+        const finalEmergName = newEmp.emergency_contact_name || '';
+        const finalEmergPhone = newEmp.emergency_contact_number || '';
 
         createEmpMutation.mutate({
             name: `${newEmp.first_name} ${newEmp.last_name}`,
@@ -707,6 +709,7 @@ const BusinessStaffing = () => {
                 city: finalCity,
                 state: finalState,
                 pincode: finalPincode,
+                deduct_tds: Boolean(newEmp.deduct_tds),
                 date_of_birth: newEmp.date_of_birth,
                 blood_group: newEmp.blood_group,
                 gender: newEmp.gender,
@@ -718,6 +721,7 @@ const BusinessStaffing = () => {
                 designation_name: finalDesignation,
                 joining_date: newEmp.joining_date
             }),
+            deduct_tds: newEmp.deduct_tds ? 1 : 0,
             emergency_contact: JSON.stringify({ name: finalEmergName, phone: finalEmergPhone }),
             bank_details: JSON.stringify({
                 bank_name: finalBankName,
@@ -766,6 +770,10 @@ const BusinessStaffing = () => {
             shift: JSON.stringify({ shift: editForm.shift_name }),
             address: JSON.stringify({ 
                 line1: editForm.address_line_1,
+                city: editForm.city || '',
+                state: editForm.state || '',
+                pincode: editForm.pincode || '',
+                deduct_tds: Boolean(editForm.deduct_tds),
                 date_of_birth: editForm.date_of_birth,
                 blood_group: editForm.blood_group,
                 gender: editForm.gender,
@@ -780,6 +788,7 @@ const BusinessStaffing = () => {
                 performance_rating: editForm.performance_rating,
                 target_score: editForm.target_score
             }),
+            deduct_tds: editForm.deduct_tds ? 1 : 0,
             emergency_contact: JSON.stringify({ name: editForm.emergency_contact_name, phone: editForm.emergency_contact_number }),
             bank_details: JSON.stringify({ bank_name: editForm.bank_name, account_number: editForm.account_number, ifsc_code: editForm.ifsc_code })
         };
@@ -811,7 +820,7 @@ const BusinessStaffing = () => {
                 const esi = Math.round(basic * 0.0175);
                 const leaves = (idx + (emp.leave_balance || 14)) % 4;
                 const unpaidLeaveDeduction = Math.round(leaves * (basic / 30));
-                const tax = Math.round(basic * 0.05);
+                const tax = emp.deduct_tds ? Math.round(basic * 0.05) : 0;
                 const deductions = pf + esi + tax + unpaidLeaveDeduction;
                 const netPayout = basic - deductions;
                 
@@ -886,7 +895,8 @@ const BusinessStaffing = () => {
             leave_balance: emp.leave_balance,
             salary_type: emp.salary_type,
             performance_rating: emp.performance_rating,
-            target_score: emp.target_score
+            target_score: emp.target_score,
+            deduct_tds: emp.deduct_tds !== undefined ? Boolean(emp.deduct_tds) : false
         });
         setSelectedEmployee(emp);
         setIsEditing(true);
@@ -1634,6 +1644,21 @@ const BusinessStaffing = () => {
                                         <input type="text" value={newEmp.ifsc_code} onChange={(e) => setNewEmp({ ...newEmp, ifsc_code: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="HDFC0000124 (Default)" />
                                     </div>
                                 </div>
+                                <div style={{ marginTop: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F1F5F9', padding: '0.65rem 0.85rem', borderRadius: '10px' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        id="onboard_deduct_tds"
+                                        checked={Boolean(newEmp.deduct_tds)} 
+                                        onChange={(e) => setNewEmp({ ...newEmp, deduct_tds: e.target.checked })} 
+                                        style={{ width: '16px', height: '16px', accentColor: '#1B6B3A', cursor: 'pointer' }} 
+                                    />
+                                    <label htmlFor="onboard_deduct_tds" style={{ fontSize: '0.75rem', fontWeight: '800', color: '#0F172A', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        Deduct TDS (Income Tax Deducted at Source)
+                                    </label>
+                                    <span style={{ fontSize: '0.7rem', color: newEmp.deduct_tds ? '#15803D' : '#64748B', fontWeight: '600', marginLeft: 'auto' }}>
+                                        {newEmp.deduct_tds ? '5% TDS Active' : 'No TDS Deduction'}
+                                    </span>
+                                </div>
                             </div>
                             
                             {/* Contact Info section */}
@@ -1642,30 +1667,30 @@ const BusinessStaffing = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Residential Address Line 1</label>
-                                        <input type="text" value={newEmp.address_line_1} onChange={(e) => setNewEmp({ ...newEmp, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Plot No. 12, Anna Nagar (Default)" />
+                                        <input type="text" value={newEmp.address_line_1} onChange={(e) => setNewEmp({ ...newEmp, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 12, Mohamadh Ali Street" />
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>City</label>
-                                            <input type="text" value={newEmp.city} onChange={(e) => setNewEmp({ ...newEmp, city: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Chennai" />
+                                            <input type="text" value={newEmp.city} onChange={(e) => setNewEmp({ ...newEmp, city: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. Chennai" />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>State</label>
-                                            <input type="text" value={newEmp.state} onChange={(e) => setNewEmp({ ...newEmp, state: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Tamil Nadu" />
+                                            <input type="text" value={newEmp.state} onChange={(e) => setNewEmp({ ...newEmp, state: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. Tamil Nadu" />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Pincode</label>
-                                            <input type="text" value={newEmp.pincode} onChange={(e) => setNewEmp({ ...newEmp, pincode: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="600040" />
+                                            <input type="text" value={newEmp.pincode} onChange={(e) => setNewEmp({ ...newEmp, pincode: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 600040" />
                                         </div>
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.0rem' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Emergency Contact Name</label>
-                                            <input type="text" value={newEmp.emergency_contact_name} onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="Vijay Kumar (Father) (Default)" />
+                                            <input type="text" value={newEmp.emergency_contact_name} onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_name: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. Vijay Kumar" />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Emergency Phone</label>
-                                            <input type="text" value={newEmp.emergency_contact_number} onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="+91 98765 99911 (Default)" />
+                                            <input type="text" value={newEmp.emergency_contact_number} onChange={(e) => setNewEmp({ ...newEmp, emergency_contact_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. +91 98765 99911" />
                                         </div>
                                     </div>
                                 </div>
@@ -2064,14 +2089,6 @@ const BusinessStaffing = () => {
                                                 Attendance & Monthly Payout Summary
                                             </h4>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                {/* Mark Attendance Action */}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowMarkModal(true)}
-                                                    style={{ border: 'none', background: '#059669', color: 'white', padding: '0.45rem 0.95rem', borderRadius: '10px', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 4px 8px rgba(5, 150, 105, 0.15)', transition: 'all 0.2s' }}
-                                                >
-                                                    <Plus size={13} /> Mark Attendance
-                                                </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowHistoryModal(true)}
@@ -2269,7 +2286,7 @@ const BusinessStaffing = () => {
                                             Contact & Emergency Info
                                         </h4>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Residential Address</span> <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', maxWidth: '380px' }}>{currentSelectedEmployee.address_line_1}{currentSelectedEmployee.city ? `, ${currentSelectedEmployee.city}` : ''}{currentSelectedEmployee.state ? `, ${currentSelectedEmployee.state}` : ''}{currentSelectedEmployee.pincode ? ` - ${currentSelectedEmployee.pincode}` : ''}</span></div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.35rem', borderBottom: '1px solid #EAF0F6' }}><span style={{ color: '#64748B', fontWeight: '600' }}>Residential Address</span> <span style={{ fontWeight: '750', color: '#0F172A', textAlign: 'right', maxWidth: '380px' }}>{[currentSelectedEmployee.address_line_1, currentSelectedEmployee.city, currentSelectedEmployee.state].filter(Boolean).join(', ')}{currentSelectedEmployee.pincode ? ` - ${currentSelectedEmployee.pincode}` : ''}</span></div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.15rem' }}>
                                                 <span style={{ color: '#64748B', fontWeight: '600' }}>Emergency Contact</span> 
                                                 <span style={{ fontWeight: '750', color: '#E11D48', textAlign: 'right' }}>

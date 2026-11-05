@@ -137,9 +137,9 @@ const BusinessPayroll = () => {
             special_allowance: spec,
             bonus_amount: bonus,
             overtime_pay: overtime,
-            pf_deduction: getVal(rec.pf_deduction, 1800),
-            esi_deduction: getVal(rec.esi_deduction, 325),
-            tds_deduction: getVal(rec.tds_deduction, 500),
+            pf_deduction: getVal(rec.pf_deduction, 0),
+            esi_deduction: getVal(rec.esi_deduction, 0),
+            tds_deduction: getVal(rec.tds_deduction, 0),
             professional_tax: getVal(rec.professional_tax, 200),
             loan_deduction: getVal(rec.loan_deduction, 0),
             payable_days: parseInt(rec.payable_days) || 30,
@@ -229,6 +229,7 @@ const BusinessPayroll = () => {
         special_allowance: '',
         bonus_amount: '',
         apply_pf: true,
+        apply_tds: false,
         esi_deduction: '',
         tds_deduction: ''
     });
@@ -261,7 +262,7 @@ const BusinessPayroll = () => {
             bonus_amount: bonus,
             pf_deduction: payForm.apply_pf ? Math.round(base * 0.12) : 0,
             esi_deduction: parseFloat(payForm.esi_deduction) || 0,
-            tds_deduction: parseFloat(payForm.tds_deduction) || 0
+            tds_deduction: payForm.apply_tds ? (parseFloat(payForm.tds_deduction) || 0) : 0
         });
     };
 
@@ -683,8 +684,8 @@ const BusinessPayroll = () => {
                                     />
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: '#F8FAFC', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: '800', color: '#1E293B', cursor: 'pointer' }}>
                                         <input type="checkbox" checked={payForm.apply_pf} onChange={(e) => setPayForm({ ...payForm, apply_pf: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: '#7C3AED', cursor: 'pointer' }} />
                                         Deduct 12% PF
@@ -693,6 +694,17 @@ const BusinessPayroll = () => {
                                         {payForm.apply_pf ? `Est: ₹${Math.round((parseFloat(payForm.basic_salary) || 0) * 0.12)}` : 'PF Exempt'}
                                     </span>
                                 </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: '#F8FAFC', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: '800', color: '#1E293B', cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={payForm.apply_tds} onChange={(e) => setPayForm({ ...payForm, apply_tds: e.target.checked, tds_deduction: e.target.checked ? (payForm.tds_deduction || Math.round((parseFloat(payForm.basic_salary) || 0) * 0.05)) : 0 })} style={{ width: '16px', height: '16px', accentColor: '#7C3AED', cursor: 'pointer' }} />
+                                        Deduct TDS
+                                    </label>
+                                    <span style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.3rem' }}>
+                                        {payForm.apply_tds ? 'TDS Active' : 'No TDS Deduction'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>ESI Deduction</label>
                                     <input 
@@ -716,13 +728,14 @@ const BusinessPayroll = () => {
                                         min="0"
                                         step="any"
                                         onKeyDown={preventNegativeKeys}
-                                        placeholder="e.g. 100"
-                                        value={payForm.tds_deduction} 
+                                        placeholder={payForm.apply_tds ? "e.g. 100" : "TDS Exempt (0)"}
+                                        disabled={!payForm.apply_tds}
+                                        value={payForm.apply_tds ? payForm.tds_deduction : ''} 
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             setPayForm({ ...payForm, tds_deduction: val === '' ? '' : Math.max(0, parseFloat(val) || 0) });
                                         }} 
-                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', opacity: !payForm.apply_tds ? 0.6 : 1 }} 
                                     />
                                 </div>
                             </div>

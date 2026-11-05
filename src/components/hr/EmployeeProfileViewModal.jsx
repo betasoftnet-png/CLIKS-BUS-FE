@@ -45,16 +45,6 @@ export function AttendanceSummarySection({ employee, onAttendanceUpdated }) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* NEW: Mark Attendance Action */}
-          <button
-            type="button"
-            onClick={() => setShowMarkModal(true)}
-            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold shadow-2xs transition-colors flex items-center gap-1 cursor-pointer"
-          >
-            <span>+</span>
-            <span>Mark Attendance</span>
-          </button>
-
           <button
             type="button"
             className="px-3 py-1 bg-white border border-emerald-200 text-emerald-800 hover:bg-emerald-50 rounded-xl text-[11px] font-bold shadow-2xs transition-colors cursor-pointer"
