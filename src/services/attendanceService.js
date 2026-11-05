@@ -4,7 +4,7 @@ import { apiClient } from '../api/client';
  * Attendance Service connected to live /attendance backend
  */
 export const attendanceService = {
-    getAttendanceLogs: () => apiClient.get('/attendance').then(res => res.data.data || res.data),
+    getAttendanceLogs: (params) => apiClient.get('/attendance', { params }).then(res => res.data.data || res.data),
     createPunch: (data) => apiClient.post('/attendance', data).then(res => res.data.data || res.data),
     updateAttendance: (id, data) => apiClient.put(`/attendance/${id}`, data).then(res => res.data.data || res.data),
     createRegularization: (data) => apiClient.post('/attendance/regularization', data).then(res => res.data.data || res.data),

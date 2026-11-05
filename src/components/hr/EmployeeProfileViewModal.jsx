@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Plus, Eye, User, Briefcase, CreditCard, MapPin, CheckCircle2 } from 'lucide-react';
+import { attendanceService } from '../../services/attendanceService';
 
 export function AttendanceSummarySection({ employee, onAttendanceUpdated }) {
   const [showMarkModal, setShowMarkModal] = useState(false);
@@ -7,27 +8,63 @@ export function AttendanceSummarySection({ employee, onAttendanceUpdated }) {
   const [status, setStatus] = useState('Present');
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
+  const [allowOverwrite, setAllowOverwrite] = useState(false);
+  const [backendLogs, setBackendLogs] = useState([]);
+
+  const empId = employee?.id || employee?.employee_id || employee?.staff_id;
+
+  // Load attendance directly from backend
+  const fetchAttendance = () => {
+    if (!empId) return;
+    attendanceService.getAttendanceLogs({ employee_id: empId })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setBackendLogs(data);
+        }
+      })
+      .catch((err) => console.error('Failed to load employee attendance from backend', err));
+  };
+
+  useEffect(() => {
+    fetchAttendance();
+  }, [empId]);
+
+  const existingRecord = backendLogs.find((r) => r.date === attendanceDate);
+  const isAlreadyMarked = Boolean(existingRecord);
 
   const handleSaveAttendance = async (e) => {
     e.preventDefault();
+    if (isAlreadyMarked && !allowOverwrite) {
+      alert(`Attendance for ${attendanceDate} is already recorded as "${existingRecord.status}". Attendance can be marked only once for one day.`);
+      return;
+    }
+
     try {
       setLoading(true);
-      // Construct attendance record without changing any API
-      const record = {
-        employee_id: employee?.id || employee?.employee_id || employee?.staff_id,
+      const res = await attendanceService.createPunch({
+        employee_id: empId,
         date: attendanceDate,
         status,
         note,
-      };
+        overwrite: allowOverwrite
+      });
 
-      // Notify parent/state to increment days present/leave taken and append to history
+      fetchAttendance();
+
       if (onAttendanceUpdated) {
-        onAttendanceUpdated(record);
+        onAttendanceUpdated(res);
       }
       setShowMarkModal(false);
       setNote('');
+      setAllowOverwrite(false);
+      alert(isAlreadyMarked 
+        ? `Attendance updated to "${status}" for ${attendanceDate}` 
+        : `Attendance logged: marked as "${status}" for ${attendanceDate}`
+      );
     } catch (err) {
-      console.error('Failed to log attendance', err);
+      console.error('Failed to log attendance to backend', err);
+      const msg = err.response?.data?.message || err.message || 'Failed to log attendance';
+      alert(msg);
     } finally {
       setLoading(false);
     }
@@ -101,11 +138,34 @@ export function AttendanceSummarySection({ employee, onAttendanceUpdated }) {
                   type="date"
                   value={attendanceDate}
                   max={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setAttendanceDate(e.target.value)}
+                  onChange={(e) => {
+                    setAttendanceDate(e.target.value);
+                    setAllowOverwrite(false);
+                  }}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800"
                   required
                 />
               </div>
+
+              {isAlreadyMarked && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-2.5 space-y-1.5 text-left text-xs">
+                  <div className="font-extrabold text-red-900 flex items-center gap-1">
+                    <span>⚠️ Attendance Already Marked</span>
+                  </div>
+                  <p className="text-[11px] text-red-700 leading-tight">
+                    Attendance for <strong>{attendanceDate}</strong> is already marked as <strong>"{existingRecord.status}"</strong>. Attendance can be marked only once for one day.
+                  </p>
+                  <label className="flex items-center gap-1.5 text-[11px] text-gray-800 font-bold cursor-pointer pt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={allowOverwrite}
+                      onChange={(e) => setAllowOverwrite(e.target.checked)}
+                      className="w-3.5 h-3.5 accent-[#0e4b34] cursor-pointer"
+                    />
+                    <span>Update / overwrite existing status</span>
+                  </label>
+                </div>
+              )}
 
               <div>
                 <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
@@ -146,10 +206,14 @@ export function AttendanceSummarySection({ employee, onAttendanceUpdated }) {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-1/2 py-2 bg-[#0e4b34] hover:bg-[#093625] text-white rounded-xl text-xs font-bold cursor-pointer"
+                  disabled={loading || (isAlreadyMarked && !allowOverwrite)}
+                  className={`w-1/2 py-2 text-white rounded-xl text-xs font-bold ${
+                    isAlreadyMarked && !allowOverwrite
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-[#0e4b34] hover:bg-[#093625] cursor-pointer'
+                  }`}
                 >
-                  {loading ? 'Saving...' : 'Save Record'}
+                  {loading ? 'Saving...' : (isAlreadyMarked ? (allowOverwrite ? 'Update Record' : 'Already Marked') : 'Save Record')}
                 </button>
               </div>
             </form>

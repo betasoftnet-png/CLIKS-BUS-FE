@@ -38,6 +38,7 @@ import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { staffingService } from '../services/staffingService';
+import { attendanceService } from '../services/attendanceService';
 import { expensesService } from '../services/expensesService';
 import { splitExpenseService } from '../services/splitExpenseService';
 import { customConfirm } from '../utils/customConfirm';
@@ -138,10 +139,7 @@ const BusinessStaffing = () => {
     const [editForm, setEditForm] = useState({});
 
     // Dynamic Monthly Leave Quota & Roster States
-    const [defaultLeaveQuota, setDefaultLeaveQuota] = useState(() => {
-        const saved = localStorage.getItem('cliks_monthly_leave_quota');
-        return saved ? parseFloat(saved) : 1.5;
-    });
+    const [defaultLeaveQuota, setDefaultLeaveQuota] = useState(1.5);
     const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
     const [tempQuota, setTempQuota] = useState(defaultLeaveQuota);
     const [applyToAll, setApplyToAll] = useState(false);
@@ -227,7 +225,7 @@ const BusinessStaffing = () => {
     const [attendanceStatus, setAttendanceStatus] = useState('Present');
     const [attendanceNote, setAttendanceNote] = useState('');
     const [attendanceLoading, setAttendanceLoading] = useState(false);
-    const [loggedAttendances, setLoggedAttendances] = useState({});
+    const [allowOverwrite, setAllowOverwrite] = useState(false);
 
     // Reimbursement module state variables
     const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
@@ -455,6 +453,31 @@ const BusinessStaffing = () => {
         queryKey: ['claimsList'],
         queryFn: () => expensesService.getClaims()
     });
+
+    // Query for Live Attendance from backend database
+    const { data: dbAttendances = [], refetch: refetchAttendances } = useQuery({
+        queryKey: ['attendanceLogs'],
+        queryFn: () => attendanceService.getAttendanceLogs()
+    });
+
+    // Helper to get attendance logs for a specific employee from backend data
+    const getEmployeeAttendance = (empId) => {
+        if (!empId || !Array.isArray(dbAttendances)) return [];
+        const filtered = dbAttendances.filter(a => 
+            String(a.employee_id) === String(empId) || 
+            a.employee_id === empId
+        );
+        // Enforce strict deduplication by date so each day is counted only once
+        const seenDates = new Set();
+        const unique = [];
+        for (const item of filtered) {
+            if (item && item.date && !seenDates.has(item.date)) {
+                seenDates.add(item.date);
+                unique.push(item);
+            }
+        }
+        return unique;
+    };
 
     const lodgeClaimMutation = useMutation({
         mutationFn: (data) => expensesService.lodgeClaim(data),
@@ -724,7 +747,6 @@ const BusinessStaffing = () => {
         e.preventDefault();
         const val = parseFloat(tempQuota) || 1.5;
         setDefaultLeaveQuota(val);
-        localStorage.setItem('cliks_monthly_leave_quota', String(val));
         
         if (applyToAll && employees.length > 0) {
             for (const emp of employees) {
@@ -2513,6 +2535,19 @@ const BusinessStaffing = () => {
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 <button
                                                     type="button"
+                                                    onClick={() => {
+                                                        setAttendanceDate(new Date().toISOString().split('T')[0]);
+                                                        setAttendanceStatus('Present');
+                                                        setAttendanceNote('');
+                                                        setAllowOverwrite(false);
+                                                        setShowMarkModal(true);
+                                                    }}
+                                                    style={{ border: 'none', background: '#059669', color: 'white', padding: '0.45rem 0.95rem', borderRadius: '10px', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)', transition: 'all 0.2s' }}
+                                                >
+                                                    <Plus size={13} /> Mark Attendance
+                                                </button>
+                                                <button
+                                                    type="button"
                                                     onClick={() => setShowHistoryModal(true)}
                                                     style={{ border: '1px solid #A7F3D0', background: 'white', color: '#065F46', padding: '0.45rem 0.95rem', borderRadius: '10px', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)', transition: 'all 0.2s' }}
                                                 >
@@ -2528,9 +2563,10 @@ const BusinessStaffing = () => {
                                             const baseLeaves = isThisMonth ? 0 : (currentSelectedEmployee.leave_balance % 4);
                                             const basePresent = Math.max(0, daysPassed - baseLeaves);
 
-                                            const empLogs = loggedAttendances[currentSelectedEmployee.employee_id] || [];
-                                            const extraPresent = empLogs.filter(a => a.status === 'Present').length + (empLogs.filter(a => a.status === 'Half Day').length * 0.5);
-                                            const extraLeaves = empLogs.filter(a => a.status === 'On Leave' || a.status === 'Absent').length + (empLogs.filter(a => a.status === 'Half Day').length * 0.5);
+                                            const empLogs = getEmployeeAttendance(currentSelectedEmployee.employee_id);
+
+                                            const extraPresent = empLogs.filter(a => (a.status || '').toLowerCase() === 'present').length + (empLogs.filter(a => (a.status || '').toLowerCase() === 'half day').length * 0.5);
+                                            const extraLeaves = empLogs.filter(a => (a.status || '').toLowerCase() === 'on leave' || (a.status || '').toLowerCase() === 'absent').length + (empLogs.filter(a => (a.status || '').toLowerCase() === 'half day').length * 0.5);
 
                                             const present = basePresent + extraPresent;
                                             const leaves = baseLeaves + extraLeaves;
@@ -2559,103 +2595,164 @@ const BusinessStaffing = () => {
                                     </div>
 
                                     {/* Inline Attendance Entry Dialog */}
-                                    {showMarkModal && (
-                                        <div style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', padding: '1rem' }}>
-                                            <div style={{ background: 'white', borderRadius: '20px', maxWidth: '380px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', position: 'relative' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
-                                                    <h5 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0F172A', margin: 0 }}>
-                                                        Log Attendance: {currentSelectedEmployee.first_name} {currentSelectedEmployee.last_name}
-                                                    </h5>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowMarkModal(false)}
-                                                        style={{ border: 'none', background: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem' }}
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </div>
+                                    {showMarkModal && (() => {
+                                        const currentEmpLogs = getEmployeeAttendance(currentSelectedEmployee.employee_id);
+                                        const existingRecordForDate = currentEmpLogs.find(r => r.date === attendanceDate);
+                                        const isAlreadyMarked = Boolean(existingRecordForDate);
 
-                                                <form onSubmit={(e) => {
-                                                    e.preventDefault();
-                                                    setAttendanceLoading(true);
-                                                    const empId = currentSelectedEmployee.employee_id;
-                                                    const record = {
-                                                        date: attendanceDate,
-                                                        status: attendanceStatus,
-                                                        note: attendanceNote
-                                                    };
-                                                    setLoggedAttendances(prev => {
-                                                        const list = prev[empId] || [];
-                                                        return { ...prev, [empId]: [record, ...list] };
-                                                    });
-                                                    setAttendanceLoading(false);
-                                                    setShowMarkModal(false);
-                                                    setAttendanceNote('');
-                                                    alert(`Attendance logged: ${currentSelectedEmployee.first_name} marked as "${attendanceStatus}" for ${attendanceDate}`);
-                                                }} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', textAlign: 'left' }}>
-                                                    <div>
-                                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                                                            Date
-                                                        </label>
-                                                        <input
-                                                            type="date"
-                                                            value={attendanceDate}
-                                                            max={new Date().toISOString().split('T')[0]}
-                                                            onChange={(e) => setAttendanceDate(e.target.value)}
-                                                            style={{ width: '100%', padding: '0.55rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '0.85rem', color: '#1E293B', boxSizing: 'border-box' }}
-                                                            required
-                                                        />
-                                                    </div>
-
-                                                    <div>
-                                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                                                            Status
-                                                        </label>
-                                                        <select
-                                                            value={attendanceStatus}
-                                                            onChange={(e) => setAttendanceStatus(e.target.value)}
-                                                            style={{ width: '100%', padding: '0.55rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '0.85rem', color: '#1E293B', boxSizing: 'border-box' }}
-                                                        >
-                                                            <option value="Present">Present (Full Day)</option>
-                                                            <option value="Half Day">Half Day</option>
-                                                            <option value="On Leave">Approved Leave</option>
-                                                            <option value="Absent">Unexcused Absent</option>
-                                                        </select>
-                                                    </div>
-
-                                                    <div>
-                                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                                                            Notes (Optional)
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="e.g. On-site client meeting"
-                                                            value={attendanceNote}
-                                                            onChange={(e) => setAttendanceNote(e.target.value)}
-                                                            style={{ width: '100%', padding: '0.55rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '0.85rem', color: '#1E293B', boxSizing: 'border-box' }}
-                                                        />
-                                                    </div>
-
-                                                    <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.5rem' }}>
+                                        return (
+                                            <div style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', padding: '1rem' }}>
+                                                <div style={{ background: 'white', borderRadius: '20px', maxWidth: '380px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', position: 'relative' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                                                        <h5 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0F172A', margin: 0 }}>
+                                                            Log Attendance: {currentSelectedEmployee.first_name} {currentSelectedEmployee.last_name}
+                                                        </h5>
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowMarkModal(false)}
-                                                            style={{ flex: 1, padding: '0.6rem', background: '#F1F5F9', border: 'none', color: '#475569', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer' }}
+                                                            style={{ border: 'none', background: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem' }}
                                                         >
-                                                            Cancel
-                                                        </button>
-                                                        <button
-                                                            type="submit"
-                                                            disabled={attendanceLoading}
-                                                            style={{ flex: 1, padding: '0.6rem', background: '#0e4b34', border: 'none', color: 'white', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer' }}
-                                                        >
-                                                            {attendanceLoading ? 'Saving...' : 'Save Record'}
+                                                            ✕
                                                         </button>
                                                     </div>
-                                                </form>
+
+                                                    <form onSubmit={async (e) => {
+                                                        e.preventDefault();
+                                                        const empId = currentSelectedEmployee.employee_id;
+                                                        const currentLogs = getEmployeeAttendance(empId);
+                                                        const alreadyLogged = currentLogs.find(r => r.date === attendanceDate);
+
+                                                        if (alreadyLogged && !allowOverwrite) {
+                                                            alert(`Attendance for ${currentSelectedEmployee.first_name} has already been marked as "${alreadyLogged.status}" for ${attendanceDate}. Attendance can be marked only once for one day.`);
+                                                            return;
+                                                        }
+
+                                                        try {
+                                                            setAttendanceLoading(true);
+                                                            await attendanceService.createPunch({
+                                                                employee_id: empId,
+                                                                date: attendanceDate,
+                                                                status: attendanceStatus,
+                                                                notes: attendanceNote,
+                                                                employee_name: `${currentSelectedEmployee.first_name} ${currentSelectedEmployee.last_name}`.trim(),
+                                                                overwrite: allowOverwrite
+                                                            });
+
+                                                            await queryClient.invalidateQueries({ queryKey: ['attendanceLogs'] });
+                                                            await refetchAttendances();
+
+                                                            setShowMarkModal(false);
+                                                            setAttendanceNote('');
+                                                            setAllowOverwrite(false);
+                                                            alert(alreadyLogged 
+                                                                ? `Attendance updated: ${currentSelectedEmployee.first_name} changed to "${attendanceStatus}" for ${attendanceDate}` 
+                                                                : `Attendance logged: ${currentSelectedEmployee.first_name} marked as "${attendanceStatus}" for ${attendanceDate}`
+                                                            );
+                                                        } catch (err) {
+                                                            console.error('Failed to save attendance to backend:', err);
+                                                            const errorMsg = err.response?.data?.message || err.message || 'Failed to save attendance';
+                                                            alert(errorMsg);
+                                                        } finally {
+                                                            setAttendanceLoading(false);
+                                                        }
+                                                    }} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', textAlign: 'left' }}>
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                                                                Date
+                                                            </label>
+                                                            <input
+                                                                type="date"
+                                                                value={attendanceDate}
+                                                                max={new Date().toISOString().split('T')[0]}
+                                                                onChange={(e) => {
+                                                                    setAttendanceDate(e.target.value);
+                                                                    setAllowOverwrite(false);
+                                                                }}
+                                                                style={{ width: '100%', padding: '0.55rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '0.85rem', color: '#1E293B', boxSizing: 'border-box' }}
+                                                                required
+                                                            />
+                                                        </div>
+
+                                                        {isAlreadyMarked && (
+                                                            <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '10px', padding: '0.65rem 0.75rem', fontSize: '0.75rem', color: '#991B1B', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                                <div style={{ fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                                    <span>⚠️ Attendance Already Marked</span>
+                                                                </div>
+                                                                <div style={{ color: '#7F1D1D', fontSize: '0.72rem', lineHeight: '1.4' }}>
+                                                                    Attendance for <strong>{attendanceDate}</strong> is already recorded as <strong>"{existingRecordForDate.status}"</strong>. Attendance can be marked only once for one day.
+                                                                </div>
+                                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', cursor: 'pointer', fontSize: '0.72rem', color: '#1E293B', fontWeight: '750' }}>
+                                                                    <input 
+                                                                        type="checkbox" 
+                                                                        checked={allowOverwrite} 
+                                                                        onChange={(e) => setAllowOverwrite(e.target.checked)} 
+                                                                        style={{ width: '14px', height: '14px', accentColor: '#0e4b34', cursor: 'pointer' }}
+                                                                    />
+                                                                    <span>Update / overwrite existing status</span>
+                                                                </label>
+                                                            </div>
+                                                        )}
+
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                                                                Status
+                                                            </label>
+                                                            <select
+                                                                value={attendanceStatus}
+                                                                onChange={(e) => setAttendanceStatus(e.target.value)}
+                                                                style={{ width: '100%', padding: '0.55rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '0.85rem', color: '#1E293B', boxSizing: 'border-box' }}
+                                                            >
+                                                                <option value="Present">Present (Full Day)</option>
+                                                                <option value="Half Day">Half Day</option>
+                                                                <option value="On Leave">Approved Leave</option>
+                                                                <option value="Absent">Unexcused Absent</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                                                                Notes (Optional)
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="e.g. On-site client meeting"
+                                                                value={attendanceNote}
+                                                                onChange={(e) => setAttendanceNote(e.target.value)}
+                                                                style={{ width: '100%', padding: '0.55rem 0.75rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '0.85rem', color: '#1E293B', boxSizing: 'border-box' }}
+                                                            />
+                                                        </div>
+
+                                                        <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.5rem' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowMarkModal(false)}
+                                                                style={{ flex: 1, padding: '0.6rem', background: '#F1F5F9', border: 'none', color: '#475569', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer' }}
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                            <button
+                                                                type="submit"
+                                                                disabled={attendanceLoading || (isAlreadyMarked && !allowOverwrite)}
+                                                                style={{ 
+                                                                    flex: 1, 
+                                                                    padding: '0.6rem', 
+                                                                    background: (isAlreadyMarked && !allowOverwrite) ? '#94A3B8' : '#0e4b34', 
+                                                                    border: 'none', 
+                                                                    color: 'white', 
+                                                                    borderRadius: '10px', 
+                                                                    fontSize: '0.8rem', 
+                                                                    fontWeight: '750', 
+                                                                    cursor: (isAlreadyMarked && !allowOverwrite) ? 'not-allowed' : 'pointer' 
+                                                                }}
+                                                            >
+                                                                {attendanceLoading ? 'Saving...' : (isAlreadyMarked ? (allowOverwrite ? 'Update Record' : 'Already Marked') : 'Save Record')}
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        );
+                                    })()}
 
                                     {/* Reimbursement Claims History Card */}
                                     {(() => {
