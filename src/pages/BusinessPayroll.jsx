@@ -57,17 +57,39 @@ const BusinessPayroll = () => {
     // Mutations
     const processPayrollMutation = useMutation({
         mutationFn: (data) => payrollService.processPayroll(data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+            await refetchPayroll();
             setIsProcessModalOpen(false);
+            setPayForm({
+                employee_id: '',
+                employee_name: '',
+                month: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+                basic_salary: '',
+                hra_amount: '',
+                special_allowance: '',
+                bonus_amount: '',
+                overtime_pay: '',
+                professional_tax: 200,
+                apply_pf: true,
+                apply_tds: false,
+                esi_deduction: '',
+                tds_deduction: ''
+            });
             alert('Monthly payroll processed and basic allowances generated successfully!');
         }
     });
 
     const releaseSalaryMutation = useMutation({
         mutationFn: (id) => payrollService.releaseSalary(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+        onSuccess: async (_, id) => {
+            queryClient.setQueryData(['payrollRecords'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(rec => rec.id === id ? { ...rec, status: 'paid' } : rec);
+            });
+            await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+            await refetchPayroll();
+            setSelectedPayroll(prev => prev && prev.payroll_id === id ? { ...prev, payroll_status: 'paid' } : prev);
             alert('Direct Bank Transfer (NEFT/UPI) triggered successfully! Payslip PDF dispatched.');
         }
     });
@@ -83,18 +105,30 @@ const BusinessPayroll = () => {
     });
 
     const updatePayrollMutation = useMutation({
-        mutationFn: ({ id, data }) => payrollService.updatePayroll ? payrollService.updatePayroll(id, data) : Promise.resolve({ success: true }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+        mutationFn: ({ id, data }) => payrollService.updatePayroll(id, data),
+        onSuccess: async (updatedData, { id, data }) => {
+            const updatedRec = updatedData || data;
+            queryClient.setQueryData(['payrollRecords'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(rec => rec.id === id ? { ...rec, ...updatedRec } : rec);
+            });
+            await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+            await refetchPayroll();
+            setSelectedPayroll(prev => prev ? { ...prev, ...data } : null);
             setIsEditingPayroll(false);
             alert('Payroll record updated successfully!');
         }
     });
 
     const deletePayrollMutation = useMutation({
-        mutationFn: (id) => payrollService.deletePayroll ? payrollService.deletePayroll(id) : Promise.resolve({ success: true }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+        mutationFn: (id) => payrollService.deletePayroll(id),
+        onSuccess: async (_, id) => {
+            queryClient.setQueryData(['payrollRecords'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.filter(rec => rec.id !== id);
+            });
+            await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+            await refetchPayroll();
             setIsDetailModalOpen(false);
             setSelectedPayroll(null);
             alert('Payroll record deleted.');
@@ -102,7 +136,7 @@ const BusinessPayroll = () => {
     });
 
     // Process lists with fallbacks
-    const getVal = (val, def) => (val !== undefined && val !== null) ? parseFloat(val) : def;
+    const getVal = (val, def) => (val !== undefined && val !== null && val !== '') ? parseFloat(val) : def;
 
     const payrollRecords = dbRecords.length > 0 ? dbRecords.map(rec => {
         const emp = staffList.find(s => s.name === rec.employee_name || s.id === String(rec.employee_id || '').replace('EMP-', '')) || {};
@@ -116,21 +150,19 @@ const BusinessPayroll = () => {
         let bonus = getVal(rec.bonus_amount, 0);
         let overtime = getVal(rec.overtime_pay, 0);
         
-        let returnedGross = getVal(rec.basic_salary, 30000);
-        let totalAmt = getVal(rec.amount, null);
-        if (totalAmt !== null) {
-             returnedGross = totalAmt;
+        let basic = getVal(rec.basic_salary, null);
+        if (basic === null) {
+            let totalAmt = getVal(rec.amount, 30000);
+            basic = totalAmt - hra - spec - bonus - overtime;
+            if (basic < 0) basic = totalAmt;
         }
-        
-        let basic = returnedGross - hra - spec - bonus - overtime;
-        if (basic < 0) basic = returnedGross;
 
         return {
             payroll_id: rec.id,
             employee_id: rec.employee_id || 'EMP-001',
             employee_name: rec.employee_name || 'Arun Kumar (Sales)',
-            payroll_month: rec.month || 'May 2026',
-            payroll_status: rec.status || 'processed',
+            payroll_month: rec.month || new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
+            payroll_status: (rec.status || 'processed').toLowerCase(),
             salary_type: rec.salary_type || 'Monthly',
             basic_salary: basic,
             hra_amount: hra,
@@ -140,7 +172,7 @@ const BusinessPayroll = () => {
             pf_deduction: getVal(rec.pf_deduction, 0),
             esi_deduction: getVal(rec.esi_deduction, 0),
             tds_deduction: getVal(rec.tds_deduction, 0),
-            professional_tax: getVal(rec.professional_tax, 200),
+            professional_tax: getVal(rec.professional_tax, 0),
             loan_deduction: getVal(rec.loan_deduction, 0),
             payable_days: parseInt(rec.payable_days) || 30,
             
@@ -220,14 +252,27 @@ const BusinessPayroll = () => {
         setter(cleanVal);
     };
 
+    // Month options for processing and filtering
+    const monthOptions = [
+        'January 2026', 'February 2026', 'March 2026', 'April 2026',
+        'May 2026', 'June 2026', 'July 2026', 'August 2026',
+        'September 2026', 'October 2026', 'November 2026', 'December 2026',
+        'January 2027', 'February 2027', 'March 2027', 'April 2027'
+    ];
+
+    const [selectedMonthFilter, setSelectedMonthFilter] = useState('All');
+
     // Form states
     const [payForm, setPayForm] = useState({
         employee_id: '',
         employee_name: '',
+        month: new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
         basic_salary: '',
         hra_amount: '',
         special_allowance: '',
         bonus_amount: '',
+        overtime_pay: '',
+        professional_tax: 200,
         apply_pf: true,
         apply_tds: false,
         esi_deduction: '',
@@ -248,21 +293,28 @@ const BusinessPayroll = () => {
         const hra = parseFloat(payForm.hra_amount) || 0;
         const spec = parseFloat(payForm.special_allowance) || 0;
         const bonus = parseFloat(payForm.bonus_amount) || 0;
-        const total = base + hra + spec + bonus;
+        const overtime = parseFloat(payForm.overtime_pay) || 0;
+        const pf = payForm.apply_pf ? Math.round(base * 0.12) : 0;
+        const esi = parseFloat(payForm.esi_deduction) || 0;
+        const tds = payForm.apply_tds ? (parseFloat(payForm.tds_deduction) || 0) : 0;
+        const profTax = (payForm.professional_tax !== '' && payForm.professional_tax !== undefined) ? parseFloat(payForm.professional_tax) : 200;
+        const total = (base + hra + spec + bonus + overtime) - (pf + esi + tds + profTax);
 
         processPayrollMutation.mutate({
             employee_id: payForm.employee_id,
             employee_name: payForm.employee_name,
             amount: total,
             basic_salary: base,
-            month: 'May 2026',
+            month: payForm.month || new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
             status: 'processed',
             hra_amount: hra,
             special_allowance: spec,
             bonus_amount: bonus,
-            pf_deduction: payForm.apply_pf ? Math.round(base * 0.12) : 0,
-            esi_deduction: parseFloat(payForm.esi_deduction) || 0,
-            tds_deduction: payForm.apply_tds ? (parseFloat(payForm.tds_deduction) || 0) : 0
+            overtime_pay: overtime,
+            pf_deduction: pf,
+            esi_deduction: esi,
+            tds_deduction: tds,
+            professional_tax: profTax
         });
     };
 
@@ -291,10 +343,13 @@ const BusinessPayroll = () => {
         releaseSalaryMutation.mutate(payId);
     };
 
-    const filteredRecords = payrollRecords.filter(rec => 
-        rec.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        rec.payroll_status.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredRecords = payrollRecords.filter(rec => {
+        const matchesSearch = rec.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            rec.payroll_status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            rec.payslip_number.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesMonth = selectedMonthFilter === 'All' || rec.payroll_month === selectedMonthFilter;
+        return matchesSearch && matchesMonth;
+    });
 
     const totalSalaryExpense = payrollRecords.reduce((sum, rec) => {
         const gross = rec.basic_salary + rec.hra_amount + rec.special_allowance + rec.bonus_amount + rec.overtime_pay;
@@ -395,16 +450,29 @@ const BusinessPayroll = () => {
             {/* Tab 1: Monthly Payroll Register */}
             {activeTab === 'run' && (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ position: 'relative', width: '400px' }}>
-                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                    <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', flexWrap: 'wrap', gap: '1rem' }}>
+                        <div style={{ position: 'relative', width: '380px' }}>
+                            <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input 
                                 type="text" 
                                 placeholder="Search salary register..." 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                style={{ width: '100%', padding: '0.8rem 1rem 0.8rem 3rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.88rem' }}
                             />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#64748B' }}>Payroll Month:</span>
+                            <select
+                                value={selectedMonthFilter}
+                                onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                                style={{ padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #CBD5E1', background: 'white', fontWeight: '750', fontSize: '0.85rem', color: '#0F172A', outline: 'none', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                            >
+                                <option value="All">All Months (Show All)</option>
+                                {Array.from(new Set(payrollRecords.map(r => r.payroll_month).filter(Boolean))).map(m => (
+                                    <option key={m} value={m}>{m}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 
@@ -462,6 +530,18 @@ const BusinessPayroll = () => {
                                                             style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                                         >Release Salary</button>
                                                     )}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedPayroll(rec);
+                                                            setEditPayrollForm({ ...rec });
+                                                            setIsEditingPayroll(true);
+                                                            setIsDetailModalOpen(true);
+                                                        }}
+                                                        style={{ padding: '0.4rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', background: 'white', color: '#334155', fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                                                    >
+                                                        <Edit2 size={13} /> Edit
+                                                    </button>
                                                     <button
                                                         onClick={async (e) => { e.stopPropagation(); if (await window.confirm('Delete this payroll record?')) deletePayrollMutation.mutate(rec.payroll_id); }}
                                                         style={{ padding: '0.4rem 0.7rem', borderRadius: '8px', border: 'none', background: '#FEF2F2', color: '#EF4444', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
@@ -593,28 +673,43 @@ const BusinessPayroll = () => {
                         </div>
 
                         <form onSubmit={handleProcessPayroll} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Employee</label>
-                                <select 
-                                    required
-                                    value={payForm.employee_name} 
-                                    onChange={(e) => {
-                                        const selName = e.target.value;
-                                        const sel = availableEmployees.find(s => s.name === selName);
-                                        setPayForm({ 
-                                            ...payForm, 
-                                            employee_name: selName, 
-                                            employee_id: sel ? sel.id : '',
-                                            basic_salary: sel && sel.salary ? sel.salary : ''
-                                        });
-                                    }} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
-                                >
-                                    <option value="">-- Select Staff Member --</option>
-                                    {availableEmployees.map(s => (
-                                        <option key={s.id} value={s.name}>{s.name} ({s.department || 'Staff'})</option>
-                                    ))}
-                                </select>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payroll Month</label>
+                                    <select 
+                                        required
+                                        value={payForm.month} 
+                                        onChange={(e) => setPayForm({ ...payForm, month: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700' }}
+                                    >
+                                        {monthOptions.map(m => (
+                                            <option key={m} value={m}>{m}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Employee</label>
+                                    <select 
+                                        required
+                                        value={payForm.employee_name} 
+                                        onChange={(e) => {
+                                            const selName = e.target.value;
+                                            const sel = availableEmployees.find(s => s.name === selName);
+                                            setPayForm({ 
+                                                ...payForm, 
+                                                employee_name: selName, 
+                                                employee_id: sel ? sel.id : '',
+                                                basic_salary: sel && sel.salary ? sel.salary : ''
+                                            });
+                                        }} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700' }}
+                                    >
+                                        <option value="">-- Staff Member --</option>
+                                        {availableEmployees.map(s => (
+                                            <option key={s.id} value={s.name}>{s.name} ({s.department || 'Staff'})</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
@@ -650,7 +745,7 @@ const BusinessPayroll = () => {
                                     />
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Special Allowance</label>
                                     <input 
@@ -679,6 +774,22 @@ const BusinessPayroll = () => {
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             setPayForm({ ...payForm, bonus_amount: val === '' ? '' : Math.max(0, parseFloat(val) || 0) });
+                                        }} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Overtime Pay</label>
+                                    <input 
+                                        type="number" 
+                                        min="0"
+                                        step="any"
+                                        onKeyDown={preventNegativeKeys}
+                                        placeholder="e.g. 1000"
+                                        value={payForm.overtime_pay} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setPayForm({ ...payForm, overtime_pay: val === '' ? '' : Math.max(0, parseFloat(val) || 0) });
                                         }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                     />
@@ -940,18 +1051,71 @@ const BusinessPayroll = () => {
                         </div>
 
                         {isEditingPayroll ? (
-                            <form onSubmit={(e) => { e.preventDefault(); updatePayrollMutation.mutate({ id: editPayrollForm.payroll_id, data: editPayrollForm }); }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            <form onSubmit={(e) => { 
+                                e.preventDefault(); 
+                                const payload = {
+                                    ...editPayrollForm,
+                                    month: editPayrollForm.payroll_month,
+                                    status: editPayrollForm.payroll_status,
+                                    basic_salary: parseFloat(editPayrollForm.basic_salary) || 0,
+                                    hra_amount: parseFloat(editPayrollForm.hra_amount) || 0,
+                                    special_allowance: parseFloat(editPayrollForm.special_allowance) || 0,
+                                    bonus_amount: parseFloat(editPayrollForm.bonus_amount) || 0,
+                                    overtime_pay: parseFloat(editPayrollForm.overtime_pay) || 0,
+                                    pf_deduction: parseFloat(editPayrollForm.pf_deduction) || 0,
+                                    esi_deduction: parseFloat(editPayrollForm.esi_deduction) || 0,
+                                    tds_deduction: parseFloat(editPayrollForm.tds_deduction) || 0,
+                                    professional_tax: (editPayrollForm.professional_tax !== '' && editPayrollForm.professional_tax !== undefined) ? parseFloat(editPayrollForm.professional_tax) : 0,
+                                    loan_deduction: parseFloat(editPayrollForm.loan_deduction) || 0
+                                };
+                                updatePayrollMutation.mutate({ id: editPayrollForm.payroll_id, data: payload }); 
+                            }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
-                                    {[['basic_salary','Basic Salary'],['hra_amount','HRA'],['special_allowance','Special Allowance'],['bonus_amount','Bonus'],['overtime_pay','Overtime'],['pf_deduction','PF Deduction'],['esi_deduction','ESI Deduction'],['tds_deduction','TDS Deduction'],['professional_tax','Professional Tax'],['loan_deduction','Loan Deduction']].map(([key, label]) => (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Payroll Month</label>
+                                        <select 
+                                            value={editPayrollForm.payroll_month || ''} 
+                                            onChange={(e) => setEditPayrollForm(prev => ({ ...prev, payroll_month: e.target.value }))}
+                                            style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box', fontWeight: '700', background: 'white' }}
+                                        >
+                                            {monthOptions.map(m => (
+                                                <option key={m} value={m}>{m}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>Status</label>
+                                        <select 
+                                            value={(editPayrollForm.payroll_status || 'processed').toLowerCase()} 
+                                            onChange={(e) => setEditPayrollForm(prev => ({ ...prev, payroll_status: e.target.value }))}
+                                            style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box', fontWeight: '700', background: 'white' }}
+                                        >
+                                            <option value="processed">PROCESSED</option>
+                                            <option value="paid">PAID</option>
+                                        </select>
+                                    </div>
+                                    {[['basic_salary','Basic Salary'],['hra_amount','HRA'],['special_allowance','Special Allowance'],['bonus_amount','Bonus'],['overtime_pay','Overtime Pay'],['pf_deduction','PF Deduction'],['esi_deduction','ESI Deduction'],['tds_deduction','TDS Deduction'],['professional_tax','Professional Tax'],['loan_deduction','Loan Deduction']].map(([key, label]) => (
                                         <div key={key}>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.35rem' }}>{label}</label>
-                                            <input type="number" value={editPayrollForm[key] || 0} onChange={(e) => setEditPayrollForm(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))} style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }} />
+                                            <input 
+                                                type="number" 
+                                                min="0"
+                                                step="any"
+                                                value={editPayrollForm[key] !== undefined && editPayrollForm[key] !== null ? editPayrollForm[key] : ''} 
+                                                onChange={(e) => {
+                                                    const v = e.target.value;
+                                                    setEditPayrollForm(prev => ({ ...prev, [key]: v === '' ? '' : Math.max(0, parseFloat(v) || 0) }));
+                                                }} 
+                                                style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }} 
+                                            />
                                         </div>
                                     ))}
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
                                     <button type="button" onClick={() => setIsEditingPayroll(false)} style={{ border: '1px solid #E2E8F0', background: 'white', color: '#475569', padding: '0.55rem 1.25rem', borderRadius: '10px', fontWeight: '750', cursor: 'pointer' }}>Cancel</button>
-                                    <button type="submit" style={{ border: 'none', background: '#064E3B', color: 'white', padding: '0.55rem 1.25rem', borderRadius: '10px', fontWeight: '800', cursor: 'pointer' }}>Save Changes</button>
+                                    <button type="submit" disabled={updatePayrollMutation.isPending} style={{ border: 'none', background: '#064E3B', color: 'white', padding: '0.55rem 1.25rem', borderRadius: '10px', fontWeight: '800', cursor: 'pointer' }}>
+                                        {updatePayrollMutation.isPending ? 'Saving...' : 'Save Changes'}
+                                    </button>
                                 </div>
                             </form>
                         ) : (
