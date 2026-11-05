@@ -1025,6 +1025,9 @@ const BusinessStaffing = () => {
             hire_date: editForm.joining_date,
             employee_code: editForm.employee_code,
             esi_number: editForm.esi_number,
+            city: editForm.city || '',
+            state: editForm.state || '',
+            pincode: editForm.pincode || '',
             shift: JSON.stringify({ shift: finalShift, shift_name: finalShift }),
             monthly_leave_quota: finalMonthlyQuota,
             annual_bonus: finalBonus,
@@ -2386,7 +2389,39 @@ const BusinessStaffing = () => {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Residential Address Line 1</label>
-                                                <input type="text" value={editForm.address_line_1 || ''} onChange={(e) => setEditForm({ ...editForm, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                <input type="text" value={editForm.address_line_1 || ''} onChange={(e) => setEditForm({ ...editForm, address_line_1: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 12, Mohamadh Ali Street" />
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>City</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={editForm.city || ''} 
+                                                        onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} 
+                                                        style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                        placeholder="e.g. Chennai" 
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>State</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={editForm.state || ''} 
+                                                        onChange={(e) => setEditForm({ ...editForm, state: e.target.value })} 
+                                                        style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                        placeholder="e.g. Tamil Nadu" 
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Pincode</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={editForm.pincode || ''} 
+                                                        onChange={(e) => setEditForm({ ...editForm, pincode: e.target.value })} 
+                                                        style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} 
+                                                        placeholder="e.g. 600040" 
+                                                    />
+                                                </div>
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.0rem' }}>
                                                 <div>
