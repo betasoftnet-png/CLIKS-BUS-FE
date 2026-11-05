@@ -529,9 +529,22 @@ const BusinessCRM = () => {
         };
     }, []);
 
-    const currentRsPer1Point = Number(activeConfig.loyaltyRsPer1Point || 100);
-    const currentPointValueCurrency = Number(activeConfig.pointValueCurrency !== undefined ? activeConfig.pointValueCurrency : (activeConfig.loyaltyPointsPer1Rs ? (1 / activeConfig.loyaltyPointsPer1Rs) : 0.10));
-    const currentPointsPer1Rs = Number(activeConfig.pointsPerRs || activeConfig.loyaltyPointsPer1Rs || (currentPointValueCurrency > 0 ? Math.round(1 / currentPointValueCurrency) : 10));
+    const currentRsPer1Point = Number(
+        activeConfig.loyaltyRsPer1Point ??
+        activeConfig.rs_per_point ??
+        activeConfig.rsPer1Point ??
+        100
+    );
+    const currentPointValueCurrency = Number(
+        activeConfig.pointValueCurrency !== undefined
+            ? activeConfig.pointValueCurrency
+            : (activeConfig.loyaltyPointsPer1Rs ? (1 / activeConfig.loyaltyPointsPer1Rs) : 0.10)
+    );
+    const currentPointsPer1Rs = Number(
+        activeConfig.pointsPerRs ??
+        activeConfig.loyaltyPointsPer1Rs ??
+        (currentPointValueCurrency > 0 ? Math.round(1 / currentPointValueCurrency) : 10)
+    );
 
     useEffect(() => {
         if (isPointsModalOpen) {
@@ -2487,7 +2500,7 @@ const BusinessCRM = () => {
                                                     style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontWeight: '700', fontSize: '1rem', boxSizing: 'border-box' }}
                                                 />
                                                 <span style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.25rem', display: 'block' }}>
-                                                    Customer earns 1 point for every ₹{editRsPerPoint} spent ({((1 / (editRsPerPoint || 100)) * 100).toFixed(1)}%).
+                                                    Customer earns 1 point for every ₹{editRsPerPoint} spent ({Number(((1 / (editRsPerPoint || 100)) * 100).toFixed(2))}%).
                                                 </span>
                                             </div>
                                             <div>
@@ -2543,7 +2556,7 @@ const BusinessCRM = () => {
                                                 ₹{currentRsPer1Point} = 1 Point
                                             </h4>
                                             <p style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '600', margin: '0.5rem 0 0' }}>
-                                                Earn {((1 / (currentRsPer1Point || 100)) * 100).toFixed(1).replace(/\.0$/, '')}% reward points on every purchase total.
+                                                Earn {Number(((1 / (currentRsPer1Point || 100)) * 100).toFixed(2))}% reward points on every purchase total.
                                             </p>
                                         </div>
 
