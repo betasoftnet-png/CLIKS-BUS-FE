@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
     UserPlus, 
     Search, 
@@ -48,6 +48,7 @@ import '../App.css';
 import { crmService } from '../services/crmService';
 import { complianceService } from '../services/complianceService';
 import { settingsService } from '../services/settingsService';
+import { loyaltyService } from '../services/loyaltyService';
 import { customConfirm } from '../utils/customConfirm';
 import FilterableTableHead from '../components/FilterableTableHead';
 import { useCurrency } from '../context';
@@ -253,6 +254,7 @@ const getAvatarColors = (name) => {
 };
 
 const BusinessCRM = () => {
+    const navigate = useNavigate();
     const { currency, formatCurrency } = useCurrency();
     const [searchTerm, setSearchTerm] = useState('');
     const [colFilters, setColFilters] = React.useState({});
@@ -270,6 +272,10 @@ const BusinessCRM = () => {
     // Points Rules & Ratio Modal State
     const [isPointsModalOpen, setIsPointsModalOpen] = useState(false);
     const [calcAmount, setCalcAmount] = useState(10000);
+    const [isEditingLoyaltyRules, setIsEditingLoyaltyRules] = useState(false);
+    const [editRsPerPoint, setEditRsPerPoint] = useState(100);
+    const [editPointsPerRs, setEditPointsPerRs] = useState(10);
+    const [isSavingLoyaltyRules, setIsSavingLoyaltyRules] = useState(false);
     const [parsedCustomers, setParsedCustomers] = useState([]);
     const [fileName, setFileName] = useState('');
     const [importing, setImporting] = useState(false);
@@ -499,9 +505,13 @@ const BusinessCRM = () => {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await settingsService.getSettings();
-                const data = res?.data || res || {};
-                setActiveConfig(prev => ({ ...prev, ...data }));
+                const [resSettings, resLoyalty] = await Promise.allSettled([
+                    settingsService.getSettings(),
+                    loyaltyService.getProgramSettings()
+                ]);
+                const data = resSettings.status === 'fulfilled' ? (resSettings.value?.data || resSettings.value || {}) : {};
+                const loyaltyData = resLoyalty.status === 'fulfilled' ? (resLoyalty.value?.data || resLoyalty.value || {}) : {};
+                setActiveConfig(prev => ({ ...prev, ...data, ...loyaltyData }));
             } catch (err) {
                 console.error("Failed to load settings:", err);
             }
@@ -518,6 +528,52 @@ const BusinessCRM = () => {
             window.removeEventListener('cliksConfigUpdated', handleConfigUpdate);
         };
     }, []);
+
+    const currentRsPer1Point = Number(activeConfig.loyaltyRsPer1Point || 100);
+    const currentPointValueCurrency = Number(activeConfig.pointValueCurrency !== undefined ? activeConfig.pointValueCurrency : (activeConfig.loyaltyPointsPer1Rs ? (1 / activeConfig.loyaltyPointsPer1Rs) : 0.10));
+    const currentPointsPer1Rs = Number(activeConfig.pointsPerRs || activeConfig.loyaltyPointsPer1Rs || (currentPointValueCurrency > 0 ? Math.round(1 / currentPointValueCurrency) : 10));
+
+    useEffect(() => {
+        if (isPointsModalOpen) {
+            setEditRsPerPoint(currentRsPer1Point);
+            setEditPointsPerRs(currentPointsPer1Rs);
+            setIsEditingLoyaltyRules(false);
+            loyaltyService.getProgramSettings().then(res => {
+                const data = res?.data || res || {};
+                setActiveConfig(prev => ({ ...prev, ...data }));
+            }).catch(() => {});
+        }
+    }, [isPointsModalOpen, currentRsPer1Point, currentPointsPer1Rs]);
+
+    const handleSaveLoyaltyRules = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        const rsPoint = Math.max(1, Number(editRsPerPoint) || 100);
+        const ptsRs = Math.max(1, Number(editPointsPerRs) || 10);
+        const ptVal = Number((1 / ptsRs).toFixed(4));
+        setIsSavingLoyaltyRules(true);
+        try {
+            await loyaltyService.updateProgramSettings({
+                loyaltyRsPer1Point: rsPoint,
+                pointsPerRs: ptsRs,
+                loyaltyPointsPer1Rs: ptsRs,
+                pointValueCurrency: ptVal
+            });
+            const updated = {
+                loyaltyRsPer1Point: rsPoint,
+                pointsPerRs: ptsRs,
+                loyaltyPointsPer1Rs: ptsRs,
+                pointValueCurrency: ptVal
+            };
+            setActiveConfig(prev => ({ ...prev, ...updated }));
+            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+            setIsEditingLoyaltyRules(false);
+        } catch (err) {
+            console.error('Error saving loyalty rules:', err);
+            alert(err?.response?.data?.message || 'Failed to save loyalty rules to backend');
+        } finally {
+            setIsSavingLoyaltyRules(false);
+        }
+    };
 
     const loyaltyEnabled = React.useMemo(() => {
         if (activeConfig.loyaltyEnabled !== undefined) return Boolean(activeConfig.loyaltyEnabled);
@@ -2411,105 +2467,167 @@ const BusinessCRM = () => {
 
                         {/* Modal Body Content */}
                         <div style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            {/* 2 Ratios Cards */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                {/* EARNING RATIO CARD */}
-                                <div style={{ 
-                                    border: '1px solid #E2E8F0', 
-                                    borderRadius: '16px', 
-                                    padding: '1.25rem', 
-                                    background: '#FAFDFB' 
-                                }}>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.4rem' }}>
-                                        EARNING RATIO
-                                    </span>
-                                    <h4 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#1B6B3A', margin: 0, letterSpacing: '-0.01em' }}>
-                                        ₹100 = 1 Point
-                                    </h4>
-                                    <p style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '600', margin: '0.5rem 0 0' }}>
-                                        Earn 1% reward points on every purchase total.
-                                    </p>
-                                </div>
-
-                                {/* MONEY VALUE RATIO CARD */}
-                                <div style={{ 
-                                    border: '1px solid #E2E8F0', 
-                                    borderRadius: '16px', 
-                                    padding: '1.25rem', 
-                                    background: '#FAFDFB' 
-                                }}>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.4rem' }}>
-                                        MONEY VALUE RATIO
-                                    </span>
-                                    <h4 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#7C3AED', margin: 0, letterSpacing: '-0.01em' }}>
-                                        10 Pts = ₹1.00
-                                    </h4>
-                                    <p style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '600', margin: '0.5rem 0 0' }}>
-                                        1 Point is equivalent to ₹0.10 in cash value.
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Interactive Converter Box */}
-                            <div style={{ 
-                                background: '#F0FDF4', 
-                                border: '1px solid #DCF2E4', 
-                                borderRadius: '16px', 
-                                padding: '1.25rem' 
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem', color: '#166534', fontWeight: '850', fontSize: '0.95rem' }}>
-                                    <Percent size={18} />
-                                    <span>Interactive Points-to-Money Converter</span>
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                                    {/* Purchase Amount Input */}
-                                    <div style={{ flex: 1, minWidth: '180px' }}>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#166534', marginBottom: '0.35rem' }}>
-                                            Purchase Amount (₹)
-                                        </label>
-                                        <input 
-                                            type="number" 
-                                            value={calcAmount} 
-                                            onChange={(e) => setCalcAmount(e.target.value)} 
-                                            style={{ 
-                                                width: '100%', 
-                                                padding: '0.7rem 0.85rem', 
-                                                borderRadius: '10px', 
-                                                border: '1px solid #86EFAC', 
-                                                fontSize: '1.1rem', 
-                                                fontWeight: '800', 
-                                                color: '#0F172A', 
-                                                outline: 'none', 
-                                                background: 'white',
-                                                boxSizing: 'border-box'
-                                            }} 
-                                        />
-                                    </div>
-
-                                    {/* Arrow */}
-                                    <div style={{ fontSize: '1.3rem', color: '#166534', fontWeight: 'bold', paddingTop: '1.2rem' }}>
-                                        →
-                                    </div>
-
-                                    {/* Result Display */}
-                                    <div style={{ 
-                                        flex: 1.3, 
-                                        minWidth: '220px', 
-                                        background: 'white', 
-                                        border: '1px solid #86EFAC', 
-                                        borderRadius: '10px', 
-                                        padding: '0.65rem 1rem' 
-                                    }}>
-                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', display: 'block', marginBottom: '0.2rem' }}>
-                                            Points Earned & Cashback
-                                        </span>
-                                        <div style={{ fontSize: '1.15rem', fontWeight: '900', color: '#7C3AED' }}>
-                                            +{Math.floor((Number(calcAmount) || 0) / 100)} pts <span style={{ fontSize: '1rem' }}>(₹{((Math.floor((Number(calcAmount) || 0) / 100)) * 0.10).toFixed(2)})</span>
+                            {isEditingLoyaltyRules ? (
+                                <form onSubmit={handleSaveLoyaltyRules} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                    <div style={{ background: '#F8FAFC', padding: '1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                                        <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: '800', color: '#0F172A' }}>
+                                            Configure Points & Currency Ratios
+                                        </h4>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>
+                                                    Earning Ratio: Amount to spend for 1 Point (₹)
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={editRsPerPoint}
+                                                    onChange={(e) => setEditRsPerPoint(Math.max(1, Number(e.target.value)))}
+                                                    required
+                                                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontWeight: '700', fontSize: '1rem', boxSizing: 'border-box' }}
+                                                />
+                                                <span style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.25rem', display: 'block' }}>
+                                                    Customer earns 1 point for every ₹{editRsPerPoint} spent ({((1 / (editRsPerPoint || 100)) * 100).toFixed(1)}%).
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>
+                                                    Money Value: Points required for ₹1 discount (Pts)
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={editPointsPerRs}
+                                                    onChange={(e) => setEditPointsPerRs(Math.max(1, Number(e.target.value)))}
+                                                    required
+                                                    style={{ width: '100%', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontWeight: '700', fontSize: '1rem', boxSizing: 'border-box' }}
+                                                />
+                                                <span style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.25rem', display: 'block' }}>
+                                                    {editPointsPerRs} points gives ₹1.00 cash discount (1 point = ₹{(1 / (editPointsPerRs || 10)).toFixed(2)}).
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
+                                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsEditingLoyaltyRules(false)}
+                                            style={{ padding: '0.65rem 1.25rem', borderRadius: '10px', background: 'white', color: '#475569', border: '1px solid #CBD5E1', fontWeight: '700', cursor: 'pointer' }}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={isSavingLoyaltyRules}
+                                            style={{ padding: '0.65rem 1.5rem', borderRadius: '10px', background: '#166534', color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 10px rgba(22, 101, 52, 0.2)' }}
+                                        >
+                                            {isSavingLoyaltyRules ? 'Saving...' : 'Save & Sync Everywhere'}
+                                        </button>
+                                    </div>
+                                </form>
+                            ) : (
+                                <>
+                                    {/* 2 Ratios Cards */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        {/* EARNING RATIO CARD */}
+                                        <div style={{ 
+                                            border: '1px solid #E2E8F0', 
+                                            borderRadius: '16px', 
+                                            padding: '1.25rem', 
+                                            background: '#FAFDFB' 
+                                        }}>
+                                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.4rem' }}>
+                                                EARNING RATIO
+                                            </span>
+                                            <h4 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#1B6B3A', margin: 0, letterSpacing: '-0.01em' }}>
+                                                ₹{currentRsPer1Point} = 1 Point
+                                            </h4>
+                                            <p style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '600', margin: '0.5rem 0 0' }}>
+                                                Earn {((1 / (currentRsPer1Point || 100)) * 100).toFixed(1).replace(/\.0$/, '')}% reward points on every purchase total.
+                                            </p>
+                                        </div>
+
+                                        {/* MONEY VALUE RATIO CARD */}
+                                        <div style={{ 
+                                            border: '1px solid #E2E8F0', 
+                                            borderRadius: '16px', 
+                                            padding: '1.25rem', 
+                                            background: '#FAFDFB' 
+                                        }}>
+                                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '0.4rem' }}>
+                                                MONEY VALUE RATIO
+                                            </span>
+                                            <h4 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#7C3AED', margin: 0, letterSpacing: '-0.01em' }}>
+                                                {currentPointsPer1Rs} Pts = ₹1.00
+                                            </h4>
+                                            <p style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '600', margin: '0.5rem 0 0' }}>
+                                                1 Point is equivalent to ₹{currentPointValueCurrency.toFixed(2)} in cash value.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Interactive Converter Box */}
+                                    <div style={{ 
+                                        background: '#F0FDF4', 
+                                        border: '1px solid #DCF2E4', 
+                                        borderRadius: '16px', 
+                                        padding: '1.25rem' 
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem', color: '#166534', fontWeight: '850', fontSize: '0.95rem' }}>
+                                            <Percent size={18} />
+                                            <span>Interactive Points-to-Money Converter</span>
+                                        </div>
+
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                                            {/* Purchase Amount Input */}
+                                            <div style={{ flex: 1, minWidth: '180px' }}>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#166534', marginBottom: '0.35rem' }}>
+                                                    Purchase Amount (₹)
+                                                </label>
+                                                <input 
+                                                    type="number" 
+                                                    value={calcAmount} 
+                                                    onChange={(e) => setCalcAmount(e.target.value)} 
+                                                    style={{ 
+                                                        width: '100%', 
+                                                        padding: '0.7rem 0.85rem', 
+                                                        borderRadius: '10px', 
+                                                        border: '1px solid #86EFAC', 
+                                                        fontSize: '1.1rem', 
+                                                        fontWeight: '800', 
+                                                        color: '#0F172A', 
+                                                        outline: 'none', 
+                                                        background: 'white',
+                                                        boxSizing: 'border-box'
+                                                    }} 
+                                                />
+                                            </div>
+
+                                            {/* Arrow */}
+                                            <div style={{ fontSize: '1.3rem', color: '#166534', fontWeight: 'bold', paddingTop: '1.2rem' }}>
+                                                →
+                                            </div>
+
+                                            {/* Result Display */}
+                                            <div style={{ 
+                                                flex: 1.3, 
+                                                minWidth: '220px', 
+                                                background: 'white', 
+                                                border: '1px solid #86EFAC', 
+                                                borderRadius: '10px', 
+                                                padding: '0.65rem 1rem' 
+                                            }}>
+                                                <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', display: 'block', marginBottom: '0.2rem' }}>
+                                                    Points Earned & Cashback
+                                                </span>
+                                                <div style={{ fontSize: '1.15rem', fontWeight: '900', color: '#7C3AED' }}>
+                                                    +{Math.floor((Number(calcAmount) || 0) / (currentRsPer1Point || 100))} pts <span style={{ fontSize: '1rem' }}>(₹{((Math.floor((Number(calcAmount) || 0) / (currentRsPer1Point || 100))) * currentPointValueCurrency).toFixed(2)})</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         {/* Modal Footer */}
@@ -2517,25 +2635,69 @@ const BusinessCRM = () => {
                             padding: '1rem 1.75rem', 
                             borderTop: '1px solid #F1F5F9', 
                             display: 'flex', 
-                            justifyContent: 'flex-end',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
                             background: '#FAFAFA' 
                         }}>
-                            <button 
-                                onClick={() => setIsPointsModalOpen(false)}
-                                style={{ 
-                                    padding: '0.65rem 1.75rem', 
-                                    borderRadius: '10px', 
-                                    background: '#1E293B', 
-                                    color: 'white', 
-                                    border: 'none', 
-                                    fontWeight: '800', 
-                                    fontSize: '0.9rem', 
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsPointsModalOpen(false);
+                                    navigate('/sales/loyalty');
+                                }}
+                                style={{
+                                    border: 'none',
+                                    background: 'none',
+                                    color: '#2563EB',
+                                    fontWeight: '700',
+                                    fontSize: '0.85rem',
                                     cursor: 'pointer',
-                                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem',
+                                    padding: '0'
                                 }}
                             >
-                                Got It
+                                Full Loyalty Dashboard →
                             </button>
+
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                {!isEditingLoyaltyRules && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsEditingLoyaltyRules(true)}
+                                        style={{
+                                            padding: '0.65rem 1.25rem',
+                                            borderRadius: '10px',
+                                            background: '#EFF6FF',
+                                            color: '#1D4ED8',
+                                            border: '1px solid #BFDBFE',
+                                            fontWeight: '800',
+                                            fontSize: '0.88rem',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Edit Ratios
+                                    </button>
+                                )}
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsPointsModalOpen(false)}
+                                    style={{ 
+                                        padding: '0.65rem 1.75rem', 
+                                        borderRadius: '10px', 
+                                        background: '#1E293B', 
+                                        color: 'white', 
+                                        border: 'none', 
+                                        fontWeight: '800', 
+                                        fontSize: '0.9rem', 
+                                        cursor: 'pointer',
+                                        boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
+                                    }}
+                                >
+                                    Got It
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
