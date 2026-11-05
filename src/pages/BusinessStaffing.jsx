@@ -30,7 +30,9 @@ import {
     Lock,
     Eye,
     Download,
-    Send
+    Send,
+    Sliders,
+    Sun
 } from 'lucide-react';
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -134,6 +136,35 @@ const BusinessStaffing = () => {
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [colFiltersHistory, setColFiltersHistory] = useState({});
     const [editForm, setEditForm] = useState({});
+
+    // Dynamic Monthly Leave Quota & Roster States
+    const [defaultLeaveQuota, setDefaultLeaveQuota] = useState(() => {
+        const saved = localStorage.getItem('cliks_monthly_leave_quota');
+        return saved ? parseFloat(saved) : 1.5;
+    });
+    const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+    const [tempQuota, setTempQuota] = useState(defaultLeaveQuota);
+    const [applyToAll, setApplyToAll] = useState(false);
+
+    const [isRosterModalOpen, setIsRosterModalOpen] = useState(false);
+    const [rosterForm, setRosterForm] = useState({
+        employee_id: '',
+        employee_name: '',
+        basic_salary: 35000,
+        shift_mode: 'preset', // 'preset' | 'custom'
+        preset_shift: 'General Shift (9 AM - 6 PM)',
+        custom_shift_name: '',
+        custom_start_time: '09:00 AM',
+        custom_end_time: '06:00 PM',
+        monthly_leave_quota: 1.5,
+        leave_balance: 18,
+        sync_balance: false,
+        bonus_mode: 'percentage', // 'percentage' | 'fixed'
+        annual_bonus_pct: 10,
+        annual_bonus_amt: '',
+        weekly_off: 'Sunday Off',
+        custom_weekly_off: ''
+    });
 
     // 1. Calculate Yesterday's Date as max limit (blocks today & future dates)
     const maxDobDate = useMemo(() => {
@@ -520,12 +551,16 @@ const BusinessStaffing = () => {
             const res = await staffingService.createEmployee(data);
             const empId = res.data?.id || res.id;
             if (empId) {
-                // Backend's POST /staff ignores these fields, so we must PUT them right after creation
+                // Ensure all fields including dynamic roster columns are updated
                 await staffingService.updateEmployee(empId, {
                     address: data.address,
                     emergency_contact: data.emergency_contact,
                     bank_details: data.bank_details,
-                    shift: data.shift
+                    shift: data.shift,
+                    deduct_tds: data.deduct_tds,
+                    monthly_leave_quota: data.monthly_leave_quota,
+                    annual_bonus: data.annual_bonus,
+                    weekly_off: data.weekly_off
                 });
             }
             return res;
@@ -567,6 +602,146 @@ const BusinessStaffing = () => {
             alert('Failed to save changes. Please try again.');
         }
     });
+
+    const updateRosterMutation = useMutation({
+        mutationFn: ({ id, data }) => staffingService.updateEmployee(id, data),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['employees'] });
+            alert('Roster shift timing, leave quota & bonus settings updated successfully!');
+            setIsRosterModalOpen(false);
+        },
+        onError: (err) => {
+            console.error('Update Roster Error:', err);
+            alert('Failed to save roster settings. Please try again.');
+        }
+    });
+
+    const handleOpenRosterModal = (emp) => {
+        const standardShifts = [
+            'General Shift (9 AM - 6 PM)',
+            'Morning Shift (6 AM - 2 PM)',
+            'Evening Shift (2 PM - 10 PM)',
+            'Night Shift (10 PM - 6 AM)'
+        ];
+        const isCustomShift = emp.shift_name && !standardShifts.includes(emp.shift_name);
+        
+        let customTitle = emp.shift_name || 'General Shift';
+        let customStart = '09:00 AM';
+        let customEnd = '06:00 PM';
+        if (isCustomShift && emp.shift_name) {
+            const match = emp.shift_name.match(/^(.*?)\s*\((.*?)\s*-\s*(.*?)\)$/);
+            if (match) {
+                customTitle = match[1];
+                customStart = match[2];
+                customEnd = match[3];
+            }
+        }
+
+        const standardWeekOffs = [
+            'Sunday Off',
+            'Saturday & Sunday Off',
+            'Friday Off',
+            'Monday Off',
+            'Tuesday Off',
+            'Wednesday Off',
+            'Thursday Off',
+            'Rotational Off'
+        ];
+        const isCustomWeekOff = emp.weekly_off && !standardWeekOffs.includes(emp.weekly_off);
+
+        setRosterForm({
+            employee_id: emp.employee_id,
+            employee_name: `${emp.first_name} ${emp.last_name}`,
+            basic_salary: emp.basic_salary,
+            shift_mode: isCustomShift ? 'custom' : 'preset',
+            preset_shift: isCustomShift ? 'General Shift (9 AM - 6 PM)' : (emp.shift_name || 'General Shift (9 AM - 6 PM)'),
+            custom_shift_name: customTitle,
+            custom_start_time: customStart,
+            custom_end_time: customEnd,
+            monthly_leave_quota: emp.monthly_leave_quota !== undefined ? emp.monthly_leave_quota : defaultLeaveQuota,
+            leave_balance: emp.leave_balance !== undefined ? emp.leave_balance : 18,
+            sync_balance: false,
+            bonus_mode: (emp.annual_bonus !== null && emp.annual_bonus !== undefined && emp.annual_bonus > 0) ? 'fixed' : 'percentage',
+            annual_bonus_pct: emp.annual_bonus_pct !== undefined ? emp.annual_bonus_pct : 10,
+            annual_bonus_amt: emp.annual_bonus || '',
+            weekly_off: isCustomWeekOff ? 'Custom' : (emp.weekly_off || 'Sunday Off'),
+            custom_weekly_off: isCustomWeekOff ? emp.weekly_off : ''
+        });
+        setIsRosterModalOpen(true);
+    };
+
+    const handleSaveRoster = (e) => {
+        e.preventDefault();
+        let finalShift = rosterForm.preset_shift;
+        if (rosterForm.shift_mode === 'custom') {
+            const title = (rosterForm.custom_shift_name || '').trim() || 'Custom Shift';
+            finalShift = `${title} (${rosterForm.custom_start_time} - ${rosterForm.custom_end_time})`;
+        }
+
+        let finalWeeklyOff = rosterForm.weekly_off;
+        if (rosterForm.weekly_off === 'Custom') {
+            finalWeeklyOff = (rosterForm.custom_weekly_off || '').trim() || 'Sunday Off';
+        }
+
+        const quota = parseFloat(rosterForm.monthly_leave_quota) || defaultLeaveQuota;
+        const newBalance = rosterForm.sync_balance ? Math.round(quota * 12) : (parseFloat(rosterForm.leave_balance) || 18);
+
+        const annualBonusAmt = rosterForm.bonus_mode === 'fixed' ? (parseFloat(rosterForm.annual_bonus_amt) || 0) : null;
+        const annualBonusPct = rosterForm.bonus_mode === 'percentage' ? (parseFloat(rosterForm.annual_bonus_pct) || 10) : null;
+
+        const emp = employees.find(e => String(e.employee_id) === String(rosterForm.employee_id));
+        let addrMeta = {};
+        if (emp && emp.address) {
+            addrMeta = safeParse(emp.address);
+        }
+
+        const payload = {
+            shift: JSON.stringify({ shift: finalShift, shift_name: finalShift }),
+            monthly_leave_quota: quota,
+            annual_bonus: annualBonusAmt,
+            annual_bonus_pct: annualBonusPct,
+            weekly_off: finalWeeklyOff,
+            leave_balance: newBalance,
+            address: JSON.stringify({
+                ...addrMeta,
+                shift_name: finalShift,
+                monthly_leave_quota: quota,
+                annual_bonus: annualBonusAmt,
+                annual_bonus_pct: annualBonusPct,
+                weekly_off: finalWeeklyOff,
+                leave_balance: newBalance
+            })
+        };
+
+        updateRosterMutation.mutate({ id: rosterForm.employee_id, data: payload });
+    };
+
+    const handleSaveCompanyQuota = async (e) => {
+        e.preventDefault();
+        const val = parseFloat(tempQuota) || 1.5;
+        setDefaultLeaveQuota(val);
+        localStorage.setItem('cliks_monthly_leave_quota', String(val));
+        
+        if (applyToAll && employees.length > 0) {
+            for (const emp of employees) {
+                const newBal = Math.round(val * 12);
+                let addrMeta = {};
+                if (emp.address) addrMeta = safeParse(emp.address);
+                await staffingService.updateEmployee(emp.employee_id, {
+                    monthly_leave_quota: val,
+                    leave_balance: newBal,
+                    address: JSON.stringify({
+                        ...addrMeta,
+                        monthly_leave_quota: val,
+                        leave_balance: newBal
+                    })
+                }).catch(() => {});
+            }
+            await queryClient.invalidateQueries({ queryKey: ['employees'] });
+        }
+        setIsQuotaModalOpen(false);
+        alert(`Standard Monthly Leave Quota updated to ${val} Days / Month (${(val * 12).toFixed(1)} Days / Year)${applyToAll ? ' and synced to all employees' : ''}!`);
+    };
 
     const safeParse = (str, fallback = {}) => {
         if (!str) return fallback;
@@ -613,8 +788,12 @@ const BusinessStaffing = () => {
             pan_number: e.pan_number || addrMeta.pan_number || 'ABCDE1234F',
             aadhaar_file: 'aadhaar_arun.pdf',
             pan_file: 'pan_arun.pdf',
-            shift_name: e.shift ? (safeParse(e.shift).shift || 'General Shift (9 AM - 6 PM)') : 'General Shift (9 AM - 6 PM)',
-            leave_balance: e.leave_balance || addrMeta.leave_balance || 14,
+            shift_name: e.shift ? (typeof e.shift === 'string' && e.shift.startsWith('{') ? (safeParse(e.shift).shift || safeParse(e.shift).shift_name || e.shift) : e.shift) : (addrMeta.shift_name || 'General Shift (9 AM - 6 PM)'),
+            leave_balance: (e.leave_balance !== undefined && e.leave_balance !== null && e.leave_balance !== '') ? parseFloat(e.leave_balance) : (addrMeta.leave_balance !== undefined ? parseFloat(addrMeta.leave_balance) : 18),
+            monthly_leave_quota: (e.monthly_leave_quota !== undefined && e.monthly_leave_quota !== null && e.monthly_leave_quota !== '') ? parseFloat(e.monthly_leave_quota) : ((addrMeta.monthly_leave_quota !== undefined && addrMeta.monthly_leave_quota !== null && addrMeta.monthly_leave_quota !== '') ? parseFloat(addrMeta.monthly_leave_quota) : defaultLeaveQuota),
+            annual_bonus: (e.annual_bonus !== undefined && e.annual_bonus !== null && e.annual_bonus !== '') ? parseFloat(e.annual_bonus) : ((addrMeta.annual_bonus !== undefined && addrMeta.annual_bonus !== null && addrMeta.annual_bonus !== '') ? parseFloat(addrMeta.annual_bonus) : null),
+            annual_bonus_pct: (e.annual_bonus_pct !== undefined && e.annual_bonus_pct !== null && e.annual_bonus_pct !== '') ? parseFloat(e.annual_bonus_pct) : ((addrMeta.annual_bonus_pct !== undefined && addrMeta.annual_bonus_pct !== null) ? parseFloat(addrMeta.annual_bonus_pct) : 10),
+            weekly_off: e.weekly_off || addrMeta.weekly_off || 'Sunday Off',
             performance_rating: e.performance_rating || addrMeta.performance_rating || 4.5,
             target_score: e.target_score || addrMeta.target_score || 92,
             role_name: e.role || 'Staff Personnel'
@@ -635,7 +814,11 @@ const BusinessStaffing = () => {
         account_number: '',
         ifsc_code: '',
         shift_name: 'General Shift (9 AM - 6 PM)',
-        leave_balance: 14,
+        leave_balance: 18,
+        monthly_leave_quota: defaultLeaveQuota,
+        annual_bonus: '',
+        annual_bonus_pct: 10,
+        weekly_off: 'Sunday Off',
         date_of_birth: '',
         blood_group: 'O+',
         employment_type: 'Full-time',
@@ -687,6 +870,9 @@ const BusinessStaffing = () => {
         const finalPincode = newEmp.pincode || '';
         const finalEmergName = newEmp.emergency_contact_name || '';
         const finalEmergPhone = newEmp.emergency_contact_number || '';
+        const finalMonthlyQuota = newEmp.monthly_leave_quota !== undefined && newEmp.monthly_leave_quota !== '' ? parseFloat(newEmp.monthly_leave_quota) : defaultLeaveQuota;
+        const finalBonus = newEmp.annual_bonus !== undefined && newEmp.annual_bonus !== '' ? parseFloat(newEmp.annual_bonus) : null;
+        const finalWeeklyOff = newEmp.weekly_off || 'Sunday Off';
 
         createEmpMutation.mutate({
             name: `${newEmp.first_name} ${newEmp.last_name}`,
@@ -703,13 +889,20 @@ const BusinessStaffing = () => {
             blood_group: newEmp.blood_group,
             employment_type: newEmp.employment_type,
             reporting_manager: finalManager,
-            shift: JSON.stringify({ shift: finalShift }),
+            shift: JSON.stringify({ shift: finalShift, shift_name: finalShift }),
+            monthly_leave_quota: finalMonthlyQuota,
+            annual_bonus: finalBonus,
+            weekly_off: finalWeeklyOff,
             address: JSON.stringify({ 
                 line1: finalAddress,
                 city: finalCity,
                 state: finalState,
                 pincode: finalPincode,
                 deduct_tds: Boolean(newEmp.deduct_tds),
+                monthly_leave_quota: finalMonthlyQuota,
+                annual_bonus: finalBonus,
+                weekly_off: finalWeeklyOff,
+                shift_name: finalShift,
                 date_of_birth: newEmp.date_of_birth,
                 blood_group: newEmp.blood_group,
                 gender: newEmp.gender,
@@ -758,6 +951,11 @@ const BusinessStaffing = () => {
     // Handle employee profile edit save
     const handleEditSubmit = (e) => {
         e.preventDefault();
+        const finalMonthlyQuota = editForm.monthly_leave_quota !== undefined && editForm.monthly_leave_quota !== '' ? parseFloat(editForm.monthly_leave_quota) : defaultLeaveQuota;
+        const finalBonus = editForm.annual_bonus !== undefined && editForm.annual_bonus !== '' ? parseFloat(editForm.annual_bonus) : null;
+        const finalWeeklyOff = editForm.weekly_off || 'Sunday Off';
+        const finalShift = editForm.shift_name || 'General Shift (9 AM - 6 PM)';
+
         const payload = {
             name: `${editForm.first_name} ${editForm.last_name}`,
             email: editForm.email,
@@ -767,13 +965,20 @@ const BusinessStaffing = () => {
             salary: parseFloat(editForm.basic_salary) || 0,
             status: editForm.employee_status,
             hire_date: editForm.joining_date,
-            shift: JSON.stringify({ shift: editForm.shift_name }),
+            shift: JSON.stringify({ shift: finalShift, shift_name: finalShift }),
+            monthly_leave_quota: finalMonthlyQuota,
+            annual_bonus: finalBonus,
+            weekly_off: finalWeeklyOff,
             address: JSON.stringify({ 
                 line1: editForm.address_line_1,
                 city: editForm.city || '',
                 state: editForm.state || '',
                 pincode: editForm.pincode || '',
                 deduct_tds: Boolean(editForm.deduct_tds),
+                monthly_leave_quota: finalMonthlyQuota,
+                annual_bonus: finalBonus,
+                weekly_off: finalWeeklyOff,
+                shift_name: finalShift,
                 date_of_birth: editForm.date_of_birth,
                 blood_group: editForm.blood_group,
                 gender: editForm.gender,
@@ -896,7 +1101,10 @@ const BusinessStaffing = () => {
             salary_type: emp.salary_type,
             performance_rating: emp.performance_rating,
             target_score: emp.target_score,
-            deduct_tds: emp.deduct_tds !== undefined ? Boolean(emp.deduct_tds) : false
+            deduct_tds: emp.deduct_tds !== undefined ? Boolean(emp.deduct_tds) : false,
+            monthly_leave_quota: emp.monthly_leave_quota !== undefined ? emp.monthly_leave_quota : defaultLeaveQuota,
+            annual_bonus: emp.annual_bonus || '',
+            weekly_off: emp.weekly_off || 'Sunday Off'
         });
         setSelectedEmployee(emp);
         setIsEditing(true);
@@ -1159,13 +1367,27 @@ const BusinessStaffing = () => {
                 {activeTab === 'leaves' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                         <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                                 <div>
                                     <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Leaves Balance, Pays & Assigned Roster Shifts</h3>
                                     <p style={{ fontSize: '0.85rem', color: '#64748B', margin: '0.2rem 0 0 0', fontWeight: '500' }}>Comprehensive view of employee salaries, bonus eligibility, monthly leave quota, and shift rosters.</p>
                                 </div>
-                                <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.5rem 1rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '800', color: '#047857' }}>
-                                    🌴 Monthly Quota: 1.5 Leaves / Month (18 Days / Year)
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '0.5rem 0.85rem', borderRadius: '14px', fontSize: '0.8rem', fontWeight: '800', color: '#047857', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                        <span>🌴 Default Policy Quota: <strong>{defaultLeaveQuota}</strong> Days / Mo ({(defaultLeaveQuota * 12).toFixed(1)} Days / Yr)</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setTempQuota(defaultLeaveQuota);
+                                                setApplyToAll(false);
+                                                setIsQuotaModalOpen(true);
+                                            }}
+                                            style={{ border: 'none', background: '#059669', color: 'white', padding: '0.25rem 0.55rem', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                            title="Change monthly leave quota policy"
+                                        >
+                                            <Sliders size={12} /> Set Quota
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div style={{ overflowX: 'auto' }}>
@@ -1179,20 +1401,65 @@ const BusinessStaffing = () => {
                                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Monthly Allocated Leaves</th>
                                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Annual Leave Balance</th>
                                             <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Weekly Holiday</th>
+                                            <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right' }}>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {employees.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((emp) => {
-                                            const bonusEst = emp.basic_salary * 0.10; // 10% annual bonus
+                                            const bonusEst = (emp.annual_bonus !== null && emp.annual_bonus !== undefined && emp.annual_bonus > 0)
+                                                ? emp.annual_bonus
+                                                : Math.round(emp.basic_salary * ((emp.annual_bonus_pct || 10) / 100));
                                             return (
                                                 <tr key={emp.employee_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                                     <td style={{ padding: '1rem', fontWeight: '800' }}>{emp.first_name} {emp.last_name}</td>
-                                                    <td style={{ padding: '1rem', fontWeight: '700', color: '#1B6B3A' }}>{emp.shift_name}</td>
+                                                    <td style={{ padding: '1rem', fontWeight: '700', color: '#1B6B3A' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                            <Clock size={13} color="#059669" />
+                                                            <span>{emp.shift_name}</span>
+                                                        </div>
+                                                    </td>
                                                     <td style={{ padding: '1rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(emp.basic_salary)} <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>/mo</span></td>
-                                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#D97706' }}>{formatCurrency(bonusEst)}</td>
-                                                    <td style={{ padding: '1rem', fontWeight: '700', color: '#3B82F6' }}>1.5 Days / mo</td>
+                                                    <td style={{ padding: '1rem' }}>
+                                                        <div style={{ fontWeight: '800', color: '#D97706' }}>{formatCurrency(bonusEst)}</div>
+                                                        <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '600' }}>
+                                                            {(emp.annual_bonus !== null && emp.annual_bonus !== undefined && emp.annual_bonus > 0) ? 'Fixed Amount' : `${emp.annual_bonus_pct || 10}% of base salary`}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding: '1rem' }}>
+                                                        <div style={{ fontWeight: '700', color: '#2563EB' }}>{emp.monthly_leave_quota || defaultLeaveQuota} Days / mo</div>
+                                                        <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '600' }}>
+                                                            {((emp.monthly_leave_quota || defaultLeaveQuota) * 12).toFixed(1)} Days / year
+                                                        </span>
+                                                    </td>
                                                     <td style={{ padding: '1rem', fontWeight: '800', color: '#E11D48' }}>{emp.leave_balance} Days Left</td>
-                                                    <td style={{ padding: '1rem' }}><span style={{ background: '#F1F5F9', color: '#475569', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '750' }}>Sunday Off</span></td>
+                                                    <td style={{ padding: '1rem' }}>
+                                                        <span style={{ background: '#F1F5F9', color: '#334155', border: '1px solid #E2E8F0', padding: '0.25rem 0.6rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '750', display: 'inline-block' }}>
+                                                            {emp.weekly_off || 'Sunday Off'}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleOpenRosterModal(emp)}
+                                                            style={{
+                                                                border: 'none',
+                                                                background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)',
+                                                                color: 'white',
+                                                                padding: '0.45rem 0.85rem',
+                                                                borderRadius: '10px',
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: '850',
+                                                                cursor: 'pointer',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.35rem',
+                                                                boxShadow: '0 4px 8px rgba(16, 185, 129, 0.2)',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                        >
+                                                            <Edit2 size={12} /> Edit Roster
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                             );
                                         })}
@@ -2430,6 +2697,391 @@ const BusinessStaffing = () => {
                 }}
             />
 
+
+            {/* Edit Monthly Leave Policy Quota Modal */}
+            {isQuotaModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '28px', padding: '2.25rem', boxShadow: '0 25px 50px -12px rgba(6, 78, 59, 0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.85rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: '#ECFDF5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Sliders size={18} />
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Set Monthly Leave Quota</h3>
+                                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: '0.15rem 0 0 0', fontWeight: '600' }}>Define default workforce leave policy</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsQuotaModalOpen(false)}
+                                style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.5rem', borderRadius: '10px', cursor: 'pointer' }}
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSaveCompanyQuota} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                    Standard Monthly Quota (Days / Month)
+                                </label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        max="30"
+                                        required
+                                        value={tempQuota}
+                                        onChange={(e) => setTempQuota(e.target.value)}
+                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '1.1rem', fontWeight: '800', color: '#064E3B', boxSizing: 'border-box' }}
+                                    />
+                                    <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Days/mo</span>
+                                </div>
+                                <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: '750', marginTop: '0.35rem', display: 'block' }}>
+                                    🌴 Equals {((parseFloat(tempQuota) || 0) * 12).toFixed(1)} Days Annual Leave Quota
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', background: '#F8FAFC', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                                <input
+                                    type="checkbox"
+                                    id="apply_all_chk"
+                                    checked={applyToAll}
+                                    onChange={(e) => setApplyToAll(e.target.checked)}
+                                    style={{ accentColor: '#059669', marginTop: '0.2rem', width: '16px', height: '16px', cursor: 'pointer' }}
+                                />
+                                <label htmlFor="apply_all_chk" style={{ fontSize: '0.75rem', color: '#1E293B', fontWeight: '750', cursor: 'pointer', lineHeight: '1.4' }}>
+                                    Apply and sync this quota to all {employees.length} current employees (recalculates annual leave balance = Quota × 12)
+                                </label>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsQuotaModalOpen(false)}
+                                    style={{ padding: '0.65rem 1.25rem', borderRadius: '12px', background: '#F1F5F9', color: '#64748B', border: '1px solid #E2E8F0', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    style={{ padding: '0.65rem 1.75rem', borderRadius: '12px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)' }}
+                                >
+                                    Save Leave Quota Policy
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Shift & Leaves Roster Modal for Employee */}
+            {isRosterModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(8px)', padding: '1.5rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '640px', borderRadius: '28px', padding: '2.25rem', boxShadow: '0 25px 50px -12px rgba(6, 78, 59, 0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                        {/* Modal Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                                    <Sliders size={20} />
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>
+                                        Edit Shift & Leaves Roster
+                                    </h3>
+                                    <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '0.15rem 0 0 0', fontWeight: '600' }}>
+                                        {rosterForm.employee_name} • Basic Salary: {formatCurrency(rosterForm.basic_salary)}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsRosterModalOpen(false)}
+                                style={{ border: 'none', background: '#F1F5F9', color: '#64748B', padding: '0.55rem', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveRoster} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            {/* 1. Work Shift & Custom Timing */}
+                            <div style={{ background: '#F8FAFC', padding: '1.2rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                    <label style={{ fontSize: '0.82rem', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <Clock size={15} color="#059669" /> Work Shift & Timing Settings
+                                    </label>
+                                    <div style={{ display: 'flex', background: '#E2E8F0', padding: '2px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '750' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setRosterForm({ ...rosterForm, shift_mode: 'preset' })}
+                                            style={{
+                                                border: 'none',
+                                                background: rosterForm.shift_mode === 'preset' ? 'white' : 'transparent',
+                                                color: rosterForm.shift_mode === 'preset' ? '#064E3B' : '#64748B',
+                                                padding: '0.25rem 0.6rem',
+                                                borderRadius: '6px',
+                                                cursor: 'pointer',
+                                                fontWeight: '800'
+                                            }}
+                                        >
+                                            Standard Presets
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setRosterForm({ ...rosterForm, shift_mode: 'custom' })}
+                                            style={{
+                                                border: 'none',
+                                                background: rosterForm.shift_mode === 'custom' ? '#059669' : 'transparent',
+                                                color: rosterForm.shift_mode === 'custom' ? 'white' : '#64748B',
+                                                padding: '0.25rem 0.6rem',
+                                                borderRadius: '6px',
+                                                cursor: 'pointer',
+                                                fontWeight: '800'
+                                            }}
+                                        >
+                                            Custom Timing
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {rosterForm.shift_mode === 'preset' ? (
+                                    <div>
+                                        <select
+                                            value={rosterForm.preset_shift}
+                                            onChange={(e) => setRosterForm({ ...rosterForm, preset_shift: e.target.value })}
+                                            style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white' }}
+                                        >
+                                            <option>General Shift (9 AM - 6 PM)</option>
+                                            <option>Morning Shift (6 AM - 2 PM)</option>
+                                            <option>Evening Shift (2 PM - 10 PM)</option>
+                                            <option>Night Shift (10 PM - 6 AM)</option>
+                                        </select>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Shift Title / Label</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. Day Shift, Store Opening, Flexible Hours"
+                                                value={rosterForm.custom_shift_name}
+                                                onChange={(e) => setRosterForm({ ...rosterForm, custom_shift_name: e.target.value })}
+                                                style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Start Time</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="e.g. 09:30 AM"
+                                                    value={rosterForm.custom_start_time}
+                                                    onChange={(e) => setRosterForm({ ...rosterForm, custom_start_time: e.target.value })}
+                                                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>End Time</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="e.g. 06:30 PM"
+                                                    value={rosterForm.custom_end_time}
+                                                    onChange={(e) => setRosterForm({ ...rosterForm, custom_end_time: e.target.value })}
+                                                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div style={{ background: '#ECFDF5', padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', color: '#047857', fontWeight: '750', border: '1px solid #A7F3D0' }}>
+                                            Assigned Shift Preview: {rosterForm.custom_shift_name.trim() || 'Work Shift'} ({rosterForm.custom_start_time} - {rosterForm.custom_end_time})
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 2. Monthly Leave Quota & Annual Leave Balance */}
+                            <div style={{ background: '#F8FAFC', padding: '1.2rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
+                                <label style={{ display: 'flex', fontSize: '0.82rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.75rem', alignItems: 'center', gap: '0.4rem' }}>
+                                    <Calendar size={15} color="#2563EB" /> Monthly Leave Quota & Balance
+                                </label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Monthly Leave Quota (Days / Mo)</label>
+                                        <input
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            max="30"
+                                            value={rosterForm.monthly_leave_quota}
+                                            onChange={(e) => setRosterForm({ ...rosterForm, monthly_leave_quota: e.target.value })}
+                                            style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                        />
+                                        <span style={{ fontSize: '0.68rem', color: '#2563EB', fontWeight: '700', marginTop: '0.25rem', display: 'block' }}>
+                                            = {((parseFloat(rosterForm.monthly_leave_quota) || 0) * 12).toFixed(1)} Days / Year
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Annual Leave Balance Left</label>
+                                        <input
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            value={rosterForm.leave_balance}
+                                            onChange={(e) => setRosterForm({ ...rosterForm, leave_balance: e.target.value })}
+                                            style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                        />
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.3rem' }}>
+                                            <input
+                                                type="checkbox"
+                                                id="sync_bal"
+                                                checked={rosterForm.sync_balance}
+                                                onChange={(e) => {
+                                                    const chk = e.target.checked;
+                                                    setRosterForm({
+                                                        ...rosterForm,
+                                                        sync_balance: chk,
+                                                        leave_balance: chk ? Math.round((parseFloat(rosterForm.monthly_leave_quota) || 1.5) * 12) : rosterForm.leave_balance
+                                                    });
+                                                }}
+                                                style={{ accentColor: '#2563EB', cursor: 'pointer' }}
+                                            />
+                                            <label htmlFor="sync_bal" style={{ fontSize: '0.68rem', color: '#475569', fontWeight: '700', cursor: 'pointer' }}>
+                                                Reset to Quota × 12 ({Math.round((parseFloat(rosterForm.monthly_leave_quota) || 1.5) * 12)} d)
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. Annual Bonus Structure */}
+                            <div style={{ background: '#F8FAFC', padding: '1.2rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                    <label style={{ fontSize: '0.82rem', fontWeight: '850', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <CreditCard size={15} color="#D97706" /> Annual Bonus Settings
+                                    </label>
+                                    <div style={{ display: 'flex', background: '#E2E8F0', padding: '2px', borderRadius: '8px', fontSize: '0.72rem', fontWeight: '750' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setRosterForm({ ...rosterForm, bonus_mode: 'percentage' })}
+                                            style={{
+                                                border: 'none',
+                                                background: rosterForm.bonus_mode === 'percentage' ? 'white' : 'transparent',
+                                                color: rosterForm.bonus_mode === 'percentage' ? '#B45309' : '#64748B',
+                                                padding: '0.25rem 0.6rem',
+                                                borderRadius: '6px',
+                                                cursor: 'pointer',
+                                                fontWeight: '800'
+                                            }}
+                                        >
+                                            % of Salary
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setRosterForm({ ...rosterForm, bonus_mode: 'fixed' })}
+                                            style={{
+                                                border: 'none',
+                                                background: rosterForm.bonus_mode === 'fixed' ? '#D97706' : 'transparent',
+                                                color: rosterForm.bonus_mode === 'fixed' ? 'white' : '#64748B',
+                                                padding: '0.25rem 0.6rem',
+                                                borderRadius: '6px',
+                                                cursor: 'pointer',
+                                                fontWeight: '800'
+                                            }}
+                                        >
+                                            Fixed Amount (₹)
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {rosterForm.bonus_mode === 'percentage' ? (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Annual Bonus % (e.g. 10%, 15%, 8.33% statutory bonus)</label>
+                                        <input
+                                            type="number"
+                                            step="0.5"
+                                            min="0"
+                                            max="100"
+                                            value={rosterForm.annual_bonus_pct}
+                                            onChange={(e) => setRosterForm({ ...rosterForm, annual_bonus_pct: e.target.value })}
+                                            style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                        />
+                                        <span style={{ fontSize: '0.72rem', color: '#D97706', fontWeight: '750', marginTop: '0.3rem', display: 'block' }}>
+                                            Est. Annual Bonus: {formatCurrency(Math.round(rosterForm.basic_salary * ((parseFloat(rosterForm.annual_bonus_pct) || 0) / 100)))}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Fixed Annual Bonus Amount (INR)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            placeholder="e.g. 25000"
+                                            value={rosterForm.annual_bonus_amt}
+                                            onChange={(e) => setRosterForm({ ...rosterForm, annual_bonus_amt: e.target.value })}
+                                            style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 4. Weekly Off / Week Off */}
+                            <div style={{ background: '#F8FAFC', padding: '1.2rem', borderRadius: '20px', border: '1px solid #F1F5F9' }}>
+                                <label style={{ display: 'flex', fontSize: '0.82rem', fontWeight: '850', color: '#0F172A', marginBottom: '0.75rem', alignItems: 'center', gap: '0.4rem' }}>
+                                    <Sun size={15} color="#475569" /> Weekly Off / Holiday
+                                </label>
+                                <div style={{ display: 'grid', gridTemplateColumns: rosterForm.weekly_off === 'Custom' ? '1fr 1fr' : '1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <select
+                                            value={rosterForm.weekly_off}
+                                            onChange={(e) => setRosterForm({ ...rosterForm, weekly_off: e.target.value })}
+                                            style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', background: 'white' }}
+                                        >
+                                            <option>Sunday Off</option>
+                                            <option>Saturday & Sunday Off</option>
+                                            <option>Friday Off</option>
+                                            <option>Monday Off</option>
+                                            <option>Tuesday Off</option>
+                                            <option>Wednesday Off</option>
+                                            <option>Thursday Off</option>
+                                            <option>Rotational Off</option>
+                                            <option>Custom</option>
+                                        </select>
+                                    </div>
+                                    {rosterForm.weekly_off === 'Custom' && (
+                                        <div>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. 2nd & 4th Sat + Sunday"
+                                                value={rosterForm.custom_weekly_off}
+                                                onChange={(e) => setRosterForm({ ...rosterForm, custom_weekly_off: e.target.value })}
+                                                style={{ width: '100%', padding: '0.65rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsRosterModalOpen(false)}
+                                    style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', background: '#F1F5F9', color: '#475569', border: '1px solid #E2E8F0', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={updateRosterMutation.isPending}
+                                    style={{ padding: '0.75rem 2rem', borderRadius: '12px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)' }}
+                                >
+                                    {updateRosterMutation.isPending ? 'Saving...' : 'Save Roster Settings'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Confirm Payment Modal */}
             {isPaymentModalOpen && (
