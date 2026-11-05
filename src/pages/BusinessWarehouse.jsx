@@ -376,7 +376,21 @@ const BusinessWarehouse = () => {
 
     // Stateful Stock Transfer Database mapped from live DB warehouse transfers
     const dbTransfers = reportsData?.transfers || [];
-    const transfers = dbTransfers.map((t, idx) => {
+    const uniqueTransfers = useMemo(() => {
+        const list = [];
+        const seen = new Set();
+        for (const t of dbTransfers) {
+            const key = t.id != null ? String(t.id) : null;
+            if (key) {
+                if (seen.has(key)) continue;
+                seen.add(key);
+            }
+            list.push(t);
+        }
+        return list;
+    }, [dbTransfers]);
+
+    const transfers = uniqueTransfers.map((t, idx) => {
         const fromWH = warehouses.find(w => w.id === t.from_warehouse_id) || { warehouse_name: t.from_warehouse_name || 'Facility' };
         const toWH = warehouses.find(w => w.id === t.to_warehouse_id) || { warehouse_name: t.to_warehouse_name || 'Branch' };
         const product = dbStocks.find(s => String(s.id) === String(t.stock_id)) || { name: t.product_name || 'Unknown' };
@@ -401,7 +415,21 @@ const BusinessWarehouse = () => {
     const defaultWarehouse = warehouses.find(w => w.is_primary || w.id === 1) || warehouses[0] || { warehouse_name: 'Main Godown' };
     const defaultWhName = defaultWarehouse.warehouse_name || 'Main Godown';
 
-    const inwards = dbInwards.map((inw) => {
+    const uniqueInwards = useMemo(() => {
+        const list = [];
+        const seen = new Set();
+        for (const inw of dbInwards) {
+            const key = inw.id != null ? String(inw.id) : null;
+            if (key) {
+                if (seen.has(key)) continue;
+                seen.add(key);
+            }
+            list.push(inw);
+        }
+        return list;
+    }, [dbInwards]);
+
+    const inwards = uniqueInwards.map((inw) => {
         let resolvedWhName = inw.warehouse_name || inw.destination_warehouse?.name || inw.destination_warehouse_name;
         if (!resolvedWhName || resolvedWhName === 'Not Configured') {
             const matchedWh = warehouses.find(w => 
