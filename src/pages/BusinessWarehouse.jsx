@@ -505,11 +505,89 @@ const BusinessWarehouse = () => {
         staleTime: 0
     });
 
+    const inwardProductsList = React.useMemo(() => {
+        const list = [];
+        const seenKeys = new Set();
+
+        const getKeys = (item) => {
+            const keys = [];
+            const sku = item?.sku ? String(item.sku).trim().toLowerCase() : '';
+            const name = item?.name ? String(item.name).trim().toLowerCase() : '';
+            if (sku && sku !== 'n/a') {
+                keys.push(`sku:${sku}`);
+            }
+            if (name) {
+                keys.push(`name:${name}`);
+            }
+            return keys;
+        };
+
+        const safeProds = Array.isArray(dbProducts) ? dbProducts : [];
+        const safeStocks = Array.isArray(dbStocks) ? dbStocks : [];
+
+        // 1. Process master products from dbProducts (deduplicating against already seen)
+        safeProds.forEach(p => {
+            if (!p || (!p.id && !p.name && !p.sku)) return;
+            const keys = getKeys(p);
+            const isDuplicate = keys.length > 0 ? keys.some(k => seenKeys.has(k)) : seenKeys.has(`id:${p.id}`);
+            if (!isDuplicate) {
+                keys.forEach(k => seenKeys.add(k));
+                if (p.id != null) seenKeys.add(`id:${p.id}`);
+
+                // Find matching live stock entry to get accurate stock level and target stock ID
+                const matchedStock = safeStocks.find(s => {
+                    const sSku = s?.sku ? String(s.sku).trim().toLowerCase() : '';
+                    const sName = s?.name ? String(s.name).trim().toLowerCase() : '';
+                    const pSku = p?.sku ? String(p.sku).trim().toLowerCase() : '';
+                    const pName = p?.name ? String(p.name).trim().toLowerCase() : '';
+
+                    return (pSku && sSku && pSku !== 'n/a' && pSku === sSku) ||
+                           (pName && sName && pName === sName) ||
+                           String(s?.id) === String(p?.id);
+                });
+
+                // Compute latest accurate quantity: live stock if positive/available, otherwise catalog quantity
+                const finalQty = (matchedStock?.quantity != null && Number(matchedStock.quantity) > 0)
+                    ? Number(matchedStock.quantity)
+                    : Number(p.quantity || 0);
+
+                const finalId = matchedStock?.id != null ? matchedStock.id : p.id;
+
+                list.push({
+                    id: finalId,
+                    name: p.name || matchedStock?.name || `Product #${p.id}`,
+                    sku: p.sku || matchedStock?.sku || 'N/A',
+                    quantity: finalQty
+                });
+            }
+        });
+
+        // 2. Add remaining stock items from dbStocks not present in dbProducts
+        safeStocks.forEach(s => {
+            if (!s || (!s.id && !s.name && !s.sku)) return;
+            const keys = getKeys(s);
+            const isDuplicate = keys.length > 0 ? keys.some(k => seenKeys.has(k)) : seenKeys.has(`id:${s.id}`);
+            if (!isDuplicate) {
+                keys.forEach(k => seenKeys.add(k));
+                if (s.id != null) seenKeys.add(`id:${s.id}`);
+                list.push({
+                    id: s.id,
+                    name: s.name || `Stock #${s.id}`,
+                    sku: s.sku || 'N/A',
+                    quantity: Number(s.quantity || 0)
+                });
+            }
+        });
+
+        // Sort alphabetically by product name for consistent and clean selection
+        return list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }, [dbProducts, dbStocks]);
+
     // Set default select values when database lists load
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (dbStocks.length > 0 && !newInward.stock_id) {
-                setNewInward(prev => ({ ...prev, stock_id: dbStocks[0].id.toString() }));
+            if (inwardProductsList.length > 0 && (!newInward.stock_id || !inwardProductsList.some(p => String(p.id) === String(newInward.stock_id)))) {
+                setNewInward(prev => ({ ...prev, stock_id: inwardProductsList[0].id.toString() }));
             }
             if (dbWarehouses.length > 0 && (!newInward.warehouse_id || !newInward.destination_warehouse_id)) {
                 const initialWh = dbWarehouses[0];
@@ -535,27 +613,7 @@ const BusinessWarehouse = () => {
             }
         }, 0);
         return () => clearTimeout(timer);
-    }, [dbStocks, dbWarehouses, newInward.stock_id, newInward.warehouse_id, newInward.destination_warehouse_id, newInward.received_by, user, newTransfer.stock_id, newTransfer.source_warehouse_id, newTransfer.destination_warehouse_id]);
-
-    const inwardProductsList = React.useMemo(() => {
-        const list = [];
-        const seen = new Set();
-        const safeProds = Array.isArray(dbProducts) ? dbProducts : [];
-        safeProds.forEach(p => {
-            if (p && p.id != null) {
-                seen.add(String(p.id));
-                list.push({ id: p.id, name: p.name || `Product #${p.id}`, sku: p.sku || 'N/A', quantity: p.quantity || 0 });
-            }
-        });
-        const safeStocks = Array.isArray(dbStocks) ? dbStocks : [];
-        safeStocks.forEach(s => {
-            if (s && s.id != null && !seen.has(String(s.id))) {
-                seen.add(String(s.id));
-                list.push({ id: s.id, name: s.name || `Stock #${s.id}`, sku: s.sku || 'N/A', quantity: s.quantity || 0 });
-            }
-        });
-        return list;
-    }, [dbProducts, dbStocks]);
+    }, [inwardProductsList, dbStocks, dbWarehouses, newInward.stock_id, newInward.warehouse_id, newInward.destination_warehouse_id, newInward.received_by, user, newTransfer.stock_id, newTransfer.source_warehouse_id, newTransfer.destination_warehouse_id]);
 
     const warehouseAssignedProducts = React.useMemo(() => {
         if (!targetWarehouseForList) return [];
