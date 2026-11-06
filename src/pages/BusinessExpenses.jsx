@@ -313,25 +313,42 @@ const BusinessExpenses = ({ defaultTab }) => {
         }
     });
 
-    // fallbacks mapping
-    const expenses = dbExpenses.map(item => ({
-        expense_id: item.id,
-        expense_number: item.expense_number || `EXP-2026-${item.id}`,
-        expense_date: item.expense_date || (item.created_at || '').split('T')[0] || '2026-05-08',
-        expense_status: item.expense_status || 'paid',
-        category_name: item.category_name || 'General',
-        subcategory: item.subcategory || 'Miscellaneous',
-        payee_name: item.payee_name || '-',
-        payee_phone: item.payee_phone || '',
-        payee_gstin: item.payee_gstin || '',
-        expense_amount: parseFloat(item.expense_amount || item.amount) || 0,
-        gst_percentage: parseFloat(item.gst_percentage) || 0,
-        subtotal: parseFloat(item.subtotal) || 0,
-        tax_amount: parseFloat(item.tax_amount) || 0,
-        payment_mode: item.payment_mode || 'N/A',
-        transaction_reference: item.transaction_reference || '-',
-        input_tax_credit: item.input_tax_credit || 'N/A'
-    }));
+    // fallbacks mapping with data sanitization
+    const expenses = dbExpenses.map(item => {
+        const rawAmt = parseFloat(item.expense_amount !== undefined && item.expense_amount !== null && item.expense_amount !== '' ? item.expense_amount : item.amount) || 0;
+        const safeAmt = (rawAmt > 0 && rawAmt < 1e11) ? rawAmt : (rawAmt >= 1e11 ? 0 : rawAmt);
+        
+        const rawSub = parseFloat(item.subtotal);
+        const rawTax = parseFloat(item.tax_amount);
+        const safeSub = (!isNaN(rawSub) && rawSub < 1e11) ? rawSub : safeAmt;
+        const safeTax = (!isNaN(rawTax) && rawTax < 1e11) ? rawTax : 0;
+        
+        let itc = item.input_tax_credit || 'Not Applicable';
+        const catLower = (item.category_name || '').trim().toLowerCase();
+        // Historic fix: Rent without explicit business GSTIN should not claim ITC
+        if (catLower === 'rent' && itc.includes('Eligible')) {
+            itc = 'Ineligible (Blocked Sec 17(5))';
+        }
+
+        return {
+            expense_id: item.id,
+            expense_number: item.expense_number || `EXP-2026-${item.id}`,
+            expense_date: item.expense_date || (item.created_at || '').split('T')[0] || '2026-05-08',
+            expense_status: item.expense_status || 'paid',
+            category_name: item.category_name || 'General',
+            subcategory: item.subcategory || 'Miscellaneous',
+            payee_name: item.payee_name || '-',
+            payee_phone: item.payee_phone || '',
+            payee_gstin: item.payee_gstin || '',
+            expense_amount: safeAmt,
+            gst_percentage: parseFloat(item.gst_percentage) || 0,
+            subtotal: safeSub,
+            tax_amount: safeTax,
+            payment_mode: item.payment_mode || 'N/A',
+            transaction_reference: item.transaction_reference || '-',
+            input_tax_credit: itc
+        };
+    });
 
     const budgets = dbBudgets.map(item => {
         const spent = expenses
@@ -390,8 +407,10 @@ const BusinessExpenses = ({ defaultTab }) => {
         category_name: 'Rent',
         subcategory: '',
         payee_name: '',
+        amount_type: 'exclusive', // 'exclusive' (Base + GST added) or 'inclusive' (GST included in total)
         expense_amount: '',
         gst_percentage: 0,
+        itc_eligibility: 'ineligible', // 'eligible' or 'ineligible'
         payment_mode: 'UPI',
         transaction_reference: ''
     });
@@ -474,7 +493,48 @@ const BusinessExpenses = ({ defaultTab }) => {
 
     const handleCreateExpense = (e) => {
         e.preventDefault();
-        createExpenseMutation.mutate(newExpense);
+        const rawAmt = parseFloat(newExpense.expense_amount) || 0;
+        if (rawAmt <= 0) {
+            alert('Please enter a valid expense amount greater than 0');
+            return;
+        }
+        const gst = parseFloat(newExpense.gst_percentage) || 0;
+        
+        let subtotal = rawAmt;
+        let tax = 0;
+        let total = rawAmt;
+
+        if (gst > 0) {
+            if (newExpense.amount_type === 'inclusive') {
+                total = rawAmt;
+                subtotal = Math.round((rawAmt / (1 + gst / 100)) * 100) / 100;
+                tax = Math.round((total - subtotal) * 100) / 100;
+            } else {
+                // exclusive (Base + GST added)
+                subtotal = rawAmt;
+                tax = Math.round((rawAmt * (gst / 100)) * 100) / 100;
+                total = Math.round((subtotal + tax) * 100) / 100;
+            }
+        }
+
+        let itcStatus = 'Not Applicable';
+        if (gst > 0) {
+            itcStatus = newExpense.itc_eligibility === 'eligible'
+                ? 'Eligible (ITC Claimed)'
+                : 'Ineligible (Blocked Sec 17(5))';
+        }
+
+        const payload = {
+            ...newExpense,
+            amount: total,
+            expense_amount: total,
+            subtotal: subtotal,
+            tax_amount: tax,
+            gst_percentage: gst,
+            input_tax_credit: itcStatus
+        };
+
+        createExpenseMutation.mutate(payload);
     };
 
     const handleSaveSpending = (e) => {
@@ -898,15 +958,23 @@ const BusinessExpenses = ({ defaultTab }) => {
         const matchCat = !cf.category || (e.category_name + ' ' + (e.subcategory || '')).toLowerCase().includes(cf.category.toLowerCase());
         const matchPayee = !cf.payee || (e.payee_name || '').toLowerCase().includes(cf.payee.toLowerCase());
         const matchSubtotal = !cf.subtotal || String(e.subtotal).includes(cf.subtotal);
-        const matchItc = !cf.itc || String(Math.round(e.tax_amount)).includes(cf.itc);
+        const matchItc = !cf.itc || String(Math.round(e.tax_amount)).includes(cf.itc) || (e.input_tax_credit || '').toLowerCase().includes(cf.itc.toLowerCase());
         const matchTotal = !cf.total || String(e.expense_amount).includes(cf.total);
         const matchModeCol = !cf.mode || (e.payment_mode || '').toLowerCase().includes(cf.mode.toLowerCase());
 
         return matchesSearch && matchesCategory && matchesMode && matchVoucher && matchDate && matchCat && matchPayee && matchSubtotal && matchItc && matchTotal && matchModeCol;
     });
 
-    const totalExpenseSpent = expenses.reduce((sum, e) => sum + e.expense_amount, 0);
-    const totalITCClaimsAccumulated = expenses.reduce((sum, e) => sum + (e.tax_amount || 0), 0);
+    const totalExpenseSpent = expenses.reduce((sum, e) => {
+        const a = parseFloat(e.expense_amount) || 0;
+        return sum + (a > 0 && a < 1e11 ? a : 0);
+    }, 0);
+
+    const totalITCClaimsAccumulated = expenses.reduce((sum, e) => {
+        const isEligible = (e.input_tax_credit || '').toLowerCase().includes('eligible');
+        const t = parseFloat(e.tax_amount) || 0;
+        return sum + (isEligible && t > 0 && t < 1e11 ? t : 0);
+    }, 0);
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
@@ -1147,7 +1215,44 @@ const BusinessExpenses = ({ defaultTab }) => {
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{ex.payee_name}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>{formatCurrency(ex.subtotal)}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>
-                                            <span style={{ color: '#10B981', fontWeight: '700' }}>{formatCurrency(Math.round(ex.tax_amount))} ({ex.gst_percentage}%)</span>
+                                            {(() => {
+                                                const isEligible = (ex.input_tax_credit || '').toLowerCase().includes('eligible');
+                                                const isIneligible = (ex.input_tax_credit || '').toLowerCase().includes('ineligible') || (ex.input_tax_credit || '').toLowerCase().includes('blocked');
+                                                const taxAmt = Math.round(ex.tax_amount || 0);
+
+                                                if (isEligible && taxAmt > 0) {
+                                                    return (
+                                                        <div>
+                                                            <span style={{ color: '#10B981', fontWeight: '800' }}>
+                                                                {formatCurrency(taxAmt)} ({ex.gst_percentage}%)
+                                                            </span>
+                                                            <span style={{ display: 'inline-block', marginLeft: '0.4rem', fontSize: '0.68rem', fontWeight: '800', background: '#ECFDF5', color: '#047857', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                                                                ✓ Eligible ITC
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                } else if (isIneligible || (ex.gst_percentage > 0 && !isEligible)) {
+                                                    return (
+                                                        <div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                                <span style={{ color: '#475569', fontWeight: '800' }}>{currency.symbol}0</span>
+                                                                <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#FEE2E2', color: '#B91C1C', padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
+                                                                    Blocked Sec 17(5)
+                                                                </span>
+                                                            </div>
+                                                            <span style={{ display: 'block', fontSize: '0.68rem', color: '#94A3B8', marginTop: '0.15rem' }}>
+                                                                Paid GST: {formatCurrency(taxAmt)} ({ex.gst_percentage}%)
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                } else {
+                                                    return (
+                                                        <span style={{ color: '#94A3B8', fontWeight: '600' }}>
+                                                            {currency.symbol}0 (0% Excluded)
+                                                        </span>
+                                                    );
+                                                }
+                                            })()}
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#7C3AED', fontSize: '0.88rem' }}>{formatCurrency(ex.expense_amount)}</td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
@@ -1512,43 +1617,190 @@ const BusinessExpenses = ({ defaultTab }) => {
                         <form onSubmit={handleCreateExpense} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Expense Category</label>
-                                <select value={newExpense.category_name} onChange={(e) => setNewExpense({ ...newExpense, category_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
+                                <select 
+                                    value={newExpense.category_name} 
+                                    onChange={(e) => {
+                                        const cat = e.target.value;
+                                        const catLower = cat.trim().toLowerCase();
+                                        const isBlockedCat = catLower === 'rent' || catLower.includes('food') || catLower.includes('catering') || catLower.includes('welfare') || catLower.includes('personal');
+                                        setNewExpense({ 
+                                            ...newExpense, 
+                                            category_name: cat,
+                                            itc_eligibility: isBlockedCat ? 'ineligible' : 'eligible'
+                                        });
+                                    }} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                >
                                     {categoryOptions.map(cat => (
                                         <option key={cat} value={cat}>{cat}</option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Subcategory / Spares description</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Subcategory / Expense Description</label>
                                 <input required type="text" maxLength={100} value={newExpense.subcategory} onChange={(e) => setNewExpense({ ...newExpense, subcategory: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Example : Office space rent" />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payee / Merchant Profile</label>
-                                <input required type="text" spellCheck="false" maxLength={50} value={newExpense.payee_name} onChange={(e) => setNewExpense({ ...newExpense, payee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Example : Jino Merchant" />
+                                <input required type="text" spellCheck="false" maxLength={50} value={newExpense.payee_name} onChange={(e) => setNewExpense({ ...newExpense, payee_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Example : Property Landlord / AWS" />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Expense Amount ({currency.code})</label>
-                                    <input required type="text" maxLength={14} value={newExpense.expense_amount} onChange={(e) => {
-                                        let val = e.target.value.replace(/\D/g, '').slice(0, 14);
-                                        if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
-                                        setNewExpense({ ...newExpense, expense_amount: val });
-                                    }} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: (newExpense.expense_amount && newExpense.expense_amount.length >= 14) ? '1px solid #EF4444' : '1px solid #E2E8F0', outline: 'none' }} placeholder="Example : 5000" />
-                                    {newExpense.expense_amount && newExpense.expense_amount.length >= 14 && (
-                                        <span style={{ fontSize: '0.7rem', color: '#EF4444', marginTop: '0.2rem', display: 'block', fontWeight: '700' }}>Maximum 14 digits limit reached</span>
+
+                            {/* Amount & Calculation Mode */}
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0 }}>
+                                        Expense Amount ({currency.symbol})
+                                    </label>
+                                    {/* Exclusive vs Inclusive Mode Switch */}
+                                    <div style={{ display: 'flex', background: '#F1F5F9', padding: '2px', borderRadius: '8px', gap: '2px' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setNewExpense({ ...newExpense, amount_type: 'exclusive' })}
+                                            style={{
+                                                padding: '3px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '0.68rem', fontWeight: '800',
+                                                background: newExpense.amount_type === 'exclusive' ? '#7C3AED' : 'transparent',
+                                                color: newExpense.amount_type === 'exclusive' ? 'white' : '#64748B'
+                                            }}
+                                        >
+                                            + GST (Exclusive)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setNewExpense({ ...newExpense, amount_type: 'inclusive' })}
+                                            style={{
+                                                padding: '3px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '0.68rem', fontWeight: '800',
+                                                background: newExpense.amount_type === 'inclusive' ? '#7C3AED' : 'transparent',
+                                                color: newExpense.amount_type === 'inclusive' ? 'white' : '#64748B'
+                                            }}
+                                        >
+                                            Incl. GST (Total)
+                                        </button>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem' }}>
+                                    <div>
+                                        <input 
+                                            required 
+                                            type="text" 
+                                            maxLength={10} 
+                                            value={newExpense.expense_amount} 
+                                            onChange={(e) => {
+                                                let val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                                if (val.length > 1 && val.startsWith('0')) val = val.replace(/^0+/, '');
+                                                setNewExpense({ ...newExpense, expense_amount: val });
+                                            }} 
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700', fontSize: '1rem' }} 
+                                            placeholder="e.g. 50000" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <select 
+                                            value={newExpense.gst_percentage} 
+                                            onChange={(e) => setNewExpense({ ...newExpense, gst_percentage: parseInt(e.target.value) })} 
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                        >
+                                            <option value="0">0% Excluded</option>
+                                            <option value="5">5% GST</option>
+                                            <option value="12">12% GST</option>
+                                            <option value="18">18% GST</option>
+                                            <option value="28">28% GST</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ITC Eligibility Selection if GST > 0 */}
+                            {newExpense.gst_percentage > 0 && (
+                                <div style={{ background: '#F8FAFC', padding: '0.9rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.4rem' }}>
+                                        Input Tax Credit (ITC) Eligibility
+                                    </label>
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setNewExpense({ ...newExpense, itc_eligibility: 'ineligible' })}
+                                            style={{
+                                                flex: 1, padding: '0.5rem 0.6rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '800',
+                                                border: newExpense.itc_eligibility === 'ineligible' ? '1.5px solid #EF4444' : '1px solid #E2E8F0',
+                                                background: newExpense.itc_eligibility === 'ineligible' ? '#FEF2F2' : 'white',
+                                                color: newExpense.itc_eligibility === 'ineligible' ? '#B91C1C' : '#64748B'
+                                            }}
+                                        >
+                                            ⛔ Ineligible / Blocked (Sec 17(5))
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setNewExpense({ ...newExpense, itc_eligibility: 'eligible' })}
+                                            style={{
+                                                flex: 1, padding: '0.5rem 0.6rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '800',
+                                                border: newExpense.itc_eligibility === 'eligible' ? '1.5px solid #10B981' : '1px solid #E2E8F0',
+                                                background: newExpense.itc_eligibility === 'eligible' ? '#ECFDF5' : 'white',
+                                                color: newExpense.itc_eligibility === 'eligible' ? '#047857' : '#64748B'
+                                            }}
+                                        >
+                                            ✓ Eligible for ITC Claim
+                                        </button>
+                                    </div>
+                                    <p style={{ margin: 0, fontSize: '0.68rem', color: '#64748B', lineHeight: '1.4' }}>
+                                        {newExpense.itc_eligibility === 'ineligible' 
+                                            ? 'GST paid to vendor is absorbed as a direct expense cost in P&L. No tax credit is claimed (Rent without GST invoice, employee food, personal expenses).'
+                                            : 'Requires a valid GST Tax Invoice with your business GSTIN. You can offset this GST against output tax.'
+                                        }
+                                    </p>
+                                    {newExpense.category_name.toLowerCase() === 'rent' && (
+                                        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.68rem', color: '#B45309', background: '#FEF3C7', padding: '0.3rem 0.5rem', borderRadius: '6px', fontWeight: '600' }}>
+                                            💡 Rent Note: Residential rent or rent paid to unregistered landlords has NO ITC. Select "Eligible" only if renting commercial premises from a GST-registered landlord.
+                                        </p>
                                     )}
                                 </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>GST % Percentage</label>
-                                    <select value={newExpense.gst_percentage} onChange={(e) => setNewExpense({ ...newExpense, gst_percentage: parseInt(e.target.value) })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
-                                        <option value="0">0% Excluded</option>
-                                        <option value="5">5% GST</option>
-                                        <option value="12">12% GST</option>
-                                        <option value="18">18% GST</option>
-                                        <option value="28">28% GST</option>
-                                    </select>
-                                </div>
-                            </div>
+                            )}
+
+                            {/* Live Calculation Breakdown Preview */}
+                            {parseFloat(newExpense.expense_amount) > 0 && (() => {
+                                const rawAmt = parseFloat(newExpense.expense_amount) || 0;
+                                const gst = parseFloat(newExpense.gst_percentage) || 0;
+                                let sub = rawAmt;
+                                let tax = 0;
+                                let tot = rawAmt;
+                                if (gst > 0) {
+                                    if (newExpense.amount_type === 'inclusive') {
+                                        tot = rawAmt;
+                                        sub = Math.round((rawAmt / (1 + gst / 100)) * 100) / 100;
+                                        tax = Math.round((tot - sub) * 100) / 100;
+                                    } else {
+                                        sub = rawAmt;
+                                        tax = Math.round((rawAmt * (gst / 100)) * 100) / 100;
+                                        tot = Math.round((sub + tax) * 100) / 100;
+                                    }
+                                }
+                                const isEligible = gst > 0 && newExpense.itc_eligibility === 'eligible';
+                                return (
+                                    <div style={{ background: '#FAF5FF', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E9D5FF' }}>
+                                        <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.72rem', fontWeight: '850', color: '#6B21A8', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                                            Calculation Breakdown
+                                        </p>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#4B5563', marginBottom: '0.2rem' }}>
+                                            <span>Base Subtotal (Expense):</span>
+                                            <span style={{ fontWeight: '750' }}>{formatCurrency(sub)}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#4B5563', marginBottom: '0.2rem' }}>
+                                            <span>GST ({gst}%):</span>
+                                            <span style={{ fontWeight: '750' }}>+{formatCurrency(tax)}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#0F172A', fontWeight: '900', borderTop: '1px solid #E9D5FF', paddingTop: '0.3rem', marginTop: '0.2rem' }}>
+                                            <span>Total Amount Payable:</span>
+                                            <span style={{ color: '#7C3AED' }}>{formatCurrency(tot)}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginTop: '0.3rem', paddingTop: '0.3rem', borderTop: '1px dashed #E9D5FF' }}>
+                                            <span style={{ fontWeight: '700', color: '#64748B' }}>ITC Claimable:</span>
+                                            <span style={{ fontWeight: '800', color: isEligible ? '#059669' : '#DC2626' }}>
+                                                {isEligible ? `✓ ${formatCurrency(tax)} (Eligible)` : `⛔ ${currency.symbol}0 (${gst > 0 ? 'Blocked Sec 17(5)' : 'Exempt'})`}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Payment Mode</label>
