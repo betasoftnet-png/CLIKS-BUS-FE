@@ -20,7 +20,8 @@ import {
     Edit2,
     Trash2,
     Download,
-    History
+    History,
+    Zap
 } from 'lucide-react';
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -32,10 +33,11 @@ import { useCurrency } from '../context';
 const BusinessPayroll = () => {
     const { currency, formatCurrency } = useCurrency();
     const [activeTab, setActiveTab] = useState('run');
-    const [colFilters, setColFilters] = React.useState({}); // 'run', 'structures', 'compliance', 'loans'
+    const [colFilters, setColFilters] = React.useState({}); // 'run', 'structures', 'compliance', 'loans', 'advances'
     const [searchTerm, setSearchTerm] = useState('');
     const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
     const [isLoanModalOpen, setIsLoanModalOpen] = useState(false);
+    const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
     const [selectedPayroll, setSelectedPayroll] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isEditingPayroll, setIsEditingPayroll] = useState(false);
@@ -96,11 +98,26 @@ const BusinessPayroll = () => {
 
     const createLoanMutation = useMutation({
         mutationFn: ({ id, data }) => payrollService.createLoan(id, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
-            setLoanForm({ employee_name: '', loan_amount: '', emi_amount: '', salary_advance: '', deduction_months: '' });
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+            setLoanForm({ employee_name: '', loan_amount: '', emi_amount: '', deduction_months: '' });
             setIsLoanModalOpen(false);
             alert('Employee loan allocation verified and remaining balance recorded successfully!');
+        }
+    });
+
+    const createAdvanceMutation = useMutation({
+        mutationFn: ({ id, data }) => payrollService.createAdvance(id, data),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['payrollRecords'] });
+            setAdvanceForm({
+                employee_name: '',
+                advance_amount: '',
+                reason: '',
+                recovery_month: 'Immediate (Next Payroll)'
+            });
+            setIsAdvanceModalOpen(false);
+            alert('Salary advance disbursed and recovery cycle registered successfully!');
         }
     });
 
@@ -206,17 +223,55 @@ const BusinessPayroll = () => {
         };
     }) : [];
 
-    const loans = dbRecords.length > 0 && dbRecords.some(rec => rec.loans_data) ? dbRecords.filter(rec => rec.loans_data).map(rec => {
+    const loans = dbRecords.length > 0 ? dbRecords.filter(rec => {
+        if (!rec.loans_data) return false;
         let lData = {};
-        try {
-            lData = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data;
-        } catch { lData = {}; }
+        try { lData = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data; } catch(e){}
+        return parseFloat(lData.loan_amount) > 0;
+    }).map(rec => {
+        let lData = {};
+        try { lData = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data; } catch(e){}
+        const loanAmt = parseFloat(lData.loan_amount) || 0;
+        const emiAmt = parseFloat(lData.emi_amount) || 0;
+        const remBal = parseFloat(lData.remaining_balance) !== undefined ? parseFloat(lData.remaining_balance) : loanAmt;
+        const tenure = lData.deduction_months || (emiAmt > 0 ? Math.ceil(loanAmt / emiAmt) : 0);
         return {
-            employee_name: rec.employee_name || 'Arun Kumar',
-            loan_amount: parseFloat(lData.loan_amount) || 12000,
-            emi_amount: parseFloat(lData.emi_amount) || 1000,
-            remaining_balance: parseFloat(lData.remaining_balance) || 12000,
-            salary_advance: parseFloat(lData.salary_advance) || 0
+            payroll_id: rec.id,
+            employee_name: rec.employee_name || lData.employee_name || 'Staff Member',
+            loan_amount: loanAmt,
+            emi_amount: emiAmt,
+            remaining_balance: remBal,
+            deduction_months: tenure,
+            status: remBal <= 0 ? 'Repaid' : 'Active'
+        };
+    }) : [];
+
+    const salaryAdvances = dbRecords.length > 0 ? dbRecords.filter(rec => {
+        let aData = null;
+        let lData = null;
+        try { if (rec.advances_data) aData = typeof rec.advances_data === 'string' ? JSON.parse(rec.advances_data) : rec.advances_data; } catch(e){}
+        try { if (rec.loans_data) lData = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data; } catch(e){}
+        return (aData && parseFloat(aData.advance_amount) > 0) || (lData && parseFloat(lData.salary_advance) > 0);
+    }).map(rec => {
+        let aData = {};
+        let lData = {};
+        try { if (rec.advances_data) aData = typeof rec.advances_data === 'string' ? JSON.parse(rec.advances_data) : rec.advances_data; } catch(e){}
+        try { if (rec.loans_data) lData = typeof rec.loans_data === 'string' ? JSON.parse(rec.loans_data) : rec.loans_data; } catch(e){}
+
+        const amt = parseFloat(aData.advance_amount) || parseFloat(lData.salary_advance) || 0;
+        const date = aData.disbursal_date || (rec.created_at ? rec.created_at.split('T')[0] : new Date().toISOString().split('T')[0]);
+        const recoveryMonth = aData.recovery_month || rec.month || 'Immediate (Next Payroll)';
+        const reason = aData.reason || lData.reason || 'General Salary Advance';
+        const status = aData.status || (rec.status === 'paid' ? 'Deducted' : 'Disbursed');
+
+        return {
+            payroll_id: rec.id,
+            employee_name: rec.employee_name || aData.employee_name || 'Staff Member',
+            advance_amount: amt,
+            disbursal_date: date,
+            recovery_month: recoveryMonth,
+            reason: reason,
+            status: status
         };
     }) : [];
 
@@ -304,7 +359,14 @@ const BusinessPayroll = () => {
         employee_name: '',
         loan_amount: '',
         emi_amount: '',
-        salary_advance: ''
+        deduction_months: ''
+    });
+
+    const [advanceForm, setAdvanceForm] = useState({
+        employee_name: '',
+        advance_amount: '',
+        reason: '',
+        recovery_month: 'Immediate (Next Payroll)'
     });
 
     // Submissions
@@ -354,8 +416,30 @@ const BusinessPayroll = () => {
                 loan_amount: loanAmt,
                 emi_amount: emiAmt,
                 remaining_balance: loanAmt,
-                salary_advance: parseFloat(loanForm.salary_advance) || 0,
                 deduction_months: months
+            }
+        });
+    };
+
+    const handleCreateAdvance = (e) => {
+        e.preventDefault();
+        const amt = parseFloat(advanceForm.advance_amount) || 0;
+        if (amt <= 0) {
+            alert('Please specify an advance amount greater than 0');
+            return;
+        }
+
+        const matchingRecord = payrollRecords.find(r => r.employee_name === advanceForm.employee_name);
+        const targetId = matchingRecord ? matchingRecord.payroll_id : 1;
+        createAdvanceMutation.mutate({
+            id: targetId,
+            data: {
+                employee_name: advanceForm.employee_name,
+                advance_amount: amt,
+                reason: advanceForm.reason || 'General Salary Advance',
+                recovery_month: advanceForm.recovery_month || 'Immediate (Next Payroll)',
+                disbursal_date: new Date().toISOString().split('T')[0],
+                status: 'Disbursed'
             }
         });
     };
@@ -380,6 +464,7 @@ const BusinessPayroll = () => {
 
     const totalCompliance = payrollRecords.reduce((sum, rec) => sum + rec.pf_deduction + rec.esi_deduction, 0);
     const totalLoanOutstanding = loans.reduce((sum, l) => sum + l.remaining_balance, 0);
+    const totalAdvanceDisbursed = salaryAdvances.reduce((sum, a) => sum + a.advance_amount, 0);
 
     return (
         <>
@@ -395,15 +480,24 @@ const BusinessPayroll = () => {
                     </div>
                     <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage monthly earnings structures, HRA allowances, EPF/ESI statutory compliance filings, TDS calculations, loans EMIs, and auto payouts.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                     <button 
                         onClick={() => {
-                            setLoanForm({ employee_name: '', loan_amount: '', emi_amount: '', salary_advance: '', deduction_months: '' });
+                            setLoanForm({ employee_name: '', loan_amount: '', emi_amount: '', deduction_months: '' });
                             setIsLoanModalOpen(true);
                         }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#059669', border: '1px solid #A7F3D0', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
                     >
                         <Sliders size={15} /> Allocate Employee Loan
+                    </button>
+                    <button 
+                        onClick={() => {
+                            setAdvanceForm({ employee_name: '', advance_amount: '', reason: '', recovery_month: 'Immediate (Next Payroll)' });
+                            setIsAdvanceModalOpen(true);
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#D97706', border: '1px solid #FDE68A', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                    >
+                        <Zap size={15} /> Disburse Salary Advance
                     </button>
                     <button 
                         onClick={() => setIsProcessModalOpen(true)}
@@ -416,11 +510,12 @@ const BusinessPayroll = () => {
 
             {/* Payroll Metrics Grid */}
             {/* Modern Payroll Left-Accent Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
                 {[
                     { label: 'Monthly Salary Expense', value: formatCurrency(totalSalaryExpense), icon: CreditCard, color: '#EC4899', bg: '#FDF2F8' },
                     { label: 'Compliance PF / ESI', value: `${formatCurrency(totalCompliance)} Filed`, icon: ShieldCheck, color: '#10B981', bg: '#ECFDF5' },
                     { label: 'Outstanding Loans', value: formatCurrency(totalLoanOutstanding), icon: Sliders, color: '#3B82F6', bg: '#EFF6FF' },
+                    { label: 'Salary Advances', value: `${formatCurrency(totalAdvanceDisbursed)} Disbursed`, icon: Zap, color: '#F59E0B', bg: '#FFFBEB' },
                     { label: 'Total Payslips', value: `${payrollRecords.length} Generated`, icon: FileText, color: '#8B5CF6', bg: '#F5F3FF' }
                 ].map((stat, idx) => (
                     <div key={idx} className="stat-card" style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '1.25rem 1.5rem 1.25rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default', position: 'relative', overflow: 'hidden', gap: '1rem' }}>
@@ -441,12 +536,13 @@ const BusinessPayroll = () => {
             </div>
 
             {/* Tab Swappers */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
                 {[
                     { id: 'run', label: 'Monthly Payroll Register', icon: FileText, gradient: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', shadowColor: 'rgba(236, 72, 153, 0.15)' },
                     { id: 'structures', label: 'Salary Structures (CTC)', icon: CreditCard, gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadowColor: 'rgba(59, 130, 246, 0.15)' },
                     { id: 'compliance', label: 'Compliance (PF / ESI / PAN)', icon: ShieldCheck, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)', shadowColor: 'rgba(139, 92, 246, 0.15)' },
-                    { id: 'loans', label: 'Loans & Salary Advances', icon: Sliders, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' }
+                    { id: 'loans', label: 'Employee Loans', icon: Sliders, gradient: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', shadowColor: 'rgba(16, 185, 129, 0.15)' },
+                    { id: 'advances', label: 'Salary Advances', icon: Zap, gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', shadowColor: 'rgba(245, 158, 11, 0.15)' }
                 ].map(tab => (
                     <button 
                         key={tab.id}
@@ -638,11 +734,14 @@ const BusinessPayroll = () => {
                 </div>
             )}
 
-            {/* Tab 4: Loans & Salary Advances */}
+            {/* Tab 4: Employee Loans */}
             {activeTab === 'loans' && (
                 <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B' }}>Active Loans & Salary Advance Balances</h3>
+                        <div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Active Employee Loans</h3>
+                            <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.25rem 0 0 0' }}>Track long-term employee loans, tenure duration, and monthly recurring EMI deductions.</p>
+                        </div>
                     </div>
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
@@ -653,14 +752,14 @@ const BusinessPayroll = () => {
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Monthly EMI deduction</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Remaining Loan Balance</th>
                                 <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Deduction Duration</th>
-                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Salary Advance</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loans.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((l, idx) => {
                                 const tenureMonths = (parseFloat(l.emi_amount) > 0) 
                                     ? Math.ceil((parseFloat(l.remaining_balance) || parseFloat(l.loan_amount)) / parseFloat(l.emi_amount)) 
-                                    : 0;
+                                    : (l.deduction_months || 0);
                                 return (
                                     <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC' }}>
                                         <td style={{ padding: '1rem', fontWeight: '800' }}>{l.employee_name}</td>
@@ -670,10 +769,78 @@ const BusinessPayroll = () => {
                                         <td style={{ padding: '1rem', fontWeight: '800', color: '#15803D' }}>
                                             {tenureMonths > 0 ? `${tenureMonths} Months` : 'N/A'}
                                         </td>
-                                        <td style={{ padding: '1rem' }}>{formatCurrency(l.salary_advance)}</td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <span style={{ 
+                                                display: 'inline-flex', alignItems: 'center', padding: '0.25rem 0.65rem', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: '800',
+                                                background: l.status === 'Repaid' ? '#DCFCE7' : '#EFF6FF',
+                                                color: l.status === 'Repaid' ? '#15803D' : '#2563EB'
+                                            }}>
+                                                {l.status}
+                                            </span>
+                                        </td>
                                     </tr>
                                 );
                             })}
+                            {loans.length === 0 && (
+                                <tr>
+                                    <td colSpan="6" style={{ padding: '2.5rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600' }}>
+                                        No active employee loans recorded. Click "Allocate Employee Loan" to add one.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Tab 5: Salary Advances */}
+            {activeTab === 'advances' && (
+                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#92400E', margin: 0 }}>Disbursed Salary Advances</h3>
+                            <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.25rem 0 0 0' }}>Manage immediate emergency payouts and advances slated for recovery in upcoming payroll cycles.</p>
+                        </div>
+                    </div>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', minWidth: '1000px', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                        <thead style={{ background: '#F8FAFC' }}>
+                            <tr>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Employee Name</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Advance Amount</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Disbursal Date</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Recovery Payroll Month</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Reason / Purpose</th>
+                                <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {salaryAdvances.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((a, idx) => (
+                                <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                    <td style={{ padding: '1rem', fontWeight: '800' }}>{a.employee_name}</td>
+                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#D97706' }}>{formatCurrency(a.advance_amount)}</td>
+                                    <td style={{ padding: '1rem', color: '#64748B' }}>{a.disbursal_date}</td>
+                                    <td style={{ padding: '1rem', fontWeight: '750', color: '#4B5563' }}>{a.recovery_month}</td>
+                                    <td style={{ padding: '1rem', color: '#64748B' }}>{a.reason}</td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <span style={{ 
+                                            display: 'inline-flex', alignItems: 'center', padding: '0.25rem 0.65rem', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: '800',
+                                            background: a.status === 'Deducted' ? '#DCFCE7' : '#FEF3C7',
+                                            color: a.status === 'Deducted' ? '#15803D' : '#B45309'
+                                        }}>
+                                            {a.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                            {salaryAdvances.length === 0 && (
+                                <tr>
+                                    <td colSpan="6" style={{ padding: '2.5rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600' }}>
+                                        No salary advances recorded. Click "Disburse Salary Advance" to disburse an advance.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                     </div>
@@ -993,26 +1160,90 @@ const BusinessPayroll = () => {
                                 )}
                             </div>
 
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(16, 185, 129, 0.25)' }}>
+                                Settle Granted Loan Allocation
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Disburse Salary Advance Modal */}
+            {isAdvanceModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(180, 83, 9, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D97706' }}>
+                                    <Zap size={20} />
+                                </div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#92400E', margin: 0 }}>Disburse Salary Advance</h3>
+                            </div>
+                            <button onClick={() => setIsAdvanceModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+
+                        <form onSubmit={handleCreateAdvance} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Immediate Salary Advance ({currency.symbol})</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Name</label>
+                                <select 
+                                    required 
+                                    value={advanceForm.employee_name} 
+                                    onChange={(e) => setAdvanceForm(prev => ({ ...prev, employee_name: e.target.value }))} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                >
+                                    <option value="">-- Select Employee --</option>
+                                    {availableEmployees.map(r => (
+                                        <option key={r.id} value={r.name}>{r.name} ({r.department || 'Staff'})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Advance Amount ({currency.symbol})</label>
                                 <input 
                                     type="number" 
-                                    min="0"
+                                    required
+                                    min="1"
                                     step="any"
                                     onKeyDown={preventNegativeKeys}
-                                    placeholder="e.g. 500"
-                                    value={loanForm.salary_advance} 
+                                    placeholder="e.g. 5000"
+                                    value={advanceForm.advance_amount} 
                                     onChange={(e) => {
                                         const raw = e.target.value;
-                                        const val = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
-                                        setLoanForm(prev => ({ ...prev, salary_advance: val }));
+                                        const amt = raw === '' ? '' : Math.max(0, parseFloat(raw) || 0);
+                                        setAdvanceForm(prev => ({ ...prev, advance_amount: amt }));
                                     }} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '1rem', fontWeight: '700' }} 
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Recovery Payroll Month</label>
+                                <select 
+                                    value={advanceForm.recovery_month} 
+                                    onChange={(e) => setAdvanceForm(prev => ({ ...prev, recovery_month: e.target.value }))} 
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
+                                >
+                                    <option value="Immediate (Next Payroll)">Immediate (Next Payroll)</option>
+                                    {monthOptions.map(m => (
+                                        <option key={m} value={m}>{m}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Reason / Purpose (Optional)</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="e.g. Medical emergency, festival advance, urgent travel"
+                                    value={advanceForm.reason} 
+                                    onChange={(e) => setAdvanceForm(prev => ({ ...prev, reason: e.target.value }))} 
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                 />
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.25)' }}>
-                                Settle Granted Loan Allocation
+                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(245, 158, 11, 0.25)' }}>
+                                Confirm Salary Advance Disbursal
                             </button>
                         </form>
                     </div>
