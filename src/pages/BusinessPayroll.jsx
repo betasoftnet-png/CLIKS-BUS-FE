@@ -157,28 +157,49 @@ const BusinessPayroll = () => {
             if (basic < 0) basic = totalAmt;
         }
 
+        const earnings = hra + spec + bonus + overtime;
+        const pf = getVal(rec.pf_deduction, 0);
+        const esi = getVal(rec.esi_deduction, 0);
+        const tds = getVal(rec.tds_deduction, 0);
+        const profTax = getVal(rec.professional_tax, 0);
+        const loan = getVal(rec.loan_deduction, 0);
+        const deductions = pf + esi + tds + profTax + loan;
+        const netPay = (basic + earnings) - deductions;
+
         return {
             payroll_id: rec.id,
             employee_id: rec.employee_id || 'EMP-001',
             employee_name: rec.employee_name || 'Arun Kumar (Sales)',
             payroll_month: rec.month || new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }),
             payroll_status: (rec.status || 'processed').toLowerCase(),
+            status: (rec.status || 'processed').toLowerCase(),
             salary_type: rec.salary_type || 'Monthly',
             basic_salary: basic,
+            base_salary: basic,
+            salary: basic,
             hra_amount: hra,
             special_allowance: spec,
             bonus_amount: bonus,
             overtime_pay: overtime,
-            pf_deduction: getVal(rec.pf_deduction, 0),
-            esi_deduction: getVal(rec.esi_deduction, 0),
-            tds_deduction: getVal(rec.tds_deduction, 0),
-            professional_tax: getVal(rec.professional_tax, 0),
-            loan_deduction: getVal(rec.loan_deduction, 0),
+            earnings: earnings,
+            total_earnings: earnings,
+            pf_deduction: pf,
+            esi_deduction: esi,
+            tds_deduction: tds,
+            professional_tax: profTax,
+            loan_deduction: loan,
+            deductions: deductions,
+            total_deductions: deductions,
+            net_pay: netPay,
+            net_take_home: netPay,
+            take_home: netPay,
             payable_days: parseInt(rec.payable_days) || 30,
             
             bank_name: bData.bank_name || emp.bank_name || rec.bank_name || 'HDFC Bank',
             account_number: bData.account_number || emp.account_number || rec.account_number || '50100223344551',
+            bank_account: `${bData.bank_name || emp.bank_name || rec.bank_name || 'HDFC Bank'} ${bData.account_number || emp.account_number || rec.account_number || ''}`,
             payslip_number: rec.payslip_number || `PSN-2026-${rec.id ? rec.id * 8 : '091'}`,
+            payslip_ref: rec.payslip_number || `PSN-2026-${rec.id ? rec.id * 8 : '091'}`,
             pan_number: addrMeta.pan_number || emp.pan_number || rec.pan_number || 'ABCDE1234F',
             uan_number: addrMeta.pf_number || emp.pf_number || rec.uan_number || '100223344111',
             esi_number: emp.esi_number || rec.esi_number || '3122334455001'
@@ -491,10 +512,6 @@ const BusinessPayroll = () => {
     ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredRecords.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((rec) => {
-                                    const gross = rec.basic_salary + rec.hra_amount + rec.special_allowance + rec.bonus_amount + rec.overtime_pay;
-                                    const deductions = rec.pf_deduction + rec.esi_deduction + rec.tds_deduction + rec.professional_tax + rec.loan_deduction;
-                                    const netPay = gross - deductions;
-
                                     return (
                                         <tr key={rec.payroll_id} style={{ borderBottom: '1px solid #F8FAFC', cursor: 'pointer', transition: 'background 0.15s' }} onClick={() => { setSelectedPayroll(rec); setIsDetailModalOpen(true); setIsEditingPayroll(false); }} onMouseOver={(e) => e.currentTarget.style.background='#F8FAFC'} onMouseOut={(e) => e.currentTarget.style.background='transparent'}>
                                             <td style={{ padding: '1.5rem 2rem' }}>
@@ -504,12 +521,12 @@ const BusinessPayroll = () => {
                                             <td style={{ padding: '1.5rem 2rem', fontWeight: '750', color: '#1E293B' }}>{rec.employee_name}</td>
                                             <td style={{ padding: '1.5rem 2rem' }}>{formatCurrency(rec.basic_salary)}</td>
                                             <td style={{ padding: '1.5rem 2rem', color: '#1B6B3A' }}>
-                                                {formatCurrency(rec.hra_amount + rec.special_allowance + rec.bonus_amount + rec.overtime_pay)}
+                                                {formatCurrency(rec.earnings)}
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', color: '#EF4444' }}>
-                                                -{formatCurrency(deductions)}
+                                                -{formatCurrency(rec.deductions)}
                                             </td>
-                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency(netPay)}</td>
+                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency(rec.net_pay)}</td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
                                                 <p style={{ fontSize: '0.9rem', fontWeight: '600' }}>{rec.bank_name}</p>
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{rec.account_number}</span>
