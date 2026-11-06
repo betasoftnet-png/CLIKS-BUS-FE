@@ -149,8 +149,64 @@ const BusinessExpenses = ({ defaultTab }) => {
         date: new Date().toISOString().split('T')[0],
         payment_mode: 'UPI',
         employee_id: '',
-        employee_name: ''
+        employee_name: '',
+        file_name: '',
+        file_type: '',
+        file_data: '',
+        file_preview_url: ''
     });
+
+    const handleSpendingBillChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert("Maximum file size is 10 MB.");
+            e.target.value = '';
+            return;
+        }
+
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+        if (!allowedTypes.includes(file.type)) {
+            alert("Invalid file type. Only JPG, JPEG, PNG, WEBP, and PDF are accepted.");
+            e.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64Data = reader.result;
+            const previewUrl = URL.createObjectURL(file);
+            setRecordSpendingForm(prev => {
+                if (prev.file_preview_url) {
+                    URL.revokeObjectURL(prev.file_preview_url);
+                }
+                return {
+                    ...prev,
+                    file_name: file.name,
+                    file_type: file.type,
+                    file_data: base64Data,
+                    file_preview_url: previewUrl
+                };
+            });
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemoveSpendingBill = () => {
+        setRecordSpendingForm(prev => {
+            if (prev.file_preview_url) {
+                URL.revokeObjectURL(prev.file_preview_url);
+            }
+            return {
+                ...prev,
+                file_name: '',
+                file_type: '',
+                file_data: '',
+                file_preview_url: ''
+            };
+        });
+    };
     
     // Auto-trigger expense modal via search instructions
     React.useEffect(() => {
@@ -346,7 +402,10 @@ const BusinessExpenses = ({ defaultTab }) => {
             tax_amount: safeTax,
             payment_mode: item.payment_mode || 'N/A',
             transaction_reference: item.transaction_reference || '-',
-            input_tax_credit: itc
+            input_tax_credit: itc,
+            proof_file_path: item.proof_file_path || '',
+            proof_file_name: item.proof_file_name || '',
+            receipt: item.receipt || ''
         };
     });
 
@@ -689,9 +748,16 @@ const BusinessExpenses = ({ defaultTab }) => {
             gst_percentage: 0,
             payment_mode: recordSpendingForm.payment_mode || 'UPI',
             transaction_reference: `SPEND-${Date.now().toString().slice(-4)}`,
-            expense_date: recordSpendingForm.date
+            expense_date: recordSpendingForm.date,
+            file_data: recordSpendingForm.file_data || null,
+            file_name: recordSpendingForm.file_name || null,
+            file_type: recordSpendingForm.file_type || null,
+            receipt: recordSpendingForm.file_name || ''
         }, {
             onSuccess: () => {
+                if (recordSpendingForm.file_preview_url) {
+                    URL.revokeObjectURL(recordSpendingForm.file_preview_url);
+                }
                 setIsRecordSpendingModalOpen(false);
             }
         });
@@ -1318,7 +1384,17 @@ const BusinessExpenses = ({ defaultTab }) => {
                                         <td style={{ padding: '0.6rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>{ex.expense_date}</td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
                                             <p style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.85rem', margin: 0 }}>{ex.category_name}</p>
-                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{ex.subcategory}</span>
+                                            <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block' }}>{ex.subcategory}</span>
+                                            {ex.proof_file_path && (
+                                                <a 
+                                                    href={getFileUrl(ex.proof_file_path)} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer" 
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#7C3AED', fontWeight: '750', fontSize: '0.7rem', textDecoration: 'none', marginTop: '2px' }}
+                                                >
+                                                    📎 View Attached Bill
+                                                </a>
+                                            )}
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.85rem' }}>{ex.payee_name}</td>
                                         <td style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>{formatCurrency(ex.subtotal)}</td>
@@ -1611,7 +1687,11 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                                  date: new Date().toISOString().split('T')[0],
                                                                  payment_mode: 'UPI',
                                                                  employee_id: '',
-                                                                 employee_name: ''
+                                                                 employee_name: '',
+                                                                 file_name: '',
+                                                                 file_type: '',
+                                                                 file_data: '',
+                                                                 file_preview_url: ''
                                                              });
                                                              setSelectedBudgetForSpend(bg);
                                                              setIsRecordSpendingModalOpen(true);
@@ -2700,147 +2780,279 @@ const BusinessExpenses = ({ defaultTab }) => {
 
             {/* Record Department Spending Modal */}
             {isRecordSpendingModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#7C3AED', margin: 0 }}>Record Department Expense</h3>
-                            <button onClick={() => setIsRecordSpendingModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1.5rem', overflowY: 'auto' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '540px', borderRadius: '24px', padding: '1.75rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '92vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+                        
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(5, 150, 105, 0.25)', flexShrink: 0 }}>
+                                    <FileText size={20} />
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Record Department Expense</h3>
+                                    <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.75rem', color: '#64748B' }}>Log verified spend, assign to member quota, and attach bill receipt.</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    if (recordSpendingForm.file_preview_url) {
+                                        URL.revokeObjectURL(recordSpendingForm.file_preview_url);
+                                    }
+                                    setIsRecordSpendingModalOpen(false);
+                                }} 
+                                style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer', color: '#64748B' }}
+                            >
+                                <X size={18} />
+                            </button>
                         </div>
 
-                        <form onSubmit={handleSaveSpending} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Category / Team Name</label>
-                                <input 
-                                    readOnly 
-                                    type="text" 
-                                    value={recordSpendingForm.category_name} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: '#F8FAFC', fontWeight: '600', color: '#64748B' }} 
-                                />
+                        {/* Department Budget Context Banner */}
+                        {selectedBudgetForSpend && (
+                            <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '14px', padding: '0.8rem 1rem', marginBottom: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', fontSize: '0.75rem' }}>
+                                <div>
+                                    <span style={{ display: 'block', color: '#64748B', fontSize: '0.68rem', fontWeight: '750', textTransform: 'uppercase' }}>Department</span>
+                                    <span style={{ fontWeight: '800', color: '#7C3AED' }}>{selectedBudgetForSpend.category_name}</span>
+                                </div>
+                                <div>
+                                    <span style={{ display: 'block', color: '#64748B', fontSize: '0.68rem', fontWeight: '750', textTransform: 'uppercase' }}>Budget Month</span>
+                                    <span style={{ fontWeight: '800', color: '#0F172A' }}>{selectedBudgetForSpend.budget_month || currentMonthStr}</span>
+                                </div>
+                                <div>
+                                    <span style={{ display: 'block', color: '#64748B', fontSize: '0.68rem', fontWeight: '750', textTransform: 'uppercase' }}>Available Limit</span>
+                                    <span style={{ fontWeight: '850', color: (selectedBudgetForSpend.remaining_amount >= 0) ? '#059669' : '#DC2626' }}>
+                                        {formatCurrency(selectedBudgetForSpend.remaining_amount !== undefined ? selectedBudgetForSpend.remaining_amount : (selectedBudgetForSpend.budget_limit - selectedBudgetForSpend.spent_amount))}
+                                    </span>
+                                </div>
                             </div>
-                            {(() => {
-                                let currentBudgetMembers = [];
-                                if (selectedBudgetForSpend) {
-                                    try {
-                                        currentBudgetMembers = typeof selectedBudgetForSpend.team_members === 'string'
-                                            ? JSON.parse(selectedBudgetForSpend.team_members || '[]')
-                                            : (selectedBudgetForSpend.team_members || []);
-                                    } catch (e) {
-                                        currentBudgetMembers = [];
-                                    }
-                                }
-                                if (currentBudgetMembers.length > 0) {
-                                    return (
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Employee *</label>
-                                            <select 
-                                                required 
-                                                value={recordSpendingForm.employee_id || ''} 
-                                                onChange={(e) => {
-                                                    const selectedId = e.target.value;
-                                                    const member = currentBudgetMembers.find(m => String(m.employee_id) === String(selectedId));
-                                                    setRecordSpendingForm(prev => ({ 
-                                                        ...prev, 
-                                                        employee_id: selectedId,
-                                                        employee_name: member ? member.name : '' 
-                                                    }));
-                                                }} 
-                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
-                                            >
-                                                <option value="">-- Choose Member --</option>
-                                                {currentBudgetMembers.map(m => (
-                                                    <option key={m.employee_id} value={m.employee_id}>
-                                                        {m.employee_id} - {m.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    );
-                                } else {
-                                    return (
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Employee Name (Manual Entry) *</label>
-                                            <input 
-                                                required
-                                                type="text" 
-                                                placeholder="e.g. Arun Kumar"
-                                                value={recordSpendingForm.employee_name || ''}
-                                                onChange={(e) => setRecordSpendingForm(prev => ({ ...prev, employee_name: e.target.value, employee_id: `MAN-${Date.now().toString().slice(-4)}` }))}
-                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600', boxSizing: 'border-box' }} 
-                                            />
-                                        </div>
-                                    );
-                                }
-                            })()}
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Amount Spent (₹) *</label>
-                                <input 
-                                    required 
-                                    type="number" 
-                                    min="1"
-                                    step="1"
-                                    placeholder="e.g. 1500" 
-                                    onKeyDown={handleSpendingKeyDown}
-                                    value={recordSpendingForm.amount} 
-                                    onChange={handleSpendingAmountChange} 
-                                    style={{ 
-                                        width: '100%', 
-                                        padding: '0.8rem', 
-                                        borderRadius: '12px', 
-                                        border: spendingAmountError ? '1px solid #F87171' : '1px solid #E2E8F0', 
-                                        background: spendingAmountError ? '#FEF2F2' : 'white',
-                                        outline: 'none', 
-                                        fontWeight: '600', 
-                                        boxSizing: 'border-box' 
-                                    }} 
-                                />
-                                {spendingAmountError && (
-                                    <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.72rem', fontWeight: '700', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        <span>⚠️</span>
-                                        <span>{spendingAmountError}</span>
-                                    </p>
-                                )}
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Description (Optional)</label>
-                                <input 
-                                    type="text" 
-                                    placeholder="e.g. Office Stationery" 
-                                    value={recordSpendingForm.description} 
-                                    onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, description: e.target.value })} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600', boxSizing: 'border-box' }} 
-                                />
+                        )}
+
+                        <form onSubmit={handleSaveSpending} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            
+                            {/* Row 1: Department & Date */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>Department / Category</label>
+                                    <input 
+                                        readOnly 
+                                        type="text" 
+                                        value={recordSpendingForm.category_name} 
+                                        style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: '#F1F5F9', fontWeight: '750', color: '#475569', fontSize: '0.82rem', boxSizing: 'border-box' }} 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>Expense Date *</label>
+                                    <input 
+                                        required 
+                                        type="date" 
+                                        value={recordSpendingForm.date} 
+                                        onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, date: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontWeight: '700', fontSize: '0.82rem', boxSizing: 'border-box' }} 
+                                    />
+                                </div>
                             </div>
 
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Date</label>
-                                <input 
-                                    required 
-                                    type="date" 
-                                    value={recordSpendingForm.date} 
-                                    onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, date: e.target.value })} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600', boxSizing: 'border-box' }} 
-                                />
+                            {/* Row 2: Team Member & Amount */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '0.75rem' }}>
+                                {(() => {
+                                    let currentBudgetMembers = [];
+                                    if (selectedBudgetForSpend) {
+                                        try {
+                                            currentBudgetMembers = typeof selectedBudgetForSpend.team_members === 'string'
+                                                ? JSON.parse(selectedBudgetForSpend.team_members || '[]')
+                                                : (selectedBudgetForSpend.team_members || []);
+                                        } catch (e) {
+                                            currentBudgetMembers = [];
+                                        }
+                                    }
+                                    if (currentBudgetMembers.length > 0) {
+                                        const effectiveLimit = parseFloat(selectedBudgetForSpend.effective_limit) || parseFloat(selectedBudgetForSpend.budget_limit) || 0;
+                                        const quotaPerMember = Math.floor(effectiveLimit / currentBudgetMembers.length);
+
+                                        return (
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>Select Team Member *</label>
+                                                <select 
+                                                    required 
+                                                    value={recordSpendingForm.employee_id || ''} 
+                                                    onChange={(e) => {
+                                                        const selectedId = e.target.value;
+                                                        const member = currentBudgetMembers.find(m => String(m.employee_id) === String(selectedId));
+                                                        setRecordSpendingForm(prev => ({ 
+                                                            ...prev, 
+                                                            employee_id: selectedId,
+                                                            employee_name: member ? member.name : '' 
+                                                        }));
+                                                    }} 
+                                                    style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontWeight: '700', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                                                >
+                                                    <option value="">-- Choose Member --</option>
+                                                    {currentBudgetMembers.map(m => {
+                                                        const mSpent = Math.max(0, Math.abs(parseFloat(m.spent) || 0));
+                                                        const mRemaining = quotaPerMember - mSpent;
+                                                        return (
+                                                            <option key={m.employee_id} value={m.employee_id}>
+                                                                {m.name} (Quota: {formatCurrency(quotaPerMember)} | Rem: {formatCurrency(mRemaining)})
+                                                            </option>
+                                                        );
+                                                    })}
+                                                </select>
+                                            </div>
+                                        );
+                                    } else {
+                                        return (
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>Staff / Employee Name *</label>
+                                                <input 
+                                                    required
+                                                    type="text" 
+                                                    placeholder="e.g. Arun Kumar"
+                                                    value={recordSpendingForm.employee_name || ''}
+                                                    onChange={(e) => setRecordSpendingForm(prev => ({ ...prev, employee_name: e.target.value, employee_id: `MAN-${Date.now().toString().slice(-4)}` }))}
+                                                    style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontWeight: '700', fontSize: '0.82rem', boxSizing: 'border-box' }} 
+                                                />
+                                            </div>
+                                        );
+                                    }
+                                })()}
+
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>Amount Spent ({currency.symbol}) *</label>
+                                    <input 
+                                        required 
+                                        type="number" 
+                                        min="1"
+                                        step="1"
+                                        placeholder="e.g. 1500" 
+                                        onKeyDown={handleSpendingKeyDown}
+                                        value={recordSpendingForm.amount} 
+                                        onChange={handleSpendingAmountChange} 
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '0.7rem 0.8rem', 
+                                            borderRadius: '10px', 
+                                            border: spendingAmountError ? '1px solid #F87171' : '1px solid #CBD5E1', 
+                                            background: spendingAmountError ? '#FEF2F2' : 'white',
+                                            outline: 'none', 
+                                            fontWeight: '800', 
+                                            fontSize: '0.95rem',
+                                            color: '#0F172A',
+                                            boxSizing: 'border-box' 
+                                        }} 
+                                    />
+                                    {spendingAmountError && (
+                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.7rem', fontWeight: '700', color: '#EF4444' }}>
+                                            ⚠️ {spendingAmountError}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Select Payment Account</label>
-                                <select 
-                                    value={recordSpendingForm.payment_mode} 
-                                    onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, payment_mode: e.target.value })} 
-                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600' }}
-                                >
-                                    <option value="UPI">UPI / Net Banking</option>
-                                    <option value="Cash">Cash in Hand</option>
-                                    <option value="Bank Transfer">Bank Transfer / Card</option>
-                                    <option value="Cheque">Cheque</option>
-                                </select>
+
+                            {/* Row 3: Payment Mode & Description */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>Payment Account / Mode</label>
+                                    <select 
+                                        value={recordSpendingForm.payment_mode} 
+                                        onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, payment_mode: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', fontWeight: '700', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                                    >
+                                        <option value="UPI">UPI / Net Banking</option>
+                                        <option value="Cash">Cash in Hand</option>
+                                        <option value="Bank Transfer">Bank Transfer / Card</option>
+                                        <option value="Cheque">Cheque</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>Expense Description</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="e.g. Printer cartridges, snacks" 
+                                        value={recordSpendingForm.description} 
+                                        onChange={(e) => setRecordSpendingForm({ ...recordSpendingForm, description: e.target.value })} 
+                                        style={{ width: '100%', padding: '0.7rem 0.8rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontWeight: '600', fontSize: '0.82rem', boxSizing: 'border-box' }} 
+                                    />
+                                </div>
                             </div>
- 
+
+                            {/* Row 4: Attach Bill / Receipt Upload Field */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>Attach Bill / Receipt Proof (Optional)</label>
+                                
+                                {!recordSpendingForm.file_name ? (
+                                    <div 
+                                        onClick={() => document.getElementById('spendingBillUploadInput').click()}
+                                        style={{ 
+                                            border: '2px dashed #CBD5E1', 
+                                            borderRadius: '12px', 
+                                            padding: '1rem', 
+                                            textAlign: 'center', 
+                                            background: '#F8FAFC', 
+                                            cursor: 'pointer',
+                                            transition: 'border-color 0.2s ease'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.borderColor = '#059669'}
+                                        onMouseLeave={(e) => e.currentTarget.style.borderColor = '#CBD5E1'}
+                                    >
+                                        <input 
+                                            type="file" 
+                                            id="spendingBillUploadInput"
+                                            accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                                            onChange={handleSpendingBillChange}
+                                            style={{ display: 'none' }}
+                                        />
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+                                            <span style={{ fontSize: '1.25rem' }}>📎</span>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#0F172A' }}>Click to upload bill or voucher receipt</span>
+                                            <span style={{ fontSize: '0.68rem', color: '#94A3B8' }}>Supported formats: JPG, PNG, WEBP, PDF (Max 10 MB)</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.9rem', background: '#ECFDF5', border: '1.5px solid #10B981', borderRadius: '12px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden' }}>
+                                            <span style={{ fontSize: '1.25rem' }}>📄</span>
+                                            <div style={{ overflow: 'hidden' }}>
+                                                <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '800', color: '#065F46', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                                                    {recordSpendingForm.file_name}
+                                                </p>
+                                                <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: '600' }}>Bill attached successfully</span>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            type="button" 
+                                            onClick={handleRemoveSpendingBill}
+                                            style={{ border: 'none', background: '#FEE2E2', color: '#B91C1C', padding: '4px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800', cursor: 'pointer', flexShrink: 0 }}
+                                        >
+                                            ✕ Remove
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Submit Button */}
                             <button 
                                 type="submit" 
                                 disabled={Boolean(spendingAmountError) || !recordSpendingForm.amount || createExpenseMutation.isPending} 
-                                style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: (Boolean(spendingAmountError) || !recordSpendingForm.amount) ? '#94A3B8' : 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: (Boolean(spendingAmountError) || !recordSpendingForm.amount) ? 'not-allowed' : 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.15)' }}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '0.85rem', 
+                                    borderRadius: '14px', 
+                                    background: (Boolean(spendingAmountError) || !recordSpendingForm.amount) ? '#94A3B8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    fontWeight: '800', 
+                                    fontSize: '1rem', 
+                                    cursor: (Boolean(spendingAmountError) || !recordSpendingForm.amount) ? 'not-allowed' : 'pointer', 
+                                    boxShadow: '0 8px 16px rgba(5, 150, 105, 0.2)',
+                                    marginTop: '0.25rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.5rem'
+                                }}
                             >
-                                {createExpenseMutation.isPending ? 'Saving...' : 'Save & Record Expense'}
+                                <CheckCircle2 size={18} />
+                                {createExpenseMutation.isPending ? 'Recording Expense...' : 'Confirm & Record Expense'}
                             </button>
                         </form>
                     </div>
