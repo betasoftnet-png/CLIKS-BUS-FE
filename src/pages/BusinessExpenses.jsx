@@ -760,7 +760,6 @@ const BusinessExpenses = ({ defaultTab }) => {
     const handleAddMember = () => {
         const empId = (memberInputMode === 'db' ? selectedEmployeeId : manualEmpId).trim();
         const empName = (memberInputMode === 'db' ? (dbEmployees.find(e => String(e.employee_id || e.id) === selectedEmployeeId)?.name || '') : manualEmpName).trim();
-        const empSalary = String(manualEmpSalary).trim();
 
         if (!empId || !empName) {
             alert('Employee ID and Name are required.');
@@ -771,15 +770,13 @@ const BusinessExpenses = ({ defaultTab }) => {
             return;
         }
 
-        const sanitizedSpent = empSalary ? Math.max(0, Math.abs(parseFloat(empSalary) || 0)) : 0;
-
+        // Newly added members start with 0 spent. Their quota is calculated equally from the total department budget.
         setNewBudgetMembers([
             ...newBudgetMembers,
             {
                 employee_id: empId,
                 name: empName,
-                salary: sanitizedSpent,
-                spent: sanitizedSpent
+                spent: 0
             }
         ]);
 
@@ -787,7 +784,6 @@ const BusinessExpenses = ({ defaultTab }) => {
         setSelectedEmployeeId('');
         setManualEmpId('');
         setManualEmpName('');
-        setManualEmpSalary('');
         setShowAddMemberForm(false);
     };
 
@@ -2128,14 +2124,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Select Employee</label>
                                                 <select 
                                                     value={selectedEmployeeId} 
-                                                    onChange={(e) => {
-                                                        const empId = e.target.value;
-                                                        setSelectedEmployeeId(empId);
-                                                        const emp = dbEmployees.find(emp => String(emp.employee_id || emp.id) === empId);
-                                                        if (emp) {
-                                                            setManualEmpSalary(emp.salary || emp.base_salary || '');
-                                                        }
-                                                    }}
+                                                    onChange={(e) => setSelectedEmployeeId(e.target.value)}
                                                     style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.8rem', fontWeight: '600' }}
                                                 >
                                                     <option value="">-- Choose Employee --</option>
@@ -2171,23 +2160,16 @@ const BusinessExpenses = ({ defaultTab }) => {
                                             </div>
                                         )}
 
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>Spent (Optional)</label>
-                                            <input 
-                                                type="number" 
-                                                min="0"
-                                                step="1"
-                                                placeholder="e.g. 25000" 
-                                                onKeyDown={(e) => {
-                                                    if (['-', '+', 'e', 'E'].includes(e.key)) {
-                                                        e.preventDefault();
-                                                    }
-                                                }}
-                                                value={manualEmpSalary} 
-                                                onChange={(e) => setManualEmpSalary(e.target.value)} 
-                                                style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.8rem', boxSizing: 'border-box' }}
-                                            />
-                                        </div>
+                                        {(() => {
+                                            const totalBudget = parseInt(newBudget.budget_limit, 10);
+                                            const nextCount = newBudgetMembers.length + 1;
+                                            const nextShare = (!isNaN(totalBudget) && totalBudget > 0) ? Math.floor(totalBudget / nextCount) : 0;
+                                            return nextShare > 0 ? (
+                                                <div style={{ background: '#FAF5FF', border: '1px solid #E9D5FF', padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.72rem', color: '#6B21A8' }}>
+                                                    💡 <strong>Equal Budget Share:</strong> Adding this member divides the {formatCurrency(totalBudget)} budget equally into <strong>{formatCurrency(nextShare)}</strong> per member ({nextCount} total).
+                                                </div>
+                                            ) : null;
+                                        })()}
 
                                         <button 
                                             type="button" 
@@ -2200,44 +2182,60 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 )}
 
                                 {/* Members List Table */}
-                                {newBudgetMembers.length > 0 ? (
-                                    <div style={{ overflowX: 'auto', marginBottom: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '10px' }}>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.78rem' }}>
-                                            <thead>
-                                                <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Employee ID</th>
-                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Name</th>
-                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Spent</th>
-                                                    <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B', textAlign: 'center' }}>Remove</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {newBudgetMembers.map(m => {
-                                                    const sanitizedSpent = Math.max(0, Math.abs(Number(m.spent) || 0));
-                                                    return (
-                                                        <tr key={m.employee_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                            <td style={{ padding: '0.4rem 0.6rem', fontWeight: '700' }}>{m.employee_id}</td>
-                                                            <td style={{ padding: '0.4rem 0.6rem' }}>{m.name}</td>
-                                                            <td style={{ padding: '0.4rem 0.6rem', color: '#64748B' }}>{m.spent !== undefined && m.spent !== null ? formatCurrency(sanitizedSpent) : '-'}</td>
-                                                            <td style={{ padding: '0.4rem 0.6rem', textAlign: 'center' }}>
-                                                                <button 
-                                                                    type="button" 
-                                                                    onClick={() => setNewBudgetMembers(newBudgetMembers.filter(member => member.employee_id !== m.employee_id))}
-                                                                    style={{ border: 'none', background: 'transparent', color: '#EF4444', fontWeight: '800', cursor: 'pointer' }}
-                                                                >
-                                                                    Delete
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                ) : (
+                                {newBudgetMembers.length > 0 ? (() => {
+                                    const totalBudget = parseInt(newBudget.budget_limit, 10);
+                                    const budgetPerMember = (!isNaN(totalBudget) && totalBudget > 0)
+                                        ? Math.floor(totalBudget / newBudgetMembers.length)
+                                        : 0;
+
+                                    return (
+                                        <div style={{ overflowX: 'auto', marginBottom: '0.75rem', border: '1px solid #E2E8F0', borderRadius: '10px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', padding: '0.5rem 0.75rem', borderBottom: '1px solid #E2E8F0', fontSize: '0.74rem' }}>
+                                                <span style={{ color: '#475569', fontWeight: '800' }}>Equal Share Allocation:</span>
+                                                <span style={{ color: '#7C3AED', fontWeight: '850' }}>{formatCurrency(budgetPerMember)} / member ({newBudgetMembers.length} {newBudgetMembers.length === 1 ? 'member' : 'members'})</span>
+                                            </div>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.78rem' }}>
+                                                <thead>
+                                                    <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                                                        <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Employee ID</th>
+                                                        <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Name</th>
+                                                        <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Equal Quota</th>
+                                                        <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B' }}>Actual Spent</th>
+                                                        <th style={{ padding: '0.4rem 0.6rem', fontWeight: '800', color: '#64748B', textAlign: 'center' }}>Remove</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {newBudgetMembers.map(m => {
+                                                        const sanitizedSpent = Math.max(0, Math.abs(Number(m.spent) || 0));
+                                                        return (
+                                                            <tr key={m.employee_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                                <td style={{ padding: '0.4rem 0.6rem', fontWeight: '700' }}>{m.employee_id}</td>
+                                                                <td style={{ padding: '0.4rem 0.6rem', fontWeight: '600' }}>{m.name}</td>
+                                                                <td style={{ padding: '0.4rem 0.6rem', color: '#7C3AED', fontWeight: '800' }}>
+                                                                    {formatCurrency(budgetPerMember)}
+                                                                </td>
+                                                                <td style={{ padding: '0.4rem 0.6rem', color: sanitizedSpent > 0 ? '#EF4444' : '#64748B', fontWeight: '700' }}>
+                                                                    {formatCurrency(sanitizedSpent)}
+                                                                </td>
+                                                                <td style={{ padding: '0.4rem 0.6rem', textAlign: 'center' }}>
+                                                                    <button 
+                                                                        type="button" 
+                                                                        onClick={() => setNewBudgetMembers(newBudgetMembers.filter(member => member.employee_id !== m.employee_id))}
+                                                                        style={{ border: 'none', background: 'transparent', color: '#EF4444', fontWeight: '800', cursor: 'pointer' }}
+                                                                    >
+                                                                        Delete
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    );
+                                })() : (
                                     <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic', marginBottom: '0.75rem' }}>No team members assigned yet.</div>
                                 )}
-
                                 {/* Auto Budget Distribution Section */}
                                 {(() => {
                                     const totalBudget = parseInt(newBudget.budget_limit, 10);
