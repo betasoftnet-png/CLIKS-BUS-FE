@@ -907,6 +907,16 @@ const BusinessStaffing = () => {
             }
         }
 
+        // ESI Number must be unique
+        const cleanEsi = (newEmp.esi_number || '').trim();
+        if (cleanEsi) {
+            const existingWithEsi = employees.find(emp => (emp.esi_number || '').trim().toLowerCase() === cleanEsi.toLowerCase());
+            if (existingWithEsi) {
+                alert(`ESI Number "${cleanEsi}" is already assigned to ${existingWithEsi.name || 'another staff member'}. ESI Number must be unique.`);
+                return;
+            }
+        }
+
         const finalEmployeeCode = (newEmp.employee_code || '').trim() || `CLK-00${(dbEmployees.length || 0) + 1}`;
         const finalDesignation = (newEmp.designation_name || '').trim() || 'Staff';
         const finalSalary = newEmp.basic_salary !== '' && newEmp.basic_salary !== undefined ? (parseFloat(newEmp.basic_salary) || 0) : 0;
@@ -1017,6 +1027,19 @@ const BusinessStaffing = () => {
         if (cleanStaffPhone && cleanEmergPhone) {
             if (cleanStaffPhone === cleanEmergPhone || (cleanStaffPhone.length >= 10 && cleanEmergPhone.length >= 10 && cleanStaffPhone.slice(-10) === cleanEmergPhone.slice(-10))) {
                 alert('Emergency contact number cannot be the same as the staff phone number. Please enter a different emergency contact number.');
+                return;
+            }
+        }
+
+        // ESI Number must be unique
+        const cleanEditEsi = (editForm.esi_number || '').trim();
+        if (cleanEditEsi) {
+            const existingWithEsi = employees.find(emp => 
+                String(emp.id) !== String(currentSelectedEmployee?.id) && 
+                (emp.esi_number || '').trim().toLowerCase() === cleanEditEsi.toLowerCase()
+            );
+            if (existingWithEsi) {
+                alert(`ESI Number "${cleanEditEsi}" is already assigned to ${existingWithEsi.name || 'another staff member'}. ESI Number must be unique.`);
                 return;
             }
         }
@@ -2060,8 +2083,29 @@ const BusinessStaffing = () => {
                                         <input type="text" value={newEmp.pf_number} onChange={(e) => setNewEmp({ ...newEmp, pf_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. MH/BAN/0011223" />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>ESI Number</label>
-                                        <input type="text" value={newEmp.esi_number} onChange={(e) => setNewEmp({ ...newEmp, esi_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 31001234560001" />
+                                        {(() => {
+                                            const val = (newEmp.esi_number || '').trim();
+                                            const dup = val ? employees.find(e => (e.esi_number || '').trim().toLowerCase() === val.toLowerCase()) : null;
+                                            return (
+                                                <>
+                                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: dup ? '#DC2626' : '#64748B', marginBottom: '0.25rem' }}>
+                                                        ESI Number {dup && '(Must be unique)'}
+                                                    </label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={newEmp.esi_number} 
+                                                        onChange={(e) => setNewEmp({ ...newEmp, esi_number: e.target.value })} 
+                                                        style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: dup ? '1.5px solid #EF4444' : '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', background: dup ? '#FEF2F2' : 'white' }} 
+                                                        placeholder="e.g. 31001234560001" 
+                                                    />
+                                                    {dup && (
+                                                        <span style={{ color: '#DC2626', fontSize: '0.68rem', fontWeight: '750', marginTop: '0.25rem', display: 'block' }}>
+                                                            ⚠️ Already assigned to {dup.name}
+                                                        </span>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '0.85rem' }}>
@@ -2425,8 +2469,29 @@ const BusinessStaffing = () => {
                                                 <input type="text" value={editForm.pf_number || ''} onChange={(e) => setEditForm({ ...editForm, pf_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
                                             </div>
                                             <div>
-                                                <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>ESI Number</label>
-                                                <input type="text" value={editForm.esi_number || ''} onChange={(e) => setEditForm({ ...editForm, esi_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. 31001234560001" />
+                                                {(() => {
+                                                    const val = (editForm.esi_number || '').trim();
+                                                    const dup = val ? employees.find(e => String(e.id) !== String(currentSelectedEmployee?.id) && (e.esi_number || '').trim().toLowerCase() === val.toLowerCase()) : null;
+                                                    return (
+                                                        <>
+                                                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: dup ? '#DC2626' : '#64748B', marginBottom: '0.25rem' }}>
+                                                                ESI Number {dup && '(Must be unique)'}
+                                                            </label>
+                                                            <input 
+                                                                type="text" 
+                                                                value={editForm.esi_number || ''} 
+                                                                onChange={(e) => setEditForm({ ...editForm, esi_number: e.target.value })} 
+                                                                style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: dup ? '1.5px solid #EF4444' : '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', background: dup ? '#FEF2F2' : 'white' }} 
+                                                                placeholder="e.g. 31001234560001" 
+                                                            />
+                                                            {dup && (
+                                                                <span style={{ color: '#DC2626', fontSize: '0.68rem', fontWeight: '750', marginTop: '0.25rem', display: 'block' }}>
+                                                                    ⚠️ Already assigned to {dup.name}
+                                                                </span>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginTop: '0.85rem' }}>
