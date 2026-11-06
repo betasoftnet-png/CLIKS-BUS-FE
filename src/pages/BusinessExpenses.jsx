@@ -350,17 +350,108 @@ const BusinessExpenses = ({ defaultTab }) => {
         };
     });
 
+    // Month options for Department Budgets
+    const monthOptions = [
+        'January 2026', 'February 2026', 'March 2026', 'April 2026',
+        'May 2026', 'June 2026', 'July 2026', 'August 2026',
+        'September 2026', 'October 2026', 'November 2026', 'December 2026',
+        'January 2027', 'February 2027', 'March 2027', 'April 2027'
+    ];
+
+    const formatMonthKey = (dateStr) => {
+        if (!dateStr) return '';
+        const trimmed = String(dateStr).trim();
+        if (/^[A-Za-z]+\s+\d{4}$/.test(trimmed)) {
+            return trimmed;
+        }
+        const d = new Date(trimmed);
+        if (isNaN(d.getTime())) return '';
+        return d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    };
+
+    const getPreviousMonthKey = (monthStr) => {
+        if (!monthStr) return null;
+        const parts = monthStr.trim().split(' ');
+        if (parts.length !== 2) return null;
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        const idx = monthNames.indexOf(parts[0]);
+        if (idx === -1) return null;
+        const year = parseInt(parts[1], 10);
+        if (idx === 0) {
+            return `December ${year - 1}`;
+        }
+        return `${monthNames[idx - 1]} ${year}`;
+    };
+
+    const currentMonthStr = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
     const budgets = dbBudgets.map(item => {
+        const budgetMonth = item.budget_month || currentMonthStr;
+        const baseLimit = parseFloat(item.budget_limit) || 0;
+        const carryForwardEnabled = item.carry_forward !== undefined ? (item.carry_forward === true || item.carry_forward === 'true') : true;
+
+        // Calculate actual spent strictly in this budget's month for this category
         const spent = expenses
-            .filter(e => (e.category_name || '').trim().toLowerCase() === (item.category_name || '').trim().toLowerCase())
+            .filter(e => {
+                const matchesCat = (e.category_name || '').trim().toLowerCase() === (item.category_name || '').trim().toLowerCase();
+                const expMonth = formatMonthKey(e.expense_date);
+                return matchesCat && expMonth === budgetMonth;
+            })
             .reduce((sum, e) => sum + e.expense_amount, 0);
+
+        // Calculate surplus carried forward from the previous month if enabled
+        let carriedForward = 0;
+        if (carryForwardEnabled) {
+            const prevMonth = getPreviousMonthKey(budgetMonth);
+            if (prevMonth) {
+                const prevBudget = dbBudgets.find(b => 
+                    (b.category_name || '').trim().toLowerCase() === (item.category_name || '').trim().toLowerCase() &&
+                    (b.budget_month || currentMonthStr) === prevMonth
+                );
+                if (prevBudget) {
+                    const prevLimit = parseFloat(prevBudget.budget_limit) || 0;
+                    const prevSpent = expenses
+                        .filter(e => {
+                            const matchesCat = (e.category_name || '').trim().toLowerCase() === (prevBudget.category_name || '').trim().toLowerCase();
+                            const expMonth = formatMonthKey(e.expense_date);
+                            return matchesCat && expMonth === prevMonth;
+                        })
+                        .reduce((sum, e) => sum + e.expense_amount, 0);
+                    
+                    // If previous month spent was less than limit, carry forward the unused surplus
+                    if (prevSpent < prevLimit) {
+                        carriedForward = prevLimit - prevSpent;
+                    }
+                }
+            }
+        }
+
+        const effectiveLimit = baseLimit + carriedForward;
+        const remaining = effectiveLimit - spent;
+        const isExceeded = spent > effectiveLimit;
+        const isOverWarning = spent >= effectiveLimit * 0.8 && spent <= effectiveLimit;
+
+        let alertStatus = 'Optimal';
+        if (isExceeded) alertStatus = 'Exceeded';
+        else if (isOverWarning) alertStatus = 'Warning';
+
         return {
             id: item.id,
             category_name: item.category_name || 'Uncategorized',
-            budget_limit: parseFloat(item.budget_limit) || 0,
+            budget_limit: baseLimit,
+            budget_month: budgetMonth,
+            carry_forward: carryForwardEnabled,
+            carried_forward: carriedForward,
+            effective_limit: effectiveLimit,
             spent_amount: spent,
+            remaining_amount: remaining,
+            is_exceeded: isExceeded,
+            is_over_warning: isOverWarning,
             team_members: item.team_members || '[]',
-            alert_status: spent >= (parseFloat(item.budget_limit) || 0) * 0.8 ? 'Warning' : 'Optimal'
+            alert_status: alertStatus
         };
     });
 
@@ -415,9 +506,13 @@ const BusinessExpenses = ({ defaultTab }) => {
         transaction_reference: ''
     });
 
+    const [selectedBudgetMonthFilter, setSelectedBudgetMonthFilter] = useState('All');
+
     const [newBudget, setNewBudget] = useState({
         category_name: '',
         budget_limit: '',
+        budget_month: currentMonthStr,
+        carry_forward: true,
         spent_amount: 0
     });
 
@@ -616,14 +711,29 @@ const BusinessExpenses = ({ defaultTab }) => {
             return;
         }
 
-        // Case-insensitive duplicate check when creating a new Department Budget / Category Group
+        const targetMonth = newBudget.budget_month || currentMonthStr;
+        const enteredName = (newBudget.category_name || '').trim().toLowerCase();
+
+        // Check duplicate department name for this specific month
         if (!editingBudget) {
-            const enteredName = (newBudget.category_name || '').trim().toLowerCase();
-            const exists = (budgets || []).some(b => (b.category_name || '').trim().toLowerCase() === enteredName) ||
-                (dbBudgets || []).some(b => (b.category_name || '').trim().toLowerCase() === enteredName);
+            const exists = (dbBudgets || []).some(b => 
+                (b.category_name || '').trim().toLowerCase() === enteredName &&
+                (b.budget_month || currentMonthStr) === targetMonth
+            );
 
             if (exists) {
-                alert("This name is already added. Please enter a new name.");
+                alert(`A department budget for "${newBudget.category_name}" already exists for ${targetMonth}. Please select a different month or edit the existing budget.`);
+                return;
+            }
+        } else {
+            const exists = (dbBudgets || []).some(b => 
+                b.id !== editingBudget.id &&
+                (b.category_name || '').trim().toLowerCase() === enteredName &&
+                (b.budget_month || currentMonthStr) === targetMonth
+            );
+
+            if (exists) {
+                alert(`A department budget for "${newBudget.category_name}" already exists for ${targetMonth}.`);
                 return;
             }
         }
@@ -636,6 +746,8 @@ const BusinessExpenses = ({ defaultTab }) => {
         const budgetData = {
             ...newBudget,
             budget_limit: String(budgetLimit),
+            budget_month: targetMonth,
+            carry_forward: newBudget.carry_forward !== false,
             team_members: sanitizedMembers
         };
         if (editingBudget) {
@@ -1377,135 +1489,213 @@ const BusinessExpenses = ({ defaultTab }) => {
             )}
 
             {/* Tab 3: Department Budgets */}
-            {activeTab === 'budget' && (
-                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem 1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Departmental Budgets & Spending Limits</h3>
-                        <button onClick={() => {
-                            setEditingBudget(null);
-                            setNewBudget({ category_name: '', budget_limit: '', spent_amount: 0 });
-                            setNewBudgetMembers([]);
-                            setShowAddMemberForm(false);
-                            setBudgetError('');
-                            setIsBudgetModalOpen(true);
-                        }} className="crm-btn" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#BE185D', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>+ Set Budget Limit</button>
-                    </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Category Group</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Team Members</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Monthly Budget</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Actual Spent</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Remaining Budget</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Spend</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {budgets.map((bg) => {
-                                    const percent = bg.budget_limit > 0 ? Math.round((bg.spent_amount / bg.budget_limit) * 100) : 0;
-                                    const isExceeded = bg.spent_amount > bg.budget_limit;
-                                    const isOverWarning = bg.spent_amount >= bg.budget_limit * 0.8 && bg.spent_amount <= bg.budget_limit;
-                                    const remaining = bg.budget_limit - bg.spent_amount;
+            {activeTab === 'budget' && (() => {
+                const filteredBudgets = budgets.filter(bg => {
+                    if (selectedBudgetMonthFilter === 'All') return true;
+                    return bg.budget_month === selectedBudgetMonthFilter;
+                });
 
-                                    let membersCount = 0;
-                                    try {
-                                        const parsed = typeof bg.team_members === 'string' ? JSON.parse(bg.team_members) : (bg.team_members || []);
-                                        membersCount = Array.isArray(parsed) ? parsed.length : 0;
-                                    } catch (e) {
-                                        membersCount = 0;
-                                    }
-
-                                    return (
-                                        <tr key={bg.id || bg.category_name} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                            <td 
-                                                style={{ padding: '0.6rem 1rem', fontWeight: '800', fontSize: '0.85rem', color: '#7C3AED', cursor: 'pointer', textDecoration: 'underline' }}
-                                                onClick={() => setViewingTeamDetails(bg)}
-                                            >
-                                                {bg.category_name}
-                                            </td>
-                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '750', fontSize: '0.85rem', color: '#475569' }}>
-                                                {membersCount} {membersCount === 1 ? 'Member' : 'Members'}
-                                            </td>
-                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.85rem' }}>{formatCurrency(bg.budget_limit)}</td>
-                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: isExceeded ? '#EF4444' : (isOverWarning ? '#F59E0B' : '#7C3AED'), fontSize: '0.85rem' }}>{formatCurrency(bg.spent_amount)}</td>
-                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: remaining >= 0 ? '#10B981' : '#EF4444', fontSize: '0.85rem' }}>
-                                                {remaining >= 0 ? formatCurrency(remaining) : `-${formatCurrency(Math.abs(remaining))}`}
-                                            </td>
-                                            <td style={{ padding: '0.6rem 1rem' }}>
-                                                <span style={{ 
-                                                    padding: '0.2rem 0.5rem', borderRadius: '6px',
-                                                    background: isExceeded ? '#FCE8E6' : (isOverWarning ? '#FEF3C7' : '#E6F4EA'),
-                                                    color: isExceeded ? '#C5221F' : (isOverWarning ? '#B45309' : '#137333'),
-                                                    fontWeight: '800', fontSize: '0.7rem'
-                                                }}>{isExceeded ? 'EXCEEDED' : (isOverWarning ? 'WARNING OVER LIMIT' : 'OPTIMAL')}</span>
-                                            </td>
-                                            <td style={{ padding: '0.6rem 1rem' }}>
-                                                <button 
-                                                    onClick={() => {
-                                                         setRecordSpendingForm({
-                                                             category_name: bg.category_name,
-                                                             amount: '',
-                                                             description: '',
-                                                             date: new Date().toISOString().split('T')[0],
-                                                             payment_mode: 'UPI',
-                                                             employee_id: '',
-                                                             employee_name: ''
-                                                         });
-                                                         setSelectedBudgetForSpend(bg);
-                                                         setIsRecordSpendingModalOpen(true);
-                                                    }}
-                                                    style={{ border: 'none', background: '#E6F4EA', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#137333', display: 'flex', alignItems: 'center', gap: '2px' }}
-                                                >
-                                                    <DollarSign size={11} /> Record Spending
-                                                </button>
-                                            </td>
-                                            <td style={{ padding: '0.6rem 1rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
-                                                <button 
-                                                    onClick={() => {
-                                                        setEditingBudget(bg);
-                                                        setNewBudget({
-                                                            category_name: bg.category_name,
-                                                            budget_limit: String(bg.budget_limit),
-                                                            spent_amount: bg.spent_amount
-                                                        });
-                                                        let members = [];
-                                                        try {
-                                                            members = typeof bg.team_members === 'string' ? JSON.parse(bg.team_members) : (bg.team_members || []);
-                                                        } catch (e) {
-                                                            members = [];
-                                                        }
-                                                        setNewBudgetMembers(members);
-                                                        setShowAddMemberForm(false);
-                                                        setBudgetError('');
-                                                        setIsBudgetModalOpen(true);
-                                                    }}
-                                                    style={{ border: 'none', background: '#E0F2FE', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#0369A1' }}
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button 
-                                                    onClick={() => {
-                                                        if (confirm("Are you sure you want to delete this budget limit?")) {
-                                                            deleteBudgetMutation.mutate(bg.id);
-                                                        }
-                                                    }}
-                                                    style={{ border: 'none', background: '#FCE8E6', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '700', color: '#C5221F' }}
-                                                >
-                                                    Delete
-                                                </button>
+                return (
+                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem 1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Departmental Budgets & Spending Limits</h3>
+                                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.75rem', color: '#64748B' }}>Track monthly department allocations, team quotas, and auto-carry forward unused balances.</p>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Month:</span>
+                                    <select
+                                        value={selectedBudgetMonthFilter}
+                                        onChange={(e) => setSelectedBudgetMonthFilter(e.target.value)}
+                                        style={{ padding: '0.4rem 0.6rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.78rem', fontWeight: '700', background: 'white', color: '#0F172A', outline: 'none' }}
+                                    >
+                                        <option value="All">All Months</option>
+                                        {monthOptions.map(m => (
+                                            <option key={m} value={m}>{m}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <button onClick={() => {
+                                    setEditingBudget(null);
+                                    setNewBudget({ 
+                                        category_name: '', 
+                                        budget_limit: '', 
+                                        budget_month: selectedBudgetMonthFilter !== 'All' ? selectedBudgetMonthFilter : currentMonthStr,
+                                        carry_forward: true,
+                                        spent_amount: 0 
+                                    });
+                                    setNewBudgetMembers([]);
+                                    setShowAddMemberForm(false);
+                                    setBudgetError('');
+                                    setIsBudgetModalOpen(true);
+                                }} className="crm-btn" style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', background: '#BE185D', color: 'white', border: 'none', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>
+                                    + Set Budget Limit
+                                </button>
+                            </div>
+                        </div>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                        <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Category Group</th>
+                                        <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Budget Month</th>
+                                        <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Members</th>
+                                        <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Monthly Budget</th>
+                                        <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Carried Forward</th>
+                                        <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Effective Limit</th>
+                                        <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Actual Spent</th>
+                                        <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Remaining Balance</th>
+                                        <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
+                                        <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'center' }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredBudgets.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={10} style={{ padding: '2rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.85rem' }}>
+                                                No department budgets found for this month filter. Click "+ Set Budget Limit" to add one.
                                             </td>
                                         </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                    ) : filteredBudgets.map((bg) => {
+                                        const isExceeded = bg.is_exceeded;
+                                        const isOverWarning = bg.is_over_warning;
+                                        const remaining = bg.remaining_amount;
+
+                                        let membersCount = 0;
+                                        try {
+                                            const parsed = typeof bg.team_members === 'string' ? JSON.parse(bg.team_members) : (bg.team_members || []);
+                                            membersCount = Array.isArray(parsed) ? parsed.length : 0;
+                                        } catch (e) {
+                                            membersCount = 0;
+                                        }
+
+                                        return (
+                                            <tr key={bg.id || `${bg.category_name}-${bg.budget_month}`} style={{ borderBottom: '1px solid #F8FAFC' }}>
+                                                <td 
+                                                    style={{ padding: '0.6rem 0.8rem', fontWeight: '800', fontSize: '0.85rem', color: '#7C3AED', cursor: 'pointer', textDecoration: 'underline' }}
+                                                    onClick={() => setViewingTeamDetails(bg)}
+                                                    title="Click to view team member quotas and allocations"
+                                                >
+                                                    {bg.category_name}
+                                                </td>
+                                                <td style={{ padding: '0.6rem 0.8rem' }}>
+                                                    <span style={{ fontSize: '0.72rem', fontWeight: '750', color: '#334155', background: '#F1F5F9', padding: '3px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+                                                        {bg.budget_month}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '0.6rem 0.8rem', fontWeight: '750', fontSize: '0.82rem', color: '#475569' }}>
+                                                    {membersCount} {membersCount === 1 ? 'Member' : 'Members'}
+                                                </td>
+                                                <td style={{ padding: '0.6rem 0.8rem', fontWeight: '700', fontSize: '0.85rem' }}>{formatCurrency(bg.budget_limit)}</td>
+                                                <td style={{ padding: '0.6rem 0.8rem', fontSize: '0.82rem' }}>
+                                                    {bg.carried_forward > 0 ? (
+                                                        <span style={{ color: '#059669', fontWeight: '800', background: '#ECFDF5', padding: '2px 6px', borderRadius: '4px' }}>
+                                                            +{formatCurrency(bg.carried_forward)}
+                                                        </span>
+                                                    ) : (
+                                                        <span style={{ color: '#94A3B8', fontWeight: '600' }}>₹0</span>
+                                                    )}
+                                                </td>
+                                                <td style={{ padding: '0.6rem 0.8rem', fontWeight: '800', fontSize: '0.85rem', color: '#0F172A' }}>
+                                                    {formatCurrency(bg.effective_limit)}
+                                                </td>
+                                                <td style={{ padding: '0.6rem 0.8rem', fontWeight: '800', color: isExceeded ? '#EF4444' : (isOverWarning ? '#F59E0B' : '#7C3AED'), fontSize: '0.85rem' }}>
+                                                    {formatCurrency(bg.spent_amount)}
+                                                </td>
+                                                <td style={{ padding: '0.6rem 0.8rem', fontWeight: '800', color: remaining >= 0 ? '#10B981' : '#EF4444', fontSize: '0.85rem' }}>
+                                                    {remaining >= 0 ? formatCurrency(remaining) : `-${formatCurrency(Math.abs(remaining))}`}
+                                                </td>
+                                                <td style={{ padding: '0.6rem 0.8rem' }}>
+                                                    <span style={{ 
+                                                        padding: '0.2rem 0.5rem', borderRadius: '6px',
+                                                        background: isExceeded ? '#FCE8E6' : (isOverWarning ? '#FEF3C7' : '#E6F4EA'),
+                                                        color: isExceeded ? '#C5221F' : (isOverWarning ? '#B45309' : '#137333'),
+                                                        fontWeight: '800', fontSize: '0.7rem',
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        {isExceeded ? `EXCEEDED (-${formatCurrency(Math.abs(remaining))})` : (isOverWarning ? 'WARNING OVER LIMIT' : 'OPTIMAL')}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '0.6rem 0.8rem', display: 'flex', gap: '0.45rem', justifyContent: 'center', alignItems: 'center' }}>
+                                                    <button 
+                                                        onClick={() => {
+                                                             setRecordSpendingForm({
+                                                                 category_name: bg.category_name,
+                                                                 amount: '',
+                                                                 description: '',
+                                                                 date: new Date().toISOString().split('T')[0],
+                                                                 payment_mode: 'UPI',
+                                                                 employee_id: '',
+                                                                 employee_name: ''
+                                                             });
+                                                             setSelectedBudgetForSpend(bg);
+                                                             setIsRecordSpendingModalOpen(true);
+                                                        }}
+                                                        style={{ 
+                                                            border: 'none', 
+                                                            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
+                                                            padding: '5px 11px', 
+                                                            borderRadius: '8px', 
+                                                            cursor: 'pointer', 
+                                                            fontSize: '0.74rem', 
+                                                            fontWeight: '800', 
+                                                            color: 'white', 
+                                                            display: 'inline-flex', 
+                                                            alignItems: 'center', 
+                                                            gap: '4px', 
+                                                            whiteSpace: 'nowrap',
+                                                            boxShadow: '0 2px 4px rgba(5, 150, 105, 0.25)' 
+                                                        }}
+                                                        title="Record an expense for this department"
+                                                    >
+                                                        <Plus size={12} strokeWidth={3} /> Record Expense
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setEditingBudget(bg);
+                                                            setNewBudget({
+                                                                category_name: bg.category_name,
+                                                                budget_limit: String(bg.budget_limit),
+                                                                budget_month: bg.budget_month || currentMonthStr,
+                                                                carry_forward: bg.carry_forward !== false,
+                                                                spent_amount: bg.spent_amount
+                                                            });
+                                                            let members = [];
+                                                            try {
+                                                                members = typeof bg.team_members === 'string' ? JSON.parse(bg.team_members) : (bg.team_members || []);
+                                                            } catch (e) {
+                                                                members = [];
+                                                            }
+                                                            setNewBudgetMembers(members);
+                                                            setShowAddMemberForm(false);
+                                                            setBudgetError('');
+                                                            setIsBudgetModalOpen(true);
+                                                        }}
+                                                        style={{ border: '1px solid #BAE6FD', background: '#F0F9FF', padding: '5px 9px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.74rem', fontWeight: '750', color: '#0369A1' }}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            if (confirm(`Are you sure you want to delete the budget for ${bg.category_name} (${bg.budget_month})?`)) {
+                                                                deleteBudgetMutation.mutate(bg.id);
+                                                            }
+                                                        }}
+                                                        style={{ border: '1px solid #FECDD3', background: '#FFF1F2', padding: '5px 9px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.74rem', fontWeight: '750', color: '#BE123C' }}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Tab 4: Reimbursement claims */}
             {activeTab === 'claims' && (
@@ -1839,33 +2029,66 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Team / Department Name</label>
                                 <input required type="text" value={newBudget.category_name} onChange={(e) => setNewBudget({ ...newBudget, category_name: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="e.g. HR Team" disabled={!!editingBudget} />
                             </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Monthly Budget ({currency.code || 'INR'}) *</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Budget Month *</label>
+                                    <select 
+                                        value={newBudget.budget_month || currentMonthStr} 
+                                        onChange={(e) => setNewBudget({ ...newBudget, budget_month: e.target.value })}
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', fontSize: '0.85rem' }}
+                                    >
+                                        {monthOptions.map(m => (
+                                            <option key={m} value={m}>{m}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Monthly Budget ({currency.code || 'INR'}) *</label>
+                                    <input 
+                                        required 
+                                        type="number" 
+                                        min="1"
+                                        step="1"
+                                        placeholder="e.g. 50000"
+                                        onKeyDown={handleBudgetKeyDown}
+                                        value={newBudget.budget_limit} 
+                                        onChange={handleBudgetChange} 
+                                        style={{ 
+                                            width: '100%', 
+                                            padding: '0.8rem', 
+                                            borderRadius: '12px', 
+                                            border: budgetError ? '1px solid #F87171' : '1px solid #E2E8F0', 
+                                            background: budgetError ? '#FEF2F2' : 'white',
+                                            outline: 'none',
+                                            boxSizing: 'border-box'
+                                        }} 
+                                    />
+                                </div>
+                            </div>
+                            {budgetError && (
+                                <p style={{ margin: '-0.5rem 0 0 0', fontSize: '0.72rem', fontWeight: '700', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span>⚠️</span>
+                                    <span>{budgetError}</span>
+                                </p>
+                            )}
+
+                            {/* Carry Forward Option */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: '#F8FAFC', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                                 <input 
-                                    required 
-                                    type="number" 
-                                    min="1"
-                                    step="1"
-                                    placeholder="e.g. 50000"
-                                    onKeyDown={handleBudgetKeyDown}
-                                    value={newBudget.budget_limit} 
-                                    onChange={handleBudgetChange} 
-                                    style={{ 
-                                        width: '100%', 
-                                        padding: '0.8rem', 
-                                        borderRadius: '12px', 
-                                        border: budgetError ? '1px solid #F87171' : '1px solid #E2E8F0', 
-                                        background: budgetError ? '#FEF2F2' : 'white',
-                                        outline: 'none',
-                                        boxSizing: 'border-box'
-                                    }} 
+                                    type="checkbox" 
+                                    id="carryForwardCheck"
+                                    checked={newBudget.carry_forward !== false} 
+                                    onChange={(e) => setNewBudget({ ...newBudget, carry_forward: e.target.checked })}
+                                    style={{ width: '16px', height: '16px', accentColor: '#BE185D', cursor: 'pointer' }}
                                 />
-                                {budgetError && (
-                                    <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.72rem', fontWeight: '700', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        <span>⚠️</span>
-                                        <span>{budgetError}</span>
-                                    </p>
-                                )}
+                                <div>
+                                    <label htmlFor="carryForwardCheck" style={{ fontSize: '0.75rem', fontWeight: '750', color: '#1E293B', cursor: 'pointer', display: 'block' }}>
+                                        Auto Carry Forward Unused Budget
+                                    </label>
+                                    <span style={{ fontSize: '0.68rem', color: '#64748B', display: 'block' }}>
+                                        If spending in previous month is less than budget, unspent balance carries forward to this month's available limit.
+                                    </span>
+                                </div>
                             </div>
 
                             {/* Team Members Section */}
@@ -2061,38 +2284,51 @@ const BusinessExpenses = ({ defaultTab }) => {
                 } catch (e) {
                     parsedMembers = [];
                 }
-                const totalBudget = parseInt(viewingTeamDetails.budget_limit, 10);
-                const budgetPerMember = (parsedMembers.length > 0 && !isNaN(totalBudget) && totalBudget > 0)
-                    ? Math.floor(totalBudget / parsedMembers.length)
+                const effectiveLimit = parseFloat(viewingTeamDetails.effective_limit) || parseFloat(viewingTeamDetails.budget_limit) || 0;
+                const budgetPerMember = (parsedMembers.length > 0 && effectiveLimit > 0)
+                    ? Math.floor(effectiveLimit / parsedMembers.length)
                     : 0;
 
                 return (
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                        <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                        <div style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '16px', padding: '1.5rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
                                 <div>
-                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{viewingTeamDetails.category_name}</h3>
-                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Team Budgets & Allocations</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{viewingTeamDetails.category_name}</h3>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '800', background: '#F1F5F9', color: '#475569', padding: '2px 8px', borderRadius: '6px' }}>{viewingTeamDetails.budget_month}</span>
+                                    </div>
+                                    <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: '600' }}>Team Budgets, Member Quotas & Allocations</span>
                                 </div>
                                 <button onClick={() => setViewingTeamDetails(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                                     <div>
-                                        <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Monthly Budget</span>
-                                        <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0F172A' }}>{formatCurrency(viewingTeamDetails.budget_limit)}</span>
+                                        <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Base Budget</span>
+                                        <span style={{ fontSize: '1rem', fontWeight: '800', color: '#0F172A' }}>{formatCurrency(viewingTeamDetails.budget_limit)}</span>
                                     </div>
                                     <div>
-                                        <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Total Spent</span>
-                                        <span style={{ fontSize: '1.1rem', fontWeight: '800', color: '#EF4444' }}>{formatCurrency(viewingTeamDetails.spent_amount)}</span>
+                                        <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Carried Forward</span>
+                                        <span style={{ fontSize: '1rem', fontWeight: '800', color: viewingTeamDetails.carried_forward > 0 ? '#059669' : '#64748B' }}>
+                                            {viewingTeamDetails.carried_forward > 0 ? `+${formatCurrency(viewingTeamDetails.carried_forward)}` : '₹0'}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Effective Limit</span>
+                                        <span style={{ fontSize: '1.1rem', fontWeight: '850', color: '#7C3AED' }}>{formatCurrency(effectiveLimit)}</span>
+                                    </div>
+                                    <div>
+                                        <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Actual Spent</span>
+                                        <span style={{ fontSize: '1.1rem', fontWeight: '850', color: viewingTeamDetails.is_exceeded ? '#EF4444' : '#0F172A' }}>{formatCurrency(viewingTeamDetails.spent_amount)}</span>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <h4 style={{ fontSize: '0.8rem', fontWeight: '800', color: '#475569', margin: '0 0 0.75rem 0', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Members & Allocations</h4>
+                                    <h4 style={{ fontSize: '0.8rem', fontWeight: '800', color: '#475569', margin: '0 0 0.75rem 0', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Members & Allocations ({parsedMembers.length})</h4>
                                     {parsedMembers.length > 0 ? (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                             {parsedMembers.map(m => {
                                                 const mSpent = Math.max(0, Math.abs(parseFloat(m.spent) || 0));
                                                 const mRemaining = budgetPerMember - mSpent;
@@ -2104,7 +2340,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                         </div>
                                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', fontSize: '0.78rem' }}>
                                                             <div>
-                                                                <span style={{ display: 'block', color: '#64748B', fontSize: '0.68rem', fontWeight: '600' }}>Budget</span>
+                                                                <span style={{ display: 'block', color: '#64748B', fontSize: '0.68rem', fontWeight: '600' }}>Quota Share</span>
                                                                 <span style={{ fontWeight: '700' }}>{formatCurrency(budgetPerMember)}</span>
                                                             </div>
                                                             <div>
@@ -2129,7 +2365,9 @@ const BusinessExpenses = ({ defaultTab }) => {
                                             })}
                                         </div>
                                     ) : (
-                                        <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>No members registered in this team.</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontStyle: 'italic', textAlign: 'center', padding: '1rem', background: '#F8FAFC', borderRadius: '10px' }}>
+                                            No team members registered yet. You can add members by clicking "Edit" on this department budget.
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -2479,7 +2717,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
                     <div style={{ background: 'white', width: '100%', maxWidth: '440px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#7C3AED', margin: 0 }}>Record Department Spending</h3>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#7C3AED', margin: 0 }}>Record Department Expense</h3>
                             <button onClick={() => setIsRecordSpendingModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
 
@@ -2616,7 +2854,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 disabled={Boolean(spendingAmountError) || !recordSpendingForm.amount || createExpenseMutation.isPending} 
                                 style={{ width: '100%', padding: '0.9rem', borderRadius: '14px', background: (Boolean(spendingAmountError) || !recordSpendingForm.amount) ? '#94A3B8' : 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', cursor: (Boolean(spendingAmountError) || !recordSpendingForm.amount) ? 'not-allowed' : 'pointer', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.15)' }}
                             >
-                                {createExpenseMutation.isPending ? 'Saving...' : 'Save Spending'}
+                                {createExpenseMutation.isPending ? 'Saving...' : 'Save & Record Expense'}
                             </button>
                         </form>
                     </div>
