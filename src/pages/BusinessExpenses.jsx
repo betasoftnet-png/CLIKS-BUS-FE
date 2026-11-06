@@ -1536,7 +1536,6 @@ const BusinessExpenses = ({ defaultTab }) => {
                                     <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
                                         <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Category Group</th>
                                         <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Budget Month</th>
-                                        <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Members</th>
                                         <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Monthly Budget</th>
                                         <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Carried Forward</th>
                                         <th style={{ padding: '0.6rem 0.8rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Effective Limit</th>
@@ -1549,7 +1548,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 <tbody>
                                     {filteredBudgets.length === 0 ? (
                                         <tr>
-                                            <td colSpan={10} style={{ padding: '2rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.85rem' }}>
+                                            <td colSpan={9} style={{ padding: '2rem', textAlign: 'center', color: '#94A3B8', fontSize: '0.85rem' }}>
                                                 No department budgets found for this month filter. Click "+ Set Budget Limit" to add one.
                                             </td>
                                         </tr>
@@ -1557,14 +1556,6 @@ const BusinessExpenses = ({ defaultTab }) => {
                                         const isExceeded = bg.is_exceeded;
                                         const isOverWarning = bg.is_over_warning;
                                         const remaining = bg.remaining_amount;
-
-                                        let membersCount = 0;
-                                        try {
-                                            const parsed = typeof bg.team_members === 'string' ? JSON.parse(bg.team_members) : (bg.team_members || []);
-                                            membersCount = Array.isArray(parsed) ? parsed.length : 0;
-                                        } catch (e) {
-                                            membersCount = 0;
-                                        }
 
                                         return (
                                             <tr key={bg.id || `${bg.category_name}-${bg.budget_month}`} style={{ borderBottom: '1px solid #F8FAFC' }}>
@@ -1579,9 +1570,6 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                     <span style={{ fontSize: '0.72rem', fontWeight: '750', color: '#334155', background: '#F1F5F9', padding: '3px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
                                                         {bg.budget_month}
                                                     </span>
-                                                </td>
-                                                <td style={{ padding: '0.6rem 0.8rem', fontWeight: '750', fontSize: '0.82rem', color: '#475569' }}>
-                                                    {membersCount} {membersCount === 1 ? 'Member' : 'Members'}
                                                 </td>
                                                 <td style={{ padding: '0.6rem 0.8rem', fontWeight: '700', fontSize: '0.85rem' }}>{formatCurrency(bg.budget_limit)}</td>
                                                 <td style={{ padding: '0.6rem 0.8rem', fontSize: '0.82rem' }}>
