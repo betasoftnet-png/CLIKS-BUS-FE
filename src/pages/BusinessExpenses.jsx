@@ -342,6 +342,19 @@ const BusinessExpenses = ({ defaultTab }) => {
         }
     });
 
+    const deleteClaimMutation = useMutation({
+        mutationFn: (id) => expensesService.deleteClaim(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['claimsList'] });
+            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            alert('Claim deleted successfully!');
+        },
+        onError: (err) => {
+            console.error('Delete claim error:', err);
+            alert(`Failed to delete claim: ${err.message || 'Error occurred'}`);
+        }
+    });
+
     const createRecurringMutation = useMutation({
         mutationFn: (data) => expensesService.createRecurring(data),
         onSuccess: () => {
@@ -1837,7 +1850,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 {filteredClaims.length > 0 ? (
                                     filteredClaims.map((cl) => {
                                         const s = (cl.reimbursement_status || '').toLowerCase().trim();
-                                        const isPending = s.includes('pending');
+                                        const isPending = !s || s.includes('pending');
                                         const isApproved = (s === 'approved' || s.includes('approved')) && !isPending;
                                         const isPaid = s === 'paid' || s.includes('paid');
                                         const isRejected = s === 'rejected' || s.includes('rejected');
@@ -1875,7 +1888,7 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                 </td>
                                                 <td style={{ padding: '0.8rem 1rem', fontWeight: '850', color: '#7C3AED', fontSize: '0.88rem' }}>{formatCurrency(cl.claim_amount)}</td>
                                                 <td style={{ padding: '0.8rem 1rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                                                    <div style={{ display: 'inline-flex', gap: '0.45rem', justifyContent: 'center', alignItems: 'center' }}>
+                                                    <div style={{ display: 'inline-flex', gap: '0.45rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
                                                         {isPending && (
                                                             <>
                                                                 <button 
@@ -1904,21 +1917,37 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                             </>
                                                         )}
                                                         {isApproved && (
-                                                            <button 
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setPayingClaimId(cl.claim_id);
-                                                                    setPaymentDetails(prev => ({
-                                                                        ...prev,
-                                                                        paymentDate: new Date().toISOString().split('T')[0]
-                                                                    }));
-                                                                    setIsPaymentModalOpen(true);
-                                                                }}
-                                                                style={{ border: 'none', background: '#E8F0FE', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '800', color: '#1A73E8', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.2s' }}
-                                                                title="Mark as Paid"
-                                                            >
-                                                                Mark as Paid
-                                                            </button>
+                                                            <>
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setPayingClaimId(cl.claim_id);
+                                                                        setPaymentDetails(prev => ({
+                                                                            ...prev,
+                                                                            paymentDate: new Date().toISOString().split('T')[0]
+                                                                        }));
+                                                                        setIsPaymentModalOpen(true);
+                                                                    }}
+                                                                    style={{ border: 'none', background: '#E8F0FE', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '800', color: '#1A73E8', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.2s' }}
+                                                                    title="Mark as Paid"
+                                                                >
+                                                                    Mark as Paid
+                                                                </button>
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const reason = prompt("Enter optional rejection reason:");
+                                                                        if (reason !== null) {
+                                                                            rejectClaimMutation.mutate({ id: cl.claim_id, reason });
+                                                                        }
+                                                                    }}
+                                                                    disabled={rejectClaimMutation.isPending}
+                                                                    style={{ border: 'none', background: '#FCE8E6', padding: '6px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '800', color: '#C5221F', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.2s' }}
+                                                                    title="Reject this claim"
+                                                                >
+                                                                    Reject
+                                                                </button>
+                                                            </>
                                                         )}
                                                         {isPaid && (
                                                             <span style={{ fontSize: '0.75rem', color: '#137333', fontWeight: '800', background: '#E6F4EA', padding: '4px 10px', borderRadius: '6px' }}>
@@ -1926,15 +1955,35 @@ const BusinessExpenses = ({ defaultTab }) => {
                                                             </span>
                                                         )}
                                                         {isRejected && (
-                                                            <span style={{ fontSize: '0.75rem', color: '#C5221F', fontWeight: '800', background: '#FCE8E6', padding: '4px 10px', borderRadius: '6px' }}>
-                                                                Rejected
-                                                            </span>
+                                                            <>
+                                                                <span style={{ fontSize: '0.75rem', color: '#C5221F', fontWeight: '800', background: '#FCE8E6', padding: '4px 10px', borderRadius: '6px' }}>
+                                                                    Rejected
+                                                                </span>
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => approveClaimMutation.mutate(cl.claim_id)}
+                                                                    disabled={approveClaimMutation.isPending}
+                                                                    style={{ border: 'none', background: '#E6F4EA', padding: '5px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '800', color: '#137333' }}
+                                                                    title="Re-approve this claim"
+                                                                >
+                                                                    Re-approve
+                                                                </button>
+                                                            </>
                                                         )}
-                                                        {!isPending && !isApproved && !isPaid && !isRejected && (
-                                                            <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '600' }}>
-                                                                {cl.reimbursement_status || 'Processed'}
-                                                            </span>
-                                                        )}
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (confirm(`Are you sure you want to delete claim ${cl.display_claim_id} (${cl.employee_name} - ${formatCurrency(cl.claim_amount)})?`)) {
+                                                                    deleteClaimMutation.mutate(cl.claim_id);
+                                                                }
+                                                            }}
+                                                            disabled={deleteClaimMutation.isPending}
+                                                            style={{ border: '1px solid #FECDD3', background: '#FFF1F2', padding: '5px 8px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: '750', color: '#BE123C', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                                                            title="Delete this claim"
+                                                        >
+                                                            <Trash size={12} />
+                                                            Delete
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>

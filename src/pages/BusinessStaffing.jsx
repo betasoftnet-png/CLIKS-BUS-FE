@@ -1758,7 +1758,7 @@ const BusinessStaffing = () => {
                                                     <div style={{ display: 'inline-flex', gap: '0.45rem', justifyContent: 'center', alignItems: 'center' }}>
                                                         {(() => {
                                                             const s = (cl.reimbursement_status || '').toLowerCase();
-                                                            const isPending = s.includes('pending');
+                                                            const isPending = !s || s.includes('pending');
                                                             const isApproved = s === 'approved';
                                                             const isPaid = s === 'paid';
                                                             const isRejected = s === 'rejected';
