@@ -163,7 +163,7 @@ export const QuickRegisterItemModal = ({
                         : 18));
             setTaxRate(`${taxVal}% GST`);
             setSku(editingProduct.sku || '');
-            setBarcode(editingProduct.barcode || generateEan13Barcode('890'));
+            setBarcode(editingProduct.barcode || '');
 
             // Fallback lookup in query cache if editingProduct doesn't have hsn_code
             let resolvedHsn = editingProduct.hsn_code || editingProduct.hsnCode || editingProduct.hsn || editingProduct.hsn_sac || editingProduct.rawProduct?.hsn_code || editingProduct.rawProduct?.hsnCode || '';
@@ -254,8 +254,8 @@ export const QuickRegisterItemModal = ({
             setCategory('General');
             setIsCustomCategory(false);
             setTaxRate('18% GST');
-            setSku(`SKU-${Date.now().toString().slice(-4)}`);
-            setBarcode(generateEan13Barcode('890'));
+            setSku('');
+            setBarcode('');
             setHsnCode('');
             setHsnQueryOverride('');
             setUserTypedHsnCode(false);
@@ -537,8 +537,8 @@ export const QuickRegisterItemModal = ({
         // Ensure category, unit, sku, barcode, and hsnCode fall back to standard defaults if left empty
         const defaultCategory = (category || '').trim() || 'General';
         const defaultUnit = (unit || '').trim() || 'PCS';
-        const defaultSku = (sku || '').trim() || `SKU-${Date.now().toString().slice(-4)}`;
-        const defaultBarcode = (barcode || '').trim() || generateEan13Barcode('890');
+        const defaultSku = (sku || '').trim() || null;
+        const defaultBarcode = (barcode || '').trim() || null;
         const defaultHsnCode = (hsnCode || '').trim() || (hsnSuggestions.length > 0 ? (hsnSuggestions[0].hsnCode || hsnSuggestions[0].hsn_code) : '');
 
         const sPrice = parseFloat(sellingPrice) || 0;
@@ -912,37 +912,15 @@ export const QuickRegisterItemModal = ({
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                         <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
-                                    <Barcode size={13} color="#059669" /> Barcode (EAN-13)
-                                </label>
-                                <button
-                                    type="button"
-                                    onClick={() => setBarcode(generateEan13Barcode('890'))}
-                                    style={{
-                                        background: '#ECFDF5',
-                                        border: '1px solid #A7F3D0',
-                                        color: '#065F46',
-                                        fontSize: '0.62rem',
-                                        fontWeight: '700',
-                                        borderRadius: '6px',
-                                        padding: '1px 5px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '2px'
-                                    }}
-                                    title="Regenerate new unique EAN-13 barcode"
-                                >
-                                    <RefreshCw size={10} /> Auto-Gen
-                                </button>
-                            </div>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                <Barcode size={13} color="#059669" /> Barcode
+                            </label>
                             <input
                                 type="text"
-                                placeholder="890XXXXXXXXXX"
+                                placeholder="Scan or enter barcode"
                                 value={barcode}
                                 onChange={(e) => setBarcode(e.target.value)}
-                                style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1.5px solid #10B981', background: '#F0FDF4', outline: 'none', fontSize: '0.85rem', fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.04em', color: '#065F46' }}
+                                style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', fontWeight: 600, background: 'white' }}
                             />
                             {barcode && (
                                 <div style={{ marginTop: '0.4rem', background: '#FFFFFF', padding: '4px', borderRadius: '8px', border: '1px solid #BBF7D0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -954,12 +932,13 @@ export const QuickRegisterItemModal = ({
                             )}
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>SKU Code</label>
+                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>SKU Code (Optional)</label>
                             <input
                                 type="text"
+                                placeholder="Enter SKU code"
                                 value={sku}
                                 onChange={(e) => setSku(e.target.value)}
-                                style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'monospace' }}
+                                style={{ width: '100%', padding: '0.75rem', boxSizing: 'border-box', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', fontWeight: 600, background: 'white' }}
                             />
                         </div>
                     </div>

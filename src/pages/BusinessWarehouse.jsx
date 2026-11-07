@@ -714,7 +714,7 @@ const BusinessWarehouse = () => {
         setTargetWarehouseForProduct(wh);
         setNewWarehouseProduct({
             name: '',
-            sku: `SKU-${Date.now().toString().slice(-6)}`,
+            sku: '',
             category: 'General',
             unit: 'PCS',
             quantity: 10,

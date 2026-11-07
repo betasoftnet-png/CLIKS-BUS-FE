@@ -392,7 +392,7 @@ const BusinessPOS = () => {
 
     const [newProductData, setNewProductData] = useState(() => ({
         name: '',
-        sku: `SKU-${Date.now().toString().slice(-4)}`,
+        sku: '',
         category: 'General',
         unit: 'PCS',
         selling_price: '',
@@ -1914,7 +1914,7 @@ const BusinessPOS = () => {
             // Clean and re-initialize auto-form
             setNewProductData({
                 name: '',
-                sku: `SKU-${Date.now().toString().slice(-4)}`,
+                sku: '',
                 category: 'General',
                 unit: 'PCS',
                 selling_price: '',
@@ -1958,7 +1958,7 @@ const BusinessPOS = () => {
             setEditingProduct(null);
             setNewProductData({
                 name: '',
-                sku: `SKU-${Date.now().toString().slice(-4)}`,
+                sku: '',
                 category: 'General',
                 selling_price: '',
                 quantity: '',

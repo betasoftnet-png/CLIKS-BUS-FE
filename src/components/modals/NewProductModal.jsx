@@ -17,7 +17,7 @@ export const NewProductModal = ({ isOpen, onClose, onSuccess, onProductCreated }
     const [form, setForm] = useState({
         name: '',
         sku: '',
-        barcode: generateEan13Barcode('890'),
+        barcode: '',
         category: 'General',
         primary_unit: 'pcs',
         purchase_price: '',
@@ -77,8 +77,8 @@ export const NewProductModal = ({ isOpen, onClose, onSuccess, onProductCreated }
             return;
         }
 
-        const generatedSku = form.sku.trim() || `SKU-${Date.now().toString().slice(-6)}`;
-        const generatedBarcode = (form.barcode || '').trim() || generateEan13Barcode('890');
+        const generatedSku = form.sku.trim() || null;
+        const generatedBarcode = (form.barcode || '').trim() || null;
         const pPrice = parseFloat(form.purchase_price) || 0;
         const sPrice = parseFloat(form.selling_price) || (pPrice > 0 ? parseFloat((pPrice * 1.2).toFixed(2)) : 0);
         const submittedTax = (form.tax_percentage !== undefined && form.tax_percentage !== null && !isNaN(parseInt(form.tax_percentage, 10))) ? parseInt(form.tax_percentage, 10) : 18;
@@ -159,7 +159,7 @@ export const NewProductModal = ({ isOpen, onClose, onSuccess, onProductCreated }
                             </label>
                             <input
                                 type="text"
-                                placeholder="Auto-generated if blank"
+                                placeholder="Enter SKU code"
                                 value={form.sku}
                                 onChange={(e) => setForm({ ...form, sku: e.target.value })}
                                 style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }}

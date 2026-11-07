@@ -703,7 +703,7 @@ const BusinessInventory = () => {
 
         const payload = {
             name: formData.name,
-            sku: formData.sku,
+            sku: (formData.sku && String(formData.sku).trim()) ? String(formData.sku).trim() : null,
             short_name: formData.short_name,
             display_name: formData.short_name,
             category: formData.category,
@@ -728,7 +728,7 @@ const BusinessInventory = () => {
             mrp: parseFloat(formData.mrp) || 0,
             discount_percentage: parseFloat(formData.discount_percentage) || 0,
             discount: parseFloat(formData.discount_percentage) || 0,
-            barcode: (formData.barcode && String(formData.barcode).trim()) || generateEan13Barcode('890'),
+            barcode: (formData.barcode && String(formData.barcode).trim()) ? String(formData.barcode).trim() : null,
             serial_number: formData.serial_number,
             batch_number: formData.batch_number,
             has_expiry: Boolean(formData.has_expiry),
@@ -1387,7 +1387,11 @@ const BusinessInventory = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                             <div>
                                 <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B' }}>{editingItem ? 'Edit Product Profile' : 'New Product Registration'}</h2>
-                                <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Code: {formData.product_code}</p>
+                                {editingItem && formData.sku ? (
+                                    <p style={{ fontSize: '0.85rem', color: '#64748B' }}>SKU: {formData.sku}</p>
+                                ) : (
+                                    <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Enter catalog details to register product</p>
+                                )}
                             </div>
                             <button onClick={closeModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
@@ -1428,8 +1432,8 @@ const BusinessInventory = () => {
                                     <input type="text" value={formData.short_name} onChange={(e) => setFormData({ ...formData, short_name: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="MacBook" />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>SKU Code</label>
-                                    <input required type="text" value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="MAC-M3-8" />
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem', textTransform: 'uppercase' }}>SKU Code (Optional)</label>
+                                    <input type="text" value={formData.sku || ''} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="e.g. MAC-M3-8" />
                                 </div>
                             </div>
 
@@ -1469,17 +1473,7 @@ const BusinessInventory = () => {
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>Barcode Number</label>
                                         <span style={{ fontSize: '0.68rem', color: '#059669', fontWeight: '700' }}>Hardware Gun Compatible</span>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <input type="text" value={formData.barcode} onChange={(e) => setFormData({ ...formData, barcode: e.target.value })} style={{ flex: 1, padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Scan/Enter barcode" />
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData({ ...formData, barcode: generateEan13Barcode('890') })}
-                                            style={{ padding: '0.75rem 0.9rem', borderRadius: '12px', border: '1px solid #BBF7D0', background: '#F0FDF4', color: '#166534', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                            title="Auto-generate 13-digit barcode"
-                                        >
-                                            🔄 Auto
-                                        </button>
-                                    </div>
+                                    <input type="text" value={formData.barcode || ''} onChange={(e) => setFormData({ ...formData, barcode: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }} placeholder="Scan or enter barcode" />
                                     {formData.barcode && (
                                         <div style={{ marginTop: '0.5rem', background: '#FFFFFF', padding: '8px', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                             <ProductBarcodeGraphic value={formData.barcode} width={1.8} height={52} fontSize={12} />
