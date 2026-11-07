@@ -887,14 +887,20 @@ const BusinessInventory = () => {
 
     // Dynamic Report Computations (Excluding Damaged Godowns & parsing valid stock metrics)
     const totalInventoryValue = items.reduce((acc, i) => {
+        const isUnlimited = Boolean(i.isUnlimited === true || i.is_unlimited === true || (parseFloat(i.quantity) >= 999999) || (parseFloat(i.opening_stock) >= 999999));
+        if (isUnlimited || i.product_type === 'service') return acc;
         const qty = parseFloat(i.quantity ?? i.current_stock ?? i.stock ?? i.opening_stock ?? 0) || 0;
         const price = parseFloat(i.purchase_price ?? i.unit_price ?? i.cost_price ?? 0) || 0;
+        if (price > 100000000 || qty > 10000000) return acc;
         return acc + (price * qty);
     }, 0);
 
     const potentialRevenue = items.reduce((acc, i) => {
+        const isUnlimited = Boolean(i.isUnlimited === true || i.is_unlimited === true || (parseFloat(i.quantity) >= 999999) || (parseFloat(i.opening_stock) >= 999999));
+        if (isUnlimited || i.product_type === 'service') return acc;
         const qty = parseFloat(i.quantity ?? i.current_stock ?? i.stock ?? i.opening_stock ?? 0) || 0;
         const price = parseFloat(i.selling_price ?? i.price ?? (i.purchase_price * 1.2) ?? 0) || 0;
+        if (price > 100000000 || qty > 10000000) return acc;
         return acc + (price * qty);
     }, 0);
 
@@ -906,36 +912,40 @@ const BusinessInventory = () => {
 
     // Total Physical Units computed accurately across all inventory items
     const totalPhysicalUnits = items.reduce((acc, i) => {
+        const isUnlimited = Boolean(i.isUnlimited === true || i.is_unlimited === true || (parseFloat(i.quantity) >= 999999) || (parseFloat(i.opening_stock) >= 999999));
+        if (isUnlimited || i.product_type === 'service') return acc;
         const qty = parseFloat(i.quantity ?? i.current_stock ?? i.stock ?? i.opening_stock ?? 0) || 0;
+        if (qty > 10000000) return acc;
         return acc + qty;
     }, 0);
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(5, 150, 105, 0.2)' }}>
                             <Package size={20} />
                         </div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Products & Inventory Suite</h1>
+                        <h1 style={{ fontSize: '1.45rem', fontWeight: '850', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Products & Inventory Suite</h1>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage product specifications, service offerings, batch expiries, warehouses, and valuations.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.82rem', fontWeight: '500', margin: 0 }}>Manage product specifications, service offerings, batch expiries, warehouses, and valuations.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button
                         onClick={() => navigate('/inventory/categories')}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            padding: '0.65rem 1.15rem', borderRadius: '10px',
-                            background: '#F0FDF4', color: '#1B6B3A', border: '1px solid #BBF7D0',
-                            fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                            display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                            padding: '0.6rem 1rem', borderRadius: '10px',
+                            background: '#F0FDF4', color: '#047857', border: '1px solid #BBF7D0',
+                            fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                            transition: 'all 0.15s'
                         }}
                         title="Configure Categories and Subcategories (e.g. Snacks > Tea, Coffee)"
                     >
-                        <FolderTree size={16} />
+                        <FolderTree size={15} />
                         Categories & Subcategories
                     </button>
                     <button
@@ -949,56 +959,50 @@ const BusinessInventory = () => {
                             setFileName('');
                         }}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            padding: '0.65rem 1.25rem', borderRadius: '10px',
-                            background: 'white', color: '#EC4899', border: '1px solid #FCE7F3',
-                            fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                            display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                            padding: '0.6rem 1rem', borderRadius: '10px',
+                            background: 'white', color: '#334155', border: '1px solid #CBD5E1',
+                            fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                            transition: 'all 0.15s'
                         }}
                     >
-                        <Download size={16} style={{ transform: 'rotate(180deg)' }} />
+                        <Download size={15} style={{ transform: 'rotate(180deg)' }} />
                         Bulk Import (CSV)
                     </button>
                     <button
                         onClick={() => { closeModal(); setIsModalOpen(true); }}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: '0.5rem',
-                            padding: '0.65rem 1.25rem', borderRadius: '10px',
-                            background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none',
-                            fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer',
-                            boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)'
+                            display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                            padding: '0.6rem 1.15rem', borderRadius: '10px',
+                            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none',
+                            fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)',
+                            transition: 'all 0.15s'
                         }}
                     >
-                        <Plus size={18} />
+                        <Plus size={16} />
                         Add Product / Service
                     </button>
                 </div>
             </div>
 
-            {/* Bento-style Stats Grid */}
-            {/* Modern Inventory Accent Stats Grid */}
-            <div className="tailwind-grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            {/* Accent Stats Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.9rem', marginBottom: '1.25rem' }}>
                 {[
-                    { label: 'Stock Valuation (Cost)', value: formatCurrency(totalInventoryValue), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
+                    { label: 'Stock Valuation (Cost)', value: formatCurrency(totalInventoryValue), icon: TrendingUp, color: '#059669', bg: '#ECFDF5' },
                     { label: 'Low Stock SKU Alerts', value: lowStockCount, icon: AlertTriangle, color: '#EF4444', bg: '#FEF2F2' },
-                    { label: 'Total Catalog SKUs', value: items.length, icon: Layers, color: '#3B82F6', bg: '#EFF6FF' },
-                    { label: 'Total Physical Units', value: totalPhysicalUnits, icon: Package, color: '#8B5CF6', bg: '#F5F3FF' }
+                    { label: 'Total Catalog SKUs', value: items.length, icon: Layers, color: '#2563EB', bg: '#EFF6FF' },
+                    { label: 'Total Physical Units', value: Number(totalPhysicalUnits.toFixed(2)), icon: Package, color: '#7C3AED', bg: '#F5F3FF' }
                 ].map((stat, idx) => (
-                    <div key={idx} className="stat-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        {/* Decorative background watermark */}
-                        <div style={{ position: 'absolute', right: '-10px', bottom: '-10px', opacity: 0.06, color: stat.color, transform: 'rotate(-15deg)' }}>
-                            <stat.icon size={70} />
+                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '0.9rem 1.15rem', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', cursor: 'default' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', minWidth: 0 }}>
+                            <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={String(stat.value)}>{stat.value}</h3>
                         </div>
-
-                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, marginBottom: '1rem', position: 'relative', zIndex: 1 }}>
-                            <stat.icon size={20} />
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                            <stat.icon size={18} />
                         </div>
-
-                        <h3 style={{ fontSize: '1.65rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.03em', margin: '0 0 0.25rem 0', position: 'relative', zIndex: 1 }}>{stat.value}</h3>
-                        <p style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em', position: 'relative', zIndex: 1 }}>{stat.label}</p>
-
-                        {/* Colored bottom border accent */}
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px', background: stat.color, opacity: 0.7 }} />
                     </div>
                 ))}
             </div>
@@ -1007,23 +1011,23 @@ const BusinessInventory = () => {
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 
                 {/* Products & Services Catalog List */}
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ position: 'relative', width: '400px' }}>
-                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+                    <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', flexWrap: 'wrap', gap: '0.75rem' }}>
+                        <div style={{ position: 'relative', minWidth: '280px', flex: 1, maxWidth: '420px' }}>
+                            <Search size={17} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input
                                 type="text"
                                 placeholder="Search by name, SKU or barcode..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                style={{ width: '100%', height: '38px', padding: '0 1rem 0 2.4rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.82rem', boxSizing: 'border-box' }}
                             />
                         </div>
-                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                             <select
                                 value={stockStatusFilter}
                                 onChange={(e) => setStockStatusFilter(e.target.value)}
-                                style={{ padding: '0.65rem 1.25rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569' }}
+                                style={{ height: '38px', padding: '0 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569', fontSize: '0.82rem', cursor: 'pointer', boxSizing: 'border-box' }}
                             >
                                 <option value="All">All Stock Status</option>
                                 <option value="In Stock">In Stock</option>
@@ -1033,7 +1037,7 @@ const BusinessInventory = () => {
                             <select
                                 value={filterCategory}
                                 onChange={(e) => setFilterCategory(e.target.value)}
-                                style={{ padding: '0.65rem 1.25rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569' }}
+                                style={{ height: '38px', padding: '0 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569', fontSize: '0.82rem', cursor: 'pointer', boxSizing: 'border-box' }}
                             >
                                 <option value="All">All Categories</option>
                                 {availableCategories.map(cat => (
@@ -1043,36 +1047,36 @@ const BusinessInventory = () => {
                         </div>
                     </div>
 
-                    <div style={{ overflowX: 'auto', padding: '1rem' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="table-fixed" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-                                { key: 'product_name', label: 'Product Details', placeholder: 'Product name' },
-                                { key: 'category', label: 'Classification', placeholder: 'Category' },
-                                { key: 'stock', label: 'Stock Level', placeholder: 'e.g. 50' },
-                                { key: 'price', label: 'Price', placeholder: 'e.g. 500' },
-                                { key: 'hsn', label: 'GST & HSN', placeholder: 'HSN code' },
-                                { key: 'status', label: 'Status', placeholder: 'e.g. Active' },
-                                { key: '_actions', label: 'Stock Actions', noFilter: true }
+                                { key: 'product_name', label: 'Product Details', placeholder: 'Product name', style: { width: '24%', minWidth: '220px' } },
+                                { key: 'category', label: 'Classification', placeholder: 'Category', style: { width: '13%', minWidth: '120px' } },
+                                { key: 'stock', label: 'Stock Level', placeholder: 'e.g. 50', style: { width: '15%', minWidth: '130px' } },
+                                { key: 'price', label: 'Price', placeholder: 'e.g. 500', style: { width: '13%', minWidth: '120px' } },
+                                { key: 'hsn', label: 'GST & HSN', placeholder: 'HSN code', style: { width: '11%', minWidth: '100px' } },
+                                { key: 'status', label: 'Status', placeholder: 'e.g. Active', style: { width: '11%', minWidth: '100px' } },
+                                { key: '_actions', label: 'Stock Actions', noFilter: true, align: 'right', style: { width: '13%', minWidth: '140px' } }
                             ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredItems.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((row) => (
-                                    <tr key={row.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: row.product_type === 'product' ? '#F0FDF4' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: row.product_type === 'product' ? '#1B6B3A' : '#1D4ED8' }}>
-                                                    <Package size={20} />
+                                    <tr key={row.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'background-color 0.15s' }}>
+                                        <td style={{ width: '24%', padding: '0.85rem 1rem', verticalAlign: 'middle', overflow: 'hidden' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                                                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: row.product_type === 'product' ? '#F0FDF4' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: row.product_type === 'product' ? '#047857' : '#1D4ED8', flexShrink: 0 }}>
+                                                    <Package size={18} />
                                                 </div>
-                                                <div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '0.25rem' }}>
-                                                        <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.95rem', margin: 0 }}>{row.name}</p>
+                                                <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '0.15rem', flexWrap: 'wrap' }}>
+                                                        <p style={{ fontWeight: '750', color: '#0F172A', fontSize: '0.88rem', margin: 0, wordBreak: 'break-word', lineHeight: 1.3 }}>{row.name}</p>
                                                         {(row.is_group_product === 1 || row.is_group_product === true || String(row.is_group_product) === '1' || (row.raw_materials && row.raw_materials !== '[]')) && (
-                                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#DCFCE7', color: '#15803D', padding: '2px 6px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#DCFCE7', color: '#15803D', padding: '2px 6px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
                                                                 <Layers size={11} /> Recipe
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
-                                                        <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                                                        <span style={{ fontSize: '0.74rem', color: '#64748B', whiteSpace: 'nowrap' }}>
                                                             {[
                                                                 row.sku ? `SKU: ${row.sku}` : null,
                                                                 `Code: ${row.product_code || 'PRO-' + row.id}`
@@ -1087,49 +1091,47 @@ const BusinessInventory = () => {
                                                                     setIsBarcodeModalOpen(true);
                                                                 }}
                                                                 style={{
-                                                                    fontSize: '0.72rem',
+                                                                    fontSize: '0.68rem',
                                                                     fontWeight: '800',
                                                                     background: '#F0FDF4',
                                                                     color: '#166534',
-                                                                    padding: '2px 8px',
-                                                                    borderRadius: '6px',
+                                                                    padding: '1px 6px',
+                                                                    borderRadius: '5px',
                                                                     border: '1px solid #BBF7D0',
                                                                     display: 'inline-flex',
                                                                     alignItems: 'center',
-                                                                    gap: '5px',
-                                                                    letterSpacing: '0.5px',
+                                                                    gap: '4px',
                                                                     cursor: 'pointer',
-                                                                    transition: 'all 0.15s'
+                                                                    whiteSpace: 'nowrap'
                                                                 }}
-                                                                title="Click to view full scannable barcode stripes for scanner gun"
+                                                                title="Click to view full scannable barcode stripes"
                                                             >
-                                                                <Barcode size={13} color="#166534" /> 
+                                                                <Barcode size={11} color="#166534" /> 
                                                                 <span>{row.barcode}</span>
-                                                                <span style={{ fontSize: '0.62rem', background: '#BBF7D0', color: '#14532D', padding: '0 4px', borderRadius: '4px' }}>Scan</span>
                                                             </button>
                                                         )}
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ width: '13%', padding: '0.85rem 1rem', verticalAlign: 'middle', overflow: 'hidden' }}>
                                             <div>
-                                                <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.9rem' }}>{row.category}</p>
-                                                <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{row.brand || 'No Brand'}</span>
+                                                <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.85rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.category || 'General'}</p>
+                                                <span style={{ fontSize: '0.74rem', color: '#94A3B8', display: 'block', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.brand || 'No Brand'}</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ width: '15%', padding: '0.85rem 1rem', verticalAlign: 'middle' }}>
                                             {row.product_type === 'service' ? (
-                                                <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: '700' }}>NO STOCK TRACKING</span>
+                                                <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: '700' }}>NO TRACKING</span>
                                             ) : (() => {
                                                 const isUnlimited = Boolean(row.isUnlimited === true || row.is_unlimited === true || (parseFloat(row.quantity) >= 999999) || (parseFloat(row.opening_stock) >= 999999));
                                                 if (isUnlimited) {
                                                     return (
                                                         <div>
-                                                            <p style={{ fontWeight: '850', color: '#1D4ED8', fontSize: '1.05rem', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            <p style={{ fontWeight: '850', color: '#1D4ED8', fontSize: '0.92rem', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                                 <span>∞ Unlimited</span>
                                                             </p>
-                                                            <span style={{ fontSize: '0.75rem', color: '#64748B' }}>No Reorder Limit</span>
+                                                            <span style={{ fontSize: '0.7rem', color: '#64748B' }}>No Reorder Limit</span>
                                                         </div>
                                                     );
                                                 }
@@ -1145,44 +1147,34 @@ const BusinessInventory = () => {
 
                                                 return (
                                                     <div>
-                                                        <p style={{ fontWeight: '850', color: isDamagedGodown ? '#DC2626' : (displayStock < minStock ? '#EF4444' : '#1E293B'), fontSize: '1.05rem', margin: 0 }}>
+                                                        <p style={{ fontWeight: '850', color: isDamagedGodown ? '#DC2626' : (displayStock < minStock ? '#EF4444' : '#1E293B'), fontSize: '0.92rem', margin: 0 }}>
                                                             {displayStock}{' '}
-                                                            <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: '600' }}>Sellable</span>
+                                                            <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600' }}>Sellable</span>
                                                         </p>
                                                         {isDamagedGodown ? (
-                                                            <span style={{ fontSize: '0.72rem', color: '#DC2626', fontWeight: '850', background: '#FEF2F2', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginTop: '2px' }}>
-                                                                ⚠️ Damaged Godown ({rawQty} Dmg)
+                                                            <span style={{ fontSize: '0.7rem', color: '#DC2626', fontWeight: '800', background: '#FEF2F2', padding: '1px 5px', borderRadius: '4px', display: 'inline-block', marginTop: '2px' }}>
+                                                                ⚠️ Damaged ({rawQty})
                                                             </span>
                                                         ) : (
-                                                            <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: '500', marginTop: '2px' }}>
-                                                                <span>
-                                                                    Min:{' '}
-                                                                    <strong style={{ color: '#475569', fontWeight: '700' }}>
-                                                                        {displayMinStock}
-                                                                    </strong>
-                                                                </span>
-                                                                <span style={{ margin: '0 4px', color: '#CBD5E1' }}>|</span>
-                                                                <span>
-                                                                    Reorder:{' '}
-                                                                    <strong style={{ color: '#475569', fontWeight: '700' }}>
-                                                                        {displayReorderLevel}
-                                                                    </strong>
-                                                                </span>
+                                                            <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: '500', marginTop: '2px', whiteSpace: 'nowrap' }}>
+                                                                <span>Min: <strong style={{ color: '#475569', fontWeight: '700' }}>{displayMinStock}</strong></span>
+                                                                <span style={{ margin: '0 3px', color: '#CBD5E1' }}>|</span>
+                                                                <span>Reorder: <strong style={{ color: '#475569', fontWeight: '700' }}>{displayReorderLevel}</strong></span>
                                                             </div>
                                                         )}
                                                     </div>
                                                 );
                                             })()}
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ width: '13%', padding: '0.85rem 1rem', verticalAlign: 'middle' }}>
                                             <div>
-                                                <p style={{ fontWeight: '700', color: '#475569', fontSize: '0.85rem' }}>Buy: {formatCurrency(row.purchase_price)}</p>
-                                                <span style={{ fontSize: '0.95rem', fontWeight: '850', color: '#064E3B' }}>Sell: {formatCurrency(row.selling_price)}</span>
+                                                <p style={{ fontWeight: '700', color: '#64748B', fontSize: '0.78rem', margin: 0 }}>Buy: {formatCurrency(row.purchase_price)}</p>
+                                                <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#064E3B', display: 'block', marginTop: '2px' }}>Sell: {formatCurrency(row.selling_price)}</span>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ width: '11%', padding: '0.85rem 1rem', verticalAlign: 'middle' }}>
                                             <div>
-                                                <p style={{ fontWeight: '700', color: '#1E293B', fontSize: '0.85rem', margin: 0 }}>
+                                                <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.8rem', margin: 0 }}>
                                                     {(() => {
                                                         const rate = row.gst_rate ?? row.gstRate ?? row.tax_rate ?? row.tax_percentage ?? row.gst_percentage ?? row.gst ?? null;
                                                         if (rate !== null && rate !== undefined && rate !== '') {
@@ -1191,24 +1183,23 @@ const BusinessInventory = () => {
                                                         return '0% GST';
                                                     })()}
                                                 </p>
-                                                <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: '500', marginTop: '2px' }}>
+                                                <div style={{ fontSize: '0.74rem', color: '#94A3B8', fontWeight: '500', marginTop: '2px' }}>
                                                     HSN: <span style={{ color: '#475569', fontWeight: '600' }}>{row.hsn ?? row.hsn_code ?? row.hsnCode ?? 'N/A'}</span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ width: '11%', padding: '0.85rem 1rem', verticalAlign: 'middle' }}>
                                             {(() => {
                                                 const isUnlimited = Boolean(row.isUnlimited === true || row.is_unlimited === true || (parseFloat(row.quantity) >= 999999) || (parseFloat(row.opening_stock) >= 999999));
                                                 if (isUnlimited) {
                                                     return (
                                                         <div style={{
-                                                            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                                                            padding: '0.4rem 0.8rem', borderRadius: '10px',
+                                                            display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                            padding: '0.25rem 0.6rem', borderRadius: '7px',
                                                             background: '#EFF6FF',
                                                             color: '#1D4ED8',
-                                                            fontSize: '0.8rem', fontWeight: '800'
+                                                            fontSize: '0.72rem', fontWeight: '800'
                                                         }}>
-                                                            <span>♾️</span>
                                                             <span>UNLIMITED</span>
                                                         </div>
                                                     );
@@ -1226,7 +1217,7 @@ const BusinessInventory = () => {
                                                 let StatusIcon = CheckCircle2;
 
                                                 if (isDamagedGodown) {
-                                                    statusText = 'DAMAGED / NON-SELLABLE';
+                                                    statusText = 'DAMAGED';
                                                     statusColor = '#DC2626';
                                                     statusBg = '#FEF2F2';
                                                     StatusIcon = AlertTriangle;
@@ -1249,30 +1240,31 @@ const BusinessInventory = () => {
 
                                                 return (
                                                     <div style={{
-                                                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                                                        padding: '0.4rem 0.8rem', borderRadius: '10px',
+                                                        display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                        padding: '0.25rem 0.6rem', borderRadius: '7px',
                                                         background: statusBg,
                                                         color: statusColor,
-                                                        fontSize: '0.8rem', fontWeight: '800'
+                                                        fontSize: '0.72rem', fontWeight: '800',
+                                                        whiteSpace: 'nowrap'
                                                     }}>
-                                                        <StatusIcon size={12} />
+                                                        <StatusIcon size={11} />
                                                         {statusText}
                                                     </div>
                                                 );
                                             })()}
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                        <td style={{ width: '13%', padding: '0.85rem 1rem', textAlign: 'right', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                            <div style={{ display: 'inline-flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
                                                 {row.product_type === 'product' && (
-                                                    <div style={{ display: 'flex', background: '#F8FAFC', padding: '3px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                                                        <button onClick={() => handleAdjust(row, 'in')} title="Induct Stock" style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#1B6B3A', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ArrowUpRight size={14} /></button>
-                                                        <button onClick={() => handleAdjust(row, 'out')} title="Deplete Stock" style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#EF4444', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '3px' }}><ArrowDownRight size={14} /></button>
-                                                        <button onClick={() => handleAdjust(row, 'damaged')} title="Mark Damaged" style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#DC2626', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '3px' }}><AlertTriangle size={14} /></button>
-                                                        <button onClick={() => handleAdjust(row, 'expired')} title="Mark Expired" style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#B45309', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '3px' }}><AlertCircle size={14} /></button>
+                                                    <div style={{ display: 'inline-flex', background: '#F8FAFC', padding: '2px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                                                        <button onClick={() => handleAdjust(row, 'in')} title="Induct Stock" style={{ width: '28px', height: '28px', borderRadius: '6px', border: 'none', background: '#059669', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><ArrowUpRight size={13} /></button>
+                                                        <button onClick={() => handleAdjust(row, 'out')} title="Deplete Stock" style={{ width: '28px', height: '28px', borderRadius: '6px', border: 'none', background: '#EF4444', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '2px' }}><ArrowDownRight size={13} /></button>
+                                                        <button onClick={() => handleAdjust(row, 'damaged')} title="Mark Damaged" style={{ width: '28px', height: '28px', borderRadius: '6px', border: 'none', background: '#DC2626', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '2px' }}><AlertTriangle size={13} /></button>
+                                                        <button onClick={() => handleAdjust(row, 'expired')} title="Mark Expired" style={{ width: '28px', height: '28px', borderRadius: '6px', border: 'none', background: '#B45309', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginLeft: '2px' }}><AlertCircle size={13} /></button>
                                                     </div>
                                                 )}
-                                                <button onClick={() => handleEdit(row)} title="Edit specifications" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={16} /></button>
-                                                <button onClick={() => handleDelete(row.id)} title="Delete product" style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                                                <button onClick={() => handleEdit(row)} title="Edit specifications" style={{ width: '30px', height: '30px', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Edit2 size={14} /></button>
+                                                <button onClick={() => handleDelete(row.id)} title="Delete product" style={{ width: '30px', height: '30px', borderRadius: '8px', border: '1px solid #FEF2F2', background: 'white', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={14} /></button>
                                             </div>
                                         </td>
                                     </tr>
