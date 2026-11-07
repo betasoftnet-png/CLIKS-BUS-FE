@@ -712,12 +712,12 @@ const BusinessSuppliers = () => {
         setGstinVerifiedData(null);
         setGstinVerifyError('');
         setFormData({
-            supplier_code: supplier.supplier_code || 'SUP-TEMP',
+            supplier_code: supplier.supplier_code || (supplier.id ? `SUP-${supplier.id}` : 'SUP-TEMP'),
             supplier_type: supplier.supplier_type || 'local',
             supplier_status: supplier.supplier_status || supplier.status || 'active',
             supplier_name: supName,
             company_name: supplier.company_name || supplier.company || '',
-            contact_person: supplier.contact_person || supName,
+            contact_person: supplier.contact_person || '',
             phone_number: supPhone,
             alternate_phone: supplier.alternate_phone || '',
             email: supEmail,
@@ -725,15 +725,15 @@ const BusinessSuppliers = () => {
             gstin: supGstin,
             pan_number: supPan,
             tax_type: supplier.tax_type || 'registered',
-            place_of_supply: supplier.place_of_supply || supplier.city || 'Maharashtra',
-            billing_address: supAddress,
+            place_of_supply: supplier.place_of_supply || supplier.state || 'Maharashtra',
+            billing_address: supplier.billing_address || supAddress,
             shipping_address: supplier.shipping_address || supAddress,
             city: supplier.city || '',
-            state: supplier.state || 'Maharashtra',
+            state: supplier.state || supplier.place_of_supply || 'Maharashtra',
             pincode: supplier.pincode || '',
             country: supplier.country || 'India',
-            opening_balance: supplier.opening_balance || 0,
-            credit_limit: supplier.credit_limit || 200000,
+            opening_balance: supplier.opening_balance !== undefined ? supplier.opening_balance : (supplier.outstanding_balance || 0),
+            credit_limit: supplier.credit_limit !== undefined ? supplier.credit_limit : 200000,
             payment_terms: supplier.payment_terms || 'Net 30',
             bank_account_number: supplier.bank_account_number || '',
             ifsc_code: supplier.ifsc_code || '',
@@ -823,11 +823,18 @@ const BusinessSuppliers = () => {
 
         const payload = {
             name: formData.supplier_name,
+            supplier_name: formData.supplier_name,
             email: formData.email,
             phone: formData.phone_number,
             company: formData.company_name,
+            contact_person: formData.contact_person,
+            supplier_type: formData.supplier_type,
+            alternate_phone: formData.alternate_phone,
+            website: formData.website,
             gstin: formData.gstin,
             pan_number: formData.pan_number,
+            tax_type: formData.tax_type,
+            place_of_supply: formData.place_of_supply,
             address: formData.billing_address || formData.shipping_address,
             billing_address: formData.billing_address,
             shipping_address: formData.shipping_address,
@@ -838,11 +845,13 @@ const BusinessSuppliers = () => {
             country: formData.country,
             credit_limit: formData.credit_limit,
             payment_terms: formData.payment_terms,
+            opening_balance: formData.opening_balance,
             outstanding_balance: formData.opening_balance,
-            total_purchased: 0,
+            total_purchased: editingSupplier ? (editingSupplier.total_purchased || 0) : 0,
             bank_account_number: formData.bank_account_number,
             ifsc_code: formData.ifsc_code,
-            upi_id: formData.upi_id
+            upi_id: formData.upi_id,
+            supplier_code: formData.supplier_code
         };
 
         if (editingSupplier) {
@@ -1221,7 +1230,7 @@ const BusinessSuppliers = () => {
                                     const supId = sup.id || sup.supplier_id;
                                     const supName = sup.name || sup.supplier_name || 'Unnamed Supplier';
                                     const supCode = sup.supplier_code || `SUP-${supId}`;
-                                    const supContact = sup.contact_person || supName;
+                                    const supContact = sup.contact_person || '—';
                                     const supPhone = sup.phone || sup.phone_number || 'N/A';
                                     const supEmail = sup.email || 'N/A';
                                     const supGstin = sup.gstin || 'Unregistered';
