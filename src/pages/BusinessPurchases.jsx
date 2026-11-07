@@ -12,6 +12,7 @@ import {
     ArrowUpRight, 
     ArrowDownRight, 
     PackageOpen,
+    Package,
     Clock,
     CheckCircle2,
     AlertTriangle,
@@ -854,17 +855,17 @@ const BusinessPurchases = () => {
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(5, 150, 105, 0.2)' }}>
                             <ShoppingCart size={20} />
                         </div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Purchases Hub</h1>
+                        <h1 style={{ fontSize: '1.45rem', fontWeight: '850', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Purchases Hub</h1>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Manage vendor procurement cycles, GST input tax credits, multi-warehouse receiving, and purchase returns.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.82rem', fontWeight: '500', margin: 0 }}>Manage vendor procurement cycles, GST input tax credits, multi-warehouse receiving, and purchase returns.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button 
                         onClick={() => { 
                             setCreateDocType('REQUISITION'); 
@@ -880,91 +881,100 @@ const BusinessPurchases = () => {
                             }));
                             setIsCreateModalOpen(true); 
                         }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.15rem', borderRadius: '10px', background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', color: 'white', border: 'none', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)' }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 1rem', borderRadius: '10px', background: '#F0FDF4', color: '#047857', border: '1px solid #BBF7D0', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer', transition: 'all 0.15s' }}
                     >
-                        <ArrowRightLeft size={15} /> Request Stock from Main Branch
+                        <ArrowRightLeft size={14} /> Request Stock
                     </button>
                     <button 
                         onClick={() => { setCreateDocType('PO'); setIsCreateModalOpen(true); }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#EC4899', border: '1px solid #FCE7F3', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 1rem', borderRadius: '10px', background: 'white', color: '#334155', border: '1px solid #CBD5E1', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', transition: 'all 0.15s' }}
                     >
-                        <Plus size={15} /> New PO
-                    </button>
-                    <button 
-                        onClick={() => { setCreateDocType('BILL'); setIsCreateModalOpen(true); }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#3B82F6', border: '1px solid #DBEAFE', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-                    >
-                        <Plus size={15} /> New Purchase Bill
+                        <Plus size={14} /> New PO
                     </button>
                     <button 
                         onClick={() => { setCreateDocType('RETURN'); setIsCreateModalOpen(true); }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'white', color: '#8B5CF6', border: '1px solid #EDE9FE', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 1rem', borderRadius: '10px', background: 'white', color: '#334155', border: '1px solid #CBD5E1', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', transition: 'all 0.15s' }}
                     >
-                        <Plus size={15} /> Purchase Return
+                        <Plus size={14} /> Purchase Return
+                    </button>
+                    <button 
+                        onClick={() => { setCreateDocType('BILL'); setIsCreateModalOpen(true); }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 1.15rem', borderRadius: '10px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)', transition: 'all 0.15s' }}
+                    >
+                        <Plus size={15} /> New Purchase Bill
                     </button>
                 </div>
             </div>
 
             {/* Vyapar ERP Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.9rem', marginBottom: '1.25rem' }}>
                 {[
-                    { label: 'Outward Procurement (At Cost)', value: formatCurrency(Math.round(totalOutwardPayments)), icon: TrendingUp, color: '#EC4899', bg: '#FDF2F8' },
-                    { label: 'Active PO Cycles', value: activePurchaseOrdersCount, icon: ShoppingCart, color: '#3B82F6', bg: '#EFF6FF' },
-                    { label: 'Claimable Input Tax Credit (ITC)', value: formatCurrency(Number(inputGstCreditSum)), icon: PercentCircle, color: '#8B5CF6', bg: '#F5F3FF' },
-                    { label: 'Refund Adjustments', value: formatCurrency(Math.round(totalReturnedRefundsSum)), icon: RefreshCw, color: '#10B981', bg: '#ECFDF5' }
+                    { label: 'Outward Procurement (At Cost)', value: formatCurrency(Math.round(totalOutwardPayments)), icon: TrendingUp, color: '#059669', bg: '#ECFDF5' },
+                    { label: 'Active PO Cycles', value: activePurchaseOrdersCount, icon: ShoppingCart, color: '#2563EB', bg: '#EFF6FF' },
+                    { label: 'Claimable Input Tax Credit (ITC)', value: formatCurrency(Number(inputGstCreditSum)), icon: PercentCircle, color: '#7C3AED', bg: '#F5F3FF' },
+                    { label: 'Refund Adjustments', value: formatCurrency(Math.round(totalReturnedRefundsSum)), icon: RefreshCw, color: '#D97706', bg: '#FFFBEB' }
                 ].map((stat, idx) => (
-                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
+                    <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '0.9rem 1.15rem', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', cursor: 'default' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                            <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
-                            <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+                            <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
                         </div>
-                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
-                            <stat.icon size={20} />
+                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                            <stat.icon size={18} />
                         </div>
                     </div>
                 ))}
             </div>
 
             {/* Navigation Tabs */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem' }}>
                 <button 
                     onClick={() => setActiveTab('purchase-orders')}
                     style={{ 
-                        padding: '0.5rem 1rem', borderRadius: '8px', 
-                        background: activeTab === 'purchase-orders' ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'white', 
+                        padding: '0.55rem 1.1rem', borderRadius: '10px', 
+                        background: activeTab === 'purchase-orders' ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' : 'white', 
                         color: activeTab === 'purchase-orders' ? 'white' : '#64748B',
-                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                        boxShadow: activeTab === 'purchase-orders' ? '0 4px 10px rgba(236, 72, 153, 0.15)' : 'none'
+                        border: '1px solid',
+                        borderColor: activeTab === 'purchase-orders' ? '#047857' : '#E2E8F0', 
+                        fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.45rem',
+                        boxShadow: activeTab === 'purchase-orders' ? '0 4px 10px rgba(5, 150, 105, 0.2)' : 'none',
+                        transition: 'all 0.15s'
                     }}
                 >
-                    <ShoppingCart size={16} /> Purchase Orders (PO)
+                    <ShoppingCart size={15} /> Purchase Orders (PO)
                 </button>
                 <button 
                     onClick={() => setActiveTab('purchase-bills')}
                     style={{ 
-                        padding: '0.5rem 1rem', borderRadius: '8px', 
-                        background: activeTab === 'purchase-bills' ? 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' : 'white', 
+                        padding: '0.55rem 1.1rem', borderRadius: '10px', 
+                        background: activeTab === 'purchase-bills' ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' : 'white', 
                         color: activeTab === 'purchase-bills' ? 'white' : '#64748B',
-                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                        boxShadow: activeTab === 'purchase-bills' ? '0 4px 10px rgba(59, 130, 246, 0.15)' : 'none'
+                        border: '1px solid',
+                        borderColor: activeTab === 'purchase-bills' ? '#047857' : '#E2E8F0', 
+                        fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.45rem',
+                        boxShadow: activeTab === 'purchase-bills' ? '0 4px 10px rgba(5, 150, 105, 0.2)' : 'none',
+                        transition: 'all 0.15s'
                     }}
                 >
-                    <FileText size={16} /> Purchase Bills & Invoices
+                    <FileText size={15} /> Purchase Bills & Invoices
                 </button>
                 <button 
                     onClick={() => setActiveTab('supplier-returns')}
                     style={{ 
-                        padding: '0.5rem 1rem', borderRadius: '8px', 
-                        background: activeTab === 'supplier-returns' ? 'linear-gradient(135deg, #10B981 0%, #047857 100%)' : 'white', 
+                        padding: '0.55rem 1.1rem', borderRadius: '10px', 
+                        background: activeTab === 'supplier-returns' ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' : 'white', 
                         color: activeTab === 'supplier-returns' ? 'white' : '#64748B',
-                        border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                        boxShadow: activeTab === 'supplier-returns' ? '0 4px 10px rgba(16, 185, 129, 0.15)' : 'none'
+                        border: '1px solid',
+                        borderColor: activeTab === 'supplier-returns' ? '#047857' : '#E2E8F0', 
+                        fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '0.45rem',
+                        boxShadow: activeTab === 'supplier-returns' ? '0 4px 10px rgba(5, 150, 105, 0.2)' : 'none',
+                        transition: 'all 0.15s'
                     }}
                 >
-                    <RefreshCw size={16} /> Purchase Returns (Suppliers)
+                    <RefreshCw size={15} /> Purchase Returns (Suppliers)
                 </button>
             </div>
             
@@ -973,29 +983,29 @@ const BusinessPurchases = () => {
 
             {/* Tab 1: Purchase Orders (PO) */}
             {activeTab === 'purchase-orders' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ position: 'relative', width: '300px' }}>
-                            <Search size={20} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+                    <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', flexWrap: 'wrap', gap: '0.75rem' }}>
+                        <div style={{ position: 'relative', minWidth: '280px', flex: 1, maxWidth: '420px' }}>
+                            <Search size={17} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input 
                                 type="text" 
                                 placeholder="Search suppliers or order numbers..." 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 3.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', outline: 'none' }}
+                                style={{ width: '100%', height: '38px', padding: '0 1rem 0 2.4rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.82rem', boxSizing: 'border-box' }}
                             />
                         </div>
-                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                             <input 
                                 type="date" 
                                 value={dateFilter}
                                 onChange={(e) => setDateFilter(e.target.value)}
-                                style={{ padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#475569' }}
+                                style={{ height: '38px', padding: '0 0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '600', color: '#475569', fontSize: '0.82rem', boxSizing: 'border-box' }}
                             />
                             <select 
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                style={{ padding: '0.65rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569' }}
+                                style={{ height: '38px', padding: '0 0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700', color: '#475569', fontSize: '0.82rem', cursor: 'pointer', boxSizing: 'border-box' }}
                             >
                                 <option value="All">All Status</option>
                                 <option value="Pending">Pending</option>
@@ -1005,64 +1015,74 @@ const BusinessPurchases = () => {
                                 <option value="Partial">Partial</option>
                                 <option value="Cancelled">Cancelled</option>
                             </select>
-                            <button style={{ width: '42px', height: '42px', borderRadius: '14px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                                <Filter size={20} />
+                            <button 
+                                onClick={() => { setSearchTerm(''); setDateFilter(''); setStatusFilter('All'); setColFilters({}); }}
+                                title="Reset all filters"
+                                style={{ height: '38px', width: '38px', borderRadius: '10px', border: '1px solid #E2E8F0', background: 'white', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.15s' }}
+                            >
+                                <Filter size={16} />
                             </button>
                         </div>
                     </div>
 
-                    <div style={{ overflowX: 'auto', padding: '1rem' }}>
+                    <div style={{ overflowX: 'auto' }}>
                         <table className="table-fixed" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-        { key: 'po_number', label: 'PO Details', placeholder: 'PO No', style: { width: '18%' } },
-        { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier', style: { width: '20%' } },
-        { key: 'items', label: 'Items', placeholder: 'Item', style: { width: '25%' } },
-        { key: 'total', label: 'Outward Payables', placeholder: 'e.g. 5000', style: { width: '14%' } },
-        { key: 'status', label: 'Status', placeholder: 'e.g. Pending', style: { width: '13%' } },
-        { key: '_actions', label: 'Actions', noFilter: true, align: 'right', style: { width: '10%' } }
-    ]} onFilterChange={setColFilters} />
+                                { key: 'po_number', label: 'PO Details', placeholder: 'PO No', style: { width: '16%' } },
+                                { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier', style: { width: '20%' } },
+                                { key: 'items', label: 'Items', placeholder: 'Item', style: { width: '22%' } },
+                                { key: 'total', label: 'Outward Payables', placeholder: 'e.g. 5000', style: { width: '14%' } },
+                                { key: 'status', label: 'Status', placeholder: 'e.g. Pending', style: { width: '15%' } },
+                                { key: '_actions', label: 'Actions', noFilter: true, align: 'right', style: { width: '13%' } }
+                            ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredPOs.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((po) => (
                                     <tr key={po.purchase_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td className="align-top" style={{ width: '18%', padding: '1.25rem 1.5rem', verticalAlign: 'top', overflow: 'hidden' }}>
-                                            <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{po.purchase_number}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#64748B', display: 'block', marginTop: '4px' }}>Date: {po.purchase_date} | Due: {po.due_date}</span>
+                                        <td className="align-top" style={{ width: '16%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
+                                            <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.9rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{po.purchase_number}</p>
+                                            <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginTop: '3px' }}>Date: {po.purchase_date} | Due: {po.due_date}</span>
                                         </td>
-                                        <td className="align-top" style={{ width: '20%', padding: '1.25rem 1.5rem', verticalAlign: 'top', overflow: 'hidden' }}>
-                                            <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.9rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{po.supplier_name}</p>
+                                        <td className="align-top" style={{ width: '20%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
+                                            <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.88rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{po.supplier_name}</p>
                                             {(po.purchase_type === 'INTERNAL' || po.purchase_type === 'REQUISITION' || String(po.supplier_name || '').toLowerCase().includes('main showroom')) ? (
-                                                <span style={{ fontSize: '0.75rem', color: '#6366F1', fontWeight: '800', display: 'block', marginTop: '4px' }}>
+                                                <span style={{ fontSize: '0.74rem', color: '#6366F1', fontWeight: '800', display: 'block', marginTop: '3px' }}>
                                                     🏬 For: {po.branch_name || 'Branch Showroom'}
                                                 </span>
                                             ) : (
-                                                <span style={{ fontSize: '0.8rem', color: '#94A3B8', display: 'block', marginTop: '4px' }}>GSTIN: {po.supplier_gstin || 'Unregistered'}</span>
+                                                <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block', marginTop: '3px' }}>GSTIN: {po.supplier_gstin || 'Unregistered'}</span>
                                             )}
                                         </td>
-                                        <td className="align-top" style={{ width: '25%', padding: '1.25rem 1.5rem', verticalAlign: 'top' }}>
-                                            <div className="max-h-24 overflow-y-auto" style={{ maxHeight: '6rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem', paddingRight: '0.25rem' }}>
-                                                {po.items.map((item, idx) => (
-                                                    <div key={idx} style={{ background: '#F8FAFC', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #F1F5F9', fontSize: '0.8rem' }}>
-                                                        <p style={{ fontWeight: '700', color: '#334155', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product_name}</p>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontSize: '0.72rem', marginTop: '2px' }}>
-                                                            <span>Ord: {item.quantity}</span>
-                                                            <span style={{ color: '#059669', fontWeight: '700' }}>Rec: {item.received_quantity !== undefined && item.received_quantity !== null && item.received_quantity !== '' ? item.received_quantity : item.quantity} {item.primary_unit || 'pcs'}</span>
+                                        <td className="align-top" style={{ width: '22%', padding: '0.85rem 1rem', verticalAlign: 'top' }}>
+                                            {Array.isArray(po.items) && po.items.length > 0 ? (
+                                                <div className="max-h-24 overflow-y-auto" style={{ maxHeight: '5.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingRight: '0.25rem' }}>
+                                                    {po.items.map((item, idx) => (
+                                                        <div key={idx} style={{ background: '#F8FAFC', padding: '0.3rem 0.5rem', borderRadius: '7px', border: '1px solid #F1F5F9', fontSize: '0.78rem' }}>
+                                                            <p style={{ fontWeight: '700', color: '#334155', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product_name || item.name || 'Product'}</p>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontSize: '0.7rem', marginTop: '1px' }}>
+                                                                <span>Ord: {item.quantity}</span>
+                                                                <span style={{ color: '#059669', fontWeight: '700' }}>Rec: {item.received_quantity !== undefined && item.received_quantity !== null && item.received_quantity !== '' ? item.received_quantity : item.quantity} {item.primary_unit || 'pcs'}</span>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <span style={{ color: '#94A3B8', fontSize: '0.76rem', fontStyle: 'italic', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                    <Package size={13} style={{ color: '#CBD5E1' }} /> Direct Purchase
+                                                </span>
+                                            )}
                                         </td>
-                                        <td className="align-top" style={{ width: '14%', padding: '1.25rem 1.5rem', verticalAlign: 'top', overflow: 'hidden' }}>
+                                        <td className="align-top" style={{ width: '14%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
                                             {(() => {
                                                 const totals = computeDocTotals(po.items, po.shipping_charge);
                                                 return (
                                                     <div>
-                                                        <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '1.05rem', margin: 0, whiteSpace: 'nowrap' }}>{formatCurrency(totals.grand_total)}</p>
-                                                        <span style={{ fontSize: '0.75rem', color: '#B45309', fontWeight: '700', display: 'block', marginTop: '4px' }}>Paid Adv: {formatCurrency(po.advance_amount)}</span>
+                                                        <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.98rem', margin: 0, whiteSpace: 'nowrap' }}>{formatCurrency(totals.grand_total)}</p>
+                                                        <span style={{ fontSize: '0.72rem', color: '#B45309', fontWeight: '700', display: 'block', marginTop: '2px' }}>Paid Adv: {formatCurrency(po.advance_amount)}</span>
                                                     </div>
                                                 );
                                             })()}
                                         </td>
-                                        <td className="align-top" style={{ width: '13%', padding: '1.25rem 1.5rem', verticalAlign: 'top' }}>
+                                        <td className="align-top" style={{ width: '15%', padding: '0.85rem 1rem', verticalAlign: 'top' }}>
                                             {(() => {
                                                 const isInternal = po.purchase_type === 'INTERNAL' || po.purchase_type === 'REQUISITION' || String(po.supplier_name || '').toLowerCase().includes('main showroom');
                                                 const statusType = po.supplier_response_type || po.supplier_confirmation_status || po.status;
@@ -1079,7 +1099,7 @@ const BusinessPurchases = () => {
 
                                                 let badgeBg = '#FFFBEB';
                                                 let badgeColor = '#B45309';
-                                                let badgeIcon = <Clock size={13} />;
+                                                let badgeIcon = <Clock size={12} />;
                                                 let badgeText = 'SENT TO SUPPLIER (PENDING)';
                                                 let statusMessage = 'Awaiting Supplier Confirmation';
 
@@ -1087,77 +1107,77 @@ const BusinessPurchases = () => {
                                                     if (po.status === 'Completed') {
                                                         badgeBg = '#F0FDF4';
                                                         badgeColor = '#15803D';
-                                                        badgeIcon = <CheckCircle2 size={13} />;
+                                                        badgeIcon = <CheckCircle2 size={12} />;
                                                         badgeText = 'FULFILLED & TRANSFERRED';
-                                                        statusMessage = `Stock successfully dispatched to ${po.branch_name || 'Branch'}.`;
+                                                        statusMessage = `Stock transferred to ${po.branch_name || 'Branch'}.`;
                                                     } else {
                                                         badgeBg = '#EEF2FF';
                                                         badgeColor = '#4338CA';
-                                                        badgeIcon = <Clock size={13} />;
-                                                        badgeText = 'STOCK REQUISITION (PENDING DISPATCH)';
-                                                        statusMessage = `Requested by ${po.branch_name || 'Branch'}. Awaiting Main Showroom dispatch.`;
+                                                        badgeIcon = <Clock size={12} />;
+                                                        badgeText = 'STOCK REQUISITION';
+                                                        statusMessage = `Awaiting Main Showroom dispatch.`;
                                                     }
                                                 } else if (isConfirmed) {
                                                     badgeBg = '#F0FDF4';
                                                     badgeColor = '#15803D';
-                                                    badgeIcon = <CheckCircle2 size={13} />;
+                                                    badgeIcon = <CheckCircle2 size={12} />;
                                                     badgeText = 'CONFIRMED BY SUPPLIER';
-                                                    statusMessage = 'Supplier has confirmed your order.';
+                                                    statusMessage = 'Supplier has confirmed order.';
                                                 } else if (isProductSent) {
                                                     badgeBg = '#F0FDF4';
                                                     badgeColor = '#15803D';
-                                                    badgeIcon = <CheckCircle2 size={13} />;
-                                                    badgeText = 'SUPPLIER SENT PRODUCT SUCCESSFULLY';
-                                                    statusMessage = 'Supplier sent the product successfully.';
+                                                    badgeIcon = <CheckCircle2 size={12} />;
+                                                    badgeText = 'PRODUCT SENT';
+                                                    statusMessage = 'Supplier dispatched product.';
                                                 } else if (isSupplierDeclined) {
                                                     badgeBg = '#FEF2F2';
                                                     badgeColor = '#DC2626';
-                                                    badgeIcon = <X size={13} />;
-                                                    badgeText = 'SUPPLIER DECLINED ORDER';
+                                                    badgeIcon = <X size={12} />;
+                                                    badgeText = 'SUPPLIER DECLINED';
                                                     statusMessage = 'Supplier declined the order.';
                                                 } else if (isDateDeclined) {
                                                     badgeBg = '#FEF2F2';
                                                     badgeColor = '#DC2626';
-                                                    badgeIcon = <X size={13} />;
-                                                    badgeText = 'DATE DECLINED BY CUSTOMER';
-                                                    statusMessage = 'You did not accept the proposed available date. Process stopped.';
+                                                    badgeIcon = <X size={12} />;
+                                                    badgeText = 'DATE DECLINED';
+                                                    statusMessage = 'Proposed date not accepted.';
                                                 } else if (isDateAccepted) {
                                                     badgeBg = '#EFF6FF';
                                                     badgeColor = '#1D4ED8';
-                                                    badgeIcon = <CheckCircle2 size={13} />;
-                                                    badgeText = 'DATE ACCEPTED — WAITING FOR SUPPLIER DISPATCH';
-                                                    statusMessage = 'You accepted the proposed available date. Awaiting supplier action.';
+                                                    badgeIcon = <CheckCircle2 size={12} />;
+                                                    badgeText = 'DATE ACCEPTED';
+                                                    statusMessage = 'Awaiting supplier dispatch.';
                                                 } else if (isPartiallyAccepted) {
                                                     badgeBg = '#F0FDF4';
                                                     badgeColor = '#15803D';
-                                                    badgeIcon = <CheckCircle2 size={13} />;
-                                                    badgeText = 'PARTIAL QUANTITY ACCEPTED';
-                                                    statusMessage = po.supplier_status_message || 'You accepted the partial quantity.';
+                                                    badgeIcon = <CheckCircle2 size={12} />;
+                                                    badgeText = 'PARTIAL ACCEPTED';
+                                                    statusMessage = po.supplier_status_message || 'Partial quantity accepted.';
                                                 } else if (isPartiallyRejected) {
                                                     badgeBg = '#FEF2F2';
                                                     badgeColor = '#DC2626';
-                                                    badgeIcon = <X size={13} />;
-                                                    badgeText = 'PARTIAL QUANTITY REJECTED';
-                                                    statusMessage = po.supplier_status_message || 'You rejected the partial quantity.';
+                                                    badgeIcon = <X size={12} />;
+                                                    badgeText = 'PARTIAL REJECTED';
+                                                    statusMessage = po.supplier_status_message || 'Partial quantity rejected.';
                                                 } else if (isPartiallyAvailable) {
                                                     badgeBg = '#FFF7ED';
                                                     badgeColor = '#C2410C';
-                                                    badgeIcon = <AlertTriangle size={13} />;
-                                                    badgeText = 'PARTIALLY AVAILABLE / WAITING FOR BUYER RESPONSE';
-                                                    statusMessage = po.supplier_status_message || 'Supplier can provide only a smaller quantity.';
+                                                    badgeIcon = <AlertTriangle size={12} />;
+                                                    badgeText = 'PARTIAL AVAILABLE';
+                                                    statusMessage = po.supplier_status_message || 'Supplier has partial quantity.';
                                                 } else if (isNotAvailable) {
                                                     badgeBg = '#FEF2F2';
                                                     badgeColor = '#DC2626';
-                                                    badgeIcon = <X size={13} />;
-                                                    badgeText = 'PRODUCT NOT AVAILABLE / WAITING FOR BUYER RESPONSE';
-                                                    statusMessage = po.supplier_status_message || 'Product not available — Waiting for buyer response.';
+                                                    badgeIcon = <X size={12} />;
+                                                    badgeText = 'NOT AVAILABLE';
+                                                    statusMessage = po.supplier_status_message || 'Product not available.';
                                                 } else if (isAvailableLater) {
                                                     badgeBg = '#EFF6FF';
                                                     badgeColor = '#1D4ED8';
-                                                    badgeIcon = <Clock size={13} />;
+                                                    badgeIcon = <Clock size={12} />;
                                                     const expDate = po.expected_available_date ? po.expected_available_date : '';
-                                                    badgeText = expDate ? `WAITING FOR SUPPLIER — AVAILABLE ON ${expDate}` : 'WAITING FOR SUPPLIER — AVAILABLE LATER';
-                                                    statusMessage = expDate ? `Expected to become available on ${expDate}.` : (po.supplier_status_message || 'Waiting for supplier availability.');
+                                                    badgeText = expDate ? `AVAILABLE ON ${expDate}` : 'AVAILABLE LATER';
+                                                    statusMessage = expDate ? `Available on ${expDate}.` : (po.supplier_status_message || 'Waiting for availability.');
                                                 }
 
                                                 // Parse items breakdown if supplier provided partial availability
@@ -1167,31 +1187,31 @@ const BusinessPurchases = () => {
                                                     const firstIt = itemList[0];
                                                     const totalAvailQty = (firstIt && firstIt.available_quantity !== undefined && firstIt.available_quantity !== null) ? firstIt.available_quantity : 80;
                                                     itemsBreakdown = (
-                                                        <div style={{ marginTop: '0.4rem', background: '#FFF7ED', border: '1px solid #FFEDD5', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
-                                                            <strong style={{ fontSize: '0.72rem', color: '#9A3412', display: 'block', marginBottom: '0.2rem' }}>Quantity Breakdown:</strong>
+                                                        <div style={{ marginTop: '0.35rem', background: '#FFF7ED', border: '1px solid #FFEDD5', padding: '0.4rem 0.6rem', borderRadius: '7px' }}>
+                                                            <strong style={{ fontSize: '0.7rem', color: '#9A3412', display: 'block', marginBottom: '0.15rem' }}>Breakdown:</strong>
                                                             {itemList.map((it, idx) => {
                                                                 const reqQty = it.quantity || 1;
                                                                 const availQty = it.available_quantity !== undefined && it.available_quantity !== null ? it.available_quantity : reqQty;
                                                                 return (
-                                                                    <div key={idx} style={{ fontSize: '0.72rem', color: '#C2410C', fontWeight: '700' }}>
-                                                                        • {it.product_name || it.name || 'Item'}: Requested {reqQty} | Available {availQty}
+                                                                    <div key={idx} style={{ fontSize: '0.68rem', color: '#C2410C', fontWeight: '700' }}>
+                                                                        • {it.product_name || it.name || 'Item'}: Req {reqQty} | Avail {availQty}
                                                                     </div>
                                                                 );
                                                             })}
-                                                            <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                            <div style={{ marginTop: '0.35rem', display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
                                                                 <button
                                                                     type="button"
                                                                     onClick={(e) => { e.stopPropagation(); handleBuyerRespondPartial(po, 'ACCEPT'); }}
-                                                                    style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', border: 'none', background: '#10B981', color: 'white', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                                                    style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', border: 'none', background: '#10B981', color: 'white', fontWeight: '700', fontSize: '0.7rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                                                                 >
-                                                                    <CheckCircle2 size={13} /> Accept {totalAvailQty} Qty
+                                                                    <CheckCircle2 size={11} /> Accept {totalAvailQty}
                                                                 </button>
                                                                 <button
                                                                     type="button"
                                                                     onClick={(e) => { e.stopPropagation(); handleBuyerRespondPartial(po, 'REJECT'); }}
-                                                                    style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', border: '1px solid #EF4444', background: '#FEF2F2', color: '#DC2626', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                                                    style={{ padding: '0.25rem 0.55rem', borderRadius: '6px', border: '1px solid #EF4444', background: '#FEF2F2', color: '#DC2626', fontWeight: '700', fontSize: '0.7rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                                                                 >
-                                                                    <X size={13} /> Reject {totalAvailQty} Qty
+                                                                    <X size={11} /> Reject
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -1202,24 +1222,24 @@ const BusinessPurchases = () => {
                                                 if (isAvailableLater) {
                                                     const expDateStr = po.expected_available_date || '28-08-2026';
                                                     datePrompt = (
-                                                        <div style={{ marginTop: '0.4rem', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '0.65rem 0.85rem', borderRadius: '10px' }}>
-                                                            <p style={{ margin: '0 0 0.4rem 0', fontSize: '0.8rem', fontWeight: '800', color: '#1E40AF' }}>
-                                                                Are you okay with the supplier being available on {expDateStr}?
+                                                        <div style={{ marginTop: '0.35rem', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '0.45rem 0.65rem', borderRadius: '8px' }}>
+                                                            <p style={{ margin: '0 0 0.3rem 0', fontSize: '0.75rem', fontWeight: '750', color: '#1E40AF' }}>
+                                                                Available on {expDateStr}?
                                                             </p>
-                                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
                                                                 <button
                                                                     type="button"
                                                                     onClick={(e) => { e.stopPropagation(); handleBuyerRespondDate(po, 'ACCEPT_DATE'); }}
-                                                                    style={{ padding: '0.35rem 0.85rem', borderRadius: '8px', border: 'none', background: '#10B981', color: 'white', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                                                    style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: 'none', background: '#10B981', color: 'white', fontWeight: '750', fontSize: '0.72rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                                                                 >
-                                                                    <CheckCircle2 size={13} /> Yes
+                                                                    <CheckCircle2 size={11} /> Yes
                                                                 </button>
                                                                 <button
                                                                     type="button"
                                                                     onClick={(e) => { e.stopPropagation(); handleBuyerRespondDate(po, 'REJECT_DATE'); }}
-                                                                    style={{ padding: '0.35rem 0.85rem', borderRadius: '8px', border: '1px solid #EF4444', background: '#FEF2F2', color: '#DC2626', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                                                                    style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #EF4444', background: '#FEF2F2', color: '#DC2626', fontWeight: '750', fontSize: '0.72rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                                                                 >
-                                                                    <X size={13} /> No
+                                                                    <X size={11} /> No
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -1227,18 +1247,18 @@ const BusinessPurchases = () => {
                                                 }
 
                                                 return (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                                         <div style={{ 
-                                                            display: 'inline-flex', alignItems: 'center', gap: '0.4rem', 
-                                                            padding: '0.35rem 0.75rem', borderRadius: '10px',
+                                                            display: 'inline-flex', alignItems: 'center', gap: '0.3rem', 
+                                                            padding: '0.25rem 0.6rem', borderRadius: '7px',
                                                             background: badgeBg,
                                                             color: badgeColor,
-                                                            fontSize: '0.78rem', fontWeight: '800', width: 'fit-content'
+                                                            fontSize: '0.72rem', fontWeight: '800', width: 'fit-content'
                                                         }}>
                                                             {badgeIcon}
                                                             {badgeText}
                                                         </div>
-                                                        <span style={{ fontSize: '0.75rem', color: badgeColor, fontWeight: '700' }}>
+                                                        <span style={{ fontSize: '0.72rem', color: badgeColor, fontWeight: '600' }}>
                                                             {statusMessage}
                                                         </span>
                                                         {itemsBreakdown}
@@ -1247,16 +1267,16 @@ const BusinessPurchases = () => {
                                                 );
                                             })()}
                                         </td>
-                                        <td className="align-top" style={{ width: '10%', padding: '1.25rem 1.5rem', textAlign: 'right', verticalAlign: 'top' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
+                                        <td className="align-middle" style={{ width: '13%', padding: '0.85rem 1rem', textAlign: 'right', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                            <div style={{ display: 'inline-flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
                                                 {(() => {
                                                     const isInternal = po.purchase_type === 'INTERNAL' || po.purchase_type === 'REQUISITION' || String(po.supplier_name || '').toLowerCase().includes('main showroom');
                                                     
                                                     if (isInternal) {
                                                         if (po.status === 'Completed') {
                                                             return (
-                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: '800', fontSize: '0.8rem' }}>
-                                                                    <CheckCircle2 size={16} /> Dispatched
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: '800', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                                                                    <CheckCircle2 size={15} /> Dispatched
                                                                 </span>
                                                             );
                                                         }
@@ -1271,27 +1291,32 @@ const BusinessPurchases = () => {
                                                                 disabled={fulfillRequisitionMutation.isPending}
                                                                 title="Accept Requisition & Transfer Stock from Main Showroom to Branch"
                                                                 style={{ 
-                                                                    padding: '0.45rem 0.85rem', 
-                                                                    borderRadius: '10px', 
+                                                                    padding: '0.45rem 0.8rem', 
+                                                                    borderRadius: '8px', 
                                                                     border: 'none', 
                                                                     background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', 
                                                                     color: 'white', 
                                                                     fontWeight: '750', 
-                                                                    fontSize: '0.8rem', 
+                                                                    fontSize: '0.78rem', 
                                                                     cursor: fulfillRequisitionMutation.isPending ? 'not-allowed' : 'pointer', 
                                                                     display: 'inline-flex', 
                                                                     alignItems: 'center', 
-                                                                    gap: '0.4rem',
-                                                                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)'
+                                                                    gap: '0.35rem',
+                                                                    whiteSpace: 'nowrap',
+                                                                    boxShadow: '0 2px 6px rgba(99, 102, 241, 0.25)'
                                                                 }}
                                                             >
-                                                                <ArrowRightLeft size={14} /> {fulfillRequisitionMutation.isPending ? 'Transferring...' : 'Accept & Dispatch'}
+                                                                <ArrowRightLeft size={13} /> {fulfillRequisitionMutation.isPending ? 'Transferring...' : 'Dispatch'}
                                                             </button>
                                                         );
                                                     }
 
                                                     if (po.status === 'Completed' || (po.supplier_response_type || po.supplier_confirmation_status || po.status) === 'PARTIAL_REJECTED') {
-                                                        return null;
+                                                        return (
+                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: '800', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                                                                <CheckCircle2 size={15} /> Completed
+                                                            </span>
+                                                        );
                                                     }
 
                                                     const isConfirmed = Boolean(
@@ -1306,27 +1331,24 @@ const BusinessPurchases = () => {
 
                                                     if (isPending && !isConfirmed) {
                                                         return (
-                                                            <button 
-                                                                type="button"
-                                                                disabled
+                                                            <div 
                                                                 title="Supplier confirmation required before goods can be received."
                                                                 style={{ 
-                                                                    padding: '0.45rem 0.85rem', 
-                                                                    borderRadius: '10px', 
-                                                                    border: 'none', 
-                                                                    background: '#064E3B', 
-                                                                    color: 'white', 
-                                                                    fontWeight: '700', 
-                                                                    fontSize: '0.8rem', 
                                                                     display: 'inline-flex', 
                                                                     alignItems: 'center', 
-                                                                    gap: '0.4rem',
-                                                                    opacity: 0.6,
-                                                                    cursor: 'not-allowed'
+                                                                    gap: '0.35rem', 
+                                                                    padding: '0.42rem 0.75rem', 
+                                                                    borderRadius: '8px', 
+                                                                    background: '#FFFBEB', 
+                                                                    border: '1px solid #FEF3C7', 
+                                                                    color: '#B45309', 
+                                                                    fontSize: '0.74rem', 
+                                                                    fontWeight: '750',
+                                                                    whiteSpace: 'nowrap'
                                                                 }}
                                                             >
-                                                                <PackageOpen size={14} /> Receive Goods
-                                                            </button>
+                                                                <Clock size={12} style={{ color: '#D97706' }} /> Awaiting Supplier
+                                                            </div>
                                                         );
                                                     }
 
@@ -1336,18 +1358,20 @@ const BusinessPurchases = () => {
                                                             onClick={() => handleOpenReceiveModal(po)}
                                                             title="Receive Goods into warehouse inventory"
                                                             style={{ 
-                                                                padding: '0.45rem 0.85rem', 
-                                                                borderRadius: '10px', 
+                                                                padding: '0.48rem 0.85rem', 
+                                                                borderRadius: '8px', 
                                                                 border: 'none', 
-                                                                background: '#064E3B', 
+                                                                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
                                                                 color: 'white', 
-                                                                fontWeight: '700', 
-                                                                fontSize: '0.8rem', 
+                                                                fontWeight: '750', 
+                                                                fontSize: '0.78rem', 
                                                                 cursor: 'pointer', 
                                                                 display: 'inline-flex', 
                                                                 alignItems: 'center', 
-                                                                gap: '0.4rem',
-                                                                opacity: 1
+                                                                gap: '0.35rem',
+                                                                whiteSpace: 'nowrap',
+                                                                boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)',
+                                                                transition: 'all 0.15s'
                                                             }}
                                                         >
                                                             <PackageOpen size={14} /> Receive Goods
@@ -1366,81 +1390,80 @@ const BusinessPurchases = () => {
 
             {/* Tab 2: Purchase Bills */}
             {activeTab === 'purchase-bills' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                    <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '850', color: '#1E293B' }}>Purchase Bills</h3>
-                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748B' }}>Bills with <strong style={{ color: '#B45309' }}>Pending Goods</strong> status need warehouse confirmation before GSTR-2B ITC is activated.</p>
+                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+                    <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', flexWrap: 'wrap', gap: '0.75rem' }}>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '850', color: '#1E293B' }}>Purchase Bills & Invoices</h3>
+                            <p style={{ margin: '0.15rem 0 0', fontSize: '0.76rem', color: '#64748B' }}>Bills with <strong style={{ color: '#B45309' }}>Pending Goods</strong> status require warehouse stock confirmation.</p>
                         </div>
-                        <div style={{ position: 'relative', width: '260px' }}>
+                        <div style={{ position: 'relative', width: '280px' }}>
                             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input 
                                 type="text" 
                                 placeholder="Search suppliers or bill numbers..." 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                style={{ width: '100%', padding: '0.7rem 1rem 0.7rem 2.75rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }}
+                                style={{ width: '100%', height: '38px', padding: '0 1rem 0 2.4rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.82rem', boxSizing: 'border-box' }}
                             />
                         </div>
                     </div>
 
-                    <div style={{ overflowX: 'auto', padding: '1rem' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <FilterableTableHead columns={[
-                                { key: 'po_number', label: 'PO Details', placeholder: 'PO No' },
-                                { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier' },
-                                { key: 'items', label: 'Items', placeholder: 'Item' },
-                                { key: 'total', label: 'Outward Payables', placeholder: 'e.g. 5000' },
-                                { key: 'status', label: 'Status', placeholder: 'e.g. Pending' },
-                                { key: '_actions', label: 'Actions', noFilter: true }
+                                { key: 'po_number', label: 'Bill Details', placeholder: 'Bill No', style: { width: '16%' } },
+                                { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier', style: { width: '20%' } },
+                                { key: 'items', label: 'Items', placeholder: 'Item', style: { width: '22%' } },
+                                { key: 'total', label: 'Bill Amount', placeholder: 'e.g. 5000', style: { width: '15%' } },
+                                { key: 'status', label: 'Goods Status', placeholder: 'e.g. Pending', style: { width: '14%' } },
+                                { key: '_actions', label: 'Actions', noFilter: true, align: 'right', style: { width: '13%' } }
                             ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {filteredBills.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((bill) => (
                                     <tr key={bill.id || bill.purchase_id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.95rem', margin: 0 }}>{bill.purchase_number}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#64748B' }}>Date: {bill.purchase_date} | Due: {bill.due_date || '—'}</span>
+                                        <td style={{ width: '16%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
+                                            <p style={{ fontWeight: '850', color: '#0F172A', fontSize: '0.9rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bill.purchase_number}</p>
+                                            <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginTop: '3px' }}>Date: {bill.purchase_date} | Due: {bill.due_date || '—'}</span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
-                                            <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.9rem', margin: 0 }}>{bill.supplier_name}</p>
-                                            <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>{bill.billing_address || (bill.supplier_gstin ? `GSTIN: ${bill.supplier_gstin}` : 'Unregistered')}</span>
+                                        <td style={{ width: '20%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
+                                            <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.88rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bill.supplier_name}</p>
+                                            <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block', marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bill.billing_address || (bill.supplier_gstin ? `GSTIN: ${bill.supplier_gstin}` : 'Unregistered')}</span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ width: '22%', padding: '0.85rem 1rem', verticalAlign: 'top' }}>
                                             {bill.items && bill.items.length > 0 ? (
-                                                bill.items.map((item, idx) => (
-                                                    <div key={idx} style={{ fontSize: '0.85rem' }}>
-                                                        <p style={{ fontWeight: '700', color: '#475569', margin: 0 }}>{item.product_name}</p>
-                                                        <span style={{ color: '#94A3B8' }}>Qty: {item.quantity} @ {formatCurrency(item.purchase_price)}</span>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}>
-                                                    {bill.notes || 'Inventory Purchases'}
+                                                <div className="max-h-24 overflow-y-auto" style={{ maxHeight: '5.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingRight: '0.25rem' }}>
+                                                    {bill.items.map((item, idx) => (
+                                                        <div key={idx} style={{ background: '#F8FAFC', padding: '0.3rem 0.5rem', borderRadius: '7px', border: '1px solid #F1F5F9', fontSize: '0.78rem' }}>
+                                                            <p style={{ fontWeight: '700', color: '#334155', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product_name}</p>
+                                                            <span style={{ color: '#64748B', fontSize: '0.7rem' }}>Qty: {item.quantity} @ {formatCurrency(item.purchase_price)}</span>
+                                                        </div>
+                                                    ))}
                                                 </div>
+                                            ) : (
+                                                <span style={{ color: '#94A3B8', fontSize: '0.76rem', fontStyle: 'italic', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                    <Package size={13} style={{ color: '#CBD5E1' }} /> {bill.notes || 'Inventory Purchases'}
+                                                </span>
                                             )}
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ width: '15%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
                                             {(() => {
                                                 const totals = computeDocTotals(bill.items || [], bill.shipping_charge);
                                                 const finalTotal = totals.grand_total || bill.grand_total || 0;
                                                 const singleTax = (totals.total_tax || 0) / 2;
                                                 return (
-                                                    <div style={{ fontSize: '0.85rem' }}>
-                                                        <p style={{ fontWeight: '900', color: '#1E293B', fontSize: '1.05rem', margin: 0 }}>{formatCurrency(finalTotal)}</p>
+                                                    <div>
+                                                        <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.98rem', margin: 0, whiteSpace: 'nowrap' }}>{formatCurrency(finalTotal)}</p>
                                                         {singleTax > 0 && (
-                                                            <>
-                                                                <p style={{ fontWeight: '700', color: '#475569', margin: 0 }}>CGST (9%): {formatCurrency(singleTax)}</p>
-                                                                <p style={{ fontWeight: '700', color: '#475569', margin: 0 }}>SGST (9%): {formatCurrency(singleTax)}</p>
-                                                            </>
+                                                            <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'block', marginTop: '2px' }}>GST: {formatCurrency(totals.total_tax)}</span>
                                                         )}
                                                     </div>
                                                 );
                                             })()}
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem' }}>
+                                        <td style={{ width: '14%', padding: '0.85rem 1rem', verticalAlign: 'top' }}>
                                             <span style={{
                                                 display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                                                padding: '0.3rem 0.7rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800',
+                                                padding: '0.25rem 0.6rem', borderRadius: '7px', fontSize: '0.72rem', fontWeight: '800',
                                                 background: bill.status === 'Completed' ? '#F0FDF4' : (bill.status === 'Pending Goods' ? '#FFFBEB' : '#F1F5F9'),
                                                 color: bill.status === 'Completed' ? '#15803D' : (bill.status === 'Pending Goods' ? '#B45309' : '#475569')
                                             }}>
@@ -1448,23 +1471,24 @@ const BusinessPurchases = () => {
                                                 {bill.status || 'Pending'}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '1.5rem 2rem', textAlign: 'right' }}>
+                                        <td style={{ width: '13%', padding: '0.85rem 1rem', textAlign: 'right', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                                             {bill.status === 'Pending Goods' ? (
                                                 <button
                                                     onClick={() => handleOpenReceiveModal(bill)}
                                                     style={{
-                                                        padding: '0.5rem 1.1rem', borderRadius: '10px', border: 'none',
-                                                        background: '#064E3B',
+                                                        padding: '0.48rem 0.85rem', borderRadius: '8px', border: 'none',
+                                                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                                                         color: 'white',
-                                                        fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer',
-                                                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                                                        boxShadow: '0 4px 6px -1px rgba(6, 78, 59, 0.2)'
+                                                        fontWeight: '750', fontSize: '0.78rem', cursor: 'pointer',
+                                                        display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                                                        whiteSpace: 'nowrap',
+                                                        boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)'
                                                     }}
                                                 >
                                                     <PackageOpen size={14} /> Receive Goods
                                                 </button>
                                             ) : (
-                                                <span style={{ display: 'inline-flex', padding: '0.35rem 0.75rem', borderRadius: '10px', background: '#F1F5F9', color: '#475569', fontSize: '0.8rem', fontWeight: '800' }}>
+                                                <span style={{ display: 'inline-flex', padding: '0.3rem 0.65rem', borderRadius: '7px', background: '#F1F5F9', color: '#475569', fontSize: '0.74rem', fontWeight: '800' }}>
                                                     {bill.status === 'Completed' ? 'COMPLETED' : bill.status.toUpperCase()}
                                                 </span>
                                             )}
@@ -1477,64 +1501,64 @@ const BusinessPurchases = () => {
                 </div>
             )}
 
-            {/* Tab 4: Purchase Returns (Suppliers) */}
+            {/* Tab 3: Purchase Returns (Suppliers) */}
             {activeTab === 'supplier-returns' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.05)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem 1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                         <div>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Purchase Returns (Suppliers)</h2>
-                            <p style={{ fontSize: '0.85rem', color: '#64748B', margin: '0.25rem 0 0 0', fontWeight: '500' }}>Manage supplier defective product returns, debit notes, and refund statuses.</p>
+                            <h2 style={{ fontSize: '1.15rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Purchase Returns (Suppliers)</h2>
+                            <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.2rem 0 0 0', fontWeight: '500' }}>Manage supplier defective product returns, debit notes, and refund statuses.</p>
                         </div>
                         <button 
                             onClick={() => { setCreateDocType('RETURN'); setIsCreateModalOpen(true); }}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #10B981 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '750', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)' }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 4px 10px rgba(5, 150, 105, 0.2)' }}
                         >
-                            <Plus size={15} /> New Supplier Return
+                            <Plus size={14} /> New Supplier Return
                         </button>
                     </div>
 
-                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '24px', overflow: 'hidden' }}>
+                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
                         <table className="table-fixed" style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead style={{ background: '#F8FAFC' }}>
                                 <tr>
-                                    <th style={{ width: '20%', padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Ref Bill / Purchase ID</th>
-                                    <th style={{ width: '22%', padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier</th>
-                                    <th style={{ width: '28%', padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Items Returned</th>
-                                    <th style={{ width: '15%', padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Refund Amount</th>
-                                    <th style={{ width: '15%', padding: '1.25rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
+                                    <th style={{ width: '20%', padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Ref Bill / ID</th>
+                                    <th style={{ width: '22%', padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier</th>
+                                    <th style={{ width: '28%', padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Items Returned</th>
+                                    <th style={{ width: '15%', padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Refund Amount</th>
+                                    <th style={{ width: '15%', padding: '0.75rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {supplierReturnsList.length > 0 ? (
                                     supplierReturnsList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((pr) => (
                                         <tr key={pr.id || pr.return_id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                            <td className="align-top" style={{ width: '20%', verticalAlign: 'top', padding: '1.25rem', fontWeight: '850', color: '#064E3B', overflow: 'hidden' }}>
-                                                <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pr.return_number || pr.purchase_id || pr.purchase_number || `PRN-${pr.id}`}</p>
+                                            <td className="align-top" style={{ width: '20%', verticalAlign: 'top', padding: '0.85rem 1rem', fontWeight: '850', color: '#0F172A', overflow: 'hidden' }}>
+                                                <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.88rem' }}>{pr.return_number || pr.purchase_id || pr.purchase_number || `PRN-${pr.id}`}</p>
                                             </td>
-                                            <td className="align-top" style={{ width: '22%', verticalAlign: 'top', padding: '1.25rem', fontWeight: '750', color: '#1E293B', overflow: 'hidden' }}>
-                                                <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pr.supplier_name || 'N/A'}</p>
+                                            <td className="align-top" style={{ width: '22%', verticalAlign: 'top', padding: '0.85rem 1rem', fontWeight: '750', color: '#1E293B', overflow: 'hidden' }}>
+                                                <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.88rem' }}>{pr.supplier_name || 'N/A'}</p>
                                             </td>
-                                            <td className="align-top" style={{ width: '28%', verticalAlign: 'top', padding: '1.25rem' }}>
-                                                <div className="max-h-24 overflow-y-auto" style={{ maxHeight: '6rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem', paddingRight: '0.25rem' }}>
+                                            <td className="align-top" style={{ width: '28%', verticalAlign: 'top', padding: '0.85rem 1rem' }}>
+                                                <div className="max-h-24 overflow-y-auto" style={{ maxHeight: '5.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingRight: '0.25rem' }}>
                                                     {(pr.items || []).map((item, idx) => (
-                                                        <div key={idx} style={{ background: '#F8FAFC', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #F1F5F9', fontSize: '0.8rem' }}>
+                                                        <div key={idx} style={{ background: '#F8FAFC', padding: '0.3rem 0.5rem', borderRadius: '7px', border: '1px solid #F1F5F9', fontSize: '0.78rem' }}>
                                                             <p style={{ fontWeight: '700', color: '#475569', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product_name}</p>
-                                                            <span style={{ color: '#94A3B8', fontSize: '0.75rem' }}>Qty returned: {item.return_quantity || item.quantity || 1}</span>
+                                                            <span style={{ color: '#94A3B8', fontSize: '0.7rem' }}>Qty returned: {item.return_quantity || item.quantity || 1}</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </td>
-                                            <td className="align-top" style={{ width: '15%', verticalAlign: 'top', padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: '#B91C1C', overflow: 'hidden' }}>
-                                                <span style={{ whiteSpace: 'nowrap' }}>
+                                            <td className="align-top" style={{ width: '15%', verticalAlign: 'top', padding: '0.85rem 1rem', textAlign: 'right', fontWeight: '900', color: '#B91C1C', overflow: 'hidden' }}>
+                                                <span style={{ whiteSpace: 'nowrap', fontSize: '0.92rem' }}>
                                                     {formatCurrency(pr.refund_amount || (pr.items || []).reduce((sum, i) => sum + (i.refund_amount || (i.price * i.return_quantity) || 0), 0))}
                                                 </span>
                                             </td>
-                                            <td className="align-top" style={{ width: '15%', verticalAlign: 'top', padding: '1.25rem' }}>
+                                            <td className="align-top" style={{ width: '15%', verticalAlign: 'top', padding: '0.85rem 1rem' }}>
                                                 <span style={{ 
-                                                    display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px',
+                                                    display: 'inline-flex', padding: '0.25rem 0.6rem', borderRadius: '7px',
                                                     background: pr.status === 'Completed' ? '#F0FDF4' : '#FEF2F2',
                                                     color: pr.status === 'Completed' ? '#15803D' : '#EF4444',
-                                                    fontSize: '0.75rem', fontWeight: '800', whiteSpace: 'nowrap'
+                                                    fontSize: '0.72rem', fontWeight: '800', whiteSpace: 'nowrap'
                                                 }}>
                                                     {(pr.inspection_status || pr.status || 'Completed').toUpperCase()}
                                                 </span>
@@ -1544,31 +1568,31 @@ const BusinessPurchases = () => {
                                 ) : (
                                     purchaseReturns.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((ret) => (
                                         <tr key={ret.return_id || ret.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                            <td className="align-top" style={{ width: '20%', verticalAlign: 'top', padding: '1.25rem', fontWeight: '850', color: '#064E3B', overflow: 'hidden' }}>
-                                                <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ret.return_id || ret.doc_number || ret.purchase_number}</p>
+                                            <td className="align-top" style={{ width: '20%', verticalAlign: 'top', padding: '0.85rem 1rem', fontWeight: '850', color: '#0F172A', overflow: 'hidden' }}>
+                                                <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.88rem' }}>{ret.return_id || ret.doc_number || ret.purchase_number}</p>
                                             </td>
-                                            <td className="align-top" style={{ width: '22%', verticalAlign: 'top', padding: '1.25rem', fontWeight: '750', color: '#1E293B', overflow: 'hidden' }}>
-                                                <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ret.supplier_name}</p>
+                                            <td className="align-top" style={{ width: '22%', verticalAlign: 'top', padding: '0.85rem 1rem', fontWeight: '750', color: '#1E293B', overflow: 'hidden' }}>
+                                                <p style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.88rem' }}>{ret.supplier_name}</p>
                                             </td>
-                                            <td className="align-top" style={{ width: '28%', verticalAlign: 'top', padding: '1.25rem' }}>
-                                                <div className="max-h-24 overflow-y-auto" style={{ maxHeight: '6rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem', paddingRight: '0.25rem' }}>
+                                            <td className="align-top" style={{ width: '28%', verticalAlign: 'top', padding: '0.85rem 1rem' }}>
+                                                <div className="max-h-24 overflow-y-auto" style={{ maxHeight: '5.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingRight: '0.25rem' }}>
                                                     {(ret.items || ret.returned_items || []).map((item, idx) => (
-                                                        <div key={idx} style={{ background: '#F8FAFC', padding: '0.35rem 0.5rem', borderRadius: '8px', border: '1px solid #F1F5F9', fontSize: '0.8rem' }}>
-                                                            <p style={{ fontWeight: '700', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.product_name}</p>
-                                                            <span style={{ color: '#94A3B8', fontSize: '0.75rem' }}>Returned: {item.quantity || item.return_quantity} Units</span>
+                                                        <div key={idx} style={{ background: '#F8FAFC', padding: '0.3rem 0.5rem', borderRadius: '7px', border: '1px solid #F1F5F9', fontSize: '0.78rem' }}>
+                                                            <p style={{ fontWeight: '700', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#334155' }}>{item.product_name}</p>
+                                                            <span style={{ color: '#94A3B8', fontSize: '0.7rem' }}>Returned: {item.quantity || item.return_quantity} Units</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </td>
-                                            <td className="align-top" style={{ width: '15%', verticalAlign: 'top', padding: '1.25rem', textAlign: 'right', fontWeight: '900', color: '#B91C1C', overflow: 'hidden' }}>
-                                                <span style={{ whiteSpace: 'nowrap' }}>
+                                            <td className="align-top" style={{ width: '15%', verticalAlign: 'top', padding: '0.85rem 1rem', textAlign: 'right', fontWeight: '900', color: '#B91C1C', overflow: 'hidden' }}>
+                                                <span style={{ whiteSpace: 'nowrap', fontSize: '0.92rem' }}>
                                                     {formatCurrency(ret.refund_amount || (ret.returned_items || ret.items || []).reduce((sum, i) => sum + (i.refund_amount || (i.price * i.quantity) || 0), 0))}
                                                 </span>
                                             </td>
-                                            <td className="align-top" style={{ width: '15%', verticalAlign: 'top', padding: '1.25rem' }}>
+                                            <td className="align-top" style={{ width: '15%', verticalAlign: 'top', padding: '0.85rem 1rem' }}>
                                                 <span style={{ 
-                                                    display: 'inline-flex', padding: '0.3rem 0.6rem', borderRadius: '8px',
-                                                    background: '#F0FDF4', color: '#15803D', fontSize: '0.75rem', fontWeight: '800', whiteSpace: 'nowrap'
+                                                    display: 'inline-flex', padding: '0.25rem 0.6rem', borderRadius: '7px',
+                                                    background: '#F0FDF4', color: '#15803D', fontSize: '0.72rem', fontWeight: '800', whiteSpace: 'nowrap'
                                                 }}>
                                                     COMPLETED
                                                 </span>
@@ -1586,7 +1610,7 @@ const BusinessPurchases = () => {
             {/* Structured Goods Receipt Confirmation Modal */}
             {pendingReceiveBill && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '600px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '600px', borderRadius: '20px', padding: '1.75rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <div>
                                 <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Confirm Goods Receipt</h3>
@@ -1701,7 +1725,7 @@ const BusinessPurchases = () => {
             {/* Creation Document Modal */}
             {isCreateModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '20px', padding: '1.75rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                             <div>
                                 <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: createDocType === 'REQUISITION' ? '#4F46E5' : '#064E3B' }}>
@@ -1780,7 +1804,7 @@ const BusinessPurchases = () => {
                                             <option value="internal_main" style={{ color: '#4F46E5', fontWeight: '800' }}>
                                                 🏢 Main Showroom (Internal Stock Requisition)
                                             </option>
-                                            {suppliersList.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(s => (
+                                            {suppliersList.map(s => (
                                                 <option key={s.id || s.supplier_id} value={s.id || s.supplier_id}>{s.name || s.supplier_name} {s.company_name ? `(${s.company_name})` : ''}</option>
                                             ))}
                                         </select>
@@ -1852,7 +1876,7 @@ const BusinessPurchases = () => {
                                     </div>
                                 </div>
 
-                                {formItems.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((item, idx) => (
+                                {formItems.map((item, idx) => (
                                     <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'end' }}>
                                         <div>
                                             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.25rem' }}>
@@ -1882,7 +1906,7 @@ const BusinessPurchases = () => {
                                                 style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#1B6B3A' }}
                                             >
                                                 <option value="">{createDocType === 'RETURN' ? ((!formHeader.supplier_id && !formHeader.supplier_name) ? '-- Select Supplier First --' : '-- Select Product --') : '-- Select Product --'}</option>
-                                                {(createDocType === 'RETURN' ? supplierProducts : catalogProducts).filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(p => (
+                                                {(createDocType === 'RETURN' ? supplierProducts : catalogProducts).map(p => (
                                                     <option key={p.id || p.product_id} value={p.id || p.product_id}>{p.name || p.product_name} {p.sku ? `[${p.sku}]` : ''}</option>
                                                 ))}
                                             </select>
@@ -1993,7 +2017,7 @@ const BusinessPurchases = () => {
                                                 style={{ width: '100%', padding: '1rem', borderRadius: '16px', border: '1px solid #DCF2E4', background: 'white' }}
                                             >
                                                 <option value="">-- Select Bank Account --</option>
-                                                {bankAccounts.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(acc => (
+                                                {bankAccounts.map(acc => (
                                                     <option key={acc.id} value={acc.id}>{acc.bank_name} - {formatCurrency(acc.current_balance)}</option>
                                                 ))}
                                             </select>
