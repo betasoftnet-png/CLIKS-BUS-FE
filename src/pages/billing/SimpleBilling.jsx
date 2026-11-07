@@ -252,7 +252,7 @@ const SimpleBilling = () => {
                         keyBuffer = '';
                         if (scannedCode) {
                             const { code, weight } = parseBarcodeOrQr(scannedCode);
-                            const matched = findProductByBarcodeOrQr(code, catalog);
+                            const matched = findProductByBarcodeOrQr(code, catalogProducts);
                             if (matched) {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -285,7 +285,7 @@ const SimpleBilling = () => {
         return () => {
             window.removeEventListener('keydown', handleGlobalKeyDown, true);
         };
-    }, [catalog]);
+    }, [catalogProducts]);
 
     // Product row inputs
     const handleProductChange = (index, field, value) => {
@@ -766,7 +766,7 @@ const SimpleBilling = () => {
                                         const code = productSearch.trim();
                                         if (code) {
                                             const { code: parsedCode, weight } = parseBarcodeOrQr(code);
-                                            const matched = findProductByBarcodeOrQr(parsedCode, catalog);
+                                            const matched = findProductByBarcodeOrQr(parsedCode, catalogProducts);
                                             if (matched) {
                                                 handleSelectCatalogProduct(matched, weight);
                                                 playPosBeep(isProductWeighted(matched) ? 'weight' : 'success');
