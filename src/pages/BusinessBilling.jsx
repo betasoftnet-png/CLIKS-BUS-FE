@@ -1175,16 +1175,19 @@ const BusinessBilling = () => {
     };
 
     const handleClientChange = (value) => {
-        const selectedCustomer = customers.find(c => c.name === value);
+        const selectedCustomer = (customers || []).find(c => c.name === value || (c.company && c.company === value));
         if (selectedCustomer) {
             setSelectedCustomerObject(selectedCustomer);
+            const billAddr = selectedCustomer.billing_address || selectedCustomer.address || '';
+            const shipAddr = selectedCustomer.shipping_address || selectedCustomer.address || selectedCustomer.billing_address || '';
             setFormData({
                 ...formData,
                 client_name: selectedCustomer.name,
                 client_email: selectedCustomer.email || '',
                 client_gstin: selectedCustomer.gstin || '',
-                billing_address: selectedCustomer.company || selectedCustomer.billing_address || '', 
-                shipping_address: selectedCustomer.company || selectedCustomer.shipping_address || ''
+                place_of_supply: selectedCustomer.place_of_supply || selectedCustomer.state || formData.place_of_supply || '',
+                billing_address: billAddr, 
+                shipping_address: shipAddr
             });
         } else {
             setSelectedCustomerObject(null);
