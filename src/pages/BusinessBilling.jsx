@@ -1258,13 +1258,21 @@ const BusinessBilling = () => {
         }
         
         const totals = calculateTotals(newItems, formData.tax_type, formData);
-        const paid = formData.payment_mode === 'Credit' ? 0 : totals.total_amount;
+        let paid = 0;
+        const isUnpaid = formData.status === 'Unpaid' || formData.status === 'Draft' || formData.status === 'Overdue' || formData.payment_mode === 'Credit';
+        if (isUnpaid) {
+            paid = 0;
+        } else if (formData.status === 'Paid') {
+            paid = totals.total_amount;
+        } else {
+            paid = Math.min(parseFloat(formData.paid_amount) || 0, totals.total_amount);
+        }
         setFormData({ 
             ...formData, 
             items: newItems, 
             ...totals,
             paid_amount: paid,
-            due_amount: totals.total_amount - paid
+            due_amount: Math.max(0, totals.total_amount - paid)
         });
     };
 
@@ -1288,7 +1296,22 @@ const BusinessBilling = () => {
     const removeItem = (index) => {
         const newItems = formData.items.filter((_, i) => i !== index);
         const totals = calculateTotals(newItems, formData.tax_type, formData);
-        setFormData({ ...formData, items: newItems, ...totals });
+        let paid = 0;
+        const isUnpaid = formData.status === 'Unpaid' || formData.status === 'Draft' || formData.status === 'Overdue' || formData.payment_mode === 'Credit';
+        if (isUnpaid) {
+            paid = 0;
+        } else if (formData.status === 'Paid') {
+            paid = totals.total_amount;
+        } else {
+            paid = Math.min(parseFloat(formData.paid_amount) || 0, totals.total_amount);
+        }
+        setFormData({ 
+            ...formData, 
+            items: newItems, 
+            ...totals,
+            paid_amount: paid,
+            due_amount: Math.max(0, totals.total_amount - paid)
+        });
     };
 
     // Queries
@@ -2186,7 +2209,12 @@ const BusinessBilling = () => {
                 items: typeof formData.items === 'string' ? JSON.parse(formData.items) : formData.items // Ensure it is array for template
             };
 
-            // Close creation workspace
+            // Close creation workspace and pop history
+            if (window.history.state?.cliksView === 'live_preview') {
+                window.history.go(-2);
+            } else if (window.history.state?.cliksView === 'invoice_workspace') {
+                window.history.back();
+            }
             closeModal();
             
             // Render visual modal instantly on screen if preview is enabled
@@ -2200,6 +2228,11 @@ const BusinessBilling = () => {
         mutationFn: ({ id, data }) => billingService.updateInvoice(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
+            if (window.history.state?.cliksView === 'live_preview') {
+                window.history.go(-2);
+            } else if (window.history.state?.cliksView === 'invoice_workspace') {
+                window.history.back();
+            }
             closeModal();
         }
     });
@@ -2256,6 +2289,66 @@ const BusinessBilling = () => {
         });
     };
 
+    // Navigation and history handlers so pressing browser Back or UI Back returns cleanly
+    const handleCloseLivePreview = React.useCallback(() => {
+        if (window.history.state?.cliksView === 'live_preview') {
+            window.history.back();
+        } else {
+            setShowLivePreview(false);
+        }
+    }, []);
+
+    const handleExitInvoiceWorkspace = React.useCallback(() => {
+        if (window.history.state?.cliksView === 'live_preview') {
+            setShowLivePreview(false);
+            closeModal();
+            window.history.go(-2);
+        } else if (window.history.state?.cliksView === 'invoice_workspace') {
+            closeModal();
+            window.history.back();
+        } else {
+            closeModal();
+        }
+    }, []);
+
+    React.useEffect(() => {
+        if (isModalOpen) {
+            window.history.pushState({ cliksView: 'invoice_workspace' }, '');
+        }
+    }, [isModalOpen]);
+
+    React.useEffect(() => {
+        if (showLivePreview) {
+            window.history.pushState({ cliksView: 'live_preview' }, '');
+        }
+    }, [showLivePreview]);
+
+    React.useEffect(() => {
+        if (viewingInvoice) {
+            window.history.pushState({ cliksView: 'view_invoice' }, '');
+        }
+    }, [viewingInvoice]);
+
+    React.useEffect(() => {
+        const handlePopState = () => {
+            if (viewingInvoice) {
+                setViewingInvoice(null);
+                return;
+            }
+            if (showLivePreview) {
+                setShowLivePreview(false);
+                return;
+            }
+            if (isModalOpen) {
+                closeModal();
+                return;
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [viewingInvoice, showLivePreview, isModalOpen]);
+
     const handleEdit = (invoice) => {
         if (activeConfig.passcodeTxn) {
             const pin = prompt("Enter Security Passcode to authorize transaction edit:");
@@ -2272,6 +2365,11 @@ const BusinessBilling = () => {
             setSelectedCustomerObject(null);
         }
         const parsedItems = invoice.items ? (typeof invoice.items === 'string' ? JSON.parse(invoice.items) : invoice.items) : [];
+        const isInvUnpaid = invoice.status === 'Unpaid' || invoice.status === 'Draft' || invoice.status === 'Overdue';
+        const totalVal = invoice.total_amount || invoice.amount || 0;
+        const paidVal = isInvUnpaid ? 0 : (invoice.paid_amount !== undefined && invoice.paid_amount !== null ? invoice.paid_amount : (invoice.status === 'Paid' ? totalVal : 0));
+        const dueVal = isInvUnpaid ? totalVal : (invoice.due_amount !== undefined && invoice.due_amount !== null ? invoice.due_amount : Math.max(0, totalVal - paidVal));
+
         setFormData({
             invoice_number: invoice.invoice_number,
             client_name: invoice.client_name,
@@ -2281,9 +2379,9 @@ const BusinessBilling = () => {
             shipping_address: invoice.shipping_address || '',
             amount: invoice.amount,
             tax_amount: invoice.tax_amount || 0,
-            total_amount: invoice.total_amount || invoice.amount,
-            paid_amount: invoice.paid_amount || invoice.total_amount || invoice.amount,
-            due_amount: invoice.due_amount || (invoice.total_amount || invoice.amount) - (invoice.paid_amount || 0),
+            total_amount: totalVal,
+            paid_amount: paidVal,
+            due_amount: dueVal,
             bank_account_id: invoice.bank_account_id || '',
             discount_amount: invoice.discount_amount || 0,
             round_off: invoice.round_off || 0,
@@ -2379,10 +2477,12 @@ const BusinessBilling = () => {
         // Derive Status Logic
         const total = parseFloat(formData.total_amount) || 0;
         const paid = parseFloat(formData.paid_amount) || 0;
-        const due = total - paid;
+        const due = Math.max(0, total - paid);
         
-        let calculatedStatus = 'Unpaid';
-        if (paid === 0) {
+        let calculatedStatus = formData.status;
+        if (formData.status === 'Draft') {
+            calculatedStatus = 'Draft';
+        } else if (formData.status === 'Unpaid' || paid === 0) {
             calculatedStatus = 'Unpaid';
         } else if (paid < total) {
             calculatedStatus = 'Partially Paid';
@@ -2511,7 +2611,13 @@ const BusinessBilling = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <button 
                         type="button" 
-                        onClick={closeModal}
+                        onClick={() => {
+                            if (showLivePreview) {
+                                handleCloseLivePreview();
+                            } else {
+                                handleExitInvoiceWorkspace();
+                            }
+                        }}
                         style={{ 
                             display: 'flex', alignItems: 'center', gap: '0.4rem', 
                             padding: '0.45rem 0.8rem', borderRadius: '8px', 
@@ -2520,7 +2626,7 @@ const BusinessBilling = () => {
                             fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s'
                         }}
                     >
-                        <ArrowLeft size={14} /> Back to Invoices
+                        <ArrowLeft size={14} /> {showLivePreview ? 'Back to Form' : 'Back to Invoices'}
                     </button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{editingInvoice ? 'Edit Invoice' : 'New Invoice'}</h2>
@@ -2546,7 +2652,13 @@ const BusinessBilling = () => {
                     </button>
                     <button 
                         type="button"
-                        onClick={() => setShowLivePreview(!showLivePreview)} 
+                        onClick={() => {
+                            if (showLivePreview) {
+                                handleCloseLivePreview();
+                            } else {
+                                setShowLivePreview(true);
+                            }
+                        }} 
                         style={{ 
                             display: 'flex', alignItems: 'center', gap: '6px', 
                             padding: '0.45rem 0.85rem', borderRadius: '8px', 
@@ -2558,7 +2670,7 @@ const BusinessBilling = () => {
                     >
                         <Eye size={15} /> {showLivePreview ? 'Hide Real-time Preview' : 'Live Preview Mode'}
                     </button>
-                    <button onClick={closeModal} title="Close" style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#64748B' }}><X size={18} /></button>
+                    <button onClick={handleExitInvoiceWorkspace} title="Close" style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#64748B' }}><X size={18} /></button>
                 </div>
             </div>
             <div className="billing-modal-body" style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
@@ -2619,7 +2731,34 @@ const BusinessBilling = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Status</label>
-                                    <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
+                                    <select 
+                                        value={formData.status} 
+                                        onChange={(e) => {
+                                            const newStatus = e.target.value;
+                                            const total = parseFloat(formData.total_amount) || 0;
+                                            if (newStatus === 'Unpaid' || newStatus === 'Draft' || newStatus === 'Overdue') {
+                                                setFormData(prev => ({
+                                                    ...prev, 
+                                                    status: newStatus,
+                                                    paid_amount: 0,
+                                                    due_amount: total
+                                                }));
+                                            } else if (newStatus === 'Paid') {
+                                                setFormData(prev => ({
+                                                    ...prev, 
+                                                    status: newStatus,
+                                                    paid_amount: total,
+                                                    due_amount: 0
+                                                }));
+                                            } else {
+                                                setFormData(prev => ({
+                                                    ...prev, 
+                                                    status: newStatus
+                                                }));
+                                            }
+                                        }} 
+                                        style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}
+                                    >
                                         {(dropdownOptions.invoiceStatuses || DEFAULT_DROPDOWNS.invoiceStatuses).map((status, idx) => (
                                             <option key={idx}>{status}</option>
                                         ))}
@@ -2939,12 +3078,25 @@ const BusinessBilling = () => {
                                                     key={mode}
                                                     type="button"
                                                     onClick={() => {
-                                                        const paid = mode === 'Credit' ? 0 : formData.total_amount;
+                                                        const isUnpaid = formData.status === 'Unpaid' || formData.status === 'Draft' || formData.status === 'Overdue';
+                                                        let paid = 0;
+                                                        let newStatus = formData.status;
+                                                        if (mode === 'Credit') {
+                                                            paid = 0;
+                                                            newStatus = 'Unpaid';
+                                                        } else if (isUnpaid) {
+                                                            paid = 0;
+                                                        } else if (formData.status === 'Paid') {
+                                                            paid = formData.total_amount;
+                                                        } else {
+                                                            paid = Math.min(parseFloat(formData.paid_amount) || 0, formData.total_amount);
+                                                        }
                                                         setFormData({
                                                             ...formData, 
                                                             payment_mode: mode,
+                                                            status: newStatus,
                                                             paid_amount: paid,
-                                                            due_amount: formData.total_amount - paid
+                                                            due_amount: Math.max(0, formData.total_amount - paid)
                                                         });
                                                     }}
                                                     style={{ 
@@ -3004,11 +3156,21 @@ const BusinessBilling = () => {
                                                 onWheel={(e) => e.target.blur()}
                                                 onChange={(e) => {
                                                     const raw = e.target.value.slice(0, 14);
-                                                    const paid = parseFloat(raw) || 0;
+                                                    const paid = Math.max(0, parseFloat(raw) || 0);
+                                                    const total = parseFloat(formData.total_amount) || 0;
+                                                    let newStatus = formData.status;
+                                                    if (paid === 0) {
+                                                        newStatus = 'Unpaid';
+                                                    } else if (paid < total) {
+                                                        newStatus = 'Partially Paid';
+                                                    } else {
+                                                        newStatus = 'Paid';
+                                                    }
                                                     setFormData({
                                                         ...formData,
+                                                        status: newStatus,
                                                         paid_amount: paid,
-                                                        due_amount: (parseFloat(formData.total_amount) || 0) - paid
+                                                        due_amount: Math.max(0, total - paid)
                                                     });
                                                 }}
                                                 style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem' }} 
@@ -3019,7 +3181,7 @@ const BusinessBilling = () => {
                                             <input 
                                                 readOnly
                                                 type="number" 
-                                                value={(parseFloat(formData.total_amount) || 0) - (parseFloat(formData.paid_amount) || 0)} 
+                                                value={Math.max(0, (parseFloat(formData.total_amount) || 0) - (parseFloat(formData.paid_amount) || 0))} 
                                                 style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #DBEAFE', background: '#F8FAFC', color: '#64748B', fontSize: '0.8rem' }} 
                                             />
                                         </div>
@@ -3244,9 +3406,31 @@ const BusinessBilling = () => {
                                         marginBottom: '1.5rem', 
                                         borderBottom: '1px solid #E2E8F0', 
                                         width: '100%', 
-                                        paddingBottom: '0.5rem' 
+                                        paddingBottom: '0.5rem',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
                                     }}>
                                         <span style={{ fontSize: '0.7rem', fontWeight: '900', textTransform: 'uppercase', color: '#94A3B8', letterSpacing: '0.05em' }}>Real-Time Generation Display</span>
+                                        <button
+                                            type="button"
+                                            onClick={handleCloseLivePreview}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
+                                                background: '#F1F5F9',
+                                                border: '1px solid #E2E8F0',
+                                                borderRadius: '6px',
+                                                padding: '4px 8px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: '700',
+                                                color: '#475569',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            <ArrowLeft size={12} /> Back to Form
+                                        </button>
                                     </div>
                                     
                                     <div style={{ 
@@ -5165,7 +5349,13 @@ const BusinessBilling = () => {
                                     <Printer size={16} /> Print / Save PDF
                                 </button>
                                 <button 
-                                    onClick={() => setViewingInvoice(null)} 
+                                    onClick={() => {
+                                        if (window.history.state?.cliksView === 'view_invoice') {
+                                            window.history.back();
+                                        } else {
+                                            setViewingInvoice(null);
+                                        }
+                                    }} 
                                     style={{ 
                                         padding: '0.6rem 1.25rem', borderRadius: '10px', 
                                         background: '#F1F5F9', color: '#334155', border: '1px solid #E2E8F0', 
