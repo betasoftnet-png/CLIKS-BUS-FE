@@ -922,9 +922,9 @@ const BusinessStaffing = () => {
         const finalSalary = newEmp.basic_salary !== '' && newEmp.basic_salary !== undefined ? (parseFloat(newEmp.basic_salary) || 0) : 0;
         const finalBankName = (newEmp.bank_name || '').trim();
         const finalAccountNo = (newEmp.account_number || '').trim();
-        const finalIfsc = (newEmp.ifsc_code || '').trim();
+        const finalIfsc = (newEmp.ifsc_code || '').trim().toUpperCase();
         const finalPf = (newEmp.pf_number || '').trim();
-        const finalPan = (newEmp.pan_number || '').trim();
+        const finalPan = (newEmp.pan_number || '').trim().toUpperCase();
         const finalEsi = (newEmp.esi_number || '').trim();
         const finalManager = (newEmp.reporting_manager || '').trim();
         const finalShift = newEmp.shift_name || 'General Shift (9 AM - 6 PM)';
@@ -1083,7 +1083,7 @@ const BusinessStaffing = () => {
                 employment_type: editForm.employment_type,
                 reporting_manager: editForm.reporting_manager,
                 employee_code: editForm.employee_code,
-                pan_number: editForm.pan_number,
+                pan_number: (editForm.pan_number || '').trim().toUpperCase(),
                 pf_number: editForm.pf_number,
                 esi_number: editForm.esi_number,
                 leave_balance: parseInt(editForm.leave_balance) || 14,
@@ -1095,7 +1095,7 @@ const BusinessStaffing = () => {
             }),
             deduct_tds: editForm.deduct_tds ? 1 : 0,
             emergency_contact: JSON.stringify({ name: editForm.emergency_contact_name, phone: editForm.emergency_contact_number }),
-            bank_details: JSON.stringify({ bank_name: editForm.bank_name, account_number: editForm.account_number, ifsc_code: editForm.ifsc_code })
+            bank_details: JSON.stringify({ bank_name: editForm.bank_name, account_number: editForm.account_number, ifsc_code: (editForm.ifsc_code || '').trim().toUpperCase() })
         };
         updateEmpMutation.mutate({ id: editForm.employee_id, data: payload });
     };
@@ -2076,7 +2076,17 @@ const BusinessStaffing = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PAN Number</label>
-                                        <input type="text" value={newEmp.pan_number} onChange={(e) => setNewEmp({ ...newEmp, pan_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. ABCDE1234F" />
+                                        <input
+                                            type="text"
+                                            maxLength={10}
+                                            value={newEmp.pan_number}
+                                            onChange={(e) => {
+                                                const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+                                                setNewEmp({ ...newEmp, pan_number: val });
+                                            }}
+                                            style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', textTransform: 'uppercase' }}
+                                            placeholder="e.g. ABCDE1234F"
+                                        />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PF Number</label>
@@ -2119,7 +2129,17 @@ const BusinessStaffing = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>IFSC Code</label>
-                                        <input type="text" value={newEmp.ifsc_code} onChange={(e) => setNewEmp({ ...newEmp, ifsc_code: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} placeholder="e.g. HDFC0000124 (Optional)" />
+                                        <input
+                                            type="text"
+                                            maxLength={11}
+                                            value={newEmp.ifsc_code}
+                                            onChange={(e) => {
+                                                const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11);
+                                                setNewEmp({ ...newEmp, ifsc_code: val });
+                                            }}
+                                            style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', textTransform: 'uppercase' }}
+                                            placeholder="e.g. HDFC0000124 (Optional)"
+                                        />
                                     </div>
                                 </div>
                                 <div style={{ marginTop: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F1F5F9', padding: '0.65rem 0.85rem', borderRadius: '10px' }}>
@@ -2462,7 +2482,17 @@ const BusinessStaffing = () => {
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PAN Number</label>
-                                                <input type="text" value={editForm.pan_number || ''} onChange={(e) => setEditForm({ ...editForm, pan_number: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                <input
+                                                    type="text"
+                                                    maxLength={10}
+                                                    value={editForm.pan_number || ''}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+                                                        setEditForm({ ...editForm, pan_number: val });
+                                                    }}
+                                                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', textTransform: 'uppercase' }}
+                                                    placeholder="e.g. ABCDE1234F"
+                                                />
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>PF Number</label>
@@ -2505,7 +2535,17 @@ const BusinessStaffing = () => {
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '0.25rem' }}>IFSC Code</label>
-                                                <input type="text" value={editForm.ifsc_code || ''} onChange={(e) => setEditForm({ ...editForm, ifsc_code: e.target.value })} style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box' }} />
+                                                <input
+                                                    type="text"
+                                                    maxLength={11}
+                                                    value={editForm.ifsc_code || ''}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11);
+                                                        setEditForm({ ...editForm, ifsc_code: val });
+                                                    }}
+                                                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.85rem', boxSizing: 'border-box', textTransform: 'uppercase' }}
+                                                    placeholder="e.g. HDFC0000124 (Optional)"
+                                                />
                                             </div>
                                         </div>
                                     </div>
