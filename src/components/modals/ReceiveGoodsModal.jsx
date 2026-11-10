@@ -52,7 +52,7 @@ export const ReceiveGoodsModal = ({
             })));
         }
 
-        setSelectedWarehouse(doc?.warehouse_id || (warehousesList?.[0] ? (warehousesList[0].id || warehousesList[0].code || warehousesList[0].name || warehousesList[0].warehouse_name) : '1'));
+        setSelectedWarehouse(doc?.warehouse_id || (warehousesList?.[0] ? (warehousesList[0].name || warehousesList[0].warehouse_name || warehousesList[0].id || warehousesList[0].code) : 'Main Godown'));
     }, [isOpen, doc, warehousesList]);
 
     // 2. Prevent re-render cascades in loops when computing received quantities
@@ -82,11 +82,13 @@ export const ReceiveGoodsModal = ({
         e?.preventDefault?.();
         if (onConfirm) {
             const selectedWhObj = (warehousesList || []).find(w => 
-                String(w.id || w.code || w.warehouse_id) === String(selectedWarehouse)
+                String(w.id || w.code || w.warehouse_id) === String(selectedWarehouse) ||
+                String(w.name || w.warehouse_name || '').toLowerCase() === String(selectedWarehouse).toLowerCase()
             );
+            const resolvedName = selectedWhObj?.name || selectedWhObj?.warehouse_name || selectedWarehouse;
             onConfirm({
-                warehouse_id: selectedWarehouse,
-                warehouse_name: selectedWhObj?.name || selectedWhObj?.warehouse_name || selectedWarehouse,
+                warehouse_id: selectedWhObj?.id || selectedWarehouse,
+                warehouse_name: resolvedName,
                 warehouse_code: selectedWhObj?.code || selectedWhObj?.warehouse_code || selectedWarehouse,
                 items: itemsState
             }, itemsState);
@@ -191,7 +193,7 @@ export const ReceiveGoodsModal = ({
                         >
                             {warehousesList.map((wh, idx) => {
                                 const wName = wh.name || wh.warehouse_name || `Warehouse ${idx + 1}`;
-                                const wVal = wh.id || wh.code || wName;
+                                const wVal = wh.name || wh.warehouse_name || wh.id;
                                 return <option key={idx} value={wVal}>{wName} ({wh.code || `WH-${wh.id || idx + 1}`})</option>;
                             })}
                         </select>

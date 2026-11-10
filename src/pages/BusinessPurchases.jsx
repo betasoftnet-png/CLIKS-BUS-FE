@@ -451,13 +451,16 @@ const BusinessPurchases = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
             queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
             queryClient.invalidateQueries({ queryKey: ['ledger'] });
             queryClient.invalidateQueries({ queryKey: ['accounting'] });
             queryClient.invalidateQueries({ queryKey: ['gstReconciliations'] });
             queryClient.invalidateQueries({ queryKey: ['gstr3bReport'] });
             queryClient.invalidateQueries({ queryKey: ['gstr9Report'] });
             queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
-            alert('✅ Goods received successfully!\n\nThe following were updated automatically:\n• Purchase Bill → Completed\n• Vendor Ledger\n• Accounts Payable\n• Accounting Journal\n• GSTR-2B (Input Tax Credit)');
+            alert('✅ Goods received successfully!\n\nThe following were updated automatically:\n• Purchase Bill → Completed\n• Stock added to warehouse\n• Vendor Ledger\n• Accounts Payable\n• Accounting Journal\n• GSTR-2B (Input Tax Credit)');
         },
         onError: (err) => {
             alert('Error: ' + (err.response?.data?.message || err.message || 'Failed to receive goods'));
@@ -519,6 +522,18 @@ const BusinessPurchases = () => {
             }));
         }
     }, [isCreateModalOpen, createDocType, activeConfig]);
+
+    React.useEffect(() => {
+        if (warehousesList && warehousesList.length > 0) {
+            setFormHeader(prev => {
+                if (!prev.warehouse_id || prev.warehouse_id === 'Main Godown') {
+                    const firstWh = warehousesList[0].name || warehousesList[0].warehouse_name;
+                    if (firstWh) return { ...prev, warehouse_id: firstWh };
+                }
+                return prev;
+            });
+        }
+    }, [warehousesList]);
 
     const [formItems, setFormItems] = useState([
         {
@@ -1635,13 +1650,21 @@ const BusinessPurchases = () => {
                                                         {!isPaid && !isPartial && (
                                                             <span style={{ fontSize: '0.7rem', color: '#DC2626', fontWeight: '700', display: 'block', marginTop: '2px' }}>Due: {formatCurrency(finalTotal)}</span>
                                                         )}
-                                                        {bill.status === 'Pending Goods' && (
+                                                        {bill.status !== 'Completed' ? (
                                                             <span style={{
                                                                 display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
                                                                 marginTop: '4px', padding: '0.15rem 0.45rem', borderRadius: '5px',
                                                                 fontSize: '0.66rem', fontWeight: '750', background: '#FFFBEB', color: '#B45309', border: '1px solid #FEF08A'
                                                             }}>
                                                                 <Package size={10} /> Pending Goods
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{
+                                                                display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                                                                marginTop: '4px', padding: '0.15rem 0.45rem', borderRadius: '5px',
+                                                                fontSize: '0.66rem', fontWeight: '750', background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0'
+                                                            }}>
+                                                                <CheckCircle2 size={10} /> In {bill.warehouse_id || 'Warehouse'}
                                                             </span>
                                                         )}
                                                     </div>
@@ -1657,10 +1680,11 @@ const BusinessPurchases = () => {
 
                                                 return (
                                                     <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
-                                                        {bill.status === 'Pending Goods' && (
+                                                        {bill.status !== 'Completed' && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleOpenReceiveModal(bill)}
+                                                                title="Receive goods into warehouse inventory"
                                                                 style={{
                                                                     padding: '0.45rem 0.75rem', borderRadius: '8px', border: 'none',
                                                                     background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
@@ -2037,7 +2061,7 @@ const BusinessPurchases = () => {
                             </div>
 
                             {/* Document Meta Section */}
-                            <div style={{ display: 'grid', gridTemplateColumns: (createDocType === 'PO' || isStarterPlan) ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: createDocType === 'RETURN' ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)', gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Tax Mode</label>
                                     <select value={formHeader.purchase_type} onChange={(e) => setFormHeader({ ...formHeader, purchase_type: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}>
@@ -2053,10 +2077,20 @@ const BusinessPurchases = () => {
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Due Date</label>
                                     <input required type="date" value={formHeader.due_date} onChange={(e) => setFormHeader({ ...formHeader, due_date: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
                                 </div>
-                                {createDocType !== 'PO' && !isStarterPlan && (
+                                {createDocType !== 'RETURN' && (
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Target Warehouse</label>
-                                        <input type="text" value={formHeader.warehouse_id} onChange={(e) => setFormHeader({ ...formHeader, warehouse_id: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="Main Godown" />
+                                        <select 
+                                            value={formHeader.warehouse_id} 
+                                            onChange={(e) => setFormHeader({ ...formHeader, warehouse_id: e.target.value })} 
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}
+                                        >
+                                            {warehousesList.map(w => (
+                                                <option key={w.id || w.name} value={w.name || w.warehouse_name || w.id}>
+                                                    {w.name || w.warehouse_name} {w.location ? `(${w.location})` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
                                 )}
                             </div>
