@@ -1065,7 +1065,7 @@ const BusinessBilling = () => {
 
     React.useEffect(() => {
         if (isModalOpen && !editingInvoice) {
-            const defaultTaxType = activeConfig?.inclusiveTax ? 'Inclusive' : 'Exclusive';
+            const defaultTaxType = activeConfig?.inclusiveTax === true ? 'Inclusive' : 'Exclusive';
             const defaultPayMode = activeConfig?.cashSale ? 'Cash' : 'Bank';
             billingService.getNextNumber(formData.invoice_type || 'GST').then(nextNum => {
                 setFormData(prev => ({
@@ -2572,7 +2572,7 @@ const BusinessBilling = () => {
                                 transition: 'all 0.3s ease'
                             }}>
                                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: activeConfig.invoiceBillNo !== false ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: activeConfig.invoiceBillNo !== false ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: '1rem' }}>
                                 {activeConfig.invoiceBillNo !== false && (
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Invoice #</label>
@@ -2596,6 +2596,25 @@ const BusinessBilling = () => {
                                         {(dropdownOptions.invoiceTypes || DEFAULT_DROPDOWNS.invoiceTypes).map((type, idx) => (
                                             <option key={idx}>{type}</option>
                                         ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Tax Mode</label>
+                                    <select 
+                                        value={formData.tax_type || 'Exclusive'} 
+                                        onChange={(e) => {
+                                            const nextTaxType = e.target.value;
+                                            const totals = calculateTotals(formData.items, nextTaxType, formData);
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                tax_type: nextTaxType,
+                                                ...totals
+                                            }));
+                                        }} 
+                                        style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem', fontWeight: '700', color: '#0F172A' }}
+                                    >
+                                        <option value="Exclusive">Tax Exclusive (GST extra)</option>
+                                        <option value="Inclusive">Tax Inclusive (Price includes GST)</option>
                                     </select>
                                 </div>
                                 <div>
@@ -3062,21 +3081,47 @@ const BusinessBilling = () => {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '0.5rem' }}>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Terms</label>
-                                                <select 
-                                                    onChange={(e) => {
-                                                        const days = parseInt(e.target.value);
-                                                        if (!isNaN(days)) {
-                                                            const d = new Date();
-                                                            d.setDate(d.getDate() + days);
-                                                            setFormData({ ...formData, due_date: d.toISOString().split('T')[0] });
+                                                {(() => {
+                                                    const termsList = dropdownOptions.terms || DEFAULT_DROPDOWNS.terms;
+                                                    let currentDueDays = 0;
+                                                    if (formData.due_date) {
+                                                        const today = new Date();
+                                                        today.setHours(0, 0, 0, 0);
+                                                        const parts = String(formData.due_date).split('-');
+                                                        if (parts.length === 3) {
+                                                            const due = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                                                            due.setHours(0, 0, 0, 0);
+                                                            const diffTime = due.getTime() - today.getTime();
+                                                            currentDueDays = Math.max(0, Math.round(diffTime / (1000 * 60 * 60 * 24)));
                                                         }
-                                                    }} 
-                                                    style={{ width: '100%', padding: '0.5rem 0.5rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem', height: '35px', background: 'white', outline: 'none' }}
-                                                >
-                                                    {(dropdownOptions.terms || DEFAULT_DROPDOWNS.terms).map((t, idx) => (
-                                                        <option key={idx} value={getDaysFromTerms(t)}>{t}</option>
-                                                    ))}
-                                                </select>
+                                                    }
+                                                    const hasMatchingTerm = (termsList || []).some(t => getDaysFromTerms(t) === currentDueDays);
+
+                                                    return (
+                                                        <select 
+                                                            value={currentDueDays}
+                                                            onChange={(e) => {
+                                                                const days = parseInt(e.target.value, 10);
+                                                                if (!isNaN(days)) {
+                                                                    const d = new Date();
+                                                                    d.setDate(d.getDate() + days);
+                                                                    const yyyy = d.getFullYear();
+                                                                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                                                    const dd = String(d.getDate()).padStart(2, '0');
+                                                                    setFormData({ ...formData, due_date: `${yyyy}-${mm}-${dd}` });
+                                                                }
+                                                            }} 
+                                                            style={{ width: '100%', padding: '0.5rem 0.5rem', borderRadius: '6px', border: '1px solid #DBEAFE', fontSize: '0.8rem', height: '35px', background: 'white', outline: 'none', fontWeight: '600' }}
+                                                        >
+                                                            {!hasMatchingTerm && (
+                                                                <option value={currentDueDays}>Custom ({currentDueDays} Days)</option>
+                                                            )}
+                                                            {(termsList || []).map((t, idx) => (
+                                                                <option key={idx} value={getDaysFromTerms(t)}>{t}</option>
+                                                            ))}
+                                                        </select>
+                                                    );
+                                                })()}
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#1E3A8A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Due Date</label>

@@ -205,7 +205,7 @@ const BusinessCustomization = () => {
         cashSale: false, 
         billingName: false,
         customerPo: false,
-        inclusiveTax: true, 
+        inclusiveTax: false, 
         displayPurchase: true, 
         showLast5Sale: false,
         showLast5Purchase: false,
