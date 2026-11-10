@@ -2825,6 +2825,7 @@ const BusinessBilling = () => {
                                                                 step={isWeighted ? "0.001" : "any"}
                                                                 placeholder={isWeighted ? "1.000" : "0"}
                                                                 value={item.quantity} 
+                                                                onWheel={(e) => e.target.blur()}
                                                                 onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'quantity', Math.max(0, parseFloat(raw) || 0)); }} 
                                                                 onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
                                                                 style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: isWeighted ? '1.5px solid #10B981' : '1px solid #E2E8F0', background: isWeighted ? '#F0FDF4' : '#FFFFFF', fontSize: '0.8rem', fontWeight: isWeighted ? '700' : 'normal' }} 
@@ -2838,6 +2839,7 @@ const BusinessBilling = () => {
                                                                     min="0" 
                                                                     placeholder="0" 
                                                                     value={item.free_quantity || ''} 
+                                                                    onWheel={(e) => e.target.blur()}
                                                                     onChange={(e) => { const raw = e.target.value.slice(0, 14); handleItemChange(idx, 'free_quantity', Math.max(0, parseFloat(raw) || 0)); }} 
                                                                     onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
                                                                     style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} 
@@ -2866,6 +2868,7 @@ const BusinessBilling = () => {
                                                                 disabled={!isMainBranch}
                                                                 readOnly={!isMainBranch}
                                                                 title={!isMainBranch ? "Price can only be set or adjusted by the Main Branch" : "Set price"}
+                                                                onWheel={(e) => e.target.blur()}
                                                                 onKeyDown={(e) => {
                                                                     if (e.key === '-' || e.key === 'e' || e.key === 'E') {
                                                                         e.preventDefault();
@@ -2905,7 +2908,7 @@ const BusinessBilling = () => {
                                             {activeConfig.txnDiscount !== false && (
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '0.6rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.25rem' }}>DISC %</label>
-                                                    <input type="number" value={item.discount_percent} onChange={(e) => handleItemChange(idx, 'discount_percent', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
+                                                    <input type="number" value={item.discount_percent} onWheel={(e) => e.target.blur()} onChange={(e) => handleItemChange(idx, 'discount_percent', parseFloat(e.target.value) || 0)} style={{ width: '100%', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '0.8rem' }} />
                                                 </div>
                                             )}
                                             {activeConfig.txnTax !== false && (
@@ -2998,6 +3001,7 @@ const BusinessBilling = () => {
                                             <input 
                                                 type="number" 
                                                 value={formData.paid_amount || 0} 
+                                                onWheel={(e) => e.target.blur()}
                                                 onChange={(e) => {
                                                     const raw = e.target.value.slice(0, 14);
                                                     const paid = parseFloat(raw) || 0;
@@ -3038,6 +3042,7 @@ const BusinessBilling = () => {
                                                     disabled={!activeSelectedCustomer || (activeSelectedCustomer.loyalty_points || 0) === 0}
                                                     placeholder="Redeem Points"
                                                     value={formData.redeemed_points || ''}
+                                                    onWheel={(e) => e.target.blur()}
                                                     onChange={(e) => {
                                                         const rawVal = e.target.value;
                                                         let val = parseInt(rawVal, 10);
