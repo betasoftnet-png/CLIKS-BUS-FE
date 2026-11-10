@@ -452,7 +452,7 @@ const BusinessPurchases = () => {
         contact_number: '',
         warehouse_id: 'Main Godown',
         purchase_by: 'Branch Manager',
-        payment_mode: 'Cash',
+        payment_mode: 'Credit',
         bank_account_id: '',
         paid_amount: 0,
         advance_amount: 0,
@@ -728,9 +728,45 @@ const BusinessPurchases = () => {
 
         const isRequisition = createDocType === 'REQUISITION' || formHeader.purchase_type === 'INTERNAL' || String(formHeader.supplier_name || '').toLowerCase().includes('main showroom');
         const totals = computeDocTotals(formItems, formHeader.shipping_charge);
+        const grandTotal = parseFloat(totals.grand_total) || 0;
+        const isCredit = formHeader.payment_mode === 'Credit' || !formHeader.payment_mode;
+        const paidAmount = isCredit ? 0 : (parseFloat(formHeader.paid_amount) || 0);
+        const advanceAmount = isCredit ? 0 : (parseFloat(formHeader.advance_amount) || 0);
+
+        let resolvedStatus = 'pending';
+        let resolvedPaymentStatus = 'pending';
+
+        if (isRequisition) {
+            resolvedStatus = 'Pending Approval';
+            resolvedPaymentStatus = 'n/a';
+        } else if (createDocType === 'PO') {
+            resolvedStatus = 'Approved';
+            if (grandTotal > 0 && advanceAmount >= grandTotal) {
+                resolvedPaymentStatus = 'paid';
+            } else if (advanceAmount > 0) {
+                resolvedPaymentStatus = 'partial';
+            } else {
+                resolvedPaymentStatus = 'pending';
+            }
+        } else if (createDocType === 'BILL') {
+            if (grandTotal > 0 && paidAmount >= grandTotal) {
+                resolvedStatus = 'paid';
+                resolvedPaymentStatus = 'paid';
+            } else if (paidAmount > 0) {
+                resolvedStatus = 'partial';
+                resolvedPaymentStatus = 'partial';
+            } else {
+                resolvedStatus = 'pending';
+                resolvedPaymentStatus = 'pending';
+            }
+        } else if (createDocType === 'RETURN') {
+            resolvedStatus = 'Completed';
+            resolvedPaymentStatus = 'refunded';
+        }
 
         const docPayload = {
             ...formHeader,
+            payment_mode: formHeader.payment_mode || 'Credit',
             warehouse_id: formHeader.warehouse_id || 'Main Godown',
             doc_type: isRequisition ? 'PO' : createDocType,
             purchase_type: isRequisition ? 'INTERNAL' : (formHeader.purchase_type || 'GST'),
@@ -739,14 +775,14 @@ const BusinessPurchases = () => {
                 ...i,
                 received_quantity: createDocType === 'BILL' ? i.quantity : 0
             })),
-            status: isRequisition ? 'Pending Approval' : (createDocType === 'PO' ? 'Approved' : 'paid'),
-            payment_status: isRequisition ? 'n/a' : (createDocType === 'BILL' ? (parseFloat(formHeader.paid_amount) >= totals.grand_total ? 'paid' : (parseFloat(formHeader.paid_amount) > 0 ? 'partial' : 'pending')) : (totals.grand_total === (parseFloat(formHeader.advance_amount) || 0) ? 'paid' : ((parseFloat(formHeader.advance_amount) || 0) > 0 ? 'partial' : 'pending'))),
-            paid_amount: isRequisition ? 0 : (createDocType === 'BILL' ? (parseFloat(formHeader.paid_amount) || totals.grand_total) : 0),
-            advance_amount: isRequisition ? 0 : (createDocType === 'PO' ? (parseFloat(formHeader.advance_amount) || 0) : 0),
+            status: resolvedStatus,
+            payment_status: resolvedPaymentStatus,
+            paid_amount: isRequisition ? 0 : (createDocType === 'BILL' ? paidAmount : 0),
+            advance_amount: isRequisition ? 0 : (createDocType === 'PO' ? advanceAmount : 0),
             ...totals
         };
 
-        // Log Expense Transaction for Purchase Bill/Advance Payment (Skip for internal requisitions)
+        // Log Expense Transaction for Purchase Bill/Advance Payment (Skip for internal requisitions & unpaid/credit)
         const paymentAmt = createDocType === 'BILL' ? docPayload.paid_amount : docPayload.advance_amount;
         if (!isRequisition && paymentAmt > 0) {
             paymentsStore.addTransaction({
@@ -755,7 +791,7 @@ const BusinessPurchases = () => {
                 reference_id: formHeader.purchase_number,
                 bank_account_id: formHeader.bank_account_id || null,
                 amount: paymentAmt,
-                payment_method: formHeader.payment_mode ? formHeader.payment_mode.toLowerCase() : 'cash',
+                payment_method: formHeader.payment_mode ? formHeader.payment_mode.toLowerCase() : 'credit',
                 notes: `${createDocType} Payment for procurement ${formHeader.purchase_number}`
             });
             paymentsStore.getBankAccounts().then(res => setBankAccounts(Array.isArray(res) ? res : []));
@@ -886,19 +922,31 @@ const BusinessPurchases = () => {
                         <ArrowRightLeft size={14} /> Request Stock
                     </button>
                     <button 
-                        onClick={() => { setCreateDocType('PO'); setIsCreateModalOpen(true); }}
+                        onClick={() => {
+                            setCreateDocType('PO');
+                            setFormHeader(prev => ({ ...prev, payment_mode: 'Credit', paid_amount: 0, advance_amount: 0 }));
+                            setIsCreateModalOpen(true);
+                        }}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 1rem', borderRadius: '10px', background: 'white', color: '#334155', border: '1px solid #CBD5E1', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', transition: 'all 0.15s' }}
                     >
                         <Plus size={14} /> New PO
                     </button>
                     <button 
-                        onClick={() => { setCreateDocType('RETURN'); setIsCreateModalOpen(true); }}
+                        onClick={() => {
+                            setCreateDocType('RETURN');
+                            setFormHeader(prev => ({ ...prev, payment_mode: 'Credit', paid_amount: 0, advance_amount: 0 }));
+                            setIsCreateModalOpen(true);
+                        }}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 1rem', borderRadius: '10px', background: 'white', color: '#334155', border: '1px solid #CBD5E1', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', transition: 'all 0.15s' }}
                     >
                         <Plus size={14} /> Purchase Return
                     </button>
                     <button 
-                        onClick={() => { setCreateDocType('BILL'); setIsCreateModalOpen(true); }}
+                        onClick={() => {
+                            setCreateDocType('BILL');
+                            setFormHeader(prev => ({ ...prev, payment_mode: 'Credit', paid_amount: 0, advance_amount: 0 }));
+                            setIsCreateModalOpen(true);
+                        }}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 1.15rem', borderRadius: '10px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)', transition: 'all 0.15s' }}
                     >
                         <Plus size={15} /> New Purchase Bill
@@ -1453,6 +1501,21 @@ const BusinessPurchases = () => {
                                                 return (
                                                     <div>
                                                         <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.98rem', margin: 0, whiteSpace: 'nowrap' }}>{formatCurrency(finalTotal)}</p>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
+                                                            <span style={{
+                                                                fontSize: '0.68rem', fontWeight: '800', padding: '1px 6px', borderRadius: '5px',
+                                                                background: (bill.payment_status === 'paid' || bill.status === 'paid' || bill.status === 'Paid') ? '#DCFCE7' : ((parseFloat(bill.paid_amount) || 0) > 0 ? '#DBEAFE' : '#FEF3C7'),
+                                                                color: (bill.payment_status === 'paid' || bill.status === 'paid' || bill.status === 'Paid') ? '#15803D' : ((parseFloat(bill.paid_amount) || 0) > 0 ? '#1D4ED8' : '#B45309'),
+                                                                border: (bill.payment_status === 'paid' || bill.status === 'paid' || bill.status === 'Paid') ? '1px solid #BBF7D0' : ((parseFloat(bill.paid_amount) || 0) > 0 ? '1px solid #BFDBFE' : '1px solid #FDE68A')
+                                                            }}>
+                                                                {(bill.payment_status === 'paid' || bill.status === 'paid' || bill.status === 'Paid') ? 'PAID' : ((parseFloat(bill.paid_amount) || 0) > 0 ? `PARTIAL (${formatCurrency(bill.paid_amount)})` : 'UNPAID / CREDIT')}
+                                                            </span>
+                                                            {bill.payment_mode && bill.payment_mode !== 'Credit' && (
+                                                                <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
+                                                                    ({bill.payment_mode})
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         {singleTax > 0 && (
                                                             <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'block', marginTop: '2px' }}>GST: {formatCurrency(totals.total_tax)}</span>
                                                         )}
@@ -1510,7 +1573,11 @@ const BusinessPurchases = () => {
                             <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '0.2rem 0 0 0', fontWeight: '500' }}>Manage supplier defective product returns, debit notes, and refund statuses.</p>
                         </div>
                         <button 
-                            onClick={() => { setCreateDocType('RETURN'); setIsCreateModalOpen(true); }}
+                            onClick={() => {
+                                setCreateDocType('RETURN');
+                                setFormHeader(prev => ({ ...prev, payment_mode: 'Credit', paid_amount: 0, advance_amount: 0 }));
+                                setIsCreateModalOpen(true);
+                            }}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.6rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer', boxShadow: '0 4px 10px rgba(5, 150, 105, 0.2)' }}
                         >
                             <Plus size={14} /> New Supplier Return
@@ -1976,33 +2043,42 @@ const BusinessPurchases = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem', borderTop: '1px solid #E2E8F0', paddingTop: '1.5rem' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.6rem', textTransform: 'uppercase' }}>Payment Mode</label>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                                            <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', textTransform: 'uppercase' }}>Payment Mode</label>
+                                            <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '600' }}>
+                                                {formHeader.payment_mode === 'Credit' ? 'Pending settlement (Credit)' : `Payment via ${formHeader.payment_mode}`}
+                                            </span>
+                                        </div>
                                         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                            {['Cash', 'UPI', 'Bank', 'Credit'].map(mode => (
-                                                <button 
-                                                    key={mode}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const totals = computeDocTotals(formItems, formHeader.shipping_charge);
-                                                        const paid = mode === 'Credit' ? 0 : totals.grand_total;
-                                                        setFormHeader({
-                                                            ...formHeader, 
-                                                            payment_mode: mode,
-                                                            paid_amount: paid,
-                                                            advance_amount: mode === 'Credit' ? 0 : (createDocType === 'PO' ? 10000 : paid)
-                                                        });
-                                                    }}
-                                                    style={{ 
-                                                        flex: 1, padding: '0.75rem', borderRadius: '12px', 
-                                                        border: formHeader.payment_mode === mode ? '2px solid #1B6B3A' : '1px solid #DCF2E4',
-                                                        background: formHeader.payment_mode === mode ? '#1B6B3A' : 'white',
-                                                        color: formHeader.payment_mode === mode ? 'white' : '#1B6B3A',
-                                                        fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer'
-                                                    }}
-                                                >
-                                                    {mode}
-                                                </button>
-                                            ))}
+                                            {['Credit', 'Cash', 'UPI', 'Bank'].map(mode => {
+                                                const isSelected = formHeader.payment_mode === mode;
+                                                return (
+                                                    <button 
+                                                        key={mode}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const totals = computeDocTotals(formItems, formHeader.shipping_charge);
+                                                            const paid = mode === 'Credit' ? 0 : totals.grand_total;
+                                                            setFormHeader(prev => ({
+                                                                ...prev, 
+                                                                payment_mode: mode,
+                                                                paid_amount: paid,
+                                                                advance_amount: mode === 'Credit' ? 0 : (createDocType === 'PO' ? Math.min(10000, totals.grand_total) : paid)
+                                                            }));
+                                                        }}
+                                                        style={{ 
+                                                            flex: 1, padding: '0.75rem', borderRadius: '12px', 
+                                                            border: isSelected ? '2px solid #1B6B3A' : '1px solid #DCF2E4',
+                                                            background: isSelected ? '#1B6B3A' : 'white',
+                                                            color: isSelected ? 'white' : '#1B6B3A',
+                                                            fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer',
+                                                            transition: 'all 0.15s ease'
+                                                        }}
+                                                    >
+                                                        {mode === 'Credit' ? 'Credit (Unpaid)' : mode}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
 
@@ -2032,8 +2108,33 @@ const BusinessPurchases = () => {
                                         </div>
                                     ) : createDocType === 'BILL' ? (
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Paid Amount ({currency.symbol})</label>
-                                            <input type="number" value={formHeader.paid_amount || 0} onChange={(e) => setFormHeader({ ...formHeader, paid_amount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Paid Amount ({currency.symbol})</label>
+                                                <span style={{ fontSize: '0.72rem', color: (parseFloat(formHeader.paid_amount) || 0) > 0 ? '#15803D' : '#D97706', fontWeight: '700' }}>
+                                                    {formHeader.payment_mode === 'Credit' || (parseFloat(formHeader.paid_amount) || 0) === 0
+                                                        ? 'Unpaid / Pending (Credit)'
+                                                        : ((parseFloat(formHeader.paid_amount) || 0) >= computeDocTotals(formItems, formHeader.shipping_charge).grand_total
+                                                            ? 'Fully Paid'
+                                                            : 'Partially Paid')}
+                                                </span>
+                                            </div>
+                                            <input 
+                                                type="number" 
+                                                min="0"
+                                                value={formHeader.paid_amount ?? 0} 
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    setFormHeader(prev => ({
+                                                        ...prev,
+                                                        paid_amount: val,
+                                                        payment_mode: val > 0 ? (prev.payment_mode === 'Credit' ? 'Cash' : prev.payment_mode) : 'Credit'
+                                                    }));
+                                                }} 
+                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                            />
+                                            <p style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.35rem' }}>
+                                                Set to 0 for Credit purchases to save bill as Unpaid/Pending.
+                                            </p>
                                         </div>
                                     ) : null}
                                 </div>

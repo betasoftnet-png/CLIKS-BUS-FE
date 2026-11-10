@@ -445,7 +445,7 @@ const NewPurchaseForm = ({ suppliers, products, bankAccounts, onSubmit, isSubmit
         email: '',
         billing_address: '',
         place_of_supply: 'Maharashtra',
-        payment_mode: 'Cash',
+        payment_mode: 'Credit',
         bank_account_id: '',
         shipping_charge: 0,
         purchase_type: 'GST'
@@ -595,9 +595,9 @@ const NewPurchaseForm = ({ suppliers, products, bankAccounts, onSubmit, isSubmit
                     <div>
                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.5rem' }}>Payment Type</label>
                         <select value={header.payment_mode} onChange={(e) => handleHeaderChange('payment_mode', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #E2E8F0', background: 'white', fontWeight: '700' }}>
+                            <option value="Credit">Credit (Post to Payables / Unpaid)</option>
                             <option value="Cash">Cash</option>
                             <option value="Bank">Bank Transfer / UPI</option>
-                            <option value="Credit">Credit (Post to Payables)</option>
                         </select>
                     </div>
                 </div>
