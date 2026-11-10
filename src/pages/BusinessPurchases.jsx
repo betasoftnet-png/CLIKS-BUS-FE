@@ -34,7 +34,8 @@ import {
     Send,
     Globe,
     ShieldCheck,
-    ArrowRightLeft
+    ArrowRightLeft,
+    CreditCard
 } from 'lucide-react';
 import { paymentsStore } from '../lib/paymentsStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -89,6 +90,14 @@ const BusinessPurchases = () => {
     const [chatMessages, setChatMessages] = useState([]);
     const [chatInput, setChatInput] = useState('');
     const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+    // Payment Settlement Modal states
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [paymentDoc, setPaymentDoc] = useState(null);
+    const [paymentAmount, setPaymentAmount] = useState(0);
+    const [paymentMode, setPaymentMode] = useState('Cash');
+    const [paymentBankAccountId, setPaymentBankAccountId] = useState('');
+    const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 
     // Fetch customization settings dynamically to enforce master configurations
     const { data: userSettings } = useQuery({
@@ -286,6 +295,46 @@ const BusinessPurchases = () => {
     };
 
     const queryClient = useQueryClient();
+
+    const handleOpenPaymentModal = (doc) => {
+        const grandTotal = parseFloat(doc.grand_total) || 0;
+        const paid = (parseFloat(doc.paid_amount) || 0) + (parseFloat(doc.advance_amount) || 0);
+        const remainingDue = Math.max(0, grandTotal - paid);
+        setPaymentDoc(doc);
+        setPaymentAmount(remainingDue);
+        setPaymentMode(doc.payment_mode && doc.payment_mode !== 'Credit' ? doc.payment_mode : 'Cash');
+        setPaymentBankAccountId(doc.bank_account_id || '');
+        setIsPaymentModalOpen(true);
+    };
+
+    const handleSubmitPayment = async (e) => {
+        e.preventDefault();
+        if (!paymentDoc) return;
+        const amt = parseFloat(paymentAmount) || 0;
+        if (amt <= 0) {
+            alert('Please enter a valid payment amount greater than 0.');
+            return;
+        }
+        try {
+            setIsSubmittingPayment(true);
+            await purchasesService.processPurchasePayments(paymentDoc.id || paymentDoc.purchase_id, {
+                paid_amount: amt,
+                payment_mode: paymentMode,
+                bank_account_id: paymentBankAccountId || null
+            });
+            queryClient.invalidateQueries({ queryKey: ['purchases'] });
+            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            queryClient.invalidateQueries({ queryKey: ['allExpensesDashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
+            setIsPaymentModalOpen(false);
+            setPaymentDoc(null);
+        } catch (err) {
+            console.error('Error processing purchase payment:', err);
+            alert(err?.response?.data?.message || 'Failed to record payment. Please try again.');
+        } finally {
+            setIsSubmittingPayment(false);
+        }
+    };
 
     // Queries
     const { data: allPurchases = [] } = useQuery({
@@ -730,8 +779,8 @@ const BusinessPurchases = () => {
         const totals = computeDocTotals(formItems, formHeader.shipping_charge);
         const grandTotal = parseFloat(totals.grand_total) || 0;
         const isCredit = formHeader.payment_mode === 'Credit' || !formHeader.payment_mode;
-        const paidAmount = isCredit ? 0 : (parseFloat(formHeader.paid_amount) || 0);
-        const advanceAmount = isCredit ? 0 : (parseFloat(formHeader.advance_amount) || 0);
+        const paidAmount = (isCredit && !(parseFloat(formHeader.paid_amount) > 0)) ? 0 : (parseFloat(formHeader.paid_amount) || 0);
+        const advanceAmount = (isCredit && !(parseFloat(formHeader.advance_amount) > 0)) ? 0 : (parseFloat(formHeader.advance_amount) || 0);
 
         let resolvedStatus = 'pending';
         let resolvedPaymentStatus = 'pending';
@@ -1122,10 +1171,22 @@ const BusinessPurchases = () => {
                                         <td className="align-top" style={{ width: '14%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
                                             {(() => {
                                                 const totals = computeDocTotals(po.items, po.shipping_charge);
+                                                const grandTotal = totals.grand_total || parseFloat(po.grand_total) || 0;
+                                                const paidAdv = (parseFloat(po.advance_amount) || 0) + (parseFloat(po.paid_amount) || 0);
+                                                const pendingBal = Math.max(0, grandTotal - paidAdv);
                                                 return (
                                                     <div>
-                                                        <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.98rem', margin: 0, whiteSpace: 'nowrap' }}>{formatCurrency(totals.grand_total)}</p>
-                                                        <span style={{ fontSize: '0.72rem', color: '#B45309', fontWeight: '700', display: 'block', marginTop: '2px' }}>Paid Adv: {formatCurrency(po.advance_amount)}</span>
+                                                        <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.98rem', margin: 0, whiteSpace: 'nowrap' }}>{formatCurrency(grandTotal)}</p>
+                                                        {paidAdv > 0 && pendingBal > 0 ? (
+                                                            <div style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: '700' }}>Paid: {formatCurrency(paidAdv)}</span>
+                                                                <span style={{ fontSize: '0.72rem', color: '#DC2626', fontWeight: '700' }}>Due: {formatCurrency(pendingBal)}</span>
+                                                            </div>
+                                                        ) : paidAdv >= grandTotal && grandTotal > 0 ? (
+                                                            <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: '700', display: 'block', marginTop: '2px' }}>Paid Adv: {formatCurrency(paidAdv)}</span>
+                                                        ) : (
+                                                            <span style={{ fontSize: '0.72rem', color: '#B45309', fontWeight: '700', display: 'block', marginTop: '2px' }}>Paid Adv: {formatCurrency(po.advance_amount)}</span>
+                                                        )}
                                                     </div>
                                                 );
                                             })()}
@@ -1463,7 +1524,7 @@ const BusinessPurchases = () => {
                                 { key: 'supplier_name', label: 'Supplier & GST', placeholder: 'Supplier', style: { width: '20%' } },
                                 { key: 'items', label: 'Items', placeholder: 'Item', style: { width: '22%' } },
                                 { key: 'total', label: 'Bill Amount', placeholder: 'e.g. 5000', style: { width: '15%' } },
-                                { key: 'status', label: 'Goods Status', placeholder: 'e.g. Pending', style: { width: '14%' } },
+                                { key: 'status', label: 'Status', placeholder: 'e.g. Pending', style: { width: '14%' } },
                                 { key: '_actions', label: 'Actions', noFilter: true, align: 'right', style: { width: '13%' } }
                             ]} onFilterChange={setColFilters} />
                             <tbody>
@@ -1496,65 +1557,149 @@ const BusinessPurchases = () => {
                                         <td style={{ width: '15%', padding: '0.85rem 1rem', verticalAlign: 'top', overflow: 'hidden' }}>
                                             {(() => {
                                                 const totals = computeDocTotals(bill.items || [], bill.shipping_charge);
-                                                const finalTotal = totals.grand_total || bill.grand_total || 0;
+                                                const finalTotal = totals.grand_total || parseFloat(bill.grand_total) || 0;
+                                                const paidAmount = (parseFloat(bill.paid_amount) || 0) + (parseFloat(bill.advance_amount) || 0);
+                                                const dueAmount = Math.max(0, finalTotal - paidAmount);
                                                 const singleTax = (totals.total_tax || 0) / 2;
+                                                const isPaid = (bill.payment_status === 'paid' || bill.status === 'paid' || bill.status === 'Paid') || (finalTotal > 0 && paidAmount >= finalTotal);
                                                 return (
                                                     <div>
                                                         <p style={{ fontWeight: '850', color: '#064E3B', fontSize: '0.98rem', margin: 0, whiteSpace: 'nowrap' }}>{formatCurrency(finalTotal)}</p>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
-                                                            <span style={{
-                                                                fontSize: '0.68rem', fontWeight: '800', padding: '1px 6px', borderRadius: '5px',
-                                                                background: (bill.payment_status === 'paid' || bill.status === 'paid' || bill.status === 'Paid') ? '#DCFCE7' : ((parseFloat(bill.paid_amount) || 0) > 0 ? '#DBEAFE' : '#FEF3C7'),
-                                                                color: (bill.payment_status === 'paid' || bill.status === 'paid' || bill.status === 'Paid') ? '#15803D' : ((parseFloat(bill.paid_amount) || 0) > 0 ? '#1D4ED8' : '#B45309'),
-                                                                border: (bill.payment_status === 'paid' || bill.status === 'paid' || bill.status === 'Paid') ? '1px solid #BBF7D0' : ((parseFloat(bill.paid_amount) || 0) > 0 ? '1px solid #BFDBFE' : '1px solid #FDE68A')
-                                                            }}>
-                                                                {(bill.payment_status === 'paid' || bill.status === 'paid' || bill.status === 'Paid') ? 'PAID' : ((parseFloat(bill.paid_amount) || 0) > 0 ? `PARTIAL (${formatCurrency(bill.paid_amount)})` : 'UNPAID / CREDIT')}
+                                                        {paidAmount > 0 && dueAmount > 0 ? (
+                                                            <div style={{ marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: '750' }}>Paid: {formatCurrency(paidAmount)}</span>
+                                                                <span style={{ fontSize: '0.72rem', color: '#DC2626', fontWeight: '750' }}>Due: {formatCurrency(dueAmount)}</span>
+                                                            </div>
+                                                        ) : isPaid ? (
+                                                            <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: '750', display: 'block', marginTop: '2px' }}>Paid: {formatCurrency(finalTotal)}</span>
+                                                        ) : (
+                                                            <span style={{ fontSize: '0.72rem', color: '#D97706', fontWeight: '750', display: 'block', marginTop: '2px' }}>Due: {formatCurrency(finalTotal)}</span>
+                                                        )}
+                                                        {bill.payment_mode && bill.payment_mode !== 'Credit' && (
+                                                            <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600', display: 'block', marginTop: '2px' }}>
+                                                                via {bill.payment_mode}
                                                             </span>
-                                                            {bill.payment_mode && bill.payment_mode !== 'Credit' && (
-                                                                <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
-                                                                    ({bill.payment_mode})
-                                                                </span>
-                                                            )}
-                                                        </div>
+                                                        )}
                                                         {singleTax > 0 && (
-                                                            <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'block', marginTop: '2px' }}>GST: {formatCurrency(totals.total_tax)}</span>
+                                                            <span style={{ fontSize: '0.7rem', color: '#64748B', display: 'block', marginTop: '2px' }}>GST: {formatCurrency(totals.total_tax)}</span>
                                                         )}
                                                     </div>
                                                 );
                                             })()}
                                         </td>
                                         <td style={{ width: '14%', padding: '0.85rem 1rem', verticalAlign: 'top' }}>
-                                            <span style={{
-                                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                                                padding: '0.25rem 0.6rem', borderRadius: '7px', fontSize: '0.72rem', fontWeight: '800',
-                                                background: bill.status === 'Completed' ? '#F0FDF4' : (bill.status === 'Pending Goods' ? '#FFFBEB' : '#F1F5F9'),
-                                                color: bill.status === 'Completed' ? '#15803D' : (bill.status === 'Pending Goods' ? '#B45309' : '#475569')
-                                            }}>
-                                                {bill.status === 'Completed' ? <CheckCircle2 size={11} /> : <Clock size={11} />}
-                                                {bill.status || 'Pending'}
-                                            </span>
+                                            {(() => {
+                                                const totals = computeDocTotals(bill.items || [], bill.shipping_charge);
+                                                const finalTotal = totals.grand_total || parseFloat(bill.grand_total) || 0;
+                                                const paidAmount = (parseFloat(bill.paid_amount) || 0) + (parseFloat(bill.advance_amount) || 0);
+                                                const dueAmount = Math.max(0, finalTotal - paidAmount);
+                                                const isPaid = (bill.payment_status === 'paid' || bill.status === 'paid' || bill.status === 'Paid') || (finalTotal > 0 && paidAmount >= finalTotal);
+                                                const isPartial = !isPaid && (bill.payment_status === 'partial' || bill.status === 'partial' || bill.status === 'Partial' || bill.status === 'Partially Paid' || (paidAmount > 0 && dueAmount > 0));
+
+                                                let badgeBg = '#FEF3C7';
+                                                let badgeColor = '#B45309';
+                                                let badgeBorder = '#FDE68A';
+                                                let badgeIcon = <Clock size={11} />;
+                                                let badgeText = 'PENDING';
+
+                                                if (isPaid) {
+                                                    badgeBg = '#DCFCE7';
+                                                    badgeColor = '#15803D';
+                                                    badgeBorder = '#BBF7D0';
+                                                    badgeIcon = <CheckCircle2 size={11} />;
+                                                    badgeText = 'PAID';
+                                                } else if (isPartial) {
+                                                    badgeBg = '#EFF6FF';
+                                                    badgeColor = '#1D4ED8';
+                                                    badgeBorder = '#BFDBFE';
+                                                    badgeIcon = <Clock size={11} />;
+                                                    badgeText = 'PARTIAL';
+                                                }
+
+                                                return (
+                                                    <div>
+                                                        <span style={{
+                                                            display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                            padding: '0.22rem 0.55rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '800',
+                                                            background: badgeBg, color: badgeColor, border: `1px solid ${badgeBorder}`
+                                                        }}>
+                                                            {badgeIcon}
+                                                            {badgeText}
+                                                        </span>
+                                                        {isPartial && (
+                                                            <div style={{ marginTop: '3px', fontSize: '0.7rem' }}>
+                                                                <span style={{ color: '#059669', fontWeight: '750', display: 'block' }}>Paid: {formatCurrency(paidAmount)}</span>
+                                                                <span style={{ color: '#B45309', fontWeight: '750', display: 'block' }}>Pending: {formatCurrency(dueAmount)}</span>
+                                                            </div>
+                                                        )}
+                                                        {!isPaid && !isPartial && (
+                                                            <span style={{ fontSize: '0.7rem', color: '#DC2626', fontWeight: '700', display: 'block', marginTop: '2px' }}>Due: {formatCurrency(finalTotal)}</span>
+                                                        )}
+                                                        {bill.status === 'Pending Goods' && (
+                                                            <span style={{
+                                                                display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                                                                marginTop: '4px', padding: '0.15rem 0.45rem', borderRadius: '5px',
+                                                                fontSize: '0.66rem', fontWeight: '750', background: '#FFFBEB', color: '#B45309', border: '1px solid #FEF08A'
+                                                            }}>
+                                                                <Package size={10} /> Pending Goods
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                         </td>
                                         <td style={{ width: '13%', padding: '0.85rem 1rem', textAlign: 'right', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                            {bill.status === 'Pending Goods' ? (
-                                                <button
-                                                    onClick={() => handleOpenReceiveModal(bill)}
-                                                    style={{
-                                                        padding: '0.48rem 0.85rem', borderRadius: '8px', border: 'none',
-                                                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                                                        color: 'white',
-                                                        fontWeight: '750', fontSize: '0.78rem', cursor: 'pointer',
-                                                        display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                                        whiteSpace: 'nowrap',
-                                                        boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)'
-                                                    }}
-                                                >
-                                                    <PackageOpen size={14} /> Receive Goods
-                                                </button>
-                                            ) : (
-                                                <span style={{ display: 'inline-flex', padding: '0.3rem 0.65rem', borderRadius: '7px', background: '#F1F5F9', color: '#475569', fontSize: '0.74rem', fontWeight: '800' }}>
-                                                    {bill.status === 'Completed' ? 'COMPLETED' : bill.status.toUpperCase()}
-                                                </span>
-                                            )}
+                                            {(() => {
+                                                const totals = computeDocTotals(bill.items || [], bill.shipping_charge);
+                                                const finalTotal = totals.grand_total || parseFloat(bill.grand_total) || 0;
+                                                const paidAmount = (parseFloat(bill.paid_amount) || 0) + (parseFloat(bill.advance_amount) || 0);
+                                                const dueAmount = Math.max(0, finalTotal - paidAmount);
+
+                                                return (
+                                                    <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+                                                        {bill.status === 'Pending Goods' && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleOpenReceiveModal(bill)}
+                                                                style={{
+                                                                    padding: '0.45rem 0.75rem', borderRadius: '8px', border: 'none',
+                                                                    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                                                                    color: 'white',
+                                                                    fontWeight: '750', fontSize: '0.75rem', cursor: 'pointer',
+                                                                    display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                                    whiteSpace: 'nowrap',
+                                                                    boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)'
+                                                                }}
+                                                            >
+                                                                <PackageOpen size={13} /> Receive Goods
+                                                            </button>
+                                                        )}
+                                                        {dueAmount > 0 ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleOpenPaymentModal(bill)}
+                                                                style={{
+                                                                    padding: '0.45rem 0.75rem', borderRadius: '8px',
+                                                                    border: '1px solid #BFDBFE',
+                                                                    background: '#EFF6FF',
+                                                                    color: '#1D4ED8',
+                                                                    fontWeight: '750', fontSize: '0.75rem', cursor: 'pointer',
+                                                                    display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                                    whiteSpace: 'nowrap',
+                                                                    transition: 'all 0.15s'
+                                                                }}
+                                                                title={`Record payment towards remaining ${formatCurrency(dueAmount)}`}
+                                                            >
+                                                                <CreditCard size={13} /> Pay Balance
+                                                            </button>
+                                                        ) : (
+                                                            <span style={{ display: 'inline-flex', padding: '0.3rem 0.65rem', borderRadius: '7px', background: '#F0FDF4', color: '#15803D', fontSize: '0.74rem', fontWeight: '800' }}>
+                                                                {bill.status === 'Completed' ? 'COMPLETED' : 'PAID'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                         </td>
                                     </tr>
                                 ))}
@@ -2561,6 +2706,124 @@ const BusinessPurchases = () => {
                                 <Send size={16} />
                                 <span>Send</span>
                             </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Record Purchase Payment Modal */}
+            {isPaymentModalOpen && paymentDoc && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(6px)', padding: '1rem' }}>
+                    <div style={{ background: 'white', width: '100%', maxWidth: '480px', borderRadius: '18px', padding: '1.75rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '1px solid #E2E8F0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
+                                    <CreditCard size={18} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '850', color: '#0F172A' }}>Record Payment</h3>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>{paymentDoc.purchase_number} • {paymentDoc.supplier_name}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsPaymentModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.45rem', borderRadius: '10px', cursor: 'pointer', color: '#64748B' }}><X size={18} /></button>
+                        </div>
+
+                        <form onSubmit={handleSubmitPayment}>
+                            {/* Summary cards */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem', marginBottom: '1.25rem' }}>
+                                <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                                    <span style={{ fontSize: '0.68rem', color: '#64748B', display: 'block', fontWeight: '600' }}>Bill Amount</span>
+                                    <strong style={{ fontSize: '0.88rem', color: '#0F172A', display: 'block', marginTop: '2px' }}>{formatCurrency(paymentDoc.grand_total || 0)}</strong>
+                                </div>
+                                <div style={{ background: '#F0FDF4', padding: '0.75rem', borderRadius: '10px', border: '1px solid #BBF7D0' }}>
+                                    <span style={{ fontSize: '0.68rem', color: '#15803D', display: 'block', fontWeight: '600' }}>Already Paid</span>
+                                    <strong style={{ fontSize: '0.88rem', color: '#15803D', display: 'block', marginTop: '2px' }}>{formatCurrency((parseFloat(paymentDoc.paid_amount) || 0) + (parseFloat(paymentDoc.advance_amount) || 0))}</strong>
+                                </div>
+                                <div style={{ background: '#FEF3C7', padding: '0.75rem', borderRadius: '10px', border: '1px solid #FDE68A' }}>
+                                    <span style={{ fontSize: '0.68rem', color: '#B45309', display: 'block', fontWeight: '600' }}>Pending Due</span>
+                                    <strong style={{ fontSize: '0.88rem', color: '#B45309', display: 'block', marginTop: '2px' }}>
+                                        {formatCurrency(Math.max(0, (parseFloat(paymentDoc.grand_total) || 0) - ((parseFloat(paymentDoc.paid_amount) || 0) + (parseFloat(paymentDoc.advance_amount) || 0))))}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            {/* Payment Amount Input */}
+                            <div style={{ marginBottom: '1rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: '#334155', marginBottom: '0.35rem' }}>Payment Amount ({currency.symbol})</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    step="any"
+                                    required
+                                    value={paymentAmount}
+                                    onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                                    style={{ width: '100%', padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.9rem', fontWeight: '750', boxSizing: 'border-box', outline: 'none' }}
+                                />
+                            </div>
+
+                            {/* Payment Mode Selection */}
+                            <div style={{ marginBottom: '1rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: '#334155', marginBottom: '0.35rem' }}>Payment Mode</label>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    {['Cash', 'Bank', 'UPI'].map(m => (
+                                        <button
+                                            key={m}
+                                            type="button"
+                                            onClick={() => setPaymentMode(m)}
+                                            style={{
+                                                flex: 1, padding: '0.6rem', borderRadius: '9px',
+                                                border: paymentMode === m ? '2px solid #059669' : '1px solid #E2E8F0',
+                                                background: paymentMode === m ? '#F0FDF4' : 'white',
+                                                color: paymentMode === m ? '#047857' : '#64748B',
+                                                fontWeight: '750', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.15s'
+                                            }}
+                                        >
+                                            {m}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Bank Account Selection if Bank or UPI */}
+                            {(paymentMode === 'Bank' || paymentMode === 'UPI') && (
+                                <div style={{ marginBottom: '1.25rem' }}>
+                                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: '800', color: '#334155', marginBottom: '0.35rem' }}>Select Bank Account</label>
+                                    <select
+                                        value={paymentBankAccountId}
+                                        onChange={(e) => setPaymentBankAccountId(e.target.value)}
+                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.82rem', boxSizing: 'border-box', background: 'white' }}
+                                    >
+                                        <option value="">-- Default Account --</option>
+                                        {bankAccounts.map(acc => (
+                                            <option key={acc.id} value={acc.id}>{acc.bank_name} ({formatCurrency(acc.current_balance)})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsPaymentModalOpen(false)}
+                                    style={{ padding: '0.6rem 1.1rem', borderRadius: '10px', border: '1px solid #CBD5E1', background: 'white', color: '#64748B', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmittingPayment}
+                                    style={{
+                                        padding: '0.6rem 1.35rem', borderRadius: '10px', border: 'none',
+                                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                                        color: 'white', fontWeight: '750', fontSize: '0.82rem', cursor: 'pointer',
+                                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                                        boxShadow: '0 4px 10px rgba(5, 150, 105, 0.25)'
+                                    }}
+                                >
+                                    {isSubmittingPayment ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                                    Confirm Payment
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>

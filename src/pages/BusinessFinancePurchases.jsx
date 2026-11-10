@@ -153,13 +153,22 @@ const BusinessFinancePurchases = () => {
                                     <td style={{ padding: '1rem 1.5rem', fontSize: '0.85rem', color: '#64748B', fontWeight: '600' }}>{bill.purchase_date}</td>
                                     <td style={{ padding: '1rem 1.5rem', fontWeight: '900', color: '#1E293B' }}>{formatCurrency(bill.grand_total)}</td>
                                     <td style={{ padding: '1rem 1.5rem' }}>
-                                        <span style={{
-                                            padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '850',
-                                            background: bill.payment_status === 'paid' ? '#DCFCE7' : '#FEE2E2',
-                                            color: bill.payment_status === 'paid' ? '#15803D' : '#B91C1C'
-                                        }}>
-                                            {bill.payment_status.toUpperCase()}
-                                        </span>
+                                        {(() => {
+                                            const paid = parseFloat(bill.paid_amount) || 0;
+                                            const gTotal = parseFloat(bill.grand_total) || 0;
+                                            const isPaid = bill.payment_status === 'paid' || (gTotal > 0 && paid >= gTotal);
+                                            const isPartial = !isPaid && (bill.payment_status === 'partial' || paid > 0);
+                                            return (
+                                                <span style={{
+                                                    padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '850',
+                                                    background: isPaid ? '#DCFCE7' : (isPartial ? '#EFF6FF' : '#FEE2E2'),
+                                                    color: isPaid ? '#15803D' : (isPartial ? '#1D4ED8' : '#B91C1C'),
+                                                    border: `1px solid ${isPaid ? '#BBF7D0' : (isPartial ? '#BFDBFE' : '#FECACA')}`
+                                                }}>
+                                                    {isPaid ? 'PAID' : (isPartial ? `PARTIAL (${formatCurrency(paid)})` : 'PENDING')}
+                                                </span>
+                                            );
+                                        })()}
                                     </td>
                                     <td style={{ padding: '1rem 1.5rem' }}>
                                         <span style={{
