@@ -1616,6 +1616,14 @@ const BusinessBilling = () => {
 
     const gstInvoicesList = (Array.isArray(dbGstInvoices) ? dbGstInvoices : [])
         .filter(item => !locallyDeletedGstIds.includes(String(item.id)))
+        .filter(item => {
+            const client = String(item.customer_name || item.client_name || '').toLowerCase();
+            const irn = String(item.irn || item.govt_irn || item.irn_hash || item.irnNo || item.ack_irn || item.irn_number || '');
+            if (client.includes('test customer') || client.includes('test vendor') || client.includes('sthuthya') || irn.includes('IRN-TEST')) {
+                return false;
+            }
+            return true;
+        })
         .map(item => ({
             id: item.id,
             invoice_number: item.invoice_number || 'N/A',
@@ -1677,8 +1685,8 @@ const BusinessBilling = () => {
                 document_number: invoiceNum,
                 date: ackDtVal || new Date().toISOString().split('T')[0],
                 created_at: new Date().toISOString(),
-                client_name: variables?.client_name || variables?.customer_name || 'Sthuthya Consignee',
-                customer_name: variables?.client_name || variables?.customer_name || 'Sthuthya Consignee',
+                client_name: variables?.client_name || variables?.customer_name || 'Customer',
+                customer_name: variables?.client_name || variables?.customer_name || 'Customer',
                 customer_gstin: variables?.customer_gstin || '09AAAPG7885R002',
                 invoice_type: variables?.invoice_type || 'B2B',
                 place_of_supply: variables?.place_of_supply || '09-Uttar Pradesh',
