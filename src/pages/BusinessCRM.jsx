@@ -904,7 +904,8 @@ const BusinessCRM = () => {
             const phoneVal = `${formData.phone_country_code || '+91'} ${rawPhoneDigits}`;
             const altPhoneVal = rawAltDigits ? `${formData.alt_phone_country_code || '+91'} ${rawAltDigits}` : '';
             const panVal = formData.pan_number || formData.pan || '';
-            const addrVal = formData.billing_address || formData.address || '';
+            const billAddr = formData.billing_address || formData.address || '';
+            const shipAddr = formData.shipping_address || billAddr;
 
             const payload = {
                 ...formData,
@@ -913,8 +914,9 @@ const BusinessCRM = () => {
                 alternate_phone: altPhoneVal,
                 pan: panVal,
                 pan_number: panVal,
-                address: addrVal,
-                billing_address: addrVal
+                address: billAddr,
+                billing_address: billAddr,
+                shipping_address: shipAddr
             };
             const contactApiBase = import.meta.env.VITE_CONTACT_API_BASE_URL;
             
@@ -1786,17 +1788,15 @@ const BusinessCRM = () => {
                                             </div>
                                         </div>
 
-                                        {/* Row 2: Shipping Address textarea/input (with map-pin icon and "0/300" character counter) */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: editingCustomer ? '1fr 1fr' : '1fr', gap: '0.85rem' }}>
-                                            {editingCustomer && (
-                                                <div>
-                                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Billing Address</label>
-                                                    <div style={{ display: 'flex', alignItems: 'flex-start', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
-                                                        <span style={{ width: '38px', paddingTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', flexShrink: 0 }}><Building2 size={15} /></span>
-                                                        <textarea value={formData.billing_address} onChange={(e) => setFormData({...formData, billing_address: e.target.value})} style={{ flex: 1, padding: '0.65rem 0.75rem 0.65rem 0', border: 'none', outline: 'none', background: 'transparent', minHeight: '68px', resize: 'vertical', fontSize: '0.85rem' }} placeholder="e.g. 101 Corporate Park" />
-                                                    </div>
+                                        {/* Row 2: Billing & Shipping Address textareas */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.85rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Billing Address</label>
+                                                <div style={{ display: 'flex', alignItems: 'flex-start', border: '1px solid #E2E8F0', borderRadius: '10px', background: 'white', overflow: 'hidden' }}>
+                                                    <span style={{ width: '38px', paddingTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', flexShrink: 0 }}><Building2 size={15} /></span>
+                                                    <textarea value={formData.billing_address} onChange={(e) => setFormData({...formData, billing_address: e.target.value})} style={{ flex: 1, padding: '0.65rem 0.75rem 0.65rem 0', border: 'none', outline: 'none', background: 'transparent', minHeight: '68px', resize: 'vertical', fontSize: '0.85rem' }} placeholder="e.g. 101 Corporate Park" />
                                                 </div>
-                                            )}
+                                            </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: '#475569', marginBottom: '0.4rem' }}>Shipping Address</label>
                                                 <div style={{ position: 'relative' }}>
