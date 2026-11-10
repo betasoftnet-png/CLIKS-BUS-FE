@@ -286,6 +286,47 @@ const BusinessExpenses = ({ defaultTab }) => {
         }
     });
 
+    const recordDepartmentSpendingMutation = useMutation({
+        mutationFn: async ({ budgetUpdate, expenseData }) => {
+            if (budgetUpdate) {
+                try {
+                    await expensesService.updateBudget(budgetUpdate.id, budgetUpdate.data);
+                } catch (bErr) {
+                    console.warn('[Department Spend] Budget member sync warning:', bErr);
+                }
+            }
+            return await expensesService.createExpense(expenseData);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['expensesList'] });
+            queryClient.invalidateQueries({ queryKey: ['budgetsList'] });
+            if (recordSpendingForm.file_preview_url) {
+                URL.revokeObjectURL(recordSpendingForm.file_preview_url);
+            }
+            setIsRecordSpendingModalOpen(false);
+            setSelectedBudgetForSpend(null);
+            setSpendingAmountError('');
+            setRecordSpendingForm({
+                category_name: '',
+                amount: '',
+                description: '',
+                date: new Date().toISOString().split('T')[0],
+                payment_mode: 'UPI',
+                employee_id: '',
+                employee_name: '',
+                file_name: '',
+                file_type: '',
+                file_data: '',
+                file_preview_url: ''
+            });
+            alert('Department spending successfully recorded and allocated!');
+        },
+        onError: (err) => {
+            console.error('[Department Spend Error]:', err);
+            alert(err?.response?.data?.message || err?.message || 'Failed to record department spending. Please check the entered details.');
+        }
+    });
+
     const lodgeClaimMutation = useMutation({
         mutationFn: (data) => expensesService.lodgeClaim(data),
         onSuccess: () => {
@@ -741,8 +782,8 @@ const BusinessExpenses = ({ defaultTab }) => {
             return;
         }
 
-        // Update member budget allocation inside selected budget
-        if (selectedBudgetForSpend && recordSpendingForm.employee_id) {
+        let budgetUpdate = null;
+        if (selectedBudgetForSpend) {
             let parsedMembers = [];
             try {
                 parsedMembers = typeof selectedBudgetForSpend.team_members === 'string'
@@ -753,7 +794,7 @@ const BusinessExpenses = ({ defaultTab }) => {
             }
             
             const updatedMembers = parsedMembers.map(m => {
-                if (String(m.employee_id) === String(recordSpendingForm.employee_id)) {
+                if (recordSpendingForm.employee_id && String(m.employee_id) === String(recordSpendingForm.employee_id)) {
                     return {
                         ...m,
                         spent: (parseFloat(m.spent) || 0) + spentAmt
@@ -764,18 +805,20 @@ const BusinessExpenses = ({ defaultTab }) => {
             
             const newSpentAmount = (parseFloat(selectedBudgetForSpend.spent_amount) || 0) + spentAmt;
             
-            updateBudgetMutation.mutate({
+            budgetUpdate = {
                 id: selectedBudgetForSpend.id,
                 data: {
                     category_name: selectedBudgetForSpend.category_name,
                     budget_limit: String(selectedBudgetForSpend.budget_limit),
+                    budget_month: selectedBudgetForSpend.budget_month || currentMonthStr,
+                    carry_forward: selectedBudgetForSpend.carry_forward !== false,
                     spent_amount: newSpentAmount,
                     team_members: updatedMembers
                 }
-            });
+            };
         }
 
-        createExpenseMutation.mutate({
+        const expenseData = {
             category_name: recordSpendingForm.category_name,
             subcategory: recordSpendingForm.description.trim() || 'Departmental Spend',
             payee_name: recordSpendingForm.employee_name || 'Departmental Spend',
@@ -788,14 +831,9 @@ const BusinessExpenses = ({ defaultTab }) => {
             file_name: recordSpendingForm.file_name || null,
             file_type: recordSpendingForm.file_type || null,
             receipt: recordSpendingForm.file_name || ''
-        }, {
-            onSuccess: () => {
-                if (recordSpendingForm.file_preview_url) {
-                    URL.revokeObjectURL(recordSpendingForm.file_preview_url);
-                }
-                setIsRecordSpendingModalOpen(false);
-            }
-        });
+        };
+
+        recordDepartmentSpendingMutation.mutate({ budgetUpdate, expenseData });
     };
 
     const handleSaveBudget = (e) => {
@@ -2923,7 +2961,19 @@ const BusinessExpenses = ({ defaultTab }) => {
 
             {/* Record Department Spending Modal */}
             {isRecordSpendingModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1.5rem', overflowY: 'auto' }}>
+                <div 
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                            if (recordSpendingForm.file_preview_url) {
+                                URL.revokeObjectURL(recordSpendingForm.file_preview_url);
+                            }
+                            setIsRecordSpendingModalOpen(false);
+                            setSelectedBudgetForSpend(null);
+                            setSpendingAmountError('');
+                        }
+                    }}
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '1.5rem', overflowY: 'auto' }}
+                >
                     <div style={{ background: 'white', width: '100%', maxWidth: '540px', borderRadius: '24px', padding: '1.75rem 2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '92vh', overflowY: 'auto', boxSizing: 'border-box' }}>
                         
                         {/* Header */}
@@ -2943,6 +2993,8 @@ const BusinessExpenses = ({ defaultTab }) => {
                                         URL.revokeObjectURL(recordSpendingForm.file_preview_url);
                                     }
                                     setIsRecordSpendingModalOpen(false);
+                                    setSelectedBudgetForSpend(null);
+                                    setSpendingAmountError('');
                                 }} 
                                 style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer', color: '#64748B' }}
                             >
@@ -3172,31 +3224,59 @@ const BusinessExpenses = ({ defaultTab }) => {
                                 )}
                             </div>
 
-                            {/* Submit Button */}
-                            <button 
-                                type="submit" 
-                                disabled={Boolean(spendingAmountError) || !recordSpendingForm.amount || createExpenseMutation.isPending} 
-                                style={{ 
-                                    width: '100%', 
-                                    padding: '0.85rem', 
-                                    borderRadius: '14px', 
-                                    background: (Boolean(spendingAmountError) || !recordSpendingForm.amount) ? '#94A3B8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
-                                    color: 'white', 
-                                    border: 'none', 
-                                    fontWeight: '800', 
-                                    fontSize: '1rem', 
-                                    cursor: (Boolean(spendingAmountError) || !recordSpendingForm.amount) ? 'not-allowed' : 'pointer', 
-                                    boxShadow: '0 8px 16px rgba(5, 150, 105, 0.2)',
-                                    marginTop: '0.25rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.5rem'
-                                }}
-                            >
-                                <CheckCircle2 size={18} />
-                                {createExpenseMutation.isPending ? 'Recording Expense...' : 'Confirm & Record Expense'}
-                            </button>
+                            {/* Action Buttons */}
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', alignItems: 'center' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (recordSpendingForm.file_preview_url) {
+                                            URL.revokeObjectURL(recordSpendingForm.file_preview_url);
+                                        }
+                                        setIsRecordSpendingModalOpen(false);
+                                        setSelectedBudgetForSpend(null);
+                                        setSpendingAmountError('');
+                                    }}
+                                    style={{
+                                        flex: '0 0 auto',
+                                        padding: '0.85rem 1.25rem',
+                                        borderRadius: '14px',
+                                        background: '#F1F5F9',
+                                        color: '#475569',
+                                        border: '1px solid #CBD5E1',
+                                        fontWeight: '750',
+                                        fontSize: '0.9rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.35rem'
+                                    }}
+                                >
+                                    ← Return Back
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={Boolean(spendingAmountError) || !recordSpendingForm.amount || recordDepartmentSpendingMutation.isPending} 
+                                    style={{ 
+                                        flex: 1, 
+                                        padding: '0.85rem', 
+                                        borderRadius: '14px', 
+                                        background: (Boolean(spendingAmountError) || !recordSpendingForm.amount || recordDepartmentSpendingMutation.isPending) ? '#94A3B8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)', 
+                                        color: 'white', 
+                                        border: 'none', 
+                                        fontWeight: '800', 
+                                        fontSize: '0.95rem', 
+                                        cursor: (Boolean(spendingAmountError) || !recordSpendingForm.amount || recordDepartmentSpendingMutation.isPending) ? 'not-allowed' : 'pointer', 
+                                        boxShadow: '0 8px 16px rgba(5, 150, 105, 0.2)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                >
+                                    <CheckCircle2 size={18} />
+                                    {recordDepartmentSpendingMutation.isPending ? 'Recording & Allocating...' : 'Confirm & Record Expense'}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
