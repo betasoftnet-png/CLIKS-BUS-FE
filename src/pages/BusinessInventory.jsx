@@ -34,7 +34,8 @@ import {
     DollarSign,
     Percent,
     AlertCircle,
-    Barcode
+    Barcode,
+    Zap
 } from 'lucide-react';
 import '../App.css';
 import { customConfirm } from '../utils/customConfirm';
@@ -308,8 +309,8 @@ const BusinessInventory = () => {
     const createMutation = useMutation({
         mutationFn: (data) => productsService.createProduct(data),
         onSuccess: (_, variables) => {
-            // Also create a stock entry for the selected warehouse
-            if (variables && variables.name) {
+            // Also create a stock entry for the selected warehouse (only for physical products)
+            if (variables && variables.name && variables.product_type !== 'service') {
                 const whName = variables.warehouse_id;
                 if (whName) {
                     stockService.createStock({
@@ -338,6 +339,9 @@ const BusinessInventory = () => {
         mutationFn: ({ id, data }) => productsService.updateProduct(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
             alert('Product details updated successfully!');
             setIsModalOpen(false);
         }
@@ -577,6 +581,13 @@ const BusinessInventory = () => {
 
     const handleEdit = (item) => {
         setEditingItem(item);
+        const isService = item.product_type === 'service';
+        const rawGst = item.gst_percentage !== undefined && item.gst_percentage !== null
+            ? item.gst_percentage
+            : (item.tax_percentage !== undefined && item.tax_percentage !== null ? item.tax_percentage : 18);
+        const resolvedGst = isNaN(Number(rawGst)) ? 18 : Number(rawGst);
+        const resolvedWarehouse = item.warehouse || item.warehouse_id || (isService ? '' : (dbWarehouses[0]?.name || dbWarehouses[0]?.warehouse_name || 'Main Godown'));
+
         setFormData({
             product_code: item.product_code || `PRO-${item.id}`,
             sku: item.sku || '',
@@ -586,24 +597,24 @@ const BusinessInventory = () => {
             name: item.name || '',
             short_name: item.short_name || item.display_name || '',
             description: item.description || '',
-            category: item.category || 'Electronics',
+            category: item.category || (isService ? 'Services' : 'Electronics'),
             brand: item.brand || '',
-            purchase_price: item.purchase_price || 0,
-            selling_price: item.selling_price || 0,
-            wholesale_price: item.wholesale_price || 0,
-            dealer_price: item.dealer_price || 0,
-            mrp: item.mrp || 0,
-            discount_percentage: item.discount_percentage !== undefined ? item.discount_percentage : (item.discount !== undefined ? item.discount : 0),
-            gst_percentage: item.gst_percentage !== undefined ? item.gst_percentage : (item.tax_percentage !== undefined ? item.tax_percentage : 18),
+            purchase_price: item.purchase_price !== undefined && item.purchase_price !== null ? item.purchase_price : 0,
+            selling_price: item.selling_price !== undefined && item.selling_price !== null ? item.selling_price : 0,
+            wholesale_price: item.wholesale_price !== undefined && item.wholesale_price !== null ? item.wholesale_price : 0,
+            dealer_price: item.dealer_price !== undefined && item.dealer_price !== null ? item.dealer_price : 0,
+            mrp: item.mrp !== undefined && item.mrp !== null ? item.mrp : 0,
+            discount_percentage: item.discount_percentage !== undefined && item.discount_percentage !== null ? item.discount_percentage : (item.discount !== undefined && item.discount !== null ? item.discount : 0),
+            gst_percentage: resolvedGst,
             hsn_code: item.hsn_code || '',
-            tax_type: item.tax_type || 'inclusive',
-            opening_stock: item.opening_stock || item.quantity || 0,
-            quantity: item.quantity || 0,
+            tax_type: String(item.tax_type || 'inclusive').toLowerCase().includes('ex') ? 'exclusive' : 'inclusive',
+            opening_stock: item.opening_stock !== undefined && item.opening_stock !== null ? item.opening_stock : (item.quantity || 0),
+            quantity: item.quantity !== undefined && item.quantity !== null ? item.quantity : 0,
             reserved_stock: item.reserved_stock || 0,
             damaged_stock: item.damaged_stock || 0,
             expired_stock: item.expired_stock || 0,
-            min_stock: item.min_stock || 5,
-            reorder_level: item.reorder_level || 8,
+            min_stock: item.min_stock !== undefined && item.min_stock !== null ? item.min_stock : 5,
+            reorder_level: item.reorder_level !== undefined && item.reorder_level !== null ? item.reorder_level : 8,
             batch_number: item.batch_number || '',
             has_expiry: Boolean(
                 item.has_expiry === true || String(item.has_expiry) === '1' || String(item.has_expiry) === 'true' ||
@@ -619,10 +630,10 @@ const BusinessInventory = () => {
             manufacturing_date: item.manufacturing_date || item.mfg_date || '',
             expiry_date: item.expiry_date && item.expiry_date !== '2029-01-10' ? item.expiry_date : '',
             serial_number: item.serial_number || '',
-            primary_unit: item.primary_unit || item.unit || 'pcs',
+            primary_unit: item.primary_unit || item.unit || (isService ? 'service' : 'pcs'),
             secondary_unit: item.secondary_unit || 'box',
             conversion_rate: item.conversion_rate || 1,
-            warehouse: item.warehouse || item.warehouse_id || 'Main Godown',
+            warehouse: resolvedWarehouse,
             zone: item.zone || '',
             rack_number: item.rack_number || item.rack_location || '',
             shelf_number: item.shelf_number || '',
@@ -698,29 +709,30 @@ const BusinessInventory = () => {
             ? (formData.warranty_period === 'Custom' ? (formData.custom_warranty_text || formData.warrantyPeriod) : (formData.warranty_period || formData.warrantyPeriod || '1 Year'))
             : null;
 
-        const isUnlimited = Boolean(formData.isUnlimited);
-        const openingStockVal = isUnlimited ? 999999 : (parseFloat(formData.opening_stock) || 0);
+        const isService = formData.product_type === 'service';
+        const isUnlimited = Boolean(formData.isUnlimited) || isService;
+        const openingStockVal = isService ? 0 : (isUnlimited ? 999999 : (parseFloat(formData.opening_stock) || 0));
 
         const payload = {
             name: formData.name,
             sku: (formData.sku && String(formData.sku).trim()) ? String(formData.sku).trim() : null,
-            short_name: formData.short_name,
-            display_name: formData.short_name,
+            short_name: formData.short_name || formData.name,
+            display_name: formData.short_name || formData.name,
             category: formData.category,
-            brand: formData.brand,
-            product_type: formData.product_type,
-            unit: formData.primary_unit || 'PCS',
-            primary_unit: formData.primary_unit || 'pcs',
+            brand: formData.brand || '',
+            product_type: formData.product_type || 'product',
+            unit: formData.primary_unit || (isService ? 'service' : 'pcs'),
+            primary_unit: formData.primary_unit || (isService ? 'service' : 'pcs'),
             secondary_unit: formData.secondary_unit || 'box',
             conversion_rate: parseFloat(formData.conversion_rate) || 1,
             quantity: openingStockVal,
             opening_stock: openingStockVal,
             isUnlimited: isUnlimited,
             is_unlimited: isUnlimited,
-            min_stock: isUnlimited ? 0 : (parseFloat(formData.min_stock) || 0),
-            reorder_level: isUnlimited ? 0 : (parseFloat(formData.reorder_level) || 0),
-            damaged_stock: isUnlimited ? 0 : (parseFloat(formData.damaged_stock) || 0),
-            expired_stock: isUnlimited ? 0 : (parseFloat(formData.expired_stock) || 0),
+            min_stock: (isUnlimited || isService) ? 0 : (parseFloat(formData.min_stock) || 0),
+            reorder_level: (isUnlimited || isService) ? 0 : (parseFloat(formData.reorder_level) || 0),
+            damaged_stock: (isUnlimited || isService) ? 0 : (parseFloat(formData.damaged_stock) || 0),
+            expired_stock: (isUnlimited || isService) ? 0 : (parseFloat(formData.expired_stock) || 0),
             purchase_price: parseFloat(formData.purchase_price) || 0,
             selling_price: parseFloat(formData.selling_price) || 0,
             wholesale_price: parseFloat(formData.wholesale_price) || 0,
@@ -729,30 +741,30 @@ const BusinessInventory = () => {
             discount_percentage: parseFloat(formData.discount_percentage) || 0,
             discount: parseFloat(formData.discount_percentage) || 0,
             barcode: (formData.barcode && String(formData.barcode).trim()) ? String(formData.barcode).trim() : null,
-            serial_number: formData.serial_number,
-            batch_number: formData.batch_number,
-            has_expiry: Boolean(formData.has_expiry),
-            is_perishable: Boolean(formData.has_expiry),
-            expiry_date: formData.has_expiry ? (formData.expiry_date || null) : null,
-            mfg_date: formData.has_expiry ? (formData.mfg_date || formData.manufacturing_date || null) : null,
-            manufacturing_date: formData.has_expiry ? (formData.manufacturing_date || formData.mfg_date || null) : null,
+            serial_number: isService ? null : formData.serial_number,
+            batch_number: isService ? null : formData.batch_number,
+            has_expiry: isService ? false : Boolean(formData.has_expiry),
+            is_perishable: isService ? false : Boolean(formData.has_expiry),
+            expiry_date: (!isService && formData.has_expiry) ? (formData.expiry_date || null) : null,
+            mfg_date: (!isService && formData.has_expiry) ? (formData.mfg_date || formData.manufacturing_date || null) : null,
+            manufacturing_date: (!isService && formData.has_expiry) ? (formData.manufacturing_date || formData.mfg_date || null) : null,
             tax_percentage: (formData.gst_percentage !== undefined && formData.gst_percentage !== null && !isNaN(parseFloat(formData.gst_percentage))) ? parseFloat(formData.gst_percentage) : 18,
             gst_percentage: (formData.gst_percentage !== undefined && formData.gst_percentage !== null && !isNaN(parseFloat(formData.gst_percentage))) ? parseFloat(formData.gst_percentage) : 18,
             tax_type: formData.tax_type || 'inclusive',
-            warehouse_id: formData.warehouse,
-            warehouse: formData.warehouse,
-            hsn_code: formData.hsn_code,
-            has_warranty: isWarrantyActive ? 'Yes' : 'No',
-            warrantyDetails: isWarrantyActive ? 'Yes' : 'No',
-            warranty_period: resolvedWarrantyPeriod,
-            warrantyPeriod: resolvedWarrantyPeriod,
-            zone: formData.zone || null,
-            rack_number: formData.rack_number || null,
-            rack_location: formData.rack_number || null,
-            shelf_number: formData.shelf_number || null,
-            bin_number: formData.bin_number || null,
-            is_group_product: formData.is_group_product ? 1 : 0,
-            raw_materials: formData.is_group_product && Array.isArray(formData.raw_materials) && formData.raw_materials.length > 0 ? JSON.stringify(formData.raw_materials) : null
+            warehouse_id: isService ? null : (formData.warehouse || null),
+            warehouse: isService ? null : (formData.warehouse || null),
+            hsn_code: formData.hsn_code || null,
+            has_warranty: isService ? 'No' : (isWarrantyActive ? 'Yes' : 'No'),
+            warrantyDetails: isService ? 'No' : (isWarrantyActive ? 'Yes' : 'No'),
+            warranty_period: isService ? null : resolvedWarrantyPeriod,
+            warrantyPeriod: isService ? null : resolvedWarrantyPeriod,
+            zone: isService ? null : (formData.zone || null),
+            rack_number: isService ? null : (formData.rack_number || null),
+            rack_location: isService ? null : (formData.rack_number || null),
+            shelf_number: isService ? null : (formData.shelf_number || null),
+            bin_number: isService ? null : (formData.bin_number || null),
+            is_group_product: isService ? 0 : (formData.is_group_product ? 1 : 0),
+            raw_materials: (!isService && formData.is_group_product && Array.isArray(formData.raw_materials) && formData.raw_materials.length > 0) ? JSON.stringify(formData.raw_materials) : null
         };
 
         if (editingItem) {
@@ -1063,18 +1075,32 @@ const BusinessInventory = () => {
                                     <tr key={row.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'background-color 0.15s' }}>
                                         <td style={{ width: '24%', padding: '0.85rem 1rem', verticalAlign: 'middle', overflow: 'hidden' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
-                                                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: row.product_type === 'product' ? '#F0FDF4' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: row.product_type === 'product' ? '#047857' : '#1D4ED8', flexShrink: 0 }}>
-                                                    <Package size={18} />
+                                                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: row.product_type === 'service' ? '#EFF6FF' : '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: row.product_type === 'service' ? '#1D4ED8' : '#047857', flexShrink: 0 }}>
+                                                    {row.product_type === 'service' ? <Zap size={18} /> : <Package size={18} />}
                                                 </div>
                                                 <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '0.15rem', flexWrap: 'wrap' }}>
                                                         <p style={{ fontWeight: '750', color: '#0F172A', fontSize: '0.88rem', margin: 0, wordBreak: 'break-word', lineHeight: 1.3 }}>{row.name}</p>
+                                                        {row.product_type === 'service' ? (
+                                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 6px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                                                                ⚡ Service Offering
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0', padding: '1px 6px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                                                                📦 Physical Product
+                                                            </span>
+                                                        )}
                                                         {(row.is_group_product === 1 || row.is_group_product === true || String(row.is_group_product) === '1' || (row.raw_materials && row.raw_materials !== '[]')) && (
                                                             <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#DCFCE7', color: '#15803D', padding: '2px 6px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
                                                                 <Layers size={11} /> Recipe
                                                             </span>
                                                         )}
                                                     </div>
+                                                    {(row.short_name || row.display_name) && (row.short_name || row.display_name) !== row.name && (
+                                                        <div style={{ fontSize: '0.73rem', color: '#047857', fontWeight: '600', marginBottom: '2px' }}>
+                                                            Display: {row.short_name || row.display_name}
+                                                        </div>
+                                                    )}
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
                                                         <span style={{ fontSize: '0.74rem', color: '#64748B', whiteSpace: 'nowrap' }}>
                                                             {[
@@ -1116,13 +1142,27 @@ const BusinessInventory = () => {
                                         </td>
                                         <td style={{ width: '13%', padding: '0.85rem 1rem', verticalAlign: 'middle', overflow: 'hidden' }}>
                                             <div>
-                                                <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.85rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.category || 'General'}</p>
-                                                <span style={{ fontSize: '0.74rem', color: '#94A3B8', display: 'block', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.brand || 'No Brand'}</span>
+                                                <p style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.85rem', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.category || (row.product_type === 'service' ? 'Services' : 'General')}</p>
+                                                <span style={{ fontSize: '0.74rem', color: '#64748B', display: 'block', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {row.brand ? `Brand: ${row.brand}` : 'No Brand'}
+                                                </span>
+                                                {row.product_type === 'product' && (
+                                                    <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        📍 {row.warehouse || 'Main Godown'}{(row.rack_number || row.rack_location) ? ` • Rack ${row.rack_number || row.rack_location}` : ''}
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td style={{ width: '15%', padding: '0.85rem 1rem', verticalAlign: 'middle' }}>
                                             {row.product_type === 'service' ? (
-                                                <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: '700' }}>NO TRACKING</span>
+                                                <div>
+                                                    <span style={{ fontSize: '0.78rem', color: '#1D4ED8', fontWeight: '800', background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '2px 8px', borderRadius: '6px', display: 'inline-block' }}>
+                                                        ⚡ Service (No Stock)
+                                                    </span>
+                                                    <span style={{ fontSize: '0.72rem', color: '#64748B', display: 'block', marginTop: '3px' }}>
+                                                        Unit: <strong style={{ color: '#0F172A', fontWeight: '700' }}>{row.primary_unit || row.unit || 'service'}</strong>
+                                                    </span>
+                                                </div>
                                             ) : (() => {
                                                 const isUnlimited = Boolean(row.isUnlimited === true || row.is_unlimited === true || (parseFloat(row.quantity) >= 999999) || (parseFloat(row.opening_stock) >= 999999));
                                                 if (isUnlimited) {
@@ -1149,6 +1189,7 @@ const BusinessInventory = () => {
                                                     <div>
                                                         <p style={{ fontWeight: '850', color: isDamagedGodown ? '#DC2626' : (displayStock < minStock ? '#EF4444' : '#1E293B'), fontSize: '0.92rem', margin: 0 }}>
                                                             {displayStock}{' '}
+                                                            <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '700', textTransform: 'lowercase' }}>{row.primary_unit || row.unit || 'pcs'}</span>{' '}
                                                             <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: '600' }}>Sellable</span>
                                                         </p>
                                                         {isDamagedGodown ? (
@@ -1168,8 +1209,20 @@ const BusinessInventory = () => {
                                         </td>
                                         <td style={{ width: '13%', padding: '0.85rem 1rem', verticalAlign: 'middle' }}>
                                             <div>
-                                                <p style={{ fontWeight: '700', color: '#64748B', fontSize: '0.78rem', margin: 0 }}>Buy: {formatCurrency(row.purchase_price)}</p>
-                                                <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#064E3B', display: 'block', marginTop: '2px' }}>Sell: {formatCurrency(row.selling_price)}</span>
+                                                <span style={{ fontSize: '0.9rem', fontWeight: '850', color: '#064E3B', display: 'block' }}>Sell: {formatCurrency(row.selling_price)}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '2px', fontSize: '0.74rem', color: '#64748B' }}>
+                                                    <span>Buy: {formatCurrency(row.purchase_price)}</span>
+                                                    {parseFloat(row.mrp) > 0 && <span>• MRP: {formatCurrency(row.mrp)}</span>}
+                                                </div>
+                                                {(parseFloat(row.wholesale_price) > 0 || parseFloat(row.dealer_price) > 0 || parseFloat(row.discount_percentage || row.discount) > 0) && (
+                                                    <div style={{ fontSize: '0.68rem', color: '#475569', marginTop: '2px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                                        {parseFloat(row.wholesale_price) > 0 && <span>WS: {formatCurrency(row.wholesale_price)}</span>}
+                                                        {parseFloat(row.dealer_price) > 0 && <span>Dlr: {formatCurrency(row.dealer_price)}</span>}
+                                                        {parseFloat(row.discount_percentage || row.discount) > 0 && (
+                                                            <span style={{ color: '#DC2626', fontWeight: '700' }}>({row.discount_percentage || row.discount}% off)</span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                         <td style={{ width: '11%', padding: '0.85rem 1rem', verticalAlign: 'middle' }}>
@@ -1182,9 +1235,12 @@ const BusinessInventory = () => {
                                                         }
                                                         return '0% GST';
                                                     })()}
+                                                    <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600', marginLeft: '3px' }}>
+                                                        ({String(row.tax_type || 'inclusive').toLowerCase().includes('ex') ? 'Excl' : 'Incl'})
+                                                    </span>
                                                 </p>
                                                 <div style={{ fontSize: '0.74rem', color: '#94A3B8', fontWeight: '500', marginTop: '2px' }}>
-                                                    HSN: <span style={{ color: '#475569', fontWeight: '600' }}>{row.hsn ?? row.hsn_code ?? row.hsnCode ?? 'N/A'}</span>
+                                                    {row.product_type === 'service' ? 'SAC: ' : 'HSN: '}<span style={{ color: '#475569', fontWeight: '600' }}>{row.hsn ?? row.hsn_code ?? row.hsnCode ?? 'N/A'}</span>
                                                 </div>
                                             </div>
                                         </td>
@@ -1386,11 +1442,15 @@ const BusinessInventory = () => {
                     <div style={{ background: 'white', width: '100%', maxWidth: '850px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                             <div>
-                                <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B' }}>{editingItem ? 'Edit Product Profile' : 'New Product Registration'}</h2>
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B' }}>
+                                    {editingItem
+                                        ? (formData.product_type === 'service' ? 'Edit Service Offering Profile' : 'Edit Product Profile')
+                                        : (formData.product_type === 'service' ? 'New Service Offering Registration' : 'New Product Registration')}
+                                </h2>
                                 {editingItem && formData.sku ? (
-                                    <p style={{ fontSize: '0.85rem', color: '#64748B' }}>SKU: {formData.sku}</p>
+                                    <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Code/SKU: {formData.sku}</p>
                                 ) : (
-                                    <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Enter catalog details to register product</p>
+                                    <p style={{ fontSize: '0.85rem', color: '#64748B' }}>{formData.product_type === 'service' ? 'Enter catalog & billing details for this service' : 'Enter catalog details to register product'}</p>
                                 )}
                             </div>
                             <button onClick={closeModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
@@ -1735,6 +1795,9 @@ const BusinessInventory = () => {
                                         <option value={12}>12% GST</option>
                                         <option value={18}>18% GST</option>
                                         <option value={28}>28% GST</option>
+                                        {![0, 5, 12, 18, 28].includes(Number(formData.gst_percentage)) && (
+                                            <option value={formData.gst_percentage}>{formData.gst_percentage}% GST</option>
+                                        )}
                                     </select>
                                 </div>
                                 <div>
@@ -1745,6 +1808,45 @@ const BusinessInventory = () => {
                                     </select>
                                 </div>
                             </div>
+
+                            {/* Service Offering Specifications (Only shown for Service Offerings) */}
+                            {formData.product_type === 'service' && (
+                                <div style={{ background: '#EFF6FF', padding: '1.5rem', borderRadius: '20px', display: 'flex', flexDirection: 'column', gap: '1.25rem', border: '1px solid #BFDBFE' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1D4ED8', fontWeight: '800', fontSize: '0.88rem' }}>
+                                        <Zap size={18} color="#1D4ED8" />
+                                        <span>Service Offering & Billing Specifications</span>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem', alignItems: 'center' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1E40AF', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Service Billing Unit</label>
+                                            <select
+                                                value={formData.primary_unit}
+                                                onChange={(e) => setFormData({ ...formData, primary_unit: e.target.value })}
+                                                style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #BFDBFE', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}
+                                            >
+                                                <option value="service">Per Service</option>
+                                                <option value="hr">Per Hour (hr)</option>
+                                                <option value="session">Per Session</option>
+                                                <option value="visit">Per Visit</option>
+                                                <option value="job">Per Job</option>
+                                                <option value="day">Per Day</option>
+                                                <option value="month">Per Month</option>
+                                                <option value="project">Per Project</option>
+                                                <option value="unit">Unit</option>
+                                                <option value="pcs">Pcs (Pieces)</option>
+                                                {formData.primary_unit && !['service','hr','session','visit','job','day','month','project','unit','pcs'].includes(String(formData.primary_unit).toLowerCase()) && (
+                                                    <option value={formData.primary_unit}>{formData.primary_unit}</option>
+                                                )}
+                                            </select>
+                                        </div>
+                                        <div style={{ background: 'white', padding: '0.85rem 1rem', borderRadius: '14px', border: '1px solid #DBEAFE' }}>
+                                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#2563EB', fontWeight: '600', lineHeight: 1.4 }}>
+                                                💡 <strong>Service Offering:</strong> Physical warehouse inventory stock, godown storage, rack location, and product expiry are bypassed. Pricing and GST SAC invoicing remain fully active.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Inventory Specific Fields (Only shown for physical Products) */}
                             {formData.product_type === 'product' && (
@@ -1919,11 +2021,26 @@ const BusinessInventory = () => {
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Primary Unit</label>
-                                            <select value={formData.primary_unit} onChange={(e) => setFormData({ ...formData, primary_unit: e.target.value })} style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white' }}>
+                                            <select
+                                                value={formData.primary_unit}
+                                                onChange={(e) => setFormData({ ...formData, primary_unit: e.target.value })}
+                                                style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: '#0F172A' }}
+                                            >
                                                 <option value="pcs">Pcs (Pieces)</option>
                                                 <option value="kg">Kg (Kilograms)</option>
                                                 <option value="box">Box</option>
                                                 <option value="litre">Litre</option>
+                                                <option value="g">Gram (g)</option>
+                                                <option value="meter">Meter (m)</option>
+                                                <option value="pack">Pack / Packet</option>
+                                                <option value="nos">Nos (Numbers)</option>
+                                                <option value="pair">Pair</option>
+                                                <option value="set">Set</option>
+                                                <option value="bundle">Bundle</option>
+                                                <option value="unit">Unit</option>
+                                                {formData.primary_unit && !['pcs','kg','box','litre','g','meter','pack','nos','pair','set','bundle','unit'].includes(String(formData.primary_unit).toLowerCase()) && (
+                                                    <option value={formData.primary_unit}>{formData.primary_unit}</option>
+                                                )}
                                             </select>
                                         </div>
                                     </div>
@@ -1937,7 +2054,7 @@ const BusinessInventory = () => {
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.5rem' }}>Warehouse Storage Facility</label>
                                                 <select
-                                                    required
+                                                    required={formData.product_type === 'product'}
                                                     value={formData.warehouse}
                                                     onChange={(e) => setFormData({ ...formData, warehouse: e.target.value })}
                                                     style={{ width: '100%', padding: '0.85rem', borderRadius: '14px', border: '1px solid #DCF2E4', outline: 'none', background: 'white', fontWeight: '700', color: formData.warehouse ? '#0F172A' : '#94A3B8' }}
@@ -1953,7 +2070,10 @@ const BusinessInventory = () => {
                                                             );
                                                         })
                                                     ) : (
-                                                        <option value="" disabled style={{ color: '#94A3B8' }}>No warehouse created — Create warehouse first</option>
+                                                        <option value="Main Godown">Main Godown</option>
+                                                    )}
+                                                    {formData.warehouse && !dbWarehouses.some(w => (w.name || w.warehouse_name) === formData.warehouse) && formData.warehouse !== 'Main Godown' && (
+                                                        <option value={formData.warehouse}>{formData.warehouse}</option>
                                                     )}
                                                 </select>
                                             </div>
@@ -2408,7 +2528,9 @@ const BusinessInventory = () => {
                             </div>
 
                             <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.2)' }}>
-                                {editingItem ? 'Update Product Catalog' : 'Register Product'}
+                                {editingItem
+                                    ? (formData.product_type === 'service' ? 'Update Service Offering' : 'Update Product Catalog')
+                                    : (formData.product_type === 'service' ? 'Register Service Offering' : 'Register Product')}
                             </button>
                         </form>
                     </div>
