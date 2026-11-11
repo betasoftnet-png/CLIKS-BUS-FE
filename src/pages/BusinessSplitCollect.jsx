@@ -1742,15 +1742,23 @@ const BusinessSplitCollect = () => {
         summaryText += `Total Spent: ${activeSplit.currencySymbol}${groupTotal.toLocaleString()}\n\n`;
         summaryText += `👥 NET BALANCES:\n`;
         activeSplit.participants.forEach(p => {
-            const bal = calculatedBalances.members[p] || 0;
-            summaryText += `- ${p}: ${bal > 0 ? '+' : ''}${activeSplit.currencySymbol}${bal.toLocaleString()}\n`;
+            const pName = getParticipantName(p);
+            const pEmail = getParticipantEmail(p);
+            const displayName = formatDisplayName(p) || pName;
+            const bal = calculatedBalances.members[pName] !== undefined
+                ? calculatedBalances.members[pName]
+                : (pEmail && calculatedBalances.members[pEmail] !== undefined ? calculatedBalances.members[pEmail] : 0);
+            const sign = bal > 0.001 ? '+' : bal < -0.001 ? '-' : '';
+            summaryText += `- ${displayName}: ${sign}${activeSplit.currencySymbol}${Math.abs(bal).toLocaleString(undefined, { minimumFractionDigits: 2 })}\n`;
         });
         summaryText += `\n🤝 SIMPLIFIED SETTLEMENTS:\n`;
         if (calculatedBalances.debts.length === 0) {
             summaryText += `All accounts completely settled! 🎉\n`;
         } else {
             calculatedBalances.debts.forEach(d => {
-                summaryText += `- ${d.from} owes ${d.to} ${activeSplit.currencySymbol}${d.amount.toLocaleString()}\n`;
+                const fromDisplay = formatDisplayName(d.from) || d.from;
+                const toDisplay = formatDisplayName(d.to) || d.to;
+                summaryText += `- ${fromDisplay} owes ${toDisplay} ${activeSplit.currencySymbol}${(parseFloat(d.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}\n`;
             });
         }
         
@@ -1761,85 +1769,92 @@ const BusinessSplitCollect = () => {
     const handleDownloadPDF = () => {
         if (!activeSplit) return;
         const groupTotal = calculateGroupOutlay(activeSplit.expenses);
-        
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) {
-            alert('Popup blocked! Please allow popups to download/print the PDF.');
-            return;
-        }
 
         const memberBalancesHTML = activeSplit.participants.map(m => {
-            const bal = calculatedBalances.members[m] || 0;
-            const balClass = bal > 0.01 ? 'balance-positive' : bal < -0.01 ? 'balance-negative' : '';
-            const sign = bal > 0.01 ? '+' : '';
+            const mName = getParticipantName(m);
+            const mEmail = getParticipantEmail(m);
+            const displayName = formatDisplayName(m) || mName;
+            const bal = calculatedBalances.members[mName] !== undefined
+                ? calculatedBalances.members[mName]
+                : (mEmail && calculatedBalances.members[mEmail] !== undefined ? calculatedBalances.members[mEmail] : 0);
+            const balClass = bal > 0.001 ? 'balance-positive' : bal < -0.001 ? 'balance-negative' : '';
+            const sign = bal > 0.001 ? '+' : bal < -0.001 ? '-' : '';
+            const formattedBal = Math.abs(bal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             return `
                 <tr>
-                    <td><strong>${m}</strong></td>
-                    <td class="${balClass}" style="text-align: right;">${sign}${activeSplit.currencySymbol}${bal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td><strong>${displayName}</strong></td>
+                    <td class="${balClass}" style="text-align: right; font-weight: 700;">${sign}${activeSplit.currencySymbol}${formattedBal}</td>
                 </tr>
             `;
         }).join('');
 
         const debtsHTML = calculatedBalances.debts.length === 0 
             ? `<tr><td colspan="2" style="text-align: center; color: #059669; font-weight: 700; padding: 15px;">All accounts completely settled! 🎉</td></tr>`
-            : calculatedBalances.debts.map(d => `
+            : calculatedBalances.debts.map(d => {
+                const fromDisplay = formatDisplayName(d.from) || d.from;
+                const toDisplay = formatDisplayName(d.to) || d.to;
+                return `
                 <tr>
-                    <td><strong>${d.from}</strong> owes <strong>${d.to}</strong></td>
-                    <td style="text-align: right; color: #2563EB; font-weight: 800;">${activeSplit.currencySymbol}${d.amount.toLocaleString()}</td>
+                    <td><strong>${fromDisplay}</strong> owes <strong>${toDisplay}</strong></td>
+                    <td style="text-align: right; color: #2563EB; font-weight: 800;">${activeSplit.currencySymbol}${(parseFloat(d.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
 
         const expensesHTML = activeSplit.expenses.length === 0
             ? `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #64748B;">No expenses logged yet.</td></tr>`
             : activeSplit.expenses.map(e => `
                 <tr>
-                    <td>${e.date}</td>
-                    <td><strong>${e.title}</strong></td>
-                    <td>${e.paidBy}</td>
-                    <td><span class="badge">${e.splitType}</span></td>
-                    <td style="text-align: right; font-weight: 700;">${activeSplit.currencySymbol}${(parseFloat(e.amount) || 0).toLocaleString()}</td>
+                    <td>${e.date || ''}</td>
+                    <td><strong>${e.title || ''}</strong></td>
+                    <td>${formatDisplayName(e.paidBy) || e.paidBy}</td>
+                    <td><span class="badge">${e.splitType || 'EQUAL'}</span></td>
+                    <td style="text-align: right; font-weight: 700;">${activeSplit.currencySymbol}${(parseFloat(e.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>
             `).join('');
 
-        printWindow.document.write(`
+        const statementHTML = `
+            <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="utf-8" />
                 <title>Split Statement - ${activeSplit.title}</title>
                 <style>
-                    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #1E293B; background: white; }
-                    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #064E3B; padding-bottom: 20px; margin-bottom: 30px; }
+                    @page { size: portrait; margin: 15mm; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 25px; color: #1E293B; background: white; margin: 0; }
+                    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #064E3B; padding-bottom: 20px; margin-bottom: 25px; }
                     .logo-area { display: flex; align-items: center; gap: 8px; }
                     .logo { font-size: 26px; font-weight: 900; color: #064E3B; letter-spacing: -0.5px; }
                     .logo-sub { font-size: 11px; font-weight: 700; color: #16A34A; text-transform: uppercase; letter-spacing: 1px; }
-                    .title { font-size: 28px; font-weight: 900; color: #0F172A; margin: 0; }
+                    .title { font-size: 26px; font-weight: 900; color: #0F172A; margin: 0; }
                     .subtitle { font-size: 13px; color: #64748B; margin-top: 5px; font-weight: 500; }
-                    .outlay-box { background: #ECFDF5; border: 1.5px solid #A7F3D0; border-radius: 14px; padding: 15px; text-align: right; min-width: 200px; }
+                    .outlay-box { background: #ECFDF5; border: 1.5px solid #A7F3D0; border-radius: 14px; padding: 12px 18px; text-align: right; min-width: 180px; }
                     .outlay-title { font-size: 11px; font-weight: 800; color: #047857; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
-                    .outlay-amount { font-size: 26px; font-weight: 900; color: #065F46; }
-                    .section-title { font-size: 14px; font-weight: 900; color: #064E3B; text-transform: uppercase; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; margin-top: 35px; margin-bottom: 15px; letter-spacing: 0.5px; }
-                    table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
-                    th { background: #F8FAFC; text-align: left; padding: 12px 14px; font-size: 11px; font-weight: 800; color: #475569; border-bottom: 1.5px solid #E2E8F0; text-transform: uppercase; }
-                    td { padding: 12px 14px; font-size: 13px; color: #334155; border-bottom: 1px solid #F1F5F9; }
-                    .badge { background: #EFF6FF; color: #1E40AF; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+                    .outlay-amount { font-size: 24px; font-weight: 900; color: #065F46; }
+                    .section-title { font-size: 13px; font-weight: 900; color: #064E3B; text-transform: uppercase; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; margin-top: 25px; margin-bottom: 12px; letter-spacing: 0.5px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    th { background: #F8FAFC; text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 800; color: #475569; border-bottom: 1.5px solid #E2E8F0; text-transform: uppercase; }
+                    td { padding: 10px 12px; font-size: 12.5px; color: #334155; border-bottom: 1px solid #F1F5F9; }
+                    .badge { background: #EFF6FF; color: #1E40AF; padding: 2px 7px; border-radius: 6px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; }
                     .balance-positive { color: #16A34A; font-weight: 800; }
                     .balance-negative { color: #DC2626; font-weight: 800; }
-                    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-                    .footer { text-align: center; font-size: 11px; color: #94A3B8; margin-top: 60px; border-top: 1px solid #E2E8F0; padding-top: 20px; font-weight: 500; }
+                    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+                    .footer { text-align: center; font-size: 11px; color: #94A3B8; margin-top: 40px; border-top: 1px solid #E2E8F0; padding-top: 15px; font-weight: 500; }
                 </style>
             </head>
             <body>
                 <div class="header">
                     <div>
                         <div class="logo-area">
-                            <span class="logo" style="font-weight: 900; color: #064E3B;">CliKs</span>
-                            <span class="logo-sub" style="font-weight: 700; color: #16A34A; margin-left: 5px;">Business</span>
+                            <span class="logo">CliKs</span>
+                            <span class="logo-sub">Business</span>
                         </div>
-                        <h1 class="title" style="margin-top: 15px;">${activeSplit.title}</h1>
+                        <h1 class="title" style="margin-top: 12px;">${activeSplit.title}</h1>
                         <p class="subtitle">${activeSplit.description || 'Split Ticket Statement'}</p>
                     </div>
                     <div class="outlay-box">
                         <div class="outlay-title">Total Outlay</div>
-                        <div class="outlay-amount">${activeSplit.currencySymbol}${groupTotal.toLocaleString()}</div>
+                        <div class="outlay-amount">${activeSplit.currencySymbol}${groupTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     </div>
                 </div>
 
@@ -1895,12 +1910,52 @@ const BusinessSplitCollect = () => {
                 </div>
             </body>
             </html>
-        `);
+        `;
 
-        printWindow.document.close();
+        // Print directly in the current page via invisible iframe (avoids opening/leaving blank about:blank tabs)
+        const oldFrame = document.getElementById('split-print-frame');
+        if (oldFrame) {
+            oldFrame.remove();
+        }
+
+        const iframe = document.createElement('iframe');
+        iframe.id = 'split-print-frame';
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.style.visibility = 'hidden';
+
+        document.body.appendChild(iframe);
+
+        const printDoc = iframe.contentWindow.document;
+        printDoc.open();
+        printDoc.write(statementHTML);
+        printDoc.close();
+
+        iframe.contentWindow.focus();
         setTimeout(() => {
-            printWindow.print();
-        }, 300);
+            try {
+                iframe.contentWindow.print();
+            } catch (err) {
+                console.warn('Iframe print fallback to window:', err);
+                const win = window.open('', '_blank');
+                if (win) {
+                    win.document.write(statementHTML);
+                    win.document.close();
+                    win.focus();
+                    win.print();
+                    win.onafterprint = () => win.close();
+                }
+            }
+            setTimeout(() => {
+                if (iframe.parentNode) {
+                    iframe.parentNode.removeChild(iframe);
+                }
+            }, 2500);
+        }, 350);
     };
 
     const hasInvalidCustomShares = expenseForm.splitType === 'custom' && (
