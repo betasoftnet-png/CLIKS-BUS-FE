@@ -2946,20 +2946,32 @@ const BusinessBilling = () => {
                                                 <datalist id="inventory-suggestions">
                                                     {(() => {
                                                         const safeProds = Array.isArray(catalogProducts) ? catalogProducts : [];
-                                                        return safeProds.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(prod => (
-                                                        <option key={`prod-${prod.id}`} value={prod.name || prod.product_name}>
-                                                            📦 Catalog: {prod.sku || 'N/A'} - Stock: {prod.quantity || 0} 
-                                                            {activeConfig.displayPurchase && ` - Purchase Price: ${formatCurrency(prod.purchase_price || 0)}`}
-                                                            {activeConfig.showLast5Sale && ` - Last Sale: ${formatCurrency(prod.price || prod.sale_price || 0)}`}
-                                                            {activeConfig.showLast5Purchase && ` - Last Purchase: ${formatCurrency(prod.purchase_price || 0)}`}
-                                                        </option>
-                                                    ));
+                                                        return safeProds
+                                                            .filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {}))
+                                                            .filter(prod => {
+                                                                const stockQty = parseFloat(prod.quantity != null ? prod.quantity : (prod.stock != null ? prod.stock : 0)) || 0;
+                                                                return stockQty > 0 || (item.description && (item.description === prod.name || item.description === prod.product_name));
+                                                            })
+                                                            .map(prod => (
+                                                            <option key={`prod-${prod.id}`} value={prod.name || prod.product_name}>
+                                                                📦 Catalog: {prod.sku || 'N/A'} - Stock: {prod.quantity || 0} 
+                                                                {activeConfig.displayPurchase && ` - Purchase Price: ${formatCurrency(prod.purchase_price || 0)}`}
+                                                                {activeConfig.showLast5Sale && ` - Last Sale: ${formatCurrency(prod.price || prod.sale_price || 0)}`}
+                                                                {activeConfig.showLast5Purchase && ` - Last Purchase: ${formatCurrency(prod.purchase_price || 0)}`}
+                                                            </option>
+                                                        ));
                                                     })()}
                                                     {(() => {
                                                         const safeInv = Array.isArray(inventoryItems) ? inventoryItems : [];
-                                                        return safeInv.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map(inv => (
-                                                        <option key={`inv-${inv.id}`} value={inv.name}>📋 Legacy Inv: {inv.sku || 'N/A'} - Stock: {inv.quantity || 0}</option>
-                                                    ));
+                                                        return safeInv
+                                                            .filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {}))
+                                                            .filter(inv => {
+                                                                const stockQty = parseFloat(inv.quantity != null ? inv.quantity : (inv.stock != null ? inv.stock : 0)) || 0;
+                                                                return stockQty > 0 || (item.description && item.description === inv.name);
+                                                            })
+                                                            .map(inv => (
+                                                            <option key={`inv-${inv.id}`} value={inv.name}>📋 Legacy Inv: {inv.sku || 'N/A'} - Stock: {inv.quantity || 0}</option>
+                                                        ));
                                                     })()}
                                                 </datalist>
                                             </div>
@@ -7142,7 +7154,7 @@ const BusinessBilling = () => {
                                             className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
                                         />
                                         <datalist id="receiver-inventory-products">
-                                            {inventoryItems.map(item => (
+                                            {inventoryItems.filter(item => (parseFloat(item.quantity) || 0) > 0).map(item => (
                                                 <option key={item.id} value={item.name} />
                                             ))}
                                         </datalist>
