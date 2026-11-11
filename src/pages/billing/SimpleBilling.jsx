@@ -23,7 +23,9 @@ import {
     Tag,
     FileText,
     Scale,
-    Lock
+    Lock,
+    Camera,
+    Barcode
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BillingRecords from './BillingRecords';
@@ -32,6 +34,7 @@ import { customerService } from '../../services/customerService';
 import { useBranch, useAuth } from '../../context';
 import { isProductWeighted, checkIsMainBranch, QUICK_WEIGHT_PRESETS } from '../../utils/weightBillingHelper';
 import { playPosBeep, parseBarcodeOrQr, findProductByBarcodeOrQr } from '../../utils/barcodeScannerHelper';
+import CameraBarcodeScannerModal from '../../components/pos/CameraBarcodeScannerModal';
 
 export const LOCAL_STORAGE_KEY = 'cliks_billing_records_v1';
 
@@ -90,7 +93,12 @@ const SimpleBilling = () => {
     const [customerName, setCustomerName] = useState('Walk-in Customer');
     const [customerPhone, setCustomerPhone] = useState('');
     const [paymentMode, setPaymentMode] = useState('Cash');
-    const [products, setProducts] = useState([createEmptyProduct()]);
+    const [products, setProducts] = useState([]);
+
+    // Camera & Hardware Barcode Scanner State
+    const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false);
+    const [lastScannedItem, setLastScannedItem] = useState(null);
+    const [scanNotification, setScanNotification] = useState(null);
     
     // Existing catalog items & customers
     const [catalogProducts, setCatalogProducts] = useState([]);
@@ -216,7 +224,7 @@ const SimpleBilling = () => {
                 isCustom: false
             };
 
-            if (isSingleEmpty) {
+            if (isSingleEmpty || products.length === 0) {
                 setProducts([newRow]);
             } else {
                 setProducts([...products, newRow]);
@@ -227,6 +235,28 @@ const SimpleBilling = () => {
         }
 
         setProductSearch('');
+    };
+
+    /**
+     * Camera Barcode Scanner Scan Callback
+     */
+    const handleBarcodeScan = (scannedCode) => {
+        if (!scannedCode) return;
+        const { code, weight } = parseBarcodeOrQr(scannedCode);
+        const matched = findProductByBarcodeOrQr(code, catalogProducts);
+
+        if (matched) {
+            handleSelectCatalogProduct(matched, weight);
+            playPosBeep(isProductWeighted(matched) ? 'weight' : 'success');
+            setLastScannedItem(matched);
+            const pPrice = parseFloat(matched.selling_price ?? matched.price ?? matched.rate ?? 0);
+            setScanNotification(`Scanned: ${matched.name} (₹${pPrice})`);
+            setTimeout(() => setScanNotification(null), 2500);
+        } else {
+            playPosBeep('error');
+            setScanNotification(`Barcode not found in inventory: ${scannedCode}`);
+            setTimeout(() => setScanNotification(null), 3000);
+        }
     };
 
     /**
@@ -258,11 +288,17 @@ const SimpleBilling = () => {
                                 e.stopPropagation();
                                 handleSelectCatalogProduct(matched, weight);
                                 playPosBeep(isProductWeighted(matched) ? 'weight' : 'success');
+                                setLastScannedItem(matched);
+                                const pPrice = parseFloat(matched.selling_price ?? matched.price ?? matched.rate ?? 0);
+                                setScanNotification(`Scanned: ${matched.name} (₹${pPrice})`);
+                                setTimeout(() => setScanNotification(null), 2500);
                                 if (isInputFocused && document.activeElement) {
                                     document.activeElement.value = '';
                                 }
                             } else {
                                 playPosBeep('error');
+                                setScanNotification(`Barcode not found: ${scannedCode}`);
+                                setTimeout(() => setScanNotification(null), 3000);
                             }
                         }
                         return;
@@ -322,10 +358,6 @@ const SimpleBilling = () => {
     };
 
     const handleRemoveProduct = (index) => {
-        if (products.length === 1) {
-            setProducts([createEmptyProduct()]);
-            return;
-        }
         setProducts(products.filter((_, i) => i !== index));
     };
 
@@ -334,7 +366,7 @@ const SimpleBilling = () => {
         setCustomerName('Walk-in Customer');
         setCustomerPhone('');
         setPaymentMode('Cash');
-        setProducts([createEmptyProduct()]);
+        setProducts([]);
         setProductSearch('');
     };
 
@@ -342,7 +374,7 @@ const SimpleBilling = () => {
     const handleSubmitBill = (e) => {
         if (e) e.preventDefault();
 
-        const validProducts = products.filter(p => p.name.trim() !== '');
+        const validProducts = products.filter(p => p.name && p.name.trim() !== '');
         if (validProducts.length === 0) {
             alert('Please add at least one product with a name.');
             return;
@@ -516,11 +548,11 @@ const SimpleBilling = () => {
                     gap: '1.25rem',
                     alignItems: 'center'
                 }}>
-                    {/* Customer Name Picker */}
+                    {/* Customer Name Picker (Optional) */}
                     <div style={{ position: 'relative' }} ref={customerDropdownRef}>
                         <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 850, color: '#475569', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <User size={13} style={{ color: '#1B6B3A' }} /> Customer
+                                <User size={13} style={{ color: '#1B6B3A' }} /> Customer (Optional)
                             </span>
                             <span 
                                 onClick={() => setCustomerName('Walk-in Customer')}
@@ -533,14 +565,13 @@ const SimpleBilling = () => {
                             <input
                                 id="input-customer-name"
                                 type="text"
-                                placeholder="Customer Name (e.g. Walk-in Customer)"
+                                placeholder="Customer Name (Optional, e.g. Walk-in Customer)"
                                 value={customerName}
                                 onChange={(e) => {
                                     setCustomerName(e.target.value);
                                     setShowCustomerDropdown(true);
                                 }}
                                 onFocus={() => setShowCustomerDropdown(true)}
-                                required
                                 style={{
                                     width: '100%',
                                     padding: '0.65rem 0.85rem',
@@ -645,42 +676,25 @@ const SimpleBilling = () => {
                         <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.74rem', fontWeight: 850, color: '#475569', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
                             <Receipt size={13} style={{ color: '#1B6B3A' }} /> Bill No.
                         </label>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                            <input
-                                id="input-billing-order"
-                                type="text"
-                                value={billingOrder}
-                                onChange={(e) => setBillingOrder(e.target.value)}
-                                required
-                                style={{
-                                    flex: 1,
-                                    padding: '0.65rem 0.85rem',
-                                    borderRadius: '12px',
-                                    border: '1.5px solid #CBD5E1',
-                                    fontSize: '0.9rem',
-                                    fontWeight: 800,
-                                    color: '#166534',
-                                    background: '#F0FDF4',
-                                    outline: 'none',
-                                    boxSizing: 'border-box'
-                                }}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setBillingOrder(generateBillNumber())}
-                                title="Generate New Bill Number"
-                                style={{
-                                    padding: '0.65rem 0.85rem',
-                                    borderRadius: '12px',
-                                    border: '1px solid #CBD5E1',
-                                    background: '#F8FAFC',
-                                    color: '#475569',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                <RefreshCw size={14} />
-                            </button>
-                        </div>
+                        <input
+                            id="input-billing-order"
+                            type="text"
+                            value={billingOrder}
+                            onChange={(e) => setBillingOrder(e.target.value)}
+                            required
+                            style={{
+                                width: '100%',
+                                padding: '0.65rem 0.85rem',
+                                borderRadius: '12px',
+                                border: '1.5px solid #CBD5E1',
+                                fontSize: '0.9rem',
+                                fontWeight: 800,
+                                color: '#166534',
+                                background: '#F0FDF4',
+                                outline: 'none',
+                                boxSizing: 'border-box'
+                            }}
+                        />
                     </div>
 
                     {/* Payment Mode Pills */}
@@ -724,7 +738,7 @@ const SimpleBilling = () => {
                     </div>
                 </div>
 
-                {/* 2. Quick Product Search & Existing Products Chips */}
+                {/* 2. Modern Product Search, Barcode Scan & Quick-Pick Command Bar */}
                 <div style={{
                     background: '#FFFFFF',
                     borderRadius: '18px',
@@ -733,27 +747,47 @@ const SimpleBilling = () => {
                     marginBottom: '1.25rem',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
                 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <ShoppingBag size={18} style={{ color: '#1B6B3A' }} />
-                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 850, color: '#1E293B' }}>
-                                Quick Add from Existing Products
-                            </h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '10px',
+                                background: '#DCFCE7',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#166534'
+                            }}>
+                                <ShoppingBag size={18} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 850, color: '#1E293B' }}>
+                                    Add Products & Scan
+                                </h3>
+                                <p style={{ margin: 0, fontSize: '0.74rem', color: '#64748B' }}>
+                                    Search catalog, scan barcode/QR, or enter a custom item
+                                </p>
+                            </div>
                         </div>
-                        {catalogProducts.length > 0 && (
-                            <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700 }}>
-                                {catalogProducts.length} items in inventory
-                            </span>
-                        )}
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {catalogProducts.length > 0 && (
+                                <span style={{ fontSize: '0.75rem', color: '#166534', background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '3px 10px', borderRadius: '20px', fontWeight: 800 }}>
+                                    {catalogProducts.length} items in catalog
+                                </span>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Quick Search Input with Dropdown */}
-                    <div style={{ position: 'relative' }} ref={searchDropdownRef}>
-                        <div style={{ position: 'relative' }}>
+                    {/* Integrated Action Bar: Search Input + Barcode Scanner Button + Custom Item Button */}
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {/* Search Input with Dropdown */}
+                        <div style={{ flex: '1 1 320px', position: 'relative' }} ref={searchDropdownRef}>
                             <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input
                                 type="text"
-                                placeholder="🔍 Type product name or SKU to search & add..."
+                                placeholder="🔍 Type product name, SKU or barcode to search & add..."
                                 value={productSearch}
                                 onChange={(e) => {
                                     setProductSearch(e.target.value);
@@ -785,9 +819,9 @@ const SimpleBilling = () => {
                                 }}
                                 style={{
                                     width: '100%',
-                                    padding: '0.8rem 1rem 0.8rem 2.75rem',
+                                    padding: '0.8rem 2.4rem 0.8rem 2.75rem',
                                     borderRadius: '14px',
-                                    border: isSearchFocused ? '2px solid #1B6B3A' : '1.5px solid #E2E8F0',
+                                    border: isSearchFocused ? '2px solid #1B6B3A' : '1.5px solid #CBD5E1',
                                     fontSize: '0.92rem',
                                     fontWeight: 600,
                                     color: '#0F172A',
@@ -815,114 +849,168 @@ const SimpleBilling = () => {
                                     <X size={16} />
                                 </button>
                             )}
-                        </div>
 
-                        {/* Autocomplete Dropdown */}
-                        {isSearchFocused && (
-                            <div style={{
-                                position: 'absolute',
-                                top: '100%',
-                                left: 0,
-                                right: 0,
-                                background: '#FFFFFF',
-                                border: '1.5px solid #CBD5E1',
-                                borderRadius: '14px',
-                                marginTop: '6px',
-                                maxHeight: '280px',
-                                overflowY: 'auto',
-                                boxShadow: '0 12px 30px -4px rgba(0,0,0,0.12)',
-                                zIndex: 60
-                            }}>
-                                {filteredCatalog.length > 0 ? (
-                                    filteredCatalog.map((prod, idx) => {
-                                        const pPrice = parseFloat(prod.selling_price ?? prod.price ?? prod.rate ?? 0);
-                                        const pStock = prod.quantity ?? prod.stock ?? null;
-                                        return (
-                                            <div
-                                                key={prod.id || idx}
-                                                onClick={() => handleSelectCatalogProduct(prod)}
-                                                style={{
-                                                    padding: '0.75rem 1rem',
-                                                    borderBottom: '1px solid #F1F5F9',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'space-between',
-                                                    gap: '1rem',
-                                                    transition: 'background 0.15s'
-                                                }}
-                                                onMouseOver={(e) => e.currentTarget.style.background = '#F0FDF4'}
-                                                onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
-                                            >
-                                                <div style={{ minWidth: 0 }}>
-                                                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        <span>{prod.name}</span>
-                                                        {prod.category && (
-                                                            <span style={{ fontSize: '0.68rem', background: '#F1F5F9', color: '#64748B', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                                                                {prod.category}
+                            {/* Autocomplete Dropdown */}
+                            {isSearchFocused && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    left: 0,
+                                    right: 0,
+                                    background: '#FFFFFF',
+                                    border: '1.5px solid #CBD5E1',
+                                    borderRadius: '14px',
+                                    marginTop: '6px',
+                                    maxHeight: '280px',
+                                    overflowY: 'auto',
+                                    boxShadow: '0 12px 30px -4px rgba(0,0,0,0.12)',
+                                    zIndex: 60
+                                }}>
+                                    {filteredCatalog.length > 0 ? (
+                                        filteredCatalog.map((prod, idx) => {
+                                            const pPrice = parseFloat(prod.selling_price ?? prod.price ?? prod.rate ?? 0);
+                                            const pStock = prod.quantity ?? prod.stock ?? null;
+                                            return (
+                                                <div
+                                                    key={prod.id || idx}
+                                                    onClick={() => handleSelectCatalogProduct(prod)}
+                                                    style={{
+                                                        padding: '0.75rem 1rem',
+                                                        borderBottom: '1px solid #F1F5F9',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        gap: '1rem',
+                                                        transition: 'background 0.15s'
+                                                    }}
+                                                    onMouseOver={(e) => e.currentTarget.style.background = '#F0FDF4'}
+                                                    onMouseOut={(e) => e.currentTarget.style.background = '#FFFFFF'}
+                                                >
+                                                    <div style={{ minWidth: 0 }}>
+                                                        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <span>{prod.name}</span>
+                                                            {prod.category && (
+                                                                <span style={{ fontSize: '0.68rem', background: '#F1F5F9', color: '#64748B', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                                                    {prod.category}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {prod.sku && (
+                                                            <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: '2px' }}>
+                                                                SKU: {prod.sku}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                        <div style={{ fontWeight: 900, color: '#166534', fontSize: '0.95rem' }}>
+                                                            ₹{pPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        </div>
+                                                        {pStock !== null && (
+                                                            <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 750 }}>
+                                                                Stock: {pStock}
                                                             </span>
                                                         )}
                                                     </div>
-                                                    {prod.sku && (
-                                                        <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: '2px' }}>
-                                                            SKU: {prod.sku}
-                                                        </div>
-                                                    )}
                                                 </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <div style={{ padding: '1.25rem', textAlign: 'center', color: '#64748B' }}>
+                                            <p style={{ margin: 0, fontSize: '0.85rem' }}>No catalog product found matching "{productSearch}".</p>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newRow = {
+                                                        id: Date.now() + Math.random().toString(36).substring(2, 9),
+                                                        name: productSearch.trim(),
+                                                        rate: '',
+                                                        quantity: 1,
+                                                        isCustom: true
+                                                    };
+                                                    setProducts([...products, newRow]);
+                                                    setProductSearch('');
+                                                    setIsSearchFocused(false);
+                                                }}
+                                                style={{
+                                                    marginTop: '0.5rem',
+                                                    background: '#166534',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    padding: '4px 12px',
+                                                    borderRadius: '8px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 750,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                + Add "{productSearch}" as Custom Item
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
-                                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                    <div style={{ fontWeight: 900, color: '#166534', fontSize: '0.95rem' }}>
-                                                        ₹{pPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                    </div>
-                                                    {pStock !== null && (
-                                                        <span style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 750 }}>
-                                                            Stock: {pStock}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div style={{ padding: '1.25rem', textAlign: 'center', color: '#64748B' }}>
-                                        <p style={{ margin: 0, fontSize: '0.85rem' }}>No catalog product found matching "{productSearch}".</p>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const newRow = {
-                                                    id: Date.now() + Math.random().toString(36).substring(2, 9),
-                                                    name: productSearch.trim(),
-                                                    rate: '',
-                                                    quantity: 1,
-                                                    isCustom: true
-                                                };
-                                                setProducts([...products, newRow]);
-                                                setProductSearch('');
-                                                setIsSearchFocused(false);
-                                            }}
-                                            style={{
-                                                marginTop: '0.5rem',
-                                                background: '#166534',
-                                                color: 'white',
-                                                border: 'none',
-                                                padding: '4px 12px',
-                                                borderRadius: '8px',
-                                                fontSize: '0.75rem',
-                                                fontWeight: 750,
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            + Add "{productSearch}" as Custom Item
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        {/* Barcode Scanner Button */}
+                        <button
+                            type="button"
+                            onClick={() => setIsCameraScannerOpen(true)}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                background: 'linear-gradient(135deg, #166534 0%, #15803D 100%)',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                padding: '0.8rem 1.25rem',
+                                borderRadius: '14px',
+                                fontSize: '0.9rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(22, 101, 52, 0.25)',
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.15s'
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(22, 101, 52, 0.35)'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(22, 101, 52, 0.25)'; }}
+                            title="Open Camera to Scan Barcode or QR Code"
+                        >
+                            <Camera size={18} />
+                            <span>Scan Barcode</span>
+                        </button>
+
+                        {/* Add Custom Item Button */}
+                        <button
+                            type="button"
+                            onClick={handleAddEmptyRow}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: '#FFFFFF',
+                                color: '#1E293B',
+                                border: '1.5px solid #CBD5E1',
+                                padding: '0.8rem 1.15rem',
+                                borderRadius: '14px',
+                                fontSize: '0.9rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.15s'
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.borderColor = '#94A3B8'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = '#CBD5E1'; }}
+                        >
+                            <Plus size={18} style={{ color: '#166534' }} />
+                            <span>Custom Item</span>
+                        </button>
                     </div>
 
                     {/* Quick-Pick Product Chips Carousel */}
                     {quickPickProducts.length > 0 && (
-                        <div style={{ marginTop: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <div style={{ marginTop: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '0.74rem', fontWeight: 850, color: '#64748B', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <Tag size={12} /> Popular:
                             </span>
@@ -969,315 +1057,408 @@ const SimpleBilling = () => {
                     marginBottom: '1.5rem',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
                 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Receipt size={17} style={{ color: '#1B6B3A' }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '8px',
+                                background: '#F0FDF4',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#166534'
+                            }}>
+                                <Receipt size={16} />
+                            </div>
                             <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 850, color: '#1E293B' }}>
                                 Items in Bill ({products.length})
                             </h3>
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={handleAddEmptyRow}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                background: '#F8FAFC',
-                                color: '#1B6B3A',
-                                border: '1px solid #CBD5E1',
-                                padding: '0.45rem 0.85rem',
-                                borderRadius: '10px',
-                                fontSize: '0.78rem',
-                                fontWeight: 800,
-                                cursor: 'pointer',
-                                transition: 'all 0.15s'
-                            }}
-                            onMouseOver={(e) => e.currentTarget.style.background = '#F0FDF4'}
-                            onMouseOut={(e) => e.currentTarget.style.background = '#F8FAFC'}
-                        >
-                            <Plus size={14} /> Add Manual Row
-                        </button>
+                        {products.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={handleAddEmptyRow}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    background: '#F8FAFC',
+                                    color: '#1B6B3A',
+                                    border: '1px solid #CBD5E1',
+                                    padding: '0.45rem 0.85rem',
+                                    borderRadius: '10px',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.background = '#F0FDF4'}
+                                onMouseOut={(e) => e.currentTarget.style.background = '#F8FAFC'}
+                            >
+                                <Plus size={14} /> Add Row
+                            </button>
+                        )}
                     </div>
 
-                    {/* Table View */}
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 0.5rem', textAlign: 'left' }}>
-                            <thead>
-                                <tr style={{ color: '#64748B', fontSize: '0.72rem', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                    <th style={{ padding: '0.4rem 0.75rem', width: '38%' }}>Item Description</th>
-                                    <th style={{ padding: '0.4rem 0.75rem', width: '22%' }}>
-                                        Rate (₹) {isMainBranch ? <span style={{ color: '#10B981', fontSize: '0.65rem' }}>👑 Main Rate Authority</span> : <span style={{ color: '#94A3B8', fontSize: '0.65rem' }}>🔒 Locked by Main</span>}
-                                    </th>
-                                    <th style={{ padding: '0.4rem 0.75rem', width: '22%', textAlign: 'center' }}>Quantity / Weight</th>
-                                    <th style={{ padding: '0.4rem 0.75rem', width: '14%', textAlign: 'right' }}>Total (₹)</th>
-                                    <th style={{ padding: '0.4rem 0.75rem', width: '4%', textAlign: 'center' }}></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {products.map((item, index) => {
-                                    const isWeighted = Boolean(item.is_weighted || isProductWeighted(item));
-                                    const itemTotal = calculateProductTotal(item.rate, item.quantity);
-                                    const isHighlighted = highlightedRowId === item.id;
+                    {products.length === 0 ? (
+                        /* Clean Empty State */
+                        <div style={{
+                            padding: '3rem 1.5rem',
+                            textAlign: 'center',
+                            background: '#F8FAFC',
+                            borderRadius: '16px',
+                            border: '2px dashed #CBD5E1',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.75rem'
+                        }}>
+                            <div style={{
+                                width: '56px',
+                                height: '56px',
+                                borderRadius: '50%',
+                                background: '#DCFCE7',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#166534'
+                            }}>
+                                <ShoppingBag size={28} />
+                            </div>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 850, color: '#1E293B' }}>
+                                    Your Bill is Empty
+                                </h4>
+                                <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#64748B', maxWidth: '420px' }}>
+                                    Search for items above, scan a barcode using camera or scanner gun, tap a popular item, or add a custom row to begin.
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCameraScannerOpen(true)}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        background: '#166534',
+                                        color: '#FFFFFF',
+                                        border: 'none',
+                                        padding: '0.55rem 1rem',
+                                        borderRadius: '10px',
+                                        fontSize: '0.82rem',
+                                        fontWeight: 800,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <Camera size={15} /> Scan Barcode
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleAddEmptyRow}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        background: '#FFFFFF',
+                                        color: '#334155',
+                                        border: '1.5px solid #CBD5E1',
+                                        padding: '0.55rem 1rem',
+                                        borderRadius: '10px',
+                                        fontSize: '0.82rem',
+                                        fontWeight: 800,
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <Plus size={15} /> Add Custom Item
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        /* Table View */
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 0.5rem', textAlign: 'left' }}>
+                                <thead>
+                                    <tr style={{ color: '#64748B', fontSize: '0.72rem', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                        <th style={{ padding: '0.4rem 0.75rem', width: '38%' }}>Item Description</th>
+                                        <th style={{ padding: '0.4rem 0.75rem', width: '22%' }}>
+                                            Rate (₹) {isMainBranch ? <span style={{ color: '#10B981', fontSize: '0.65rem' }}>👑 Main Rate Authority</span> : <span style={{ color: '#94A3B8', fontSize: '0.65rem' }}>🔒 Locked by Main</span>}
+                                        </th>
+                                        <th style={{ padding: '0.4rem 0.75rem', width: '22%', textAlign: 'center' }}>Quantity / Weight</th>
+                                        <th style={{ padding: '0.4rem 0.75rem', width: '14%', textAlign: 'right' }}>Total (₹)</th>
+                                        <th style={{ padding: '0.4rem 0.75rem', width: '4%', textAlign: 'center' }}></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {products.map((item, index) => {
+                                        const isWeighted = Boolean(item.is_weighted || isProductWeighted(item));
+                                        const itemTotal = calculateProductTotal(item.rate, item.quantity);
+                                        const isHighlighted = highlightedRowId === item.id;
 
-                                    return (
-                                        <tr 
-                                            key={item.id} 
-                                            style={{ 
-                                                background: isHighlighted ? '#ECFDF5' : (isWeighted ? '#F0FDF4' : '#F8FAFC'), 
-                                                borderRadius: '12px',
-                                                border: isWeighted ? '1px solid #BBF7D0' : 'none',
-                                                transition: 'background 0.3s ease'
-                                            }}
-                                        >
-                                            {/* Item Name */}
-                                            <td style={{ padding: '0.65rem 0.75rem', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Product Name (e.g. Toor Dal / Basmati Rice)"
-                                                        value={item.name}
-                                                        onChange={(e) => handleProductChange(index, 'name', e.target.value)}
-                                                        required
-                                                        style={{
-                                                            width: '100%',
-                                                            padding: '0.55rem 0.75rem',
-                                                            borderRadius: '10px',
-                                                            border: isWeighted ? '1px solid #86EFAC' : '1px solid #CBD5E1',
-                                                            fontSize: '0.88rem',
-                                                            fontWeight: 750,
-                                                            color: '#0F172A',
-                                                            background: '#FFFFFF',
-                                                            outline: 'none',
-                                                            boxSizing: 'border-box'
-                                                        }}
-                                                    />
-                                                    {isWeighted && (
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                            <span style={{ fontSize: '0.62rem', fontWeight: '850', color: '#166534', background: '#DCFCE7', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                                                                ⚖️ Sold by Weight ({item.unit || 'KG'})
-                                                            </span>
-                                                            <span style={{ fontSize: '0.64rem', color: '#15803D', fontWeight: '600' }}>
-                                                                Bag weight entered at billing
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-
-                                            {/* Rate: Main Branch decides price; Sub Branch only views */}
-                                            <td style={{ padding: '0.65rem 0.75rem' }}>
-                                                <div style={{ position: 'relative' }}>
-                                                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', fontWeight: 800, fontSize: '0.85rem' }}>₹</span>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="any"
-                                                        placeholder="0.00"
-                                                        disabled={!isMainBranch}
-                                                        readOnly={!isMainBranch}
-                                                        value={item.rate}
-                                                        onChange={(e) => {
-                                                            if (isMainBranch) {
-                                                                handleProductChange(index, 'rate', e.target.value);
-                                                            }
-                                                        }}
-                                                        required
-                                                        title={isMainBranch ? "Main Branch: You can decide and edit the rate" : "Sub Branch: Rate decided by Main Branch (View Only)"}
-                                                        style={{
-                                                            width: '100%',
-                                                            padding: '0.55rem 1.8rem 0.55rem 1.6rem',
-                                                            borderRadius: '10px',
-                                                            border: isMainBranch ? '1px solid #CBD5E1' : '1px dashed #CBD5E1',
-                                                            fontSize: '0.88rem',
-                                                            fontWeight: 750,
-                                                            color: isMainBranch ? '#0F172A' : '#64748B',
-                                                            background: isMainBranch ? '#FFFFFF' : '#F1F5F9',
-                                                            outline: 'none',
-                                                            cursor: isMainBranch ? 'text' : 'not-allowed',
-                                                            boxSizing: 'border-box'
-                                                        }}
-                                                    />
-                                                    <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)' }}>
-                                                        {isMainBranch ? (
-                                                            <span style={{ fontSize: '0.65rem', color: '#10B981' }} title="Main Branch Rate Authority">👑</span>
-                                                        ) : (
-                                                            <Lock size={12} color="#94A3B8" title="Price fixed by Main Branch" />
+                                        return (
+                                            <tr 
+                                                key={item.id} 
+                                                style={{ 
+                                                    background: isHighlighted ? '#ECFDF5' : (isWeighted ? '#F0FDF4' : '#F8FAFC'), 
+                                                    borderRadius: '12px',
+                                                    border: isWeighted ? '1px solid #BBF7D0' : 'none',
+                                                    transition: 'background 0.3s ease'
+                                                }}
+                                            >
+                                                {/* Item Name */}
+                                                <td style={{ padding: '0.65rem 0.75rem', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Product Name (e.g. Toor Dal / Basmati Rice)"
+                                                            value={item.name}
+                                                            onChange={(e) => handleProductChange(index, 'name', e.target.value)}
+                                                            required
+                                                            style={{
+                                                                width: '100%',
+                                                                padding: '0.55rem 0.75rem',
+                                                                borderRadius: '10px',
+                                                                border: isWeighted ? '1px solid #86EFAC' : '1px solid #CBD5E1',
+                                                                fontSize: '0.88rem',
+                                                                fontWeight: 750,
+                                                                color: '#0F172A',
+                                                                background: '#FFFFFF',
+                                                                outline: 'none',
+                                                                boxSizing: 'border-box'
+                                                            }}
+                                                        />
+                                                        {isWeighted && (
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                                <span style={{ fontSize: '0.62rem', fontWeight: '850', color: '#166534', background: '#DCFCE7', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                                                    ⚖️ Sold by Weight ({item.unit || 'KG'})
+                                                                </span>
+                                                                <span style={{ fontSize: '0.64rem', color: '#15803D', fontWeight: '600' }}>
+                                                                    Bag weight entered at billing
+                                                                </span>
+                                                            </div>
                                                         )}
-                                                    </span>
-                                                </div>
-                                                <div style={{ fontSize: '0.64rem', color: '#64748B', marginTop: '2px', textAlign: 'right' }}>
-                                                    per {item.unit || (isWeighted ? 'KG' : 'Unit')}
-                                                </div>
-                                            </td>
+                                                    </div>
+                                                </td>
 
-                                            {/* Quantity or Weight depending on product type */}
-                                            <td style={{ padding: '0.65rem 0.75rem' }}>
-                                                {isWeighted ? (
-                                                    /* Weight Station Input with Quick Weight Pills */
-                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', background: '#FFFFFF', border: '1.5px solid #10B981', borderRadius: '8px', padding: '2px 6px', width: '100%', boxSizing: 'border-box', justifyContent: 'center' }}>
-                                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#166534', paddingRight: '4px' }}>⚖️ Weight:</span>
+                                                {/* Rate: Main Branch decides price; Sub Branch only views */}
+                                                <td style={{ padding: '0.65rem 0.75rem' }}>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', fontWeight: 800, fontSize: '0.85rem' }}>₹</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            step="any"
+                                                            placeholder="0.00"
+                                                            disabled={!isMainBranch}
+                                                            readOnly={!isMainBranch}
+                                                            value={item.rate}
+                                                            onChange={(e) => {
+                                                                if (isMainBranch) {
+                                                                    handleProductChange(index, 'rate', e.target.value);
+                                                                }
+                                                            }}
+                                                            onWheel={(e) => e.target.blur()}
+                                                            required
+                                                            title={isMainBranch ? "Main Branch: You can decide and edit the rate" : "Sub Branch: Rate decided by Main Branch (View Only)"}
+                                                            style={{
+                                                                width: '100%',
+                                                                padding: '0.55rem 1.8rem 0.55rem 1.6rem',
+                                                                borderRadius: '10px',
+                                                                border: isMainBranch ? '1px solid #CBD5E1' : '1px dashed #CBD5E1',
+                                                                fontSize: '0.88rem',
+                                                                fontWeight: 750,
+                                                                color: isMainBranch ? '#0F172A' : '#64748B',
+                                                                background: isMainBranch ? '#FFFFFF' : '#F1F5F9',
+                                                                outline: 'none',
+                                                                cursor: isMainBranch ? 'text' : 'not-allowed',
+                                                                boxSizing: 'border-box'
+                                                            }}
+                                                        />
+                                                        <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)' }}>
+                                                            {isMainBranch ? (
+                                                                <span style={{ fontSize: '0.65rem', color: '#10B981' }} title="Main Branch Rate Authority">👑</span>
+                                                            ) : (
+                                                                <Lock size={12} color="#94A3B8" title="Price fixed by Main Branch" />
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.64rem', color: '#64748B', marginTop: '2px', textAlign: 'right' }}>
+                                                        per {item.unit || (isWeighted ? 'KG' : 'Unit')}
+                                                    </div>
+                                                </td>
+
+                                                {/* Quantity or Weight depending on product type */}
+                                                <td style={{ padding: '0.65rem 0.75rem' }}>
+                                                    {isWeighted ? (
+                                                        /* Weight Station Input with Quick Weight Pills */
+                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', background: '#FFFFFF', border: '1.5px solid #10B981', borderRadius: '8px', padding: '2px 6px', width: '100%', boxSizing: 'border-box', justifyContent: 'center' }}>
+                                                                <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#166534', paddingRight: '4px' }}>⚖️ Weight:</span>
+                                                                <input
+                                                                    type="number"
+                                                                    step="0.001"
+                                                                    min="0.001"
+                                                                    value={item.quantity}
+                                                                    onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
+                                                                    onWheel={(e) => e.target.blur()}
+                                                                    placeholder="0.000"
+                                                                    required
+                                                                    style={{
+                                                                        width: '65px',
+                                                                        textAlign: 'center',
+                                                                        padding: '0.35rem 0.2rem',
+                                                                        borderRadius: '6px',
+                                                                        border: 'none',
+                                                                        fontSize: '0.88rem',
+                                                                        fontWeight: 850,
+                                                                        color: '#15803D',
+                                                                        background: 'transparent',
+                                                                        outline: 'none'
+                                                                    }}
+                                                                />
+                                                                <span style={{ fontSize: '0.72rem', fontWeight: '850', color: '#166534', paddingLeft: '2px' }}>
+                                                                    {item.unit || 'KG'}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Quick Bag Weight Presets for Fast Billing */}
+                                                            <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                                                {QUICK_WEIGHT_PRESETS.slice(1).map(p => (
+                                                                    <button
+                                                                        key={p.label}
+                                                                        type="button"
+                                                                        onClick={() => handleProductChange(index, 'quantity', p.kg)}
+                                                                        style={{
+                                                                            padding: '1px 5px',
+                                                                            borderRadius: '4px',
+                                                                            border: (parseFloat(item.quantity) === p.kg) ? '1px solid #10B981' : '1px solid #CBD5E1',
+                                                                            background: (parseFloat(item.quantity) === p.kg) ? '#DCFCE7' : '#FFFFFF',
+                                                                            color: (parseFloat(item.quantity) === p.kg) ? '#166534' : '#475569',
+                                                                            fontSize: '0.62rem',
+                                                                            fontWeight: '800',
+                                                                            cursor: 'pointer'
+                                                                        }}
+                                                                    >
+                                                                        {p.label}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        /* Discrete Quantity with Smooth Stepper Buttons */
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleQuantityChange(index, -1)}
+                                                                style={{
+                                                                    width: '28px',
+                                                                    height: '28px',
+                                                                    borderRadius: '8px',
+                                                                    border: '1px solid #CBD5E1',
+                                                                    background: '#FFFFFF',
+                                                                    color: '#475569',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    cursor: 'pointer',
+                                                                    fontWeight: 900
+                                                                }}
+                                                            >
+                                                                <Minus size={13} strokeWidth={3} />
+                                                            </button>
+                                                            
                                                             <input
                                                                 type="number"
-                                                                step="0.001"
-                                                                min="0.001"
+                                                                min="1"
+                                                                step="any"
                                                                 value={item.quantity}
                                                                 onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
-                                                                placeholder="0.000"
+                                                                onWheel={(e) => e.target.blur()}
                                                                 required
                                                                 style={{
-                                                                    width: '65px',
+                                                                    width: '50px',
                                                                     textAlign: 'center',
-                                                                    padding: '0.35rem 0.2rem',
-                                                                    borderRadius: '6px',
-                                                                    border: 'none',
+                                                                    padding: '0.5rem 0.25rem',
+                                                                    borderRadius: '8px',
+                                                                    border: '1px solid #CBD5E1',
                                                                     fontSize: '0.88rem',
                                                                     fontWeight: 850,
-                                                                    color: '#15803D',
-                                                                    background: 'transparent',
+                                                                    color: '#0F172A',
+                                                                    background: '#FFFFFF',
                                                                     outline: 'none'
                                                                 }}
                                                             />
-                                                            <span style={{ fontSize: '0.72rem', fontWeight: '850', color: '#166534', paddingLeft: '2px' }}>
-                                                                {item.unit || 'KG'}
-                                                            </span>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleQuantityChange(index, 1)}
+                                                                style={{
+                                                                    width: '28px',
+                                                                    height: '28px',
+                                                                    borderRadius: '8px',
+                                                                    border: '1px solid #CBD5E1',
+                                                                    background: '#FFFFFF',
+                                                                    color: '#166534',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    cursor: 'pointer',
+                                                                    fontWeight: 900
+                                                                }}
+                                                            >
+                                                                <Plus size={13} strokeWidth={3} />
+                                                            </button>
                                                         </div>
+                                                    )}
+                                                </td>
 
-                                                        {/* Quick Bag Weight Presets for Fast Billing */}
-                                                        <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                                                            {QUICK_WEIGHT_PRESETS.slice(1).map(p => (
-                                                                <button
-                                                                    key={p.label}
-                                                                    type="button"
-                                                                    onClick={() => handleProductChange(index, 'quantity', p.kg)}
-                                                                    style={{
-                                                                        padding: '1px 5px',
-                                                                        borderRadius: '4px',
-                                                                        border: (parseFloat(item.quantity) === p.kg) ? '1px solid #10B981' : '1px solid #CBD5E1',
-                                                                        background: (parseFloat(item.quantity) === p.kg) ? '#DCFCE7' : '#FFFFFF',
-                                                                        color: (parseFloat(item.quantity) === p.kg) ? '#166534' : '#475569',
-                                                                        fontSize: '0.62rem',
-                                                                        fontWeight: '800',
-                                                                        cursor: 'pointer'
-                                                                    }}
-                                                                >
-                                                                    {p.label}
-                                                                </button>
-                                                            ))}
+                                                {/* Line Item Total */}
+                                                <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 900, color: '#166534', fontSize: '0.95rem' }}>
+                                                    <div>
+                                                        ₹{itemTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </div>
+                                                    {isWeighted && (
+                                                        <div style={{ fontSize: '0.64rem', color: '#64748B', fontWeight: '600' }}>
+                                                            {item.quantity} {item.unit || 'KG'} @ ₹{item.rate}
                                                         </div>
-                                                    </div>
-                                                ) : (
-                                                    /* Discrete Quantity with Smooth Stepper Buttons */
-                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleQuantityChange(index, -1)}
-                                                            style={{
-                                                                width: '28px',
-                                                                height: '28px',
-                                                                borderRadius: '8px',
-                                                                border: '1px solid #CBD5E1',
-                                                                background: '#FFFFFF',
-                                                                color: '#475569',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                cursor: 'pointer',
-                                                                fontWeight: 900
-                                                            }}
-                                                        >
-                                                            <Minus size={13} strokeWidth={3} />
-                                                        </button>
-                                                        
-                                                        <input
-                                                            type="number"
-                                                            min="1"
-                                                            step="any"
-                                                            value={item.quantity}
-                                                            onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
-                                                            required
-                                                            style={{
-                                                                width: '50px',
-                                                                textAlign: 'center',
-                                                                padding: '0.5rem 0.25rem',
-                                                                borderRadius: '8px',
-                                                                border: '1px solid #CBD5E1',
-                                                                fontSize: '0.88rem',
-                                                                fontWeight: 850,
-                                                                color: '#0F172A',
-                                                                background: '#FFFFFF',
-                                                                outline: 'none'
-                                                            }}
-                                                        />
+                                                    )}
+                                                </td>
 
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleQuantityChange(index, 1)}
-                                                            style={{
-                                                                width: '28px',
-                                                                height: '28px',
-                                                                borderRadius: '8px',
-                                                                border: '1px solid #CBD5E1',
-                                                                background: '#FFFFFF',
-                                                                color: '#166534',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                cursor: 'pointer',
-                                                                fontWeight: 900
-                                                            }}
-                                                        >
-                                                            <Plus size={13} strokeWidth={3} />
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </td>
-
-                                            {/* Line Item Total */}
-                                            <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 900, color: '#166534', fontSize: '0.95rem' }}>
-                                                <div>
-                                                    ₹{itemTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                </div>
-                                                {isWeighted && (
-                                                    <div style={{ fontSize: '0.64rem', color: '#64748B', fontWeight: '600' }}>
-                                                        {item.quantity} {item.unit || 'KG'} @ ₹{item.rate}
-                                                    </div>
-                                                )}
-                                            </td>
-
-                                            {/* Delete Row Button */}
-                                            <td style={{ padding: '0.65rem 0.75rem', borderTopRightRadius: '12px', borderBottomRightRadius: '12px', textAlign: 'center' }}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveProduct(index)}
-                                                    style={{
-                                                        width: '30px',
-                                                        height: '30px',
-                                                        borderRadius: '8px',
-                                                        border: 'none',
-                                                        background: 'transparent',
-                                                        color: '#94A3B8',
-                                                        cursor: 'pointer',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        transition: 'all 0.15s'
-                                                    }}
-                                                    onMouseOver={(e) => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.color = '#DC2626'; }}
-                                                    onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94A3B8'; }}
-                                                    title="Remove item"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                                {/* Delete Row Button */}
+                                                <td style={{ padding: '0.65rem 0.75rem', borderTopRightRadius: '12px', borderBottomRightRadius: '12px', textAlign: 'center' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveProduct(index)}
+                                                        style={{
+                                                            width: '30px',
+                                                            height: '30px',
+                                                            borderRadius: '8px',
+                                                            border: 'none',
+                                                            background: 'transparent',
+                                                            color: '#94A3B8',
+                                                            cursor: 'pointer',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            transition: 'all 0.15s'
+                                                        }}
+                                                        onMouseOver={(e) => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.color = '#DC2626'; }}
+                                                        onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94A3B8'; }}
+                                                        title="Remove item"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
 
                 {/* 4. Bottom Sticky Summary Strip & Instant Submit */}
@@ -1543,6 +1724,37 @@ const SimpleBilling = () => {
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Barcode & QR Camera Scanner Modal */}
+            <CameraBarcodeScannerModal
+                isOpen={isCameraScannerOpen}
+                onClose={() => setIsCameraScannerOpen(false)}
+                onScanProduct={handleBarcodeScan}
+                lastScannedItem={lastScannedItem}
+            />
+
+            {/* Floating Barcode Scan Toast Notification */}
+            {scanNotification && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: '24px',
+                    right: '24px',
+                    background: scanNotification.type === 'error' ? '#EF4444' : '#166534',
+                    color: '#FFFFFF',
+                    padding: '12px 20px',
+                    borderRadius: '14px',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+                    zIndex: 2000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    fontSize: '0.88rem',
+                    fontWeight: 800
+                }}>
+                    <span>{scanNotification.type === 'error' ? '⚠️' : '✅'}</span>
+                    <span>{scanNotification.message}</span>
                 </div>
             )}
         </div>
