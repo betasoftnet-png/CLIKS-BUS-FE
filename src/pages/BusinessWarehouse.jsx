@@ -129,9 +129,7 @@ const BusinessWarehouse = () => {
     // Live Stocks database via useQuery
     const { data: dbStocks = [] } = useQuery({
         queryKey: ['stocks'],
-        queryFn: () => stockService.getStocks(),
-        staleTime: 5 * 60 * 1000,
-        refetchOnWindowFocus: false
+        queryFn: () => stockService.getStocks()
     });
 
     // Fetch Live Registered Products
@@ -143,16 +141,22 @@ const BusinessWarehouse = () => {
     // Live Transfers database via useQuery
     const { data: reportsData } = useQuery({
         queryKey: ['warehouseReports'],
-        queryFn: () => apiClient.get('/warehouses/reports').then(res => res.data.data || res.data),
-        staleTime: 5 * 60 * 1000,
-        refetchOnWindowFocus: false
+        queryFn: () => apiClient.get('/warehouses/reports').then(res => res.data.data || res.data)
     });
 
 
     const createWarehouseMutation = useMutation({
         mutationFn: (data) => warehouseService.createWarehouse(data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+        onSuccess: async (res) => {
+            const created = res?.data || res;
+            if (created && created.id) {
+                queryClient.setQueryData(['warehouses'], (old) => {
+                    if (!Array.isArray(old)) return [created];
+                    return [...old, created];
+                });
+            }
+            await queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            await queryClient.refetchQueries({ queryKey: ['warehouses'] });
             alert('New Physical Warehouse Profile successfully created!');
             setNewWarehouse({
                 warehouse_code: '',
@@ -172,25 +176,70 @@ const BusinessWarehouse = () => {
 
     const deleteWarehouseMutation = useMutation({
         mutationFn: (id) => warehouseService.deleteWarehouse(id),
-        onMutate: (deletedId) => {
+        onMutate: async (deletedId) => {
             // Zero-latency optimistic native React state repainting!
+            await queryClient.cancelQueries({ queryKey: ['warehouses'] });
             setLocallyDeletedIds(prev => [...prev, String(deletedId)]);
+            queryClient.setQueryData(['warehouses'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.filter(w => String(w.id) !== String(deletedId));
+            });
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            await queryClient.refetchQueries({ queryKey: ['warehouses'] });
         },
         onError: (err) => {
             console.error('[Warehouse Delete Error]', err);
             alert('Action failed. Some active stock entries or transaction logs may still exist for this facility.');
             // Reset optimistic state to restore UI if API failed
             setLocallyDeletedIds(prev => prev.filter(id => id !== String(confirmingDeleteId)));
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
         }
     });
 
     const updateWarehouseMutation = useMutation({
         mutationFn: ({ id, data }) => warehouseService.updateWarehouse ? warehouseService.updateWarehouse(id, data) : Promise.resolve({ success: true }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+        onMutate: async ({ id, data }) => {
+            // Optimistic update for zero-latency instant rendering
+            await queryClient.cancelQueries({ queryKey: ['warehouses'] });
+            const previousWarehouses = queryClient.getQueryData(['warehouses']);
+
+            queryClient.setQueryData(['warehouses'], (old) => {
+                if (!Array.isArray(old)) return old;
+                return old.map(w => {
+                    if (String(w.id) === String(id)) {
+                        return {
+                            ...w,
+                            ...data,
+                            name: data.name || data.warehouse_name || w.name,
+                            code: data.code || data.warehouse_code || w.code,
+                            type: data.type || data.warehouse_type || w.type
+                        };
+                    }
+                    return w;
+                });
+            });
+
+            return { previousWarehouses };
+        },
+        onError: (err, variables, context) => {
+            console.error('[Warehouse Update Error]', err);
+            if (context?.previousWarehouses) {
+                queryClient.setQueryData(['warehouses'], context.previousWarehouses);
+            }
+            alert('Failed to update warehouse. Please try again.');
+        },
+        onSuccess: async (res, variables) => {
+            const updatedItem = res?.data || res;
+            if (updatedItem && updatedItem.id) {
+                queryClient.setQueryData(['warehouses'], (old) => {
+                    if (!Array.isArray(old)) return old;
+                    return old.map(w => String(w.id) === String(updatedItem.id) ? { ...w, ...updatedItem } : w);
+                });
+            }
+            await queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+            await queryClient.refetchQueries({ queryKey: ['warehouses'] });
             setEditingWarehouse(null);
             alert('Warehouse profile updated!');
         }
@@ -771,10 +820,16 @@ const BusinessWarehouse = () => {
                 console.warn('[Warehouse Product Stock creation warning]', stErr);
             }
 
-            queryClient.invalidateQueries({ queryKey: ['products'] });
-            queryClient.invalidateQueries({ queryKey: ['stocks'] });
-            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
-            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['products'] }),
+                queryClient.invalidateQueries({ queryKey: ['stocks'] }),
+                queryClient.invalidateQueries({ queryKey: ['warehouses'] }),
+                queryClient.invalidateQueries({ queryKey: ['warehouseReports'] }),
+                queryClient.refetchQueries({ queryKey: ['products'] }),
+                queryClient.refetchQueries({ queryKey: ['stocks'] }),
+                queryClient.refetchQueries({ queryKey: ['warehouses'] }),
+                queryClient.refetchQueries({ queryKey: ['warehouseReports'] })
+            ]);
 
             alert(`New product "${newWarehouseProduct.name}" successfully created and saved in ${targetName}!`);
             setIsAddProductModalOpen(false);
@@ -847,10 +902,16 @@ const BusinessWarehouse = () => {
             destination_warehouse_id: data.destination_warehouse_id,
             warehouse_name: data.warehouse_name
         }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['stocks'] });
-            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
-            queryClient.invalidateQueries({ queryKey: ['stockHistory'] });
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['stocks'] }),
+                queryClient.invalidateQueries({ queryKey: ['warehouseReports'] }),
+                queryClient.invalidateQueries({ queryKey: ['stockHistory'] }),
+                queryClient.invalidateQueries({ queryKey: ['warehouses'] }),
+                queryClient.refetchQueries({ queryKey: ['stocks'] }),
+                queryClient.refetchQueries({ queryKey: ['warehouseReports'] }),
+                queryClient.refetchQueries({ queryKey: ['warehouses'] })
+            ]);
             alert('Goods Inward receipt logged! Warehouse inventory adjusted automatically.');
             setIsInwardModalOpen(false);
         }
@@ -878,11 +939,16 @@ const BusinessWarehouse = () => {
 
     const createTransferMutation = useMutation({
         mutationFn: (data) => apiClient.post(`/warehouses/${data.from_warehouse_id}/transfers`, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
-            queryClient.invalidateQueries({ queryKey: ['stocks'] });
-            queryClient.invalidateQueries({ queryKey: ['products'] });
-            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['warehouseReports'] }),
+                queryClient.invalidateQueries({ queryKey: ['stocks'] }),
+                queryClient.invalidateQueries({ queryKey: ['products'] }),
+                queryClient.invalidateQueries({ queryKey: ['warehouses'] }),
+                queryClient.refetchQueries({ queryKey: ['warehouseReports'] }),
+                queryClient.refetchQueries({ queryKey: ['stocks'] }),
+                queryClient.refetchQueries({ queryKey: ['warehouses'] })
+            ]);
             alert('Stock Transfer Order dispatched! Marked in-transit across branches.');
             setIsTransferModalOpen(false);
             setNewTransfer({
@@ -918,11 +984,16 @@ const BusinessWarehouse = () => {
             bin_number: data.bin_number,
             zone: data.zone
         }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['warehouseReports'] });
-            queryClient.invalidateQueries({ queryKey: ['stocks'] });
-            queryClient.invalidateQueries({ queryKey: ['products'] });
-            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['warehouseReports'] }),
+                queryClient.invalidateQueries({ queryKey: ['stocks'] }),
+                queryClient.invalidateQueries({ queryKey: ['products'] }),
+                queryClient.invalidateQueries({ queryKey: ['warehouses'] }),
+                queryClient.refetchQueries({ queryKey: ['warehouseReports'] }),
+                queryClient.refetchQueries({ queryKey: ['stocks'] }),
+                queryClient.refetchQueries({ queryKey: ['warehouses'] })
+            ]);
             setReceivingTransferId(null);
             setReceiveForm({ rack_number: '', shelf_number: '', bin_number: '', zone: '' });
             alert('Transfer received! Stock successfully added to destination warehouse.');
@@ -1391,26 +1462,6 @@ const BusinessWarehouse = () => {
                 </div>
             )}
 
-            {/* Edit Warehouse Modal */}
-            {editingWarehouse && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6,78,59,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
-                    <div style={{ background: 'white', width: '100%', maxWidth: '520px', borderRadius: '28px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', border: '1px solid #E2E8F0', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: '#064E3B', margin: 0 }}>Edit Warehouse Profile</h3>
-                            <button onClick={() => setEditingWarehouse(null)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
-                        </div>
-                        <form onSubmit={(e) => { e.preventDefault(); updateWarehouseMutation.mutate({ id: editingWarehouse, data: { name: editWarehouseForm.warehouse_name, code: editWarehouseForm.warehouse_code, type: editWarehouseForm.warehouse_type, address: editWarehouseForm.address, city: editWarehouseForm.city, state: editWarehouseForm.state, pincode: editWarehouseForm.pincode, contact_person: editWarehouseForm.contact_person, phone_number: editWarehouseForm.phone_number, email: editWarehouseForm.email } }); }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {[['warehouse_name', 'Warehouse Name', 'text'], ['warehouse_code', 'Code', 'text'], ['address', 'Address', 'text'], ['city', 'City', 'text'], ['state', 'State', 'text'], ['pincode', 'Pincode', 'text'], ['contact_person', 'Contact Person', 'text'], ['phone_number', 'Phone', 'tel'], ['email', 'Email', 'email']].map(([key, label, type]) => (
-                                <div key={key}>
-                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.3rem' }}>{label}</label>
-                                    <input type={type} value={editWarehouseForm[key] || ''} onChange={(e) => setEditWarehouseForm(prev => ({ ...prev, [key]: e.target.value }))} style={{ width: '100%', padding: '0.7rem', borderRadius: '10px', border: '1px solid #E2E8F0', outline: 'none', boxSizing: 'border-box' }} />
-                                </div>
-                            ))}
-                            <button type="submit" style={{ width: '100%', padding: '0.85rem', borderRadius: '12px', background: 'linear-gradient(135deg, #10B981, #047857)', color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer' }}>Save Changes</button>
-                        </form>
-                    </div>
-                </div>
-            )}
             {/* Goods Inward Receiving Modal */}
             {isInwardModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)', padding: '2rem' }}>
