@@ -209,17 +209,10 @@ const BusinessPurposeWallet = () => {
     const handleAddSubmit = (e) => {
         e.preventDefault();
         if (!selectedWallet) return;
-        const currentSaved = parseFloat(selectedWallet.current_amount || 0);
-        const targetCeiling = parseFloat(selectedWallet.target_amount || 0);
-        const remainingTarget = Math.max(0, targetCeiling - currentSaved);
 
         if (!addAmount || Number(addAmount) <= 0) return alert("Enter a valid deposit amount greater than 0.");
         let amt = parseFloat(addAmount);
         if (isNaN(amt) || amt <= 0) return alert("Enter a valid deposit amount greater than 0.");
-
-        if (amt > remainingTarget) {
-            amt = remainingTarget;
-        }
 
         addMoneyMutation.mutate({ id: selectedWallet.id, amount: amt });
     };
@@ -569,7 +562,7 @@ const BusinessPurposeWallet = () => {
                                                 color: isCompleted ? '#475569' : '#047857',
                                                 display: 'inline-block'
                                             }}>
-                                                {isCompleted ? '🎉 FULLY CLAIMED' : pct >= 100 ? '🎯 TARGET MET' : '🌱 GROWING'}
+                                                {isCompleted ? '🎉 FULLY CLAIMED' : current > target && target > 0 ? '🚀 TARGET EXCEEDED' : pct >= 100 ? '🎯 TARGET MET' : '🌱 GROWING'}
                                             </span>
                                         </div>
                                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -979,20 +972,12 @@ const BusinessPurposeWallet = () => {
 
                 const handleAddAmountChange = (e) => {
                     let raw = e.target.value.replace(/[^0-9.]/g, '');
-                    let num = parseFloat(raw) || 0;
-                    if (num > remainingTarget) {
-                        setAddAmount(String(remainingTarget));
-                    } else {
-                        setAddAmount(raw);
-                    }
+                    setAddAmount(raw);
                 };
 
                 const handleQuickIncrement = (inc) => {
                     const currentEntered = parseFloat(addAmount) || 0;
                     let nextVal = currentEntered + inc;
-                    if (nextVal > remainingTarget) {
-                        nextVal = remainingTarget;
-                    }
                     setAddAmount(String(nextVal));
                 };
 
@@ -1011,7 +996,11 @@ const BusinessPurposeWallet = () => {
                                             Add Cash to {selectedWallet.name}
                                         </h3>
                                         <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748B', fontWeight: '600' }}>
-                                            Saved: ₹{currentSaved.toLocaleString('en-IN')} of ₹{targetCeiling.toLocaleString('en-IN')} • Remaining: <strong style={{ color: '#DC2626' }}>₹{remainingTarget.toLocaleString('en-IN')}</strong>
+                                            Saved: ₹{currentSaved.toLocaleString('en-IN')} of ₹{targetCeiling.toLocaleString('en-IN')} • {remainingTarget > 0 ? (
+                                                <>Remaining to Target: <strong style={{ color: '#DC2626' }}>₹{remainingTarget.toLocaleString('en-IN')}</strong></>
+                                            ) : (
+                                                <strong style={{ color: '#059669' }}>Target Met (Exceeded by ₹{(currentSaved - targetCeiling).toLocaleString('en-IN')})</strong>
+                                            )}
                                         </p>
                                     </div>
                                 </div>
@@ -1051,7 +1040,6 @@ const BusinessPurposeWallet = () => {
                                             type="number"
                                             placeholder="0"
                                             min="1"
-                                            max={remainingTarget}
                                             step="any"
                                             value={addAmount}
                                             onKeyDown={(e) => { if (e.key === '-' || e.key === 'e' || e.key === '+') e.preventDefault(); }}
@@ -1072,25 +1060,27 @@ const BusinessPurposeWallet = () => {
 
                                     {/* Quick Action Chips Row */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.65rem' }}>
-                                        <button
-                                            type="button"
-                                            onClick={() => setAddAmount(String(remainingTarget))}
-                                            style={{
-                                                background: '#FEF2F2',
-                                                color: '#DC2626',
-                                                border: '1px solid #FECACA',
-                                                padding: '0.3rem 0.65rem',
-                                                borderRadius: '8px',
-                                                fontSize: '0.72rem',
-                                                fontWeight: '800',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.15s'
-                                            }}
-                                            onMouseOver={(ev) => ev.currentTarget.style.background = '#FEE2E2'}
-                                            onMouseOut={(ev) => ev.currentTarget.style.background = '#FEF2F2'}
-                                        >
-                                            Fill Remaining (₹{remainingTarget.toLocaleString('en-IN')})
-                                        </button>
+                                        {remainingTarget > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setAddAmount(String(remainingTarget))}
+                                                style={{
+                                                    background: '#FEF2F2',
+                                                    color: '#DC2626',
+                                                    border: '1px solid #FECACA',
+                                                    padding: '0.3rem 0.65rem',
+                                                    borderRadius: '8px',
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: '800',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.15s'
+                                                }}
+                                                onMouseOver={(ev) => ev.currentTarget.style.background = '#FEE2E2'}
+                                                onMouseOut={(ev) => ev.currentTarget.style.background = '#FEF2F2'}
+                                            >
+                                                Fill Target (₹{remainingTarget.toLocaleString('en-IN')})
+                                            </button>
+                                        )}
 
                                         {[1000, 5000, 10000, 25000].map(inc => (
                                             <button
