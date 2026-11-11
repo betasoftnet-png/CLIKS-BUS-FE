@@ -780,24 +780,21 @@ const BusinessSplitCollect = () => {
         }));
     };
 
-    // Respond to invitation (Accept / Reject)
+    // Respond to invitation (Accept / Reject / Decline)
     const handleRespondInvite = async (splitId, status) => {
         try {
             const targetEmail = currentUserEmail || 'user@bnxmail.com';
-            await splitExpenseService.respondInvite(splitId, { status, email: targetEmail });
+            const finalStatus = (status === 'rejected' || status === 'declined') ? 'declined' : 'accepted';
+            await splitExpenseService.respondInvite(splitId, { status: finalStatus, email: targetEmail });
             setSplits(prev => prev.map(s => {
                 if (s.id === splitId) {
-                    if (status === 'rejected') {
-                        return {
-                            ...s,
-                            participants: s.participants.filter(p => getParticipantEmail(p).toLowerCase() !== targetEmail)
-                        };
-                    }
                     return {
                         ...s,
                         participants: s.participants.map(p => {
-                            if (getParticipantEmail(p).toLowerCase() === targetEmail) {
-                                return typeof p === 'object' ? { ...p, status: 'accepted' } : { name: p, email: targetEmail, status: 'accepted', role: 'viewer' };
+                            const pEmail = getParticipantEmail(p).toLowerCase();
+                            const pName = getParticipantName(p).toLowerCase();
+                            if ((pEmail && pEmail === targetEmail) || (currentUserName && (pName === currentUserName || pEmail === `${currentUserName}@bnxmail.com`))) {
+                                return typeof p === 'object' ? { ...p, status: finalStatus } : { name: p, email: targetEmail, status: finalStatus, role: 'viewer' };
                             }
                             return p;
                         })
@@ -805,11 +802,10 @@ const BusinessSplitCollect = () => {
                 }
                 return s;
             }));
-            if (status === 'accepted') {
+            if (finalStatus === 'accepted') {
                 setInviteSuccessToast('🎉 You have successfully joined this split!');
             } else {
                 setInviteSuccessToast('You declined the invitation.');
-                if (selectedSplitId === splitId) setSelectedSplitId(null);
             }
             setTimeout(() => setInviteSuccessToast(''), 4000);
         } catch (err) {
@@ -1941,8 +1937,11 @@ const BusinessSplitCollect = () => {
                                                 return (currentUserEmail && pEmail === currentUserEmail) || (currentUserName && getParticipantName(p).toLowerCase() === currentUserName.toLowerCase());
                                             });
                                             const isPendingInvite = myMember && getParticipantStatus(myMember) === 'pending';
+                                            const isDeclinedInvite = myMember && (getParticipantStatus(myMember) === 'declined' || getParticipantStatus(myMember) === 'rejected');
                                             const isOwner = (s.user_id && user?.id && String(s.user_id) === String(user.id)) || (myMember && isParticipantAdmin(myMember));
                                             const memberRole = getParticipantRole(myMember);
+                                            const canEditTicket = isOwner || memberRole === 'editor' || memberRole === 'admin';
+                                            const canDeleteTicket = isOwner;
 
                                             return (
                                                 <div 
@@ -1956,21 +1955,21 @@ const BusinessSplitCollect = () => {
                                                     style={{ 
                                                         background: 'white', 
                                                         borderRadius: '20px', 
-                                                        border: isPendingInvite ? '2px solid #F59E0B' : '1.5px solid #E2E8F0', 
+                                                        border: isPendingInvite ? '2px solid #F59E0B' : isDeclinedInvite ? '2px solid #FCA5A5' : '1.5px solid #E2E8F0', 
                                                         padding: '1.5rem', 
                                                         cursor: isPendingInvite ? 'default' : 'pointer',
-                                                        boxShadow: isPendingInvite ? '0 4px 12px rgba(245, 158, 11, 0.1)' : '0 4px 6px -1px rgba(0,0,0,0.02)',
+                                                        boxShadow: isPendingInvite ? '0 4px 12px rgba(245, 158, 11, 0.1)' : isDeclinedInvite ? '0 4px 12px rgba(239, 68, 68, 0.08)' : '0 4px 6px -1px rgba(0,0,0,0.02)',
                                                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                                                         position: 'relative',
                                                         overflow: 'hidden'
                                                     }}
                                                     onMouseOver={(e) => {
-                                                        e.currentTarget.style.borderColor = isPendingInvite ? '#D97706' : '#1B6B3A';
+                                                        e.currentTarget.style.borderColor = isPendingInvite ? '#D97706' : isDeclinedInvite ? '#EF4444' : '#1B6B3A';
                                                         e.currentTarget.style.transform = isPendingInvite ? 'none' : 'translateY(-2px)';
                                                         e.currentTarget.style.boxShadow = isPendingInvite ? '0 4px 12px rgba(245, 158, 11, 0.15)' : '0 10px 15px -3px rgba(0,0,0,0.05)';
                                                     }}
                                                     onMouseOut={(e) => {
-                                                        e.currentTarget.style.borderColor = isPendingInvite ? '#F59E0B' : '#E2E8F0';
+                                                        e.currentTarget.style.borderColor = isPendingInvite ? '#F59E0B' : isDeclinedInvite ? '#FCA5A5' : '#E2E8F0';
                                                         e.currentTarget.style.transform = 'translateY(0)';
                                                         e.currentTarget.style.boxShadow = isPendingInvite ? '0 4px 12px rgba(245, 158, 11, 0.1)' : '0 4px 6px -1px rgba(0,0,0,0.02)';
                                                     }}
@@ -1988,26 +1987,43 @@ const BusinessSplitCollect = () => {
                                                                 <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: '750', textTransform: 'uppercase', background: '#F1F5F9', padding: '2px 8px', borderRadius: '6px' }}>
                                                                     {s.currency}
                                                                 </span>
-                                                                <span style={{ 
-                                                                    fontSize: '0.65rem', 
-                                                                    fontWeight: '800', 
-                                                                    background: isOwner ? '#F5F3FF' : (memberRole === 'editor' ? '#EFF6FF' : '#FFFBEB'),
-                                                                    color: isOwner ? '#7C3AED' : (memberRole === 'editor' ? '#2563EB' : '#D97706'),
-                                                                    border: isOwner ? '1px solid #DDD6FE' : (memberRole === 'editor' ? '1px solid #BFDBFE' : '1px solid #FDE68A'),
-                                                                    padding: '2px 8px', 
-                                                                    borderRadius: '6px',
-                                                                    display: 'inline-flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '4px'
-                                                                }}>
-                                                                    {isOwner ? (
-                                                                        <><Crown size={11} strokeWidth={2.5} /> Admin</>
-                                                                    ) : memberRole === 'editor' ? (
-                                                                        <><Pencil size={11} strokeWidth={2.5} /> Editor</>
-                                                                    ) : (
-                                                                        <><Eye size={11} strokeWidth={2.5} /> Viewer</>
-                                                                    )}
-                                                                </span>
+                                                                {isDeclinedInvite ? (
+                                                                    <span style={{
+                                                                        fontSize: '0.65rem',
+                                                                        fontWeight: '800',
+                                                                        background: '#FEF2F2',
+                                                                        color: '#DC2626',
+                                                                        border: '1px solid #FCA5A5',
+                                                                        padding: '2px 8px',
+                                                                        borderRadius: '6px',
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '4px'
+                                                                    }}>
+                                                                        <X size={11} strokeWidth={2.5} /> Declined
+                                                                    </span>
+                                                                ) : (
+                                                                    <span style={{ 
+                                                                        fontSize: '0.65rem', 
+                                                                        fontWeight: '800', 
+                                                                        background: isOwner ? '#F5F3FF' : (memberRole === 'editor' ? '#EFF6FF' : '#FFFBEB'),
+                                                                        color: isOwner ? '#7C3AED' : (memberRole === 'editor' ? '#2563EB' : '#D97706'),
+                                                                        border: isOwner ? '1px solid #DDD6FE' : (memberRole === 'editor' ? '1px solid #BFDBFE' : '1px solid #FDE68A'),
+                                                                        padding: '2px 8px', 
+                                                                        borderRadius: '6px',
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '4px'
+                                                                    }}>
+                                                                        {isOwner ? (
+                                                                            <><Crown size={11} strokeWidth={2.5} /> Admin</>
+                                                                        ) : memberRole === 'editor' ? (
+                                                                            <><Pencil size={11} strokeWidth={2.5} /> Editor</>
+                                                                        ) : (
+                                                                            <><Eye size={11} strokeWidth={2.5} /> Viewer</>
+                                                                        )}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -2068,75 +2084,150 @@ const BusinessSplitCollect = () => {
                                                                         <Pin size={14} style={{ color: '#004aad', transform: isPinned ? 'rotate(45deg)' : 'none' }} />
                                                                         {isPinned ? 'Unpin Ticket' : 'Pin to top'}
                                                                     </button>
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setEditingGroupId(s.id);
-                                                                            setGroupForm({
-                                                                                title: s.title,
-                                                                                currency: s.currency,
-                                                                                description: s.description || '',
-                                                                                participants: [...s.participants]
-                                                                            });
-                                                                            setIsCreateGroupModalOpen(true);
-                                                                            setActiveMenuId(null);
-                                                                        }}
-                                                                        style={{
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            gap: '8px',
-                                                                            width: '100%',
-                                                                            padding: '8px 12px',
-                                                                            border: 'none',
-                                                                            background: 'none',
-                                                                            color: '#334155',
-                                                                            fontSize: '0.85rem',
-                                                                            fontWeight: '600',
-                                                                            cursor: 'pointer',
-                                                                            borderRadius: '8px',
-                                                                            transition: 'background 0.2s'
-                                                                        }}
-                                                                        onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
-                                                                        onMouseOut={(e) => e.currentTarget.style.background = 'none'}
-                                                                    >
-                                                                        <Pencil size={14} style={{ color: '#004aad' }} />
-                                                                        Edit Ticket
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleDeleteGroup(s.id);
-                                                                            setActiveMenuId(null);
-                                                                        }}
-                                                                        style={{
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            gap: '8px',
-                                                                            width: '100%',
-                                                                            padding: '8px 12px',
-                                                                            border: 'none',
-                                                                            background: 'none',
-                                                                            color: '#EF4444',
-                                                                            fontSize: '0.85rem',
-                                                                            fontWeight: '600',
-                                                                            cursor: 'pointer',
-                                                                            borderRadius: '8px',
-                                                                            transition: 'background 0.2s'
-                                                                        }}
-                                                                        onMouseOver={(e) => e.currentTarget.style.background = '#FEF2F2'}
-                                                                        onMouseOut={(e) => e.currentTarget.style.background = 'none'}
-                                                                    >
-                                                                        <Trash2 size={14} style={{ color: '#EF4444' }} />
-                                                                        Delete Ticket
-                                                                    </button>
+                                                                    {canEditTicket && (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setEditingGroupId(s.id);
+                                                                                setGroupForm({
+                                                                                    title: s.title,
+                                                                                    currency: s.currency,
+                                                                                    description: s.description || '',
+                                                                                    participants: [...s.participants]
+                                                                                });
+                                                                                setIsCreateGroupModalOpen(true);
+                                                                                setActiveMenuId(null);
+                                                                            }}
+                                                                            style={{
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                gap: '8px',
+                                                                                width: '100%',
+                                                                                padding: '8px 12px',
+                                                                                border: 'none',
+                                                                                background: 'none',
+                                                                                color: '#334155',
+                                                                                fontSize: '0.85rem',
+                                                                                fontWeight: '600',
+                                                                                cursor: 'pointer',
+                                                                                borderRadius: '8px',
+                                                                                transition: 'background 0.2s'
+                                                                            }}
+                                                                            onMouseOver={(e) => e.currentTarget.style.background = '#F1F5F9'}
+                                                                            onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                                                        >
+                                                                            <Pencil size={14} style={{ color: '#004aad' }} />
+                                                                            Edit Ticket
+                                                                        </button>
+                                                                    )}
+                                                                    {canDeleteTicket && (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleDeleteGroup(s.id);
+                                                                                setActiveMenuId(null);
+                                                                            }}
+                                                                            style={{
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                gap: '8px',
+                                                                                width: '100%',
+                                                                                padding: '8px 12px',
+                                                                                border: 'none',
+                                                                                background: 'none',
+                                                                                color: '#EF4444',
+                                                                                fontSize: '0.85rem',
+                                                                                fontWeight: '600',
+                                                                                cursor: 'pointer',
+                                                                                borderRadius: '8px',
+                                                                                transition: 'background 0.2s'
+                                                                            }}
+                                                                            onMouseOver={(e) => e.currentTarget.style.background = '#FEF2F2'}
+                                                                            onMouseOut={(e) => e.currentTarget.style.background = 'none'}
+                                                                        >
+                                                                            <Trash2 size={14} style={{ color: '#EF4444' }} />
+                                                                            Delete Ticket
+                                                                        </button>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                         </div>
                                                     </div>
                                                     
-                                                    <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.8rem', color: '#64748B', lineHeight: '1.4', height: '36px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                                    <p style={{ margin: '0 0 0.85rem 0', fontSize: '0.8rem', color: '#64748B', lineHeight: '1.4', height: '36px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                                                         {s.description || 'No description provided.'}
                                                     </p>
+
+                                                    {/* Participant Badges Preview */}
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginBottom: '0.85rem' }}>
+                                                        {(s.participants || []).slice(0, 4).map((p, pIdx) => {
+                                                            const pName = getParticipantName(p);
+                                                            const pRole = getParticipantRole(p);
+                                                            const pIsAdmin = isParticipantAdmin(p);
+                                                            return (
+                                                                <span key={pIdx} style={{
+                                                                    fontSize: '0.68rem',
+                                                                    fontWeight: '700',
+                                                                    color: '#475569',
+                                                                    background: '#F8FAFC',
+                                                                    border: '1px solid #E2E8F0',
+                                                                    padding: '2px 7px',
+                                                                    borderRadius: '6px',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '3px'
+                                                                }}>
+                                                                    {pIsAdmin ? <Crown size={9} style={{ color: '#047857' }} /> : pRole === 'editor' ? <Pencil size={9} style={{ color: '#2563EB' }} /> : <Eye size={9} style={{ color: '#D97706' }} />}
+                                                                    {pName}
+                                                                </span>
+                                                            );
+                                                        })}
+                                                        {(s.participants || []).length > 4 && (
+                                                            <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#94A3B8' }}>
+                                                                +{(s.participants || []).length - 4} more
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {isDeclinedInvite && (
+                                                        <div 
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            style={{
+                                                                background: '#FEF2F2',
+                                                                border: '1.5px solid #FCA5A5',
+                                                                borderRadius: '12px',
+                                                                padding: '0.65rem 0.85rem',
+                                                                marginBottom: '0.85rem',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'space-between',
+                                                                gap: '0.5rem'
+                                                            }}
+                                                        >
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', fontWeight: '800', color: '#991B1B' }}>
+                                                                <X size={14} />
+                                                                <span>Declined Split and Collect</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleRespondInvite(s.id, 'accepted');
+                                                                }}
+                                                                style={{
+                                                                    padding: '5px 12px',
+                                                                    borderRadius: '8px',
+                                                                    background: '#1B6B3A',
+                                                                    color: 'white',
+                                                                    border: 'none',
+                                                                    fontWeight: '800',
+                                                                    fontSize: '0.74rem',
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                            >
+                                                                Re-join Split
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                     
                                                     {isPendingInvite && (
                                                         <div 
@@ -2231,8 +2322,8 @@ const BusinessSplitCollect = () => {
                             exit={{ opacity: 0, y: -10 }}
                             style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '1.25rem' }}
                         >
-                            {currentUserStatus === 'pending' && !isSplitAdmin ? (
-                                /* Invitation Pending Gate: members cannot enter into the split until they accept or decline */
+                            {(currentUserStatus === 'pending' || currentUserStatus === 'declined' || currentUserStatus === 'rejected') && !isSplitAdmin ? (
+                                /* Invitation Pending or Declined Gate */
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '640px', margin: '2rem auto' }}>
                                     <button 
                                         onClick={() => setSelectedSplitId(null)}
@@ -2241,114 +2332,72 @@ const BusinessSplitCollect = () => {
                                         <ChevronLeft size={18} strokeWidth={2.5} /> Back to all tickets
                                     </button>
 
-                                    <div style={{
-                                        background: 'white',
-                                        borderRadius: '24px',
-                                        border: '2px solid #FCD34D',
-                                        padding: '2.5rem 2rem',
-                                        boxShadow: '0 12px 32px rgba(245, 158, 11, 0.12)',
-                                        textAlign: 'center',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        gap: '1.25rem'
-                                    }}>
+                                    {currentUserStatus === 'declined' || currentUserStatus === 'rejected' ? (
                                         <div style={{
-                                            width: '64px',
-                                            height: '64px',
-                                            borderRadius: '20px',
-                                            background: '#FEF3C7',
-                                            border: '2px solid #FDE68A',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            color: '#D97706'
-                                        }}>
-                                            <Mail size={32} />
-                                        </div>
-
-                                        <div>
-                                            <span style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '5px',
-                                                fontSize: '0.72rem',
-                                                fontWeight: '850',
-                                                textTransform: 'uppercase',
-                                                background: '#FEF3C7',
-                                                color: '#B45309',
-                                                border: '1px solid #FCD34D',
-                                                padding: '3px 10px',
-                                                borderRadius: '9999px',
-                                                marginBottom: '0.75rem'
-                                            }}>
-                                                <Clock size={12} /> Invitation Pending
-                                            </span>
-                                            <h3 style={{ margin: '0.5rem 0 0.35rem 0', fontSize: '1.5rem', fontWeight: '900', color: '#0F172A' }}>
-                                                {activeSplit.title}
-                                            </h3>
-                                            {activeSplit.description && (
-                                                <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748B' }}>
-                                                    {activeSplit.description}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div style={{
-                                            background: '#F8FAFC',
-                                            border: '1px solid #E2E8F0',
-                                            borderRadius: '16px',
-                                            padding: '1.1rem 1.25rem',
-                                            width: '100%',
-                                            maxWidth: '460px',
-                                            textAlign: 'left',
+                                            background: 'white',
+                                            borderRadius: '24px',
+                                            border: '2px solid #FCA5A5',
+                                            padding: '2.5rem 2rem',
+                                            boxShadow: '0 12px 32px rgba(239, 68, 68, 0.1)',
+                                            textAlign: 'center',
                                             display: 'flex',
                                             flexDirection: 'column',
-                                            gap: '0.5rem'
+                                            alignItems: 'center',
+                                            gap: '1.25rem'
                                         }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#64748B' }}>Designated Role</span>
+                                            <div style={{
+                                                width: '64px',
+                                                height: '64px',
+                                                borderRadius: '20px',
+                                                background: '#FEF2F2',
+                                                border: '2px solid #FECACA',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: '#DC2626'
+                                            }}>
+                                                <X size={32} />
+                                            </div>
+
+                                            <div>
                                                 <span style={{
                                                     display: 'inline-flex',
                                                     alignItems: 'center',
-                                                    gap: '4px',
+                                                    gap: '5px',
                                                     fontSize: '0.72rem',
                                                     fontWeight: '850',
-                                                    padding: '2px 8px',
-                                                    borderRadius: '6px',
-                                                    background: currentUserRole === 'editor' ? '#EFF6FF' : '#FFFBEB',
-                                                    color: currentUserRole === 'editor' ? '#2563EB' : '#D97706',
-                                                    border: currentUserRole === 'editor' ? '1px solid #BFDBFE' : '1px solid #FDE68A'
+                                                    textTransform: 'uppercase',
+                                                    background: '#FEF2F2',
+                                                    color: '#DC2626',
+                                                    border: '1px solid #FCA5A5',
+                                                    padding: '3px 10px',
+                                                    borderRadius: '9999px',
+                                                    marginBottom: '0.75rem'
                                                 }}>
-                                                    {currentUserRole === 'editor' ? (
-                                                        <><Pencil size={11} strokeWidth={2.5} /> Edit Access</>
-                                                    ) : (
-                                                        <><Eye size={11} strokeWidth={2.5} /> View Only</>
-                                                    )}
+                                                    <X size={12} strokeWidth={2.5} /> Declined Split and Collect
                                                 </span>
+                                                <h3 style={{ margin: '0.5rem 0 0.35rem 0', fontSize: '1.5rem', fontWeight: '900', color: '#0F172A' }}>
+                                                    {activeSplit.title}
+                                                </h3>
+                                                {activeSplit.description && (
+                                                    <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748B' }}>
+                                                        {activeSplit.description}
+                                                    </p>
+                                                )}
                                             </div>
-                                            <p style={{ margin: 0, fontSize: '0.78rem', color: '#475569', lineHeight: 1.45 }}>
-                                                {currentUserRole === 'editor' 
-                                                    ? 'With Edit Access, you will be able to record new expenses, view participants and balances once you accept.'
-                                                    : 'With View-Only Access, you can view expenses and balance calculations once you accept.'}
+
+                                            <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748B', maxWidth: '420px', lineHeight: 1.5 }}>
+                                                You declined this Split and Collect invitation. It remains visible in your collection so you can re-join anytime.
                                             </p>
-                                        </div>
 
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#92400E', fontSize: '0.82rem', fontWeight: '700' }}>
-                                            <Lock size={15} />
-                                            <span>You must accept or decline the invite to enter into this split.</span>
-                                        </div>
-
-                                        <div style={{ display: 'flex', gap: '0.75rem', width: '100%', maxWidth: '380px' }}>
                                             <button
                                                 onClick={() => handleRespondInvite(activeSplit.id, 'accepted')}
                                                 style={{
-                                                    flex: 1,
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                     gap: '6px',
-                                                    padding: '0.75rem 1.25rem',
+                                                    padding: '0.75rem 1.5rem',
                                                     borderRadius: '14px',
                                                     background: '#1B6B3A',
                                                     color: 'white',
@@ -2359,28 +2408,151 @@ const BusinessSplitCollect = () => {
                                                     boxShadow: '0 4px 12px rgba(27, 107, 58, 0.25)'
                                                 }}
                                             >
-                                                <Check size={16} strokeWidth={3} /> Accept & Join Split
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    handleRespondInvite(activeSplit.id, 'rejected');
-                                                    setSelectedSplitId(null);
-                                                }}
-                                                style={{
-                                                    padding: '0.75rem 1.25rem',
-                                                    borderRadius: '14px',
-                                                    background: 'white',
-                                                    color: '#DC2626',
-                                                    border: '1.5px solid #FCA5A5',
-                                                    fontWeight: '800',
-                                                    fontSize: '0.85rem',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                Decline
+                                                <Check size={16} strokeWidth={3} /> Re-join Split and Collect
                                             </button>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div style={{
+                                            background: 'white',
+                                            borderRadius: '24px',
+                                            border: '2px solid #FCD34D',
+                                            padding: '2.5rem 2rem',
+                                            boxShadow: '0 12px 32px rgba(245, 158, 11, 0.12)',
+                                            textAlign: 'center',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: '1.25rem'
+                                        }}>
+                                            <div style={{
+                                                width: '64px',
+                                                height: '64px',
+                                                borderRadius: '20px',
+                                                background: '#FEF3C7',
+                                                border: '2px solid #FDE68A',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: '#D97706'
+                                            }}>
+                                                <Mail size={32} />
+                                            </div>
+
+                                            <div>
+                                                <span style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '5px',
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: '850',
+                                                    textTransform: 'uppercase',
+                                                    background: '#FEF3C7',
+                                                    color: '#B45309',
+                                                    border: '1px solid #FCD34D',
+                                                    padding: '3px 10px',
+                                                    borderRadius: '9999px',
+                                                    marginBottom: '0.75rem'
+                                                }}>
+                                                    <Clock size={12} /> Invitation Pending
+                                                </span>
+                                                <h3 style={{ margin: '0.5rem 0 0.35rem 0', fontSize: '1.5rem', fontWeight: '900', color: '#0F172A' }}>
+                                                    {activeSplit.title}
+                                                </h3>
+                                                {activeSplit.description && (
+                                                    <p style={{ margin: 0, fontSize: '0.88rem', color: '#64748B' }}>
+                                                        {activeSplit.description}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <div style={{
+                                                background: '#F8FAFC',
+                                                border: '1px solid #E2E8F0',
+                                                borderRadius: '16px',
+                                                padding: '1.1rem 1.25rem',
+                                                width: '100%',
+                                                maxWidth: '460px',
+                                                textAlign: 'left',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '0.5rem'
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#64748B' }}>Designated Role</span>
+                                                    <span style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: '850',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '6px',
+                                                        background: currentUserRole === 'editor' ? '#EFF6FF' : '#FFFBEB',
+                                                        color: currentUserRole === 'editor' ? '#2563EB' : '#D97706',
+                                                        border: currentUserRole === 'editor' ? '1px solid #BFDBFE' : '1px solid #FDE68A'
+                                                    }}>
+                                                        {currentUserRole === 'editor' ? (
+                                                            <><Pencil size={11} strokeWidth={2.5} /> Edit Access</>
+                                                        ) : (
+                                                            <><Eye size={11} strokeWidth={2.5} /> View Only</>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <p style={{ margin: 0, fontSize: '0.78rem', color: '#475569', lineHeight: 1.45 }}>
+                                                    {currentUserRole === 'editor' 
+                                                        ? 'With Edit Access, you will be able to record new expenses, view participants and balances once you accept.'
+                                                        : 'With View-Only Access, you can view expenses and balance calculations once you accept.'}
+                                                </p>
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#92400E', fontSize: '0.82rem', fontWeight: '700' }}>
+                                                <Lock size={15} />
+                                                <span>You must accept or decline the invite to enter into this split.</span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: '0.75rem', width: '100%', maxWidth: '380px' }}>
+                                                <button
+                                                    onClick={() => handleRespondInvite(activeSplit.id, 'accepted')}
+                                                    style={{
+                                                        flex: 1,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '6px',
+                                                        padding: '0.75rem 1.25rem',
+                                                        borderRadius: '14px',
+                                                        background: '#1B6B3A',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        fontWeight: '850',
+                                                        fontSize: '0.85rem',
+                                                        cursor: 'pointer',
+                                                        boxShadow: '0 4px 12px rgba(27, 107, 58, 0.25)'
+                                                    }}
+                                                >
+                                                    <Check size={16} strokeWidth={3} /> Accept & Join Split
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        handleRespondInvite(activeSplit.id, 'rejected');
+                                                        setSelectedSplitId(null);
+                                                    }}
+                                                    style={{
+                                                        padding: '0.75rem 1.25rem',
+                                                        borderRadius: '14px',
+                                                        background: 'white',
+                                                        color: '#DC2626',
+                                                        border: '1.5px solid #FCA5A5',
+                                                        fontWeight: '800',
+                                                        fontSize: '0.85rem',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    Decline
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <>
@@ -2845,68 +3017,70 @@ const BusinessSplitCollect = () => {
                                                                     </span>
                                                                 </div>
 
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                                                    <button 
-                                                                        type="button"
-                                                                        onClick={(ev) => {
-                                                                            ev.stopPropagation();
-                                                                            openEditExpenseModal(e);
-                                                                        }}
-                                                                        title="Edit Expense"
-                                                                        style={{ 
-                                                                            background: 'transparent', 
-                                                                            border: 'none', 
-                                                                            color: '#94A3B8', 
-                                                                            cursor: 'pointer', 
-                                                                            padding: '6px', 
-                                                                            borderRadius: '8px',
-                                                                            display: 'flex', 
-                                                                            alignItems: 'center', 
-                                                                            justifyContent: 'center',
-                                                                            transition: 'all 0.15s'
-                                                                        }}
-                                                                        onMouseOver={(ev) => {
-                                                                            ev.currentTarget.style.color = '#16A34A';
-                                                                            ev.currentTarget.style.background = '#F0FDF4';
-                                                                        }}
-                                                                        onMouseOut={(ev) => {
-                                                                            ev.currentTarget.style.color = '#94A3B8';
-                                                                            ev.currentTarget.style.background = 'transparent';
-                                                                        }}
-                                                                    >
-                                                                        <Pencil size={14} />
-                                                                    </button>
-                                                                    <button 
-                                                                        type="button"
-                                                                        onClick={(ev) => {
-                                                                            ev.stopPropagation();
-                                                                            handleDeleteExpense(e.id);
-                                                                        }}
-                                                                        title="Delete Expense"
-                                                                        style={{ 
-                                                                            background: 'transparent', 
-                                                                            border: 'none', 
-                                                                            color: '#94A3B8', 
-                                                                            cursor: 'pointer', 
-                                                                            padding: '6px', 
-                                                                            borderRadius: '8px',
-                                                                            display: 'flex', 
-                                                                            alignItems: 'center', 
-                                                                            justifyContent: 'center',
-                                                                            transition: 'all 0.15s'
-                                                                        }}
-                                                                        onMouseOver={(ev) => {
-                                                                            ev.currentTarget.style.color = '#EF4444';
-                                                                            ev.currentTarget.style.background = '#FEF2F2';
-                                                                        }}
-                                                                        onMouseOut={(ev) => {
-                                                                            ev.currentTarget.style.color = '#94A3B8';
-                                                                            ev.currentTarget.style.background = 'transparent';
-                                                                        }}
-                                                                    >
-                                                                        <X size={16} />
-                                                                    </button>
-                                                                </div>
+                                                                {canRecordExpense && (
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={(ev) => {
+                                                                                ev.stopPropagation();
+                                                                                openEditExpenseModal(e);
+                                                                            }}
+                                                                            title="Edit Expense"
+                                                                            style={{ 
+                                                                                background: 'transparent', 
+                                                                                border: 'none', 
+                                                                                color: '#94A3B8', 
+                                                                                cursor: 'pointer', 
+                                                                                padding: '6px', 
+                                                                                borderRadius: '8px',
+                                                                                display: 'flex', 
+                                                                                alignItems: 'center', 
+                                                                                justifyContent: 'center',
+                                                                                transition: 'all 0.15s'
+                                                                            }}
+                                                                            onMouseOver={(ev) => {
+                                                                                ev.currentTarget.style.color = '#16A34A';
+                                                                                ev.currentTarget.style.background = '#F0FDF4';
+                                                                            }}
+                                                                            onMouseOut={(ev) => {
+                                                                                ev.currentTarget.style.color = '#94A3B8';
+                                                                                ev.currentTarget.style.background = 'transparent';
+                                                                            }}
+                                                                        >
+                                                                            <Pencil size={14} />
+                                                                        </button>
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={(ev) => {
+                                                                                ev.stopPropagation();
+                                                                                handleDeleteExpense(e.id);
+                                                                            }}
+                                                                            title="Delete Expense"
+                                                                            style={{ 
+                                                                                background: 'transparent', 
+                                                                                border: 'none', 
+                                                                                color: '#94A3B8', 
+                                                                                cursor: 'pointer', 
+                                                                                padding: '6px', 
+                                                                                borderRadius: '8px',
+                                                                                display: 'flex', 
+                                                                                alignItems: 'center', 
+                                                                                justifyContent: 'center',
+                                                                                transition: 'all 0.15s'
+                                                                            }}
+                                                                            onMouseOver={(ev) => {
+                                                                                ev.currentTarget.style.color = '#EF4444';
+                                                                                ev.currentTarget.style.background = '#FEF2F2';
+                                                                            }}
+                                                                            onMouseOut={(ev) => {
+                                                                                ev.currentTarget.style.color = '#94A3B8';
+                                                                                ev.currentTarget.style.background = 'transparent';
+                                                                            }}
+                                                                        >
+                                                                            <X size={16} />
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
 
@@ -3386,7 +3560,7 @@ const BusinessSplitCollect = () => {
                                                                     style={{
                                                                         background: 'rgba(249, 250, 251, 0.7)',
                                                                         borderRadius: '16px',
-                                                                        border: mStatus === 'pending' ? '1.5px dashed #F59E0B' : '1px solid #F1F5F9',
+                                                                        border: mStatus === 'pending' ? '1.5px dashed #F59E0B' : (mStatus === 'declined' || mStatus === 'rejected') ? '1.5px dashed #FCA5A5' : '1px solid #F1F5F9',
                                                                         padding: '0.85rem 1rem',
                                                                         display: 'flex',
                                                                         alignItems: 'center',
@@ -3574,6 +3748,23 @@ const BusinessSplitCollect = () => {
                                                                                     }}
                                                                                 >
                                                                                     <Clock size={10} /> Pending Invite
+                                                                                </span>
+                                                                            ) : (mStatus === 'declined' || mStatus === 'rejected') ? (
+                                                                                <span
+                                                                                    style={{
+                                                                                        display: 'inline-flex',
+                                                                                        alignItems: 'center',
+                                                                                        gap: '3px',
+                                                                                        fontSize: '0.68rem',
+                                                                                        fontWeight: '800',
+                                                                                        background: '#FEE2E2',
+                                                                                        color: '#DC2626',
+                                                                                        border: '1px solid #FCA5A5',
+                                                                                        padding: '1px 6px',
+                                                                                        borderRadius: '6px'
+                                                                                    }}
+                                                                                >
+                                                                                    <X size={10} strokeWidth={2.5} /> Declined
                                                                                 </span>
                                                                             ) : (
                                                                                 !mIsAdmin && (
