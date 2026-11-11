@@ -1092,12 +1092,14 @@ const BusinessSplitCollect = () => {
             let hasNegativeOrInvalid = false;
             activeSplit.participants.forEach(p => {
                 const pName = getParticipantName(p);
-                const rawVal = expenseForm.shares[pName];
+                const pEmail = getParticipantEmail(p);
+                const rawVal = expenseForm.shares?.[pName] !== undefined ? expenseForm.shares[pName] : (pEmail ? expenseForm.shares?.[pEmail] : undefined);
                 const share = parseFloat(rawVal);
                 if (rawVal === undefined || rawVal === null || String(rawVal).trim() === '' || isNaN(share) || share < 0) {
                     hasNegativeOrInvalid = true;
                 }
                 finalShares[pName] = share || 0;
+                if (pEmail) finalShares[pEmail] = share || 0;
                 sum += (share || 0);
             });
 
@@ -1448,8 +1450,11 @@ const BusinessSplitCollect = () => {
 
             // Set shares to 0 for everyone else
             activeSplit.participants.forEach(p => {
-                if (p !== debt.to) {
-                    settlementExpense.shares[p] = 0;
+                const pName = getParticipantName(p);
+                const pEmail = getParticipantEmail(p);
+                if (pName !== debt.to && (!pEmail || pEmail !== debt.to)) {
+                    settlementExpense.shares[pName] = 0;
+                    if (pEmail) settlementExpense.shares[pEmail] = 0;
                 }
             });
 
@@ -1588,8 +1593,11 @@ const BusinessSplitCollect = () => {
 
         // Set shares to 0 for everyone else
         activeSplit.participants.forEach(p => {
-            if (p !== customPayDebt.to) {
-                settlementExpense.shares[p] = 0;
+            const pName = getParticipantName(p);
+            const pEmail = getParticipantEmail(p);
+            if (pName !== customPayDebt.to && (!pEmail || pEmail !== customPayDebt.to)) {
+                settlementExpense.shares[pName] = 0;
+                if (pEmail) settlementExpense.shares[pEmail] = 0;
             }
         });
 
@@ -1817,11 +1825,24 @@ const BusinessSplitCollect = () => {
         !activeSplit?.participants ||
         activeSplit.participants.length === 0 ||
         activeSplit.participants.some(p => {
-            const val = expenseForm.shares?.[p];
+            const pName = getParticipantName(p);
+            const pEmail = getParticipantEmail(p);
+            const val = expenseForm.shares?.[pName] !== undefined ? expenseForm.shares[pName] : (pEmail ? expenseForm.shares?.[pEmail] : undefined);
             if (val === undefined || val === null || String(val).trim() === '') return true;
             const num = Number(val);
             return isNaN(num) || num < 0;
-        })
+        }) ||
+        (() => {
+            const totalAmt = parseFloat(expenseForm.amount) || 0;
+            if (totalAmt <= 0) return true;
+            const sum = activeSplit.participants.reduce((s, p) => {
+                const pName = getParticipantName(p);
+                const pEmail = getParticipantEmail(p);
+                const val = expenseForm.shares?.[pName] !== undefined ? expenseForm.shares[pName] : (pEmail ? expenseForm.shares?.[pEmail] : 0);
+                return s + (parseFloat(val) || 0);
+            }, 0);
+            return Math.abs(totalAmt - sum) > 0.1;
+        })()
     );
 
     return (
@@ -4816,6 +4837,7 @@ const BusinessSplitCollect = () => {
                                 <button 
                                     type="submit"
                                     disabled={hasInvalidCustomShares}
+                                    title={hasInvalidCustomShares ? 'Please ensure all participants have non-negative shares and the total matches the expense amount' : ''}
                                     style={{ 
                                         width: '100%', 
                                         padding: '0.75rem', 
