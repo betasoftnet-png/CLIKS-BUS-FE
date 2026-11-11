@@ -69,6 +69,7 @@ import {
     gstService,
     splitExpenseService
 } from '../services';
+import { caService } from '../services/caService';
 import { paymentsStore } from '../lib/paymentsStore';
 import { InvoiceTemplates } from '../components/InvoiceTemplates';
 import '../App.css';
@@ -1315,7 +1316,7 @@ const BusinessBilling = () => {
     };
 
     // Queries
-    const { data: rawInvoices = [], isLoading } = useQuery({
+    const { data: rawInvoices = [], isLoading, refetch: refetchInvoices } = useQuery({
         queryKey: ['invoices'],
         queryFn: billingService.getInvoices
     });
@@ -1325,6 +1326,20 @@ const BusinessBilling = () => {
         if (rawInvoices?.data && Array.isArray(rawInvoices.data)) return rawInvoices.data;
         return [];
     }, [rawInvoices]);
+
+    const { data: billingNotifications = [], refetch: refetchNotifications } = useQuery({
+        queryKey: ['notifications'],
+        queryFn: () => caService.getNotifications().catch(() => []),
+        staleTime: 15000
+    });
+
+    const pendingB2BRequest = React.useMemo(() => {
+        return (billingNotifications || []).find(n => {
+            const text = String(n.message || n.text || n.title || '').toLowerCase();
+            return (n.type === 'b2b_connection_request' || text.includes('requested to connect with you as a supplier')) &&
+                n.connectionStatus !== 'ACCEPTED' && n.connectionStatus !== 'REJECTED';
+        });
+    }, [billingNotifications]);
 
     const { data: rawInventoryItems = [] } = useQuery({
         queryKey: ['inventory'],
@@ -4436,6 +4451,90 @@ const BusinessBilling = () => {
                 </div>
 
                 <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', minHeight: 0 }}>
+                    {/* Pending B2B Supplier Connection Banner */}
+                    {activeMainTab === 'orders' && pendingB2BRequest && (
+                        <div style={{
+                            background: 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)',
+                            border: '1.5px solid #86EFAC',
+                            borderRadius: '16px',
+                            padding: '1rem 1.25rem',
+                            marginBottom: '1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '0.75rem',
+                            boxShadow: '0 4px 12px rgba(22, 163, 74, 0.08)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
+                                    <Globe size={20} />
+                                </div>
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#14532D' }}>
+                                        {pendingB2BRequest.text || pendingB2BRequest.message || 'A buyer has requested to connect with you as a supplier'}
+                                    </h4>
+                                    <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#166534' }}>
+                                        Accept this connection to receive their purchase orders and synchronize them into your Orders List.
+                                    </p>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        try {
+                                            await crmService.respondB2BConnection(pendingB2BRequest.connectionId || pendingB2BRequest.relatedTaskId, 'ACCEPT', pendingB2BRequest.senderId);
+                                            alert('Connection accepted successfully! Purchase orders have been synchronized to your Orders List.');
+                                            refetchInvoices();
+                                            refetchNotifications();
+                                        } catch (e) {
+                                            alert(e.response?.data?.message || e.message || 'Failed to accept connection');
+                                        }
+                                    }}
+                                    style={{
+                                        background: '#16A34A',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '0.55rem 1.15rem',
+                                        borderRadius: '10px',
+                                        fontWeight: 800,
+                                        fontSize: '0.82rem',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px'
+                                    }}
+                                >
+                                    <Check size={16} /> Accept & Sync Orders
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        try {
+                                            await crmService.respondB2BConnection(pendingB2BRequest.connectionId || pendingB2BRequest.relatedTaskId, 'REJECT', pendingB2BRequest.senderId);
+                                            refetchNotifications();
+                                        } catch (e) {
+                                            alert(e.response?.data?.message || e.message || 'Failed to decline connection');
+                                        }
+                                    }}
+                                    style={{
+                                        background: '#FFFFFF',
+                                        color: '#64748B',
+                                        border: '1px solid #CBD5E1',
+                                        padding: '0.55rem 0.85rem',
+                                        borderRadius: '10px',
+                                        fontWeight: 700,
+                                        fontSize: '0.82rem',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Decline
+                                </button>
+                            </div>
+                        </div>
+                    )}
                     {isLoading || isReturnsLoading ? (
                         <div style={{ padding: '4rem', display: 'flex', justifyContent: 'center' }}><Loader2 className="animate-spin" size={32} color="#BE185D" /></div>
                     ) : activeMainTab === 'orders' ? (

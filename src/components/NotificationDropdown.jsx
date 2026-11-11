@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatNotificationTimestamp } from '../hooks/useNotifications';
+import crmService from '../services/crmService';
 
 export const NotificationDropdown = ({
     isOpen = false,
@@ -8,8 +9,29 @@ export const NotificationDropdown = ({
     notifications = [],
     unreadCount = 0,
     onMarkAllRead,
-    onNotificationClick
+    onNotificationClick,
+    onRefresh
 }) => {
+    const [actionStates, setActionStates] = useState({});
+
+    const handleRespondB2B = async (notif, action) => {
+        setActionStates(prev => ({ ...prev, [notif.id]: 'LOADING' }));
+        try {
+            await crmService.respondB2BConnection(notif.connectionId || notif.relatedTaskId, action, notif.senderId);
+            setActionStates(prev => ({ ...prev, [notif.id]: action === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED' }));
+            if (action === 'ACCEPT') {
+                alert('Supplier connection accepted! Purchase orders have been synced to your Orders List.');
+                if (window.location.pathname.includes('/sales')) {
+                    window.location.reload();
+                }
+            }
+            if (onRefresh) onRefresh();
+        } catch (err) {
+            console.error(err);
+            setActionStates(prev => ({ ...prev, [notif.id]: null }));
+            alert(err.response?.data?.message || err.message || 'Failed to update connection request');
+        }
+    };
     return (
         <AnimatePresence>
             {isOpen && (
@@ -127,6 +149,11 @@ export const NotificationDropdown = ({
                                     const rawTimestamp = notification.created_at || notification.createdAt || notification.timestamp;
                                     const formattedTime = formatNotificationTimestamp(rawTimestamp);
 
+                                    const textContent = String(notification.text || notification.message || notification.title || '');
+                                    const isB2B = notification.type === 'b2b_connection_request' || 
+                                        textContent.toLowerCase().includes('requested to connect with you as a supplier');
+                                    const currentState = actionStates[notification.id] || (notification.connectionStatus === 'ACCEPTED' ? 'ACCEPTED' : (notification.connectionStatus === 'REJECTED' ? 'REJECTED' : null));
+
                                     return (
                                         <div 
                                             key={itemKey}
@@ -138,7 +165,7 @@ export const NotificationDropdown = ({
                                                 border: isRead ? '1px solid #F1F5F9' : '1px solid #DCF2E4',
                                                 display: 'flex',
                                                 flexDirection: 'column',
-                                                gap: '2px',
+                                                gap: '3px',
                                                 transition: 'background-color 0.15s',
                                                 cursor: onNotificationClick ? 'pointer' : 'default'
                                             }}
@@ -151,8 +178,68 @@ export const NotificationDropdown = ({
                                                     lineHeight: '1.35' 
                                                 }}
                                             >
-                                                {notification.text || notification.message || notification.title}
+                                                {textContent}
                                             </span>
+
+                                            {/* Action buttons for B2B supplier connection request */}
+                                            {isB2B && (
+                                                <div style={{ marginTop: '4px' }}>
+                                                    {currentState === 'ACCEPTED' ? (
+                                                        <span style={{ fontSize: '10px', color: '#166534', background: '#DCFCE7', padding: '2px 8px', borderRadius: '6px', fontWeight: '800' }}>
+                                                            ✅ Connected — Orders Synced
+                                                        </span>
+                                                    ) : currentState === 'REJECTED' ? (
+                                                        <span style={{ fontSize: '10px', color: '#64748B', background: '#F1F5F9', padding: '2px 8px', borderRadius: '6px', fontWeight: '700' }}>
+                                                            Declined
+                                                        </span>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleRespondB2B(notification, 'ACCEPT');
+                                                                }}
+                                                                disabled={currentState === 'LOADING'}
+                                                                style={{
+                                                                    padding: '4px 10px',
+                                                                    borderRadius: '6px',
+                                                                    background: '#16A34A',
+                                                                    color: 'white',
+                                                                    border: 'none',
+                                                                    fontSize: '11px',
+                                                                    fontWeight: '800',
+                                                                    cursor: currentState === 'LOADING' ? 'not-allowed' : 'pointer',
+                                                                    boxShadow: '0 2px 4px rgba(22, 163, 74, 0.2)'
+                                                                }}
+                                                            >
+                                                                {currentState === 'LOADING' ? 'Connecting...' : '✓ Accept Connection'}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleRespondB2B(notification, 'REJECT');
+                                                                }}
+                                                                disabled={currentState === 'LOADING'}
+                                                                style={{
+                                                                    padding: '4px 8px',
+                                                                    borderRadius: '6px',
+                                                                    background: '#F8FAFC',
+                                                                    color: '#64748B',
+                                                                    border: '1px solid #CBD5E1',
+                                                                    fontSize: '11px',
+                                                                    fontWeight: '700',
+                                                                    cursor: currentState === 'LOADING' ? 'not-allowed' : 'pointer'
+                                                                }}
+                                                            >
+                                                                Decline
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             <span 
                                                 style={{ 
                                                     fontSize: '10px', 

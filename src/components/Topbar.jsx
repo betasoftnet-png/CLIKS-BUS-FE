@@ -429,7 +429,8 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
         notifications,
         unreadCount,
         markAllRead: handleMarkAllNotificationsRead,
-        setNotifications
+        setNotifications,
+        refresh: refreshNotifications
     } = useNotifications(30000);
     const [isRightSidebarOpen, setIsRightSidebarOpen] = React.useState(false);
     const [isEditingAccess, setIsEditingAccess] = React.useState(false);
@@ -912,6 +913,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                         notifications={notifications}
                         unreadCount={unreadCount}
                         onMarkAllRead={handleMarkAllNotificationsRead}
+                        onRefresh={refreshNotifications}
                     />
                 </div>
 

@@ -72,9 +72,9 @@ export const crmService = {
         }
     },
 
-    respondB2BConnection: async (connection_id, action) => {
+    respondB2BConnection: async (connection_id, action, sender_id) => {
         try {
-            const res = await apiClient.post('/customers/b2b-respond', { connection_id, action });
+            const res = await apiClient.post('/customers/b2b-respond', { connection_id, action, sender_id });
             return res.data?.data ?? res.data;
         } catch (error) {
             console.error('[CRM B2B Respond Error]', error.message);
