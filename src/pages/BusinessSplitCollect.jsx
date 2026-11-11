@@ -330,24 +330,44 @@ export const calculateSessionBalances = (expense, linkedSettlements = [], partic
         balances[p] = 0;
     });
 
+    const resolveCanonicalName = (nameOrEmail) => {
+        if (!nameOrEmail) return null;
+        const clean = String(nameOrEmail).trim().toLowerCase();
+        if (balances[nameOrEmail] !== undefined) return nameOrEmail;
+        for (const p of participants) {
+            const pName = getParticipantName(p);
+            if (pName && pName.toLowerCase() === clean) return pName;
+            const pEmail = getParticipantEmail(p);
+            if (pEmail && (pEmail.toLowerCase() === clean || pEmail.split('@')[0].toLowerCase() === clean)) {
+                return pName;
+            }
+        }
+        for (const bp of baseParticipants) {
+            if (bp && bp.toLowerCase() === clean) return bp;
+        }
+        return nameOrEmail;
+    };
+
     const payer = expense.paidBy;
     const totalAmt = parseFloat(expense.amount) || 0;
+    const payerKey = resolveCanonicalName(payer) || payer;
 
     // Credit the payer
-    if (balances[payer] !== undefined) {
-        balances[payer] += totalAmt;
+    if (balances[payerKey] !== undefined) {
+        balances[payerKey] += totalAmt;
     } else {
-        balances[payer] = totalAmt;
+        balances[payerKey] = totalAmt;
     }
 
     // Debit each member's share
     if (expense.shares && Object.keys(expense.shares).length > 0) {
         Object.keys(expense.shares).forEach(member => {
             const share = parseFloat(expense.shares[member]) || 0;
-            if (balances[member] !== undefined) {
-                balances[member] -= share;
+            const memberKey = resolveCanonicalName(member) || member;
+            if (balances[memberKey] !== undefined) {
+                balances[memberKey] -= share;
             } else {
-                balances[member] = -share;
+                balances[memberKey] = -share;
             }
         });
     } else {
@@ -362,12 +382,13 @@ export const calculateSessionBalances = (expense, linkedSettlements = [], partic
     (linkedSettlements || []).forEach(s => {
         const sAmt = parseFloat(s.amount) || 0;
         const sPayer = s.paidBy;
+        const sPayerKey = resolveCanonicalName(sPayer) || sPayer;
 
         // Credit settlement payer
-        if (balances[sPayer] !== undefined) {
-            balances[sPayer] += sAmt;
+        if (balances[sPayerKey] !== undefined) {
+            balances[sPayerKey] += sAmt;
         } else {
-            balances[sPayer] = sAmt;
+            balances[sPayerKey] = sAmt;
         }
 
         // Debit settlement recipient (creditor receiving reimbursement)
@@ -378,11 +399,9 @@ export const calculateSessionBalances = (expense, linkedSettlements = [], partic
         if (!recipient) {
             recipient = expense.paidBy;
         }
-
-        if (balances[recipient] !== undefined) {
-            balances[recipient] -= sAmt;
-        } else {
-            balances[recipient] = -sAmt;
+        const recipientKey = resolveCanonicalName(recipient) || recipient;
+        if (recipientKey) {
+            balances[recipientKey] = (balances[recipientKey] || 0) - sAmt;
         }
     });
 
@@ -479,6 +498,7 @@ const BusinessSplitCollect = () => {
     const [inviteMemberEmail, setInviteMemberEmail] = useState('');
     const [inviteMemberName, setInviteMemberName] = useState('');
     const [inviteMemberRole, setInviteMemberRole] = useState('viewer'); // 'viewer' | 'editor'
+    const [includeInPastExpenses, setIncludeInPastExpenses] = useState(false);
     const [inviteError, setInviteError] = useState('');
     const [inviteSuccessToast, setInviteSuccessToast] = useState('');
 
@@ -898,13 +918,15 @@ const BusinessSplitCollect = () => {
                 email: cleanEmail,
                 name: inviteMemberName.trim(),
                 role: isTargetAdmin ? 'admin' : inviteMemberRole,
-                isAdmin: isTargetAdmin
+                isAdmin: isTargetAdmin,
+                includeInPastExpenses
             });
             setSplits(prev => prev.map(s => s.id === selectedSplitId ? { ...s, ...res } : s));
             setIsInviteModalOpen(false);
             setInviteMemberEmail('');
             setInviteMemberName('');
             setInviteMemberRole('editor');
+            setIncludeInPastExpenses(false);
             setInviteError('');
             setInviteSuccessToast(`Invitation request sent to ${cleanEmail}`);
             setTimeout(() => setInviteSuccessToast(''), 4500);
@@ -1303,16 +1325,36 @@ const BusinessSplitCollect = () => {
         const allPrimaries = allExpenses.filter(item => isPrimaryExpense(item));
         const allSettlements = allExpenses.filter(item => !isPrimaryExpense(item));
 
+        const findCanonicalKey = (identifier) => {
+            if (!identifier) return null;
+            const clean = String(identifier).trim().toLowerCase();
+            if (balances[identifier] !== undefined) return identifier;
+            for (const p of participants) {
+                const pName = getParticipantName(p);
+                if (pName && pName.toLowerCase() === clean) return pName;
+                const pEmail = getParticipantEmail(p);
+                if (pEmail && (pEmail.toLowerCase() === clean || pEmail.split('@')[0].toLowerCase() === clean)) {
+                    return pName;
+                }
+            }
+            if (clean === 'you') {
+                const meP = participants.find(p => isMe(p));
+                if (meP) return getParticipantName(meP);
+            }
+            return identifier;
+        };
+
         allExpenses.forEach(exp => {
             const payer = exp.paidBy;
             const amt = parseFloat(exp.amount) || 0;
+            const payerKey = findCanonicalKey(payer) || payer;
 
             if (isPrimaryExpense(exp)) {
                 // Primary Expense: Credit the payer
-                if (balances[payer] !== undefined) {
-                    balances[payer] += amt;
+                if (balances[payerKey] !== undefined) {
+                    balances[payerKey] += amt;
                 } else {
-                    balances[payer] = amt;
+                    balances[payerKey] = amt;
                 }
 
                 // Debit everyone who shared
@@ -1320,10 +1362,11 @@ const BusinessSplitCollect = () => {
                 if (hasExplicitShares) {
                     Object.keys(exp.shares).forEach(member => {
                         const share = parseFloat(exp.shares[member]) || 0;
-                        if (balances[member] !== undefined) {
-                            balances[member] -= share;
+                        const memberKey = findCanonicalKey(member) || member;
+                        if (balances[memberKey] !== undefined) {
+                            balances[memberKey] -= share;
                         } else {
-                            balances[member] = -share;
+                            balances[memberKey] = -share;
                         }
                     });
                 } else {
@@ -1341,10 +1384,10 @@ const BusinessSplitCollect = () => {
             } else {
                 // Settlement / Repayment Transaction
                 // Credit the settlement payer
-                if (balances[payer] !== undefined) {
-                    balances[payer] += amt;
+                if (balances[payerKey] !== undefined) {
+                    balances[payerKey] += amt;
                 } else {
-                    balances[payer] = amt;
+                    balances[payerKey] = amt;
                 }
 
                 // Debit the recipient
@@ -1359,14 +1402,16 @@ const BusinessSplitCollect = () => {
                     }
                 }
                 if (!recipient && participants.length === 2) {
-                    recipient = participants.find(p => p !== payer);
+                    const otherP = participants.find(p => getParticipantName(p) !== payerKey && getParticipantEmail(p) !== payer);
+                    if (otherP) recipient = getParticipantName(otherP);
                 }
 
-                if (recipient) {
-                    if (balances[recipient] !== undefined) {
-                        balances[recipient] -= amt;
+                const recipientKey = findCanonicalKey(recipient) || recipient;
+                if (recipientKey) {
+                    if (balances[recipientKey] !== undefined) {
+                        balances[recipientKey] -= amt;
                     } else {
-                        balances[recipient] = -amt;
+                        balances[recipientKey] = -amt;
                     }
                 }
             }
@@ -3585,15 +3630,33 @@ const BusinessSplitCollect = () => {
 
                                                             // Initial Audit Totals (Primary non-settlement expenses)
                                                             const paid = primaryExpenses
-                                                                .filter(e => e.paidBy === mName || (mEmail && e.paidBy === mEmail))
+                                                                .filter(e => {
+                                                                    if (!e.paidBy) return false;
+                                                                    const pClean = String(e.paidBy).trim().toLowerCase();
+                                                                    if (mName && pClean === mName.trim().toLowerCase()) return true;
+                                                                    if (mEmail && (pClean === mEmail.trim().toLowerCase() || pClean === mEmail.split('@')[0].trim().toLowerCase())) return true;
+                                                                    if (isMe(m) && (pClean === 'you' || (user?.email && pClean === user.email.toLowerCase()))) return true;
+                                                                    return false;
+                                                                })
                                                                 .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
 
                                                             const charged = primaryExpenses.reduce((sum, e) => {
                                                                 let share = 0;
-                                                                if (e.shares && (e.shares[mName] !== undefined || (mEmail && e.shares[mEmail] !== undefined))) {
-                                                                    share = parseFloat(e.shares[mName] ?? e.shares[mEmail]) || 0;
-                                                                } else if (e.splitType && !e.splitType.toLowerCase().includes('equal')) {
-                                                                    share = parseFloat(e.shares?.[mName] ?? (mEmail ? e.shares?.[mEmail] : 0)) || 0;
+                                                                const hasShares = e.shares && typeof e.shares === 'object' && Object.keys(e.shares).length > 0;
+                                                                if (hasShares) {
+                                                                    const foundKey = Object.keys(e.shares).find(k => {
+                                                                        const kClean = String(k).trim().toLowerCase();
+                                                                        if (mName && kClean === mName.trim().toLowerCase()) return true;
+                                                                        if (mEmail && (kClean === mEmail.trim().toLowerCase() || kClean === mEmail.split('@')[0].trim().toLowerCase())) return true;
+                                                                        if (isMe(m) && (kClean === 'you' || (user?.email && kClean === user.email.toLowerCase()))) return true;
+                                                                        return false;
+                                                                    });
+                                                                    if (foundKey !== undefined) {
+                                                                        share = parseFloat(e.shares[foundKey]) || 0;
+                                                                    } else {
+                                                                        // Member was not part of this past expense (e.g. joined later) -> charge is 0
+                                                                        share = 0;
+                                                                    }
                                                                 } else {
                                                                     const numParticipants = activeSplit.participants?.length || 1;
                                                                     share = (parseFloat(e.amount) || 0) / numParticipants;
@@ -4598,6 +4661,27 @@ const BusinessSplitCollect = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {activeSplit.expenses && activeSplit.expenses.filter(e => isPrimaryExpense(e)).length > 0 && (
+                                    <div style={{ background: '#F8FAFC', padding: '0.85rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', margin: 0 }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={includeInPastExpenses}
+                                                onChange={(e) => setIncludeInPastExpenses(e.target.checked)}
+                                                style={{ width: '16px', height: '16px', marginTop: '2px', accentColor: '#1B6B3A', cursor: 'pointer' }}
+                                            />
+                                            <div>
+                                                <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1E293B' }}>
+                                                    Include in previous expenses
+                                                </div>
+                                                <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '2px', lineHeight: 1.35 }}>
+                                                    When unchecked (default), this new member is excluded from earlier expenses and charged ₹0. Check only if you want to recalculate past equal splits to include them.
+                                                </div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                )}
 
                                 {inviteError && (
                                     <div style={{ color: '#EF4444', fontSize: '0.75rem', fontWeight: '750', background: '#FEF2F2', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #FECACA', display: 'flex', alignItems: 'center', gap: '6px' }}>
