@@ -1411,8 +1411,8 @@ const BusinessBilling = () => {
     const { data: rawPurchases = [] } = useQuery({
         queryKey: ['purchases'],
         queryFn: () => purchasesService.getPurchases().catch(() => []),
-        refetchInterval: 3000,
-        refetchIntervalInBackground: true
+        refetchInterval: isSupplierViewModalOpen ? 5000 : false,
+        refetchIntervalInBackground: false
     });
 
     React.useEffect(() => {
@@ -2576,18 +2576,7 @@ const BusinessBilling = () => {
         }
     };
 
-    console.log("Invoices =", invoices);
-    console.log("IsArray(invoices) =", Array.isArray(invoices));
-    console.log("Customers =", customers);
-    console.log("IsArray(customers) =", Array.isArray(customers));
-    console.log("Products =", catalogProducts);
-    console.log("IsArray(products) =", Array.isArray(catalogProducts));
-    console.log("Bank Accounts =", bankAccounts);
-    console.log("IsArray(bankAccounts) =", Array.isArray(bankAccounts));
-
     const safeInvoices = Array.isArray(invoices) ? invoices : [];
-    console.log("safeInvoices =", safeInvoices);
-    console.log("Array.isArray(safeInvoices) =", Array.isArray(safeInvoices));
 
     const filteredInvoices = safeInvoices.filter(inv => {
         const matchesSearch = 
@@ -2604,8 +2593,6 @@ const BusinessBilling = () => {
     });
 
     const totalInvoiced = safeInvoices.reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
-    console.log("safeInvoices for paidInvoiced =", safeInvoices);
-    console.log("Array.isArray(safeInvoices) =", Array.isArray(safeInvoices));
     const paidInvoiced = safeInvoices.filter(inv => inv.status === 'Paid').reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
     const pendingInvoiced = safeInvoices.filter(inv => inv.status !== 'Paid').reduce((acc, inv) => acc + parseFloat(inv.total_amount || inv.amount || 0), 0);
 
