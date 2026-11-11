@@ -484,7 +484,7 @@ const BusinessSplitCollect = () => {
 
     const getInitialParticipants = () => [
         {
-            name: 'You',
+            name: user?.name || user?.username || (user?.email ? user.email.split('@')[0] : 'Admin'),
             email: (user?.email || 'admin@bnxmail.com'),
             role: 'admin',
             status: 'accepted',
@@ -505,8 +505,8 @@ const BusinessSplitCollect = () => {
         description: '',
         participants: [
             {
-                name: 'You',
-                email: 'admin@bnxmail.com',
+                name: user?.name || user?.username || (user?.email ? user.email.split('@')[0] : 'Admin'),
+                email: user?.email || 'admin@bnxmail.com',
                 role: 'admin',
                 status: 'accepted',
                 isAdmin: true
@@ -525,13 +525,13 @@ const BusinessSplitCollect = () => {
                 ...prev,
                 participants: prev.participants.map(p => {
                     if (isParticipantAdmin(p)) {
-                        return { ...p, email: user.email, name: 'You' };
+                        return { ...p, email: user.email, name: user.name || user.username || user.email.split('@')[0] };
                     }
                     return p;
                 })
             }));
         }
-    }, [user?.email]);
+    }, [user?.email, user?.name, user?.username]);
 
     // Expense Form State
     const [expenseForm, setExpenseForm] = useState({
@@ -575,17 +575,52 @@ const BusinessSplitCollect = () => {
     const currentUserEmail = (user?.email || '').toLowerCase();
     const currentUserName = (user?.name || user?.username || '').toLowerCase();
 
+    // Helper to test if a participant or name represents the currently logged in user
+    const isMe = React.useCallback((pOrName) => {
+        if (!pOrName) return false;
+        const myEmail = (user?.email || '').toLowerCase();
+        const myName = (user?.name || user?.username || '').toLowerCase();
+
+        if (typeof pOrName === 'string') {
+            const lower = pOrName.toLowerCase().trim();
+            if (lower === 'you') return true;
+            if (myEmail && (lower === myEmail || lower === myEmail.split('@')[0])) return true;
+            if (myName && lower === myName) return true;
+            return false;
+        }
+
+        const pEmail = getParticipantEmail(pOrName).toLowerCase();
+        const pName = getParticipantName(pOrName).toLowerCase();
+
+        if (myEmail && pEmail && pEmail === myEmail) return true;
+        if (myName && pName && pName === myName) return true;
+        if (myEmail && pName && pName === myEmail.split('@')[0]) return true;
+        if (myName && pEmail && pEmail === `${myName}@bnxmail.com`) return true;
+
+        return false;
+    }, [user?.email, user?.name, user?.username]);
+
+    // Format display name: ALWAYS shows "You" for the currently logged in user, and their actual name for others
+    const formatDisplayName = React.useCallback((pOrName, splitContext = activeSplit) => {
+        if (!pOrName) return '';
+        if (isMe(pOrName)) {
+            return 'You';
+        }
+        let rawName = typeof pOrName === 'string' ? pOrName : getParticipantName(pOrName);
+        let rawEmail = typeof pOrName === 'string' ? '' : getParticipantEmail(pOrName);
+
+        if (rawName.toLowerCase() === 'you') {
+            if (rawEmail) return rawEmail.split('@')[0];
+            if (splitContext?.creator_name) return splitContext.creator_name;
+            return 'Admin';
+        }
+        return rawName;
+    }, [isMe, activeSplit]);
+
     const currentMember = React.useMemo(() => {
         if (!activeSplit || !activeSplit.participants) return null;
-        return activeSplit.participants.find(p => {
-            const pEmail = getParticipantEmail(p).toLowerCase();
-            const pName = getParticipantName(p).toLowerCase();
-            if (currentUserEmail && pEmail && pEmail === currentUserEmail) return true;
-            if (pName === 'you') return true;
-            if (currentUserName && pName === currentUserName) return true;
-            return false;
-        });
-    }, [activeSplit, currentUserEmail, currentUserName]);
+        return activeSplit.participants.find(p => isMe(p));
+    }, [activeSplit, isMe]);
 
     const isSplitAdmin = React.useMemo(() => {
         if (!activeSplit) return false;
@@ -959,10 +994,12 @@ const BusinessSplitCollect = () => {
         activeSplit.participants.forEach(p => {
             initialShares[getParticipantName(p)] = '';
         });
+        const myP = activeSplit.participants.find(p => isMe(p));
+        const defaultPaidBy = myP ? getParticipantName(myP) : (user?.name || user?.username || 'You');
         setExpenseForm({
             title: '',
             amount: '',
-            paidBy: 'You',
+            paidBy: defaultPaidBy,
             date: new Date().toISOString().split('T')[0],
             attachmentName: '',
             attachmentFile: null,
@@ -1874,7 +1911,7 @@ const BusinessSplitCollect = () => {
                     <button 
                         onClick={() => {
                             setEditingGroupId(null);
-                            setGroupForm({ title: '', currency: 'INR', description: '', participants: ['You'] });
+                            setGroupForm({ title: '', currency: 'INR', description: '', participants: getInitialParticipants() });
                             setNewParticipantName('');
                             setNewParticipantEmail('');
                             setEmailError('');
@@ -2182,7 +2219,7 @@ const BusinessSplitCollect = () => {
                                                     {/* Participant Badges Preview */}
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginBottom: '0.85rem' }}>
                                                         {(s.participants || []).slice(0, 4).map((p, pIdx) => {
-                                                            const pName = getParticipantName(p);
+                                                            const pName = formatDisplayName(p, s);
                                                             const pRole = getParticipantRole(p);
                                                             const pIsAdmin = isParticipantAdmin(p);
                                                             return (
@@ -2955,7 +2992,7 @@ const BusinessSplitCollect = () => {
 
                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                                         <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#64748B' }}>
-                                                                            Paid by <strong style={{ color: '#1E293B', fontWeight: '750' }}>{e.paidBy}</strong>
+                                                                            Paid by <strong style={{ color: '#1E293B', fontWeight: '750' }}>{formatDisplayName(e.paidBy)}</strong>
                                                                         </span>
                                                                         
                                                                         <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#CBD5E1' }} />
@@ -3541,7 +3578,7 @@ const BusinessSplitCollect = () => {
                                                             const mRole = getParticipantRole(m);
                                                             const mStatus = getParticipantStatus(m);
                                                             const mIsAdmin = isParticipantAdmin(m);
-                                                            const isCreatorMember = mIdx === 0 || mName.toLowerCase() === 'you' || (activeSplit?.user_id && user?.id && String(activeSplit.user_id) === String(user.id) && mEmail && mEmail.toLowerCase() === (user?.email || '').toLowerCase());
+                                                            const isCreatorMember = mIdx === 0 || (activeSplit?.user_id && user?.id && String(activeSplit.user_id) === String(user.id) && isMe(m)) || isParticipantAdmin(m);
 
                                                             const primaryExpenses = allExpenses.filter(item => isPrimaryExpense(item));
                                                             const hasRecordedExpenses = primaryExpenses.length > 0;
@@ -3593,8 +3630,13 @@ const BusinessSplitCollect = () => {
                                                                     <div style={{ flex: 1, minWidth: '180px' }}>
                                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                                             <span style={{ fontSize: '0.92rem', fontWeight: '850', color: '#1E293B' }}>
-                                                                                {mName}
+                                                                                {formatDisplayName(m)}
                                                                             </span>
+                                                                            {isMe(m) && (
+                                                                                <span style={{ background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', fontSize: '0.62rem', fontWeight: '850', padding: '1px 6px', borderRadius: '4px' }}>
+                                                                                    You
+                                                                                </span>
+                                                                            )}
                                                                             
                                                                             {isCreatorMember ? (
                                                                                 <span style={{ background: '#047857', color: 'white', fontSize: '0.65rem', fontWeight: '850', padding: '2px 7px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -3967,7 +4009,7 @@ const BusinessSplitCollect = () => {
                                                             >
                                                                 <div>
                                                                     <div style={{ fontSize: '0.82rem', fontWeight: '750', color: '#F8FAFC' }}>
-                                                                        {d.from} owes <strong style={{ color: '#FFFFFF' }}>{d.to}</strong>
+                                                                        {formatDisplayName(d.from)} {isMe(d.from) ? 'owe' : 'owes'} <strong style={{ color: '#FFFFFF' }}>{formatDisplayName(d.to)}</strong>
                                                                     </div>
                                                                     <div style={{ fontSize: '1.05rem', fontWeight: '950', color: '#38BDF8', marginTop: '2px' }}>
                                                                         {currSym}{d.amount.toLocaleString()}
@@ -4362,7 +4404,7 @@ const BusinessSplitCollect = () => {
                                                 >
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
                                                         <span style={{ fontWeight: '800', color: pIsAdmin ? '#047857' : '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                            {pName}
+                                                            {isPrimaryCreator ? `You (${pName})` : pName}
                                                         </span>
                                                         {pEmail && (
                                                             <span style={{ color: '#64748B', fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -4639,9 +4681,10 @@ const BusinessSplitCollect = () => {
                                             {activeSplit.participants.map((p, idx) => {
                                                 const pName = getParticipantName(p);
                                                 const pEmail = getParticipantEmail(p);
+                                                const isParticipantMe = isMe(p);
                                                 return (
                                                     <option key={pEmail || pName || idx} value={pName}>
-                                                        {pName} {pEmail ? `(${pEmail})` : ''}
+                                                        {isParticipantMe ? `You (${pName})` : pName} {pEmail ? `(${pEmail})` : ''}
                                                     </option>
                                                 );
                                             })}
@@ -4766,7 +4809,7 @@ const BusinessSplitCollect = () => {
                                             return (
                                                 <div key={pEmail || pName || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <span style={{ fontSize: '0.82rem', fontWeight: '750', color: '#1F2937' }}>
-                                                        {pName} {pEmail ? <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 'normal' }}>({pEmail})</span> : null}
+                                                        {formatDisplayName(p)} {isMe(p) && pName !== 'You' ? <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 'normal' }}>({pName})</span> : pEmail ? <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 'normal' }}>({pEmail})</span> : null}
                                                     </span>
                                                     
                                                     {expenseForm.splitType === 'equal' ? (
@@ -4896,9 +4939,9 @@ const BusinessSplitCollect = () => {
                                         <div>
                                             <div style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '850', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Settlement Flow</div>
                                             <div style={{ fontSize: '0.92rem', fontWeight: '850', color: '#0F172A', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <span style={{ color: '#DC2626' }}>{customPayDebt.from}</span>
+                                                <span style={{ color: '#DC2626' }}>{formatDisplayName(customPayDebt.from)}</span>
                                                 <span style={{ color: '#94A3B8' }}>➔</span>
-                                                <span style={{ color: '#059669' }}>{customPayDebt.to}</span>
+                                                <span style={{ color: '#059669' }}>{formatDisplayName(customPayDebt.to)}</span>
                                             </div>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
@@ -4912,7 +4955,7 @@ const BusinessSplitCollect = () => {
                                     {/* Expense Selector: Dropdown / Radio list */}
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '850', color: '#475569', textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.03em' }}>
-                                            Select Expense Paid by {customPayDebt.to}
+                                            Select Expense Paid by {formatDisplayName(customPayDebt.to)}
                                         </label>
 
                                         {eligibleExpenses.length > 0 ? (
