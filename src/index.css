@@ -650,13 +650,77 @@ body.dark,
   color: #CBD5E1 !important;
 }
 
-[data-theme='dark'] .sidebar-item:hover {
+[data-theme='dark'] .sidebar-item:hover:not(.active):not(.child-selected) {
   background: rgba(255, 255, 255, 0.06) !important;
   color: #FFFFFF !important;
 }
 
 [data-theme='dark'] .sidebar-label {
   color: #E2E8F0 !important;
+}
+
+/* Sidebar Active State in Dark Mode - Sleek Emerald Pill */
+[data-theme='dark'] .sidebar-item.active,
+.dark-theme .sidebar-item.active,
+.dark .sidebar-item.active,
+html[data-theme='dark'] .sidebar-item.active,
+body.dark-theme .sidebar-item.active {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+  background-color: #10B981 !important;
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
+  border-radius: 8px !important;
+  border: none !important;
+  border-left: none !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
+}
+
+[data-theme='dark'] .sidebar-item.active .sidebar-label,
+.dark-theme .sidebar-item.active .sidebar-label,
+.dark .sidebar-item.active .sidebar-label {
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
+}
+
+[data-theme='dark'] .sidebar-item.active svg,
+.dark-theme .sidebar-item.active svg,
+.dark .sidebar-item.active svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* Parent Dropdown when Child Sub-item is Active */
+[data-theme='dark'] .sidebar-item.child-selected,
+[data-theme='dark'] .sidebar-item.has-children.active,
+.dark-theme .sidebar-item.child-selected,
+.dark-theme .sidebar-item.has-children.active,
+.dark .sidebar-item.child-selected,
+.dark .sidebar-item.has-children.active {
+  background: rgba(16, 185, 129, 0.12) !important;
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: #34D399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.25) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+[data-theme='dark'] .sidebar-item.child-selected .sidebar-label,
+[data-theme='dark'] .sidebar-item.has-children.active .sidebar-label,
+.dark-theme .sidebar-item.child-selected .sidebar-label,
+.dark-theme .sidebar-item.has-children.active .sidebar-label,
+.dark .sidebar-item.child-selected .sidebar-label,
+.dark .sidebar-item.has-children.active .sidebar-label {
+  color: #F1F5F9 !important;
+  font-weight: 750 !important;
+}
+
+[data-theme='dark'] .sidebar-item.child-selected svg,
+[data-theme='dark'] .sidebar-item.has-children.active svg,
+.dark-theme .sidebar-item.child-selected svg,
+.dark-theme .sidebar-item.has-children.active svg,
+.dark .sidebar-item.child-selected svg,
+.dark .sidebar-item.has-children.active svg {
+  color: #34D399 !important;
 }
 
 [data-theme='dark'] .sidebar-footer-container {
