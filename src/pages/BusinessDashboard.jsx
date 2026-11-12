@@ -131,16 +131,16 @@ const MASTER_SHORTCUTS = [
     // 💸 Payments, Ledger & Finance
     { id: 'split_collect', label: 'Split & Collect', path: '/payments/split-collect', icon: Users2, color: '#DB2777' },
     { id: 'payments_ledger', label: 'Payments Ledger', path: '/payments/transaction', icon: Coins, color: '#16A34A' },
-    { id: 'company_wallet', label: 'Company Wallet', path: '/payments/wallet', icon: Wallet, color: '#7C3AED' },
+    // { id: 'company_wallet', label: 'Wallet', path: '/payments/wallet', icon: Wallet, color: '#7C3AED' },
     { id: 'payment_people', label: 'People & Payees', path: '/payments/people', icon: Users, color: '#0284C7' },
     { id: 'payment_plan', label: 'Payment Planner', path: '/payments/plan', icon: Calendar, color: '#8B5CF6' },
     { id: 'loyalty_rewards', label: 'Loyalty Rewards', path: '/sales/loyalty', icon: Gift, color: '#EA580C' },
     { id: 'staff_payroll', label: 'Staff Payroll', path: '/hr/payroll', icon: FileText, color: '#D97706' },
-    { id: 'accounting_ledger', label: 'Double Entry Accounting', path: '/finance/accounting', icon: FileText, color: '#4F46E5' },
+    { id: 'accounting_ledger', label: 'Accounting', path: '/finance/accounting', icon: FileText, color: '#4F46E5' },
     { id: 'reports_hub', label: 'Business Reports', path: '/reports', icon: BarChart3, color: '#3B82F6' },
 
     // 🚚 Operations, Customization & CRM
-    { id: 'delivery_challan', label: 'Delivery Challan', path: '/sales/delivery', icon: Truck, color: '#0891B2' },
+    // { id: 'delivery_challan', label: 'Delivery Challan', path: '/sales/delivery', icon: Truck, color: '#0891B2' },
     { id: 'customization', label: 'Theme Customization', path: '/customization', icon: Wrench, color: '#475569' },
 ];
 
