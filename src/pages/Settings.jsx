@@ -92,7 +92,6 @@ const Settings = () => {
                 updated.loyaltyEnabled = updated.loyalty;
             }
             if (key === 'darkMode') {
-                localStorage.setItem('cliks_dark_mode', String(updated.darkMode));
                 if (updated.darkMode) {
                     document.documentElement.setAttribute('data-theme', 'dark');
                     document.documentElement.classList.add('dark-theme', 'dark');
@@ -103,31 +102,15 @@ const Settings = () => {
                     document.body.classList.remove('dark-theme', 'dark');
                 }
             }
-            // Broadcast event for UI reactivity
-            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
-
-            // Immediately persist toggle to backend database
-            settingsService.updateSettings(updated).then(() => {
-                queryClient.invalidateQueries({ queryKey: ['settings'] });
-                queryClient.invalidateQueries({ queryKey: ['loyalty-program-settings'] });
-            }).catch(err => console.warn('[Settings] Failed to save toggle to backend:', err));
-
             return updated;
         });
     };
 
     const handleLanguageChange = (val) => {
-        setLocalSettings(prev => {
-            const updated = { ...prev, language: val };
-            setLanguage(val);
-            localStorage.setItem('cliks_language', val);
-            document.documentElement.setAttribute('lang', val);
-            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
-            settingsService.updateSettings(updated).then(() => {
-                queryClient.invalidateQueries({ queryKey: ['settings'] });
-            }).catch(err => console.warn('[Settings] Failed to save language:', err));
-            return updated;
-        });
+        setLocalSettings(prev => ({
+            ...prev,
+            language: val
+        }));
     };
 
     const handleSave = () => {
@@ -135,6 +118,26 @@ const Settings = () => {
             ...localSettings,
             loyalty: localSettings.loyaltyEnabled
         };
+
+        if (payload.darkMode !== undefined) {
+            localStorage.setItem('cliks_dark_mode', String(payload.darkMode));
+            if (payload.darkMode) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.classList.add('dark-theme', 'dark');
+                document.body.classList.add('dark-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                document.documentElement.classList.remove('dark-theme', 'dark');
+                document.body.classList.remove('dark-theme', 'dark');
+            }
+        }
+
+        if (payload.language) {
+            setLanguage(payload.language);
+            localStorage.setItem('cliks_language', payload.language);
+            document.documentElement.setAttribute('lang', payload.language);
+        }
+
         mutation.mutate(payload);
         window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: payload }));
     };

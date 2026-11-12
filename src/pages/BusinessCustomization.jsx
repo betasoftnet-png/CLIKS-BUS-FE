@@ -404,11 +404,6 @@ const BusinessCustomization = () => {
             localStorage.setItem('cliks_business_config', JSON.stringify(updated));
             localStorage.setItem('cliks_active_config', JSON.stringify(updated));
             window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
-
-            // Auto-persist toggle update to backend database permanently
-            settingsService.updateSettings(updated).catch(err => console.warn('[Settings Engine] Failed to save toggle to cloud:', err));
-            try { queryClient.invalidateQueries({ queryKey: ['settings'] }); } catch (e) {}
-
             return updated;
         });
     };
@@ -448,7 +443,6 @@ const BusinessCustomization = () => {
                 localStorage.setItem('cliks_business_config', JSON.stringify(updated));
                 localStorage.setItem('cliks_active_config', JSON.stringify(updated));
                 window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
-                settingsService.updateSettings(updated).catch(err => console.warn('[Settings Engine] Failed to save printer config:', err));
                 return updated;
             });
             return;
@@ -460,7 +454,6 @@ const BusinessCustomization = () => {
                 localStorage.setItem('cliks_business_config', JSON.stringify(updated));
                 localStorage.setItem('cliks_active_config', JSON.stringify(updated));
                 window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
-                settingsService.updateSettings(updated).catch(err => console.warn('[Settings Engine] Failed to save printer config:', err));
                 return updated;
             });
             return;
