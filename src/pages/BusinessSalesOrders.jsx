@@ -489,8 +489,22 @@ const BusinessSalesOrders = () => {
                                 {filteredOrders.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((row, idx) => (
                                     <tr key={idx} style={{ borderBottom: '1px solid #F8FAFC', transition: 'all 0.2s' }}>
                                         <td style={{ padding: '0.6rem 1rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                 <span style={{ fontWeight: '750', color: '#1E293B', fontSize: '0.85rem' }}>{row.order_number}</span>
+                                                {(row.order_type === 'B2B_INCOMING' || row.source_purchase_number || row.source_purchase_id) && (
+                                                    <span style={{ 
+                                                        fontSize: '0.62rem', 
+                                                        fontWeight: '800', 
+                                                        background: '#EEF2FF', 
+                                                        color: '#4F46E5', 
+                                                        border: '1px solid #C7D2FE', 
+                                                        padding: '1px 5px', 
+                                                        borderRadius: '4px',
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        Customer Bill
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td style={{ padding: '0.6rem 1rem' }}>
