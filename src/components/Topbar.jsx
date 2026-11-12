@@ -7,7 +7,7 @@ import {
     UsersRound, LineChart, FileText, ShoppingCart, MapPin, Truck, Monitor, Barcode,
     HelpCircle, Gift, Target, Split, Wallet, CreditCard,
     StickyNote, Briefcase, Tag, Clock, CheckCircle2, AlertCircle, AlertTriangle, 
-    ArrowDownRight, ArrowUpRight, Landmark
+    ArrowDownRight, ArrowUpRight, Landmark, Sun, Moon
 } from 'lucide-react';
 
 import '../App.css';
@@ -277,6 +277,41 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
             window.removeEventListener('storage', handleStorageChange);
         };
     }, []);
+
+    // Dark Mode theme state synced with system & localStorage
+    const [isDarkMode, setIsDarkMode] = React.useState(() => {
+        if (typeof window === 'undefined') return false;
+        return localStorage.getItem('cliks_dark_mode') === 'true' || document.documentElement.getAttribute('data-theme') === 'dark';
+    });
+
+    React.useEffect(() => {
+        const syncTheme = () => {
+            setIsDarkMode(localStorage.getItem('cliks_dark_mode') === 'true' || document.documentElement.getAttribute('data-theme') === 'dark');
+        };
+        window.addEventListener('cliksConfigUpdated', syncTheme);
+        window.addEventListener('storage', syncTheme);
+        return () => {
+            window.removeEventListener('cliksConfigUpdated', syncTheme);
+            window.removeEventListener('storage', syncTheme);
+        };
+    }, []);
+
+    const toggleTheme = () => {
+        const nextDark = !isDarkMode;
+        setIsDarkMode(nextDark);
+        localStorage.setItem('cliks_dark_mode', String(nextDark));
+        if (nextDark) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.classList.add('dark-theme', 'dark');
+            document.body.classList.add('dark-theme', 'dark');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+            document.documentElement.classList.remove('dark-theme', 'dark');
+            document.body.classList.remove('dark-theme', 'dark');
+        }
+        window.dispatchEvent(new Event('cliksConfigUpdated'));
+        window.dispatchEvent(new Event('storage'));
+    };
 
     // ICAI Verification / FIN-PRO Status Query
     const token = typeof window !== 'undefined' ? (localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token')) : null;
@@ -892,6 +927,31 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                         </div>
                     );
                 })()}
+
+                {/* Theme Toggle (Light / Dark Mode) */}
+                <button
+                    type="button"
+                    onClick={toggleTheme}
+                    title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '11px',
+                        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.08)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        cursor: 'pointer',
+                        color: isDarkMode ? '#FCD34D' : '#FFFFFF',
+                        outline: 'none',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.22)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.08)'}
+                >
+                    {isDarkMode ? <Sun size={17} /> : <Moon size={17} />}
+                </button>
 
                 {/* Notification Bell Button */}
                 <div style={{ position: 'relative' }}>
