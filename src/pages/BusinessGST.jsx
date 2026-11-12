@@ -596,23 +596,54 @@ const BusinessGST = () => {
 
     const reconciliations = (Array.isArray(dbReconciliations) ? dbReconciliations : [])
         .filter(item => !locallyDeletedIds.includes(String(item.id)))
-        .map(item => ({
-        id: item.id,
-        vendor_gstin: item.vendor_gstin || '',
-        vendor_name: item.vendor_name || '',
-        invoice_number: item.invoice_number || 'N/A',
-        invoice_date: item.invoice_date || (item.created_at ? item.created_at.split('T')[0] : 'N/A'),
-        invoice_amount: parseFloat(item.amount || item.total_invoice || 0) || 0,
-        taxable_value: parseFloat(item.taxable_value || 0),
-        total_tax: parseFloat(item.total_tax || item.gst_amount || 0),
-        input_cgst: parseFloat(item.cgst_amount || 0),
-        input_sgst: parseFloat(item.sgst_amount || 0),
-        input_igst: parseFloat(item.igst_amount || 0),
-        eligible_itc: parseFloat(item.eligible_itc || 0),
-        invoice_match_status: item.invoice_match_status || 'Pending',
-        mismatch_reason: item.mismatch_reason || 'None',
-        reconciliation_date: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
-    }));
+        .map(item => {
+            const invAmount = parseFloat(item.amount || item.total_invoice || 0) || 0;
+            const taxable = parseFloat(item.taxable_value || 0);
+            const totalTax = parseFloat(item.total_tax || item.gst_amount || 0);
+            let inputCgst = parseFloat(item.cgst_amount || item.input_cgst || 0);
+            let inputSgst = parseFloat(item.sgst_amount || item.input_sgst || 0);
+            let inputIgst = parseFloat(item.igst_amount || item.input_igst || 0);
+
+            // Determine if purchase is intra-state or inter-state
+            const myStateCode = String(gstProfile.state_code || defaultSender.state_code || (gstProfile.gstin ? gstProfile.gstin.slice(0, 2) : '') || '05').trim().padStart(2, '0');
+            const vendorGstin = String(item.vendor_gstin || '').trim();
+            const vendorCodeMatch = vendorGstin.match(/^\s*(\d{2})/);
+            const vendorCode = vendorCodeMatch ? vendorCodeMatch[1] : '';
+
+            // A vendor is ONLY inter-state if they have a valid 15-character GSTIN with a valid differing 2-digit state code
+            const isInterState = vendorGstin.length >= 15 && vendorCode && vendorCode.length === 2 && vendorCode !== myStateCode && !['00', '99'].includes(vendorCode);
+
+            if (!isInterState) {
+                // Intra-state purchase: GST is strictly split into CGST (50%) + SGST (50%), IGST is 0!
+                inputCgst = Math.round((totalTax / 2) * 100) / 100;
+                inputSgst = Math.round((totalTax - inputCgst) * 100) / 100;
+                inputIgst = 0;
+            } else {
+                inputIgst = totalTax;
+                inputCgst = 0;
+                inputSgst = 0;
+            }
+
+            return {
+                id: item.id,
+                vendor_gstin: item.vendor_gstin || 'URD-UNREGISTERED',
+                vendor_name: item.vendor_name || '',
+                invoice_number: item.invoice_number || 'N/A',
+                invoice_date: item.invoice_date || (item.created_at ? item.created_at.split('T')[0] : 'N/A'),
+                invoice_amount: invAmount,
+                taxable_value: taxable,
+                total_tax: totalTax,
+                input_cgst: inputCgst,
+                input_sgst: inputSgst,
+                cgst_sgst: inputCgst > 0 ? `${formatCurrency(inputCgst)} + ${formatCurrency(inputSgst)}` : '—',
+                input_igst: inputIgst,
+                igst: inputIgst,
+                eligible_itc: parseFloat(item.eligible_itc || 0),
+                invoice_match_status: item.invoice_match_status || 'Pending',
+                mismatch_reason: item.mismatch_reason || 'None',
+                reconciliation_date: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+            };
+        });
 
     const { data: dbEways = [] } = useQuery({
         queryKey: ['gstEways'],
@@ -1000,6 +1031,13 @@ const BusinessGST = () => {
     const countExport = invoices.filter(inv => inv.invoice_type === 'Export').length;
     const netTaxPayable = Math.max(0, totalOutputGSTCollected - totalITCClaimable);
 
+    // Purchase / GSTR-2 Metrics
+    const totalPurchaseAmount = reconciliations.reduce((sum, r) => sum + (r.invoice_amount || 0), 0);
+    const totalInputGST = reconciliations.reduce((sum, r) => sum + (r.total_tax || 0), 0);
+    const totalInputCGST = reconciliations.reduce((sum, r) => sum + (r.input_cgst || 0), 0);
+    const totalInputSGST = reconciliations.reduce((sum, r) => sum + (r.input_sgst || 0), 0);
+    const totalInputIGST = reconciliations.reduce((sum, r) => sum + (r.input_igst || 0), 0);
+
     const filteredInvoices = invoices.filter(inv => 
         (inv.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (inv.place_of_supply || '').toLowerCase().includes(searchTerm.toLowerCase())
@@ -1076,6 +1114,29 @@ const BusinessGST = () => {
                             { label: 'B2C Invoices', value: countB2C, icon: User, color: '#F59E0B', bg: '#FFFBEB' },
                             { label: 'Export Invoices', value: countExport, icon: Truck, color: '#14B8A6', bg: '#F0FDFA' },
                             { label: 'Total Count', value: invoices.length, icon: Activity, color: '#64748B', bg: '#F8FAFC' }
+                        ].map((stat, idx) => (
+                            <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                                    <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
+                                </div>
+                                <div style={{ width: '40px', height: '42px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
+                                    <stat.icon size={18} />
+                                </div>
+                            </div>
+                        ))}
+                    </>
+                ) : activeTab === 'gstr2' ? (
+                    <>
+                        {[
+                            { label: 'Total Purchase Outlay', value: formatCurrency(totalPurchaseAmount), icon: FileText, color: '#3B82F6', bg: '#EFF6FF' },
+                            { label: 'Total Input GST', value: formatCurrency(totalInputGST), icon: ArrowDownRight, color: '#10B981', bg: '#ECFDF5' },
+                            { label: 'Input CGST + SGST', value: formatCurrency(totalInputCGST + totalInputSGST), icon: PercentCircle, color: '#047857', bg: '#F0FDF4' },
+                            { label: 'Input IGST (Inter-State)', value: formatCurrency(totalInputIGST), icon: Zap, color: '#8B5CF6', bg: '#F5F3FF' },
+                            { label: 'Eligible ITC (Claimed GSTR-2B)', value: formatCurrency(totalITCClaimable), icon: ArrowUpRight, color: '#6366F1', bg: '#EEF2FF' },
+                            { label: 'Net GST Payable Liability', value: formatCurrency(netTaxPayable), icon: PercentCircle, color: '#EF4444', bg: '#FEF2F2' },
+                            { label: 'Verified Bills', value: reconciliations.filter(r => ['matched', 'verified'].includes(String(r.invoice_match_status).toLowerCase())).length, icon: Building, color: '#14B8A6', bg: '#F0FDFA' },
+                            { label: 'Total Invoices', value: reconciliations.length, icon: Activity, color: '#64748B', bg: '#F8FAFC' }
                         ].map((stat, idx) => (
                             <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
@@ -1264,24 +1325,23 @@ const BusinessGST = () => {
                     </div>
                     <div style={{ border: '1px solid #E2E8F0', borderRadius: '10px', overflow: 'hidden' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead style={{ background: '#F8FAFC' }}>
-                                <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>Vendor GSTIN</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>Vendor Name</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>Invoice No</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>Date</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>Total Value</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>GST Amt</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>CGST/SGST/IGST</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>Eligible ITC</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8' }}>Status</th>
-                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
+                            <FilterableTableHead columns={[
+                                { key: 'vendor_gstin', label: 'Vendor GSTIN', placeholder: 'GSTIN' },
+                                { key: 'vendor_name', label: 'Vendor Name', placeholder: 'Name' },
+                                { key: 'invoice_number', label: 'Invoice No', placeholder: 'e.g. INV-001' },
+                                { key: 'invoice_date', label: 'Date', placeholder: 'YYYY-MM-DD' },
+                                { key: 'invoice_amount', label: 'Invoice Amount', placeholder: 'Amount' },
+                                { key: 'cgst_sgst', label: 'CGST / SGST', placeholder: 'e.g. 700' },
+                                { key: 'igst', label: 'IGST', placeholder: 'e.g. 1400' },
+                                { key: 'total_tax', label: 'Total GST', placeholder: 'e.g. 1400' },
+                                { key: 'eligible_itc', label: 'Eligible ITC', placeholder: 'ITC' },
+                                { key: 'invoice_match_status', label: 'Status', placeholder: 'Status' },
+                                { key: '_actions', label: 'Actions', noFilter: true }
+                            ]} onFilterChange={setColFilters} />
                             <tbody>
                                 {reconciliations.length === 0 ? (
                                     <tr>
-                                        <td colSpan="10" style={{ padding: '2rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600' }}>
+                                        <td colSpan="11" style={{ padding: '2rem', textAlign: 'center', color: '#94A3B8', fontWeight: '600' }}>
                                             No purchase invoices available for GSTR-2B reconciliation.
                                         </td>
                                     </tr>
@@ -1292,12 +1352,27 @@ const BusinessGST = () => {
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '700', fontSize: '0.82rem' }}>{rec.vendor_name}</td>
                                             <td style={{ padding: '0.6rem 1rem', fontSize: '0.82rem', fontWeight: '700', color: '#1B6B3A' }}>{rec.invoice_number}</td>
                                             <td style={{ padding: '0.6rem 1rem', fontSize: '0.82rem', color: '#64748B' }}>{rec.invoice_date}</td>
-                                            <td style={{ padding: '0.6rem 1rem', fontSize: '0.82rem', color: '#475569' }}>{formatCurrency(rec.invoice_amount)}</td>
-                                            <td style={{ padding: '0.6rem 1rem', fontSize: '0.82rem', color: '#475569' }}>{formatCurrency(rec.total_tax)}</td>
-                                            <td style={{ padding: '0.6rem 1rem', fontSize: '0.75rem', color: '#64748B' }}>
-                                                {rec.input_igst > 0 ? `I: ${formatCurrency(rec.input_igst)}` : `C: ${formatCurrency(rec.input_cgst)} / S: ${formatCurrency(rec.input_sgst)}`}
+                                            <td style={{ padding: '0.6rem 1rem', fontSize: '0.82rem', color: '#475569', fontWeight: '700' }}>{formatCurrency(rec.invoice_amount)}</td>
+                                            <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem' }}>
+                                                {rec.input_cgst > 0 ? (
+                                                    <span style={{ color: '#047857', fontWeight: '700' }}>
+                                                        {formatCurrency(rec.input_cgst)} + {formatCurrency(rec.input_sgst)}
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ color: '#94A3B8' }}>—</span>
+                                                )}
                                             </td>
-                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#1D4ED8', fontSize: '0.85rem' }}>{formatCurrency(rec.eligible_itc)}</td>
+                                            <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem' }}>
+                                                {rec.input_igst > 0 ? (
+                                                    <span style={{ color: '#7C3AED', fontWeight: '700' }}>
+                                                        {formatCurrency(rec.input_igst)}
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ color: '#94A3B8' }}>—</span>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#1D4ED8', fontSize: '0.82rem' }}>{formatCurrency(rec.total_tax)}</td>
+                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#059669', fontSize: '0.85rem' }}>{formatCurrency(rec.eligible_itc)}</td>
                                             <td style={{ padding: '0.6rem 1rem' }}>
                                                 <span style={{
                                                     padding: '0.2rem 0.4rem', borderRadius: '6px',
