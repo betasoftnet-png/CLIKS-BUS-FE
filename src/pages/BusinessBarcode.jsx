@@ -251,23 +251,69 @@ const BusinessBarcode = () => {
         return intPart;
     };
 
+    // Checksum calculations for standardized retail barcodes
+    const calcEan13Checksum = (str12) => {
+        const res = str12.substr(0, 12).split('').map(n => +n).reduce((sum, a, idx) => (idx % 2 ? sum + a * 3 : sum + a), 0);
+        return String((10 - (res % 10)) % 10);
+    };
+
+    const calcUpcChecksum = (str11) => {
+        let sum = 0;
+        for (let i = 1; i < 11; i += 2) sum += parseInt(str11[i]);
+        for (let i = 0; i < 11; i += 2) sum += parseInt(str11[i]) * 3;
+        return String((10 - (sum % 10)) % 10);
+    };
+
+    // Sanitize barcode values to ensure format validity and avoid invalid-input crashes
+    const getSanitizedBarcodeValue = (val, type) => {
+        const raw = String(val || '').trim();
+        if (type === 'EAN13') {
+            let digits = raw.replace(/\D/g, '');
+            if (digits.length === 0) digits = '890123456789';
+            if (digits.length < 12) {
+                digits = (digits + '000000000000').slice(0, 12);
+            } else {
+                digits = digits.slice(0, 12);
+            }
+            return digits + calcEan13Checksum(digits);
+        }
+        if (type === 'UPC') {
+            let digits = raw.replace(/\D/g, '');
+            if (digits.length === 0) digits = '01234567890';
+            if (digits.length < 11) {
+                digits = (digits + '00000000000').slice(0, 11);
+            } else {
+                digits = digits.slice(0, 11);
+            }
+            return digits + calcUpcChecksum(digits);
+        }
+        if (type === 'CODE39') {
+            let clean = raw.toUpperCase().replace(/[^0-9A-Z-. $/+%]/g, '');
+            return clean || 'CLKS1001';
+        }
+        return raw || 'CLKS-1001-PROD';
+    };
+
     // Compute effective code payload
     const getEffectivePayload = () => {
-        if (!encodeCustomData) return codeValue || ' ';
-        const validFields = customFields.filter(f => f.key.trim() || f.value.trim());
-        if (validFields.length === 0) return codeValue || ' ';
-        
-        const payloadObj = {
-            sku: codeValue,
-            title: labelDetails.title,
-            price: labelDetails.price,
-            mrp: labelDetails.mrp,
-            attributes: validFields.reduce((acc, f) => {
-                if (f.key) acc[f.key] = f.value;
-                return acc;
-            }, {})
-        };
-        return JSON.stringify(payloadObj);
+        // If 2D QR Code or Code 128 and encodeCustomData is ticked, return full structured payload
+        if (encodeCustomData && (codeType === 'QR' || codeType === 'CODE128')) {
+            const validFields = customFields.filter(f => f.key.trim() || f.value.trim());
+            const payloadObj = {
+                sku: codeValue,
+                title: labelDetails.title,
+                price: labelDetails.price,
+                mrp: labelDetails.mrp,
+                attributes: validFields.reduce((acc, f) => {
+                    if (f.key) acc[f.key] = f.value;
+                    return acc;
+                }, {})
+            };
+            return JSON.stringify(payloadObj);
+        }
+
+        // For standardized barcodes (EAN-13, UPC, Code 39, Code 128 without encodeCustomData), return valid sanitized value
+        return getSanitizedBarcodeValue(codeValue, codeType);
     };
 
     const handleSelectPreset = (preset) => {
@@ -651,29 +697,52 @@ const BusinessBarcode = () => {
                                 </select>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>Code Value (SKU / ID)</label>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>
+                                    {codeType === 'EAN13' ? 'EAN-13 Product Barcode (13 Digits)' : codeType === 'UPC' ? 'UPC-A Barcode (12 Digits)' : 'Code Value (SKU / ID)'}
+                                </label>
                                 <input 
                                     type="text" 
                                     value={codeValue}
                                     onChange={(e) => setCodeValue(e.target.value)}
-                                    placeholder="Enter Product SKU/ID..."
+                                    placeholder={codeType === 'EAN13' ? "e.g. 8901234567890" : codeType === 'UPC' ? "e.g. 012345678905" : "Enter Product SKU/ID..."}
                                     style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600', fontSize: '0.88rem' }}
                                 />
+                                {(codeType === 'EAN13' || codeType === 'UPC') && (
+                                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '600', marginTop: '0.35rem' }}>
+                                        Encoded: <strong style={{ color: '#1B6B3A' }}>{getSanitizedBarcodeValue(codeValue, codeType)}</strong>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* Encode Full Custom Data Toggle */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                            <input 
-                                type="checkbox"
-                                id="encodeDataToggle"
-                                checked={encodeCustomData}
-                                onChange={(e) => setEncodeCustomData(e.target.checked)}
-                                style={{ width: '18px', height: '18px', accentColor: '#1B6B3A', cursor: 'pointer' }}
-                            />
-                            <label htmlFor="encodeDataToggle" style={{ fontSize: '0.83rem', fontWeight: '700', color: '#334155', cursor: 'pointer' }}>
-                                Encode Title, Price & Custom Attributes directly inside QR/Barcode payload
-                            </label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                <input 
+                                    type="checkbox"
+                                    id="encodeDataToggle"
+                                    checked={encodeCustomData}
+                                    onChange={(e) => setEncodeCustomData(e.target.checked)}
+                                    style={{ width: '18px', height: '18px', accentColor: '#1B6B3A', cursor: 'pointer' }}
+                                />
+                                <label htmlFor="encodeDataToggle" style={{ fontSize: '0.83rem', fontWeight: '700', color: '#334155', cursor: 'pointer' }}>
+                                    Encode Title, Price & Custom Attributes directly inside QR/Barcode payload
+                                </label>
+                            </div>
+                            {encodeCustomData && (codeType === 'EAN13' || codeType === 'UPC') && (
+                                <div style={{ fontSize: '0.74rem', color: '#047857', background: '#ecfdf5', padding: '8px 12px', borderRadius: '6px', border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                                    <span>
+                                        🏷️ <strong>{codeType} Retail Standard:</strong> Encodes {codeType === 'EAN13' ? '13' : '12'}-digit GTIN ({getSanitizedBarcodeValue(codeValue, codeType)}). Title, price & attributes are displayed on the label layout.
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCodeType('QR')}
+                                        style={{ fontSize: '0.72rem', fontWeight: '750', color: '#1B6B3A', background: '#fff', border: '1px solid #1B6B3A', borderRadius: '5px', padding: '3px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                    >
+                                        Switch to QR Code for 2D Payload →
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -1331,13 +1400,14 @@ const BusinessBarcode = () => {
                                                             format={codeType}
                                                             width={format.width}
                                                             height={format.height}
-                                                            displayValue={false}
+                                                            displayValue={codeType === 'EAN13' || codeType === 'UPC' ? format.displayValue : false}
+                                                            fontSize={format.fontSize}
                                                             background={format.background}
                                                             lineColor={format.lineColor}
-                                                            margin={2}
+                                                            margin={codeType === 'EAN13' || codeType === 'UPC' ? format.margin : 2}
                                                         />
                                                     </div>
-                                                    {format.displayValue && (
+                                                    {format.displayValue && codeType !== 'EAN13' && codeType !== 'UPC' && (
                                                         <div style={{ textAlign: 'center', marginTop: '4px', color: format.lineColor, fontSize: `${format.fontSize}px`, fontFamily: 'monospace', fontWeight: 'bold' }}>
                                                             {codeValue}
                                                         </div>
@@ -1663,13 +1733,14 @@ const BusinessBarcode = () => {
                                                     format={codeType}
                                                     width={format.width}
                                                     height={format.height + 40}
-                                                    displayValue={false}
+                                                    displayValue={codeType === 'EAN13' || codeType === 'UPC' ? format.displayValue : false}
+                                                    fontSize={format.fontSize + 2}
                                                     background={format.background}
                                                     lineColor={format.lineColor}
-                                                    margin={2}
+                                                    margin={codeType === 'EAN13' || codeType === 'UPC' ? format.margin : 2}
                                                 />
                                             </div>
-                                            {format.displayValue && (
+                                            {format.displayValue && codeType !== 'EAN13' && codeType !== 'UPC' && (
                                                 <div style={{ textAlign: 'center', marginTop: '6px', color: format.lineColor, fontSize: `${format.fontSize + 2}px`, fontFamily: 'monospace', fontWeight: 'bold' }}>
                                                     {codeValue}
                                                 </div>
