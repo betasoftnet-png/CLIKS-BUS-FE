@@ -516,46 +516,83 @@ const BusinessGST = () => {
     // fallbacks mapping
     const invoices = (Array.isArray(dbInvoices) ? dbInvoices : [])
         .filter(item => !locallyDeletedIds.includes(String(item.id)))
-        .map(item => ({
-        id: item.id,
-        invoice_number: item.invoice_number || 'N/A',
-        type: item.invoice_type || 'B2B',
-        invoice_type: item.invoice_type || 'B2B',
-        date: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-        place_of_supply: item.place_of_supply || 'N/A',
-        taxable_value: parseFloat(item.taxable_value) || 0,
-        gst_percentage: parseFloat(item.gst_percentage) || 18,
-        cgst_amount: parseFloat(item.cgst_amount) || 0,
-        sgst_amount: parseFloat(item.sgst_amount) || 0,
-        cgst_sgst: `${parseFloat(item.cgst_amount) || 0} + ${parseFloat(item.sgst_amount) || 0}`,
-        igst_amount: parseFloat(item.igst_amount) || 0,
-        igst: parseFloat(item.igst_amount) || 0,
-        total_tax: parseFloat(item.total_tax) || 0,
-        total_gst: parseFloat(item.total_tax) || 0,
-        reverse_charge: item.reverse_charge || 'No',
-        irn: item.irn || item.govt_irn || item.irn_hash || item.irnNo || item.ack_irn || item.irn_number || '',
-        irn_number: item.irn_number || item.irn || item.govt_irn || item.irn_hash || item.irnNo || item.ack_irn || '',
-        govt_irn: item.govt_irn || item.irn || item.irn_number || '',
-        irn_hash: item.irn_hash || item.irn || item.irn_number || '',
-        irnNo: item.irnNo || item.irn || item.irn_number || '',
-        ack_irn: item.ack_irn || item.irn || item.irn_number || '',
-        qrCodeUrl: item.qrCodeUrl || item.qr_code_url || item.QRCodeUrl || '',
-        SignedQRCode: item.SignedQRCode || item.signed_qr_code || '',
-        signed_qr_code: item.signed_qr_code || item.SignedQRCode || '',
-        qr_status: item.qr_status || 'Pending',
-        status: 'READY',
-        export_under_lut: item.export_under_lut || 'false',
-        lut_document_path: item.lut_document_path || '',
-        lut_file_name: item.lut_file_name || '',
-        lut_uploaded_at: item.lut_uploaded_at || '',
-        lut_uploaded_by: item.lut_uploaded_by || '',
-        customer_name: item.customer_name || item.client_name || 'N/A',
-        customer_gstin: item.customer_gstin || 'N/A',
-        customer_state: item.customer_state || item.place_of_supply || 'N/A',
-        sender_name: item.sender_name || 'N/A',
-        sender_gstin: item.sender_gstin || 'N/A',
-        sender_state: item.sender_state || 'N/A'
-    }));
+        .map(item => {
+            const taxable = parseFloat(item.taxable_value || item.taxable_amount) || 0;
+            const totalTax = parseFloat(item.total_tax || item.gst_amount || (taxable * 0.18)) || 0;
+            let cgst = parseFloat(item.cgst_amount || item.cgst) || 0;
+            let sgst = parseFloat(item.sgst_amount || item.sgst) || 0;
+            let igst = parseFloat(item.igst_amount || item.igst) || 0;
+
+            // If breakdown wasn't explicitly saved, auto-calculate based on Place of Supply vs Business Registered State
+            if (cgst === 0 && sgst === 0 && igst === 0 && totalTax > 0) {
+                const myStateCode = String(gstProfile.state_code || defaultSender.state_code || (gstProfile.gstin ? gstProfile.gstin.slice(0, 2) : '') || '05').trim().padStart(2, '0');
+                const myStateName = String(gstProfile.place_of_business || defaultSender.state || '').toLowerCase().trim();
+
+                const buyerGstin = String(item.customer_gstin || '').trim();
+                const pos = String(item.place_of_supply || item.customer_state || '').trim();
+                
+                // Extract 2-digit state code from buyer GSTIN or place of supply (e.g. "09-Uttar Pradesh" -> "09")
+                const buyerGstinCode = (buyerGstin.length >= 2 && /^\d{2}/.test(buyerGstin)) ? buyerGstin.slice(0, 2) : '';
+                const posMatch = pos.match(/^\s*(\d{2})/);
+                const posCode = posMatch ? posMatch[1] : '';
+                const customerCode = buyerGstinCode || posCode;
+
+                const isInterState = customerCode 
+                    ? (customerCode !== myStateCode) 
+                    : (myStateName && pos ? !pos.toLowerCase().includes(myStateName) : false);
+
+                if (isInterState) {
+                    igst = totalTax;
+                    cgst = 0;
+                    sgst = 0;
+                } else {
+                    cgst = Math.round((totalTax / 2) * 100) / 100;
+                    sgst = Math.round((totalTax - cgst) * 100) / 100;
+                    igst = 0;
+                }
+            }
+
+            return {
+                id: item.id,
+                invoice_number: item.invoice_number || 'N/A',
+                type: item.invoice_type || 'B2B',
+                invoice_type: item.invoice_type || 'B2B',
+                date: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+                place_of_supply: item.place_of_supply || 'N/A',
+                taxable_value: taxable,
+                gst_percentage: parseFloat(item.gst_percentage) || 18,
+                cgst_amount: cgst,
+                sgst_amount: sgst,
+                cgst_sgst: cgst > 0 ? `${formatCurrency(cgst)} + ${formatCurrency(sgst)}` : '—',
+                igst_amount: igst,
+                igst: igst,
+                total_tax: totalTax,
+                total_gst: totalTax,
+                reverse_charge: item.reverse_charge || 'No',
+                irn: item.irn || item.govt_irn || item.irn_hash || item.irnNo || item.ack_irn || item.irn_number || '',
+                irn_number: item.irn_number || item.irn || item.govt_irn || item.irn_hash || item.irnNo || item.ack_irn || '',
+                govt_irn: item.govt_irn || item.irn || item.irn_number || '',
+                irn_hash: item.irn_hash || item.irn || item.irn_number || '',
+                irnNo: item.irnNo || item.irn || item.irn_number || '',
+                ack_irn: item.ack_irn || item.irn || item.irn_number || '',
+                qrCodeUrl: item.qrCodeUrl || item.qr_code_url || item.QRCodeUrl || '',
+                SignedQRCode: item.SignedQRCode || item.signed_qr_code || '',
+                signed_qr_code: item.signed_qr_code || item.SignedQRCode || '',
+                qr_status: item.qr_status || 'Pending',
+                status: 'READY',
+                export_under_lut: item.export_under_lut || 'false',
+                lut_document_path: item.lut_document_path || '',
+                lut_file_name: item.lut_file_name || '',
+                lut_uploaded_at: item.lut_uploaded_at || '',
+                lut_uploaded_by: item.lut_uploaded_by || '',
+                customer_name: item.customer_name || item.client_name || 'N/A',
+                customer_gstin: item.customer_gstin || 'N/A',
+                customer_state: item.customer_state || item.place_of_supply || 'N/A',
+                sender_name: item.sender_name || 'N/A',
+                sender_gstin: item.sender_gstin || 'N/A',
+                sender_state: item.sender_state || 'N/A'
+            };
+        });
 
     const reconciliations = (Array.isArray(dbReconciliations) ? dbReconciliations : [])
         .filter(item => !locallyDeletedIds.includes(String(item.id)))
@@ -1027,12 +1064,14 @@ const BusinessGST = () => {
             </div>
 
             {/* Quick Metrics Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: activeTab === 'gstr1' ? 'repeat(auto-fit, minmax(180px, 1fr))' : 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {activeTab === 'gstr1' ? (
                     <>
                         {[
                             { label: 'Total Taxable Sales', value: formatCurrency(totalTaxableSales), icon: FileText, color: '#3B82F6', bg: '#EFF6FF' },
                             { label: 'Total Output GST', value: formatCurrency(totalOutputGSTCollected), icon: ArrowUpRight, color: '#EC4899', bg: '#FDF2F8' },
+                            { label: 'Total IGST (Inter-State)', value: formatCurrency(totalIGST), icon: Zap, color: '#8B5CF6', bg: '#F5F3FF' },
+                            { label: 'Total CGST + SGST', value: formatCurrency(totalCGST + totalSGST), icon: PercentCircle, color: '#10B981', bg: '#ECFDF5' },
                             { label: 'B2B Invoices', value: countB2B, icon: Building, color: '#6366F1', bg: '#EEF2FF' },
                             { label: 'B2C Invoices', value: countB2C, icon: User, color: '#F59E0B', bg: '#FFFBEB' },
                             { label: 'Export Invoices', value: countExport, icon: Truck, color: '#14B8A6', bg: '#F0FDFA' },
@@ -1122,6 +1161,8 @@ const BusinessGST = () => {
                                 { key: 'type', label: 'Type', placeholder: 'B2B/B2C' },
                                 { key: 'place_of_supply', label: 'Place of Supply', placeholder: 'State' },
                                 { key: 'taxable_value', label: 'Taxable Value', placeholder: 'e.g. 10000' },
+                                { key: 'cgst_sgst', label: 'CGST / SGST', placeholder: 'e.g. 900' },
+                                { key: 'igst', label: 'IGST', placeholder: 'e.g. 1800' },
                                 { key: 'total_gst', label: 'Total GST', placeholder: 'e.g. 1800' },
                                 { key: 'status', label: 'Status', placeholder: 'e.g. Filed' },
                                 { key: '_actions', label: 'Actions', noFilter: true }
@@ -1129,7 +1170,7 @@ const BusinessGST = () => {
                             <tbody>
                                 {filteredInvoices.length === 0 ? (
                                     <tr>
-                                        <td colSpan="9" style={{ padding: '3rem', textAlign: 'center' }}>
+                                        <td colSpan="11" style={{ padding: '3rem', textAlign: 'center' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
                                                 <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
                                                     <FileText size={24} />
@@ -1155,6 +1196,24 @@ const BusinessGST = () => {
                                             </td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.82rem' }}>{inv.place_of_supply}</td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.82rem' }}>{formatCurrency(inv.taxable_value)}</td>
+                                            <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem' }}>
+                                                {inv.cgst_amount > 0 ? (
+                                                    <span style={{ color: '#047857', fontWeight: '700' }}>
+                                                        {formatCurrency(inv.cgst_amount)} + {formatCurrency(inv.sgst_amount)}
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ color: '#94A3B8' }}>—</span>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: '0.6rem 1rem', fontSize: '0.8rem' }}>
+                                                {inv.igst_amount > 0 ? (
+                                                    <span style={{ color: '#7C3AED', fontWeight: '700' }}>
+                                                        {formatCurrency(inv.igst_amount)}
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ color: '#94A3B8' }}>—</span>
+                                                )}
+                                            </td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#1D4ED8', fontSize: '0.82rem' }}>{formatCurrency(inv.total_tax)}</td>
                                             <td style={{ padding: '0.6rem 1rem' }}>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
