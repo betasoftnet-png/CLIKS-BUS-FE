@@ -79,14 +79,14 @@ const CANVAS_PRESETS = [
 ];
 
 const PRESET_ATTRIBUTE_PILLS = [
-    { key: 'Exp Date', value: '12/2026' },
-    { key: 'Weight', value: '500g' },
-    { key: 'Batch No', value: 'B-2026-X' },
-    { key: 'Material', value: '100% Cotton' },
-    { key: 'Serial No', value: 'SN-90421' },
-    { key: 'MRP', value: '₹ 1299.00' },
-    { key: 'Mfg Date', value: '01/2026' },
-    { key: 'Origin', value: 'India' }
+    { key: 'Exp Date', value: '' },
+    { key: 'Weight', value: '' },
+    { key: 'Batch No', value: '' },
+    { key: 'Material', value: '' },
+    { key: 'Serial No', value: '' },
+    { key: 'MRP', value: '' },
+    { key: 'Mfg Date', value: '' },
+    { key: 'Origin', value: '' }
 ];
 
 const BADGE_OPTIONS = [
@@ -101,7 +101,7 @@ const BADGE_OPTIONS = [
 const BusinessBarcode = () => {
     const { currency } = useCurrency();
     const [selectedPreset, setSelectedPreset] = useState('standard');
-    const [codeValue, setCodeValue] = useState('CLKS-1001-PROD');
+    const [codeValue, setCodeValue] = useState('');
     const [codeType, setCodeType] = useState('CODE128'); // 'QR' as alternate
     const [encodeCustomData, setEncodeCustomData] = useState(false);
     
@@ -121,17 +121,17 @@ const BusinessBarcode = () => {
     });
 
     const [labelDetails, setLabelDetails] = useState({
-        title: 'Premium Cotton Shirt',
-        subtitle: 'Size: L | Color: Navy',
-        price: '999.00',
-        mrp: '1299.00',
+        title: '',
+        subtitle: '',
+        price: '',
+        mrp: '',
         currencySymbol: currency?.symbol || '₹'
     });
 
     // Branding & Icon options
     const [logoUrl, setLogoUrl] = useState('');
     const logoInputRef = useRef(null);
-    const [selectedBadge, setSelectedBadge] = useState('made_in_india');
+    const [selectedBadge, setSelectedBadge] = useState('none');
 
     const handleRemoveLogo = () => {
         setLogoUrl('');
@@ -156,11 +156,7 @@ const BusinessBarcode = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const [customFields, setCustomFields] = useState([
-        { id: 1, key: 'Exp Date', value: '12/2026' },
-        { id: 2, key: 'Weight', value: '500g' },
-        { id: 3, key: 'Batch No', value: 'B-2026-X' }
-    ]);
+    const [customFields, setCustomFields] = useState([]);
 
     // Bulk CSV State
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -200,11 +196,15 @@ const BusinessBarcode = () => {
         if (!id) return;
         const prod = stockProducts.find(p => String(p.id) === String(id));
         if (prod) {
-            const skuVal = prod.barcode || prod.sku || prod.code || `SKU-${prod.id}`;
-            const titleVal = prod.name || prod.title || prod.product_name || prod.item_name || 'Inventory Product';
+            const skuVal = prod.barcode || prod.sku || prod.code || (prod.id ? `SKU-${prod.id}` : '');
+            const titleVal = prod.name || prod.title || prod.product_name || prod.item_name || '';
             const subVal = prod.subtitle || prod.description || (prod.category || prod.unit ? `Category: ${prod.category || 'General'}${prod.unit ? ' | Unit: ' + prod.unit : ''}` : '');
-            const priceVal = String(prod.selling_price ?? prod.price ?? prod.rate ?? prod.unit_price ?? '0.00');
-            const mrpVal = String(prod.mrp ?? prod.original_price ?? (parseFloat(priceVal) > 0 ? (parseFloat(priceVal) * 1.25).toFixed(2) : '0.00'));
+            const priceVal = (prod.selling_price ?? prod.price ?? prod.rate ?? prod.unit_price) != null && (prod.selling_price ?? prod.price ?? prod.rate ?? prod.unit_price) !== ''
+                ? String(prod.selling_price ?? prod.price ?? prod.rate ?? prod.unit_price)
+                : '';
+            const mrpVal = (prod.mrp ?? prod.original_price) != null && (prod.mrp ?? prod.original_price) !== ''
+                ? String(prod.mrp ?? prod.original_price)
+                : '';
 
             setCodeValue(skuVal);
             setLabelDetails(prev => ({
@@ -223,7 +223,7 @@ const BusinessBarcode = () => {
             if (expVal) newFields.push({ id: 2, key: 'Exp Date', value: String(expVal) });
             if (prod.mfg_date) newFields.push({ id: 3, key: 'Mfg Date', value: String(prod.mfg_date) });
             if (prod.origin) newFields.push({ id: 4, key: 'Origin', value: String(prod.origin) });
-            if (newFields.length > 0) setCustomFields(newFields);
+            setCustomFields(newFields);
         }
     };
 
@@ -267,9 +267,10 @@ const BusinessBarcode = () => {
     // Sanitize barcode values to ensure format validity and avoid invalid-input crashes
     const getSanitizedBarcodeValue = (val, type) => {
         const raw = String(val || '').trim();
+        if (!raw) return '';
         if (type === 'EAN13') {
             let digits = raw.replace(/\D/g, '');
-            if (digits.length === 0) digits = '890123456789';
+            if (digits.length === 0) return '';
             if (digits.length < 12) {
                 digits = (digits + '000000000000').slice(0, 12);
             } else {
@@ -279,7 +280,7 @@ const BusinessBarcode = () => {
         }
         if (type === 'UPC') {
             let digits = raw.replace(/\D/g, '');
-            if (digits.length === 0) digits = '01234567890';
+            if (digits.length === 0) return '';
             if (digits.length < 11) {
                 digits = (digits + '00000000000').slice(0, 11);
             } else {
@@ -287,28 +288,43 @@ const BusinessBarcode = () => {
             }
             return digits + calcUpcChecksum(digits);
         }
+        if (type === 'EAN8') {
+            let digits = raw.replace(/\D/g, '');
+            if (digits.length === 0) return '';
+            return digits.slice(0, 7) + '7';
+        }
+        if (type === 'ITF14') {
+            let digits = raw.replace(/\D/g, '');
+            if (digits.length === 0) return '';
+            return (digits + '0000000000000').slice(0, 13) + '2';
+        }
         if (type === 'CODE39') {
             let clean = raw.toUpperCase().replace(/[^0-9A-Z-. $/+%]/g, '');
-            return clean || 'CLKS1001';
+            return clean || '';
         }
-        return raw || 'CLKS-1001-PROD';
+        return raw;
     };
 
     // Compute effective code payload
     const getEffectivePayload = () => {
+        const raw = String(codeValue || '').trim();
+        if (!raw) return '';
+
         // If 2D QR Code or Code 128 and encodeCustomData is ticked, return full structured payload
         if (encodeCustomData && (codeType === 'QR' || codeType === 'CODE128')) {
-            const validFields = customFields.filter(f => f.key.trim() || f.value.trim());
+            const validFields = customFields.filter(f => (f.key || '').trim() || (f.value || '').trim());
             const payloadObj = {
-                sku: codeValue,
-                title: labelDetails.title,
-                price: labelDetails.price,
-                mrp: labelDetails.mrp,
-                attributes: validFields.reduce((acc, f) => {
+                sku: codeValue
+            };
+            if (labelDetails.title) payloadObj.title = labelDetails.title;
+            if (labelDetails.price) payloadObj.price = labelDetails.price;
+            if (labelDetails.mrp) payloadObj.mrp = labelDetails.mrp;
+            if (validFields.length > 0) {
+                payloadObj.attributes = validFields.reduce((acc, f) => {
                     if (f.key) acc[f.key] = f.value;
                     return acc;
-                }, {})
-            };
+                }, {});
+            }
             return JSON.stringify(payloadObj);
         }
 
@@ -495,8 +511,8 @@ const BusinessBarcode = () => {
                     items.push({
                         title: cols[0] || 'Product',
                         sku: cols[1] || `SKU-${i}`,
-                        price: cols[2] || '999.00',
-                        mrp: cols[3] || '1299.00',
+                        price: cols[2] || '',
+                        mrp: cols[3] || '',
                         subtitle: cols[4] || ''
                     });
                 }
@@ -508,7 +524,7 @@ const BusinessBarcode = () => {
     };
 
     const downloadSampleCsv = () => {
-        const csvContent = "Title,SKU,Price,MRP,Subtitle\nPremium Cotton Shirt,CLKS-1001-PROD,999.00,1299.00,Size: L | Color: Navy\nOrganic Green Tea,CLKS-1002-TEA,299.00,399.00,Pack of 500g\nWireless Earbuds,CLKS-1003-AUDIO,1499.00,1999.00,Bluetooth 5.3";
+        const csvContent = "Title,SKU,Price,MRP,Subtitle\nProduct 1,SKU-1001,499.00,599.00,Standard\nProduct 2,SKU-1002,799.00,999.00,Premium";
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -1353,7 +1369,23 @@ const BusinessBarcode = () => {
                                 )}
                                 
                                 {/* Barcode Graphic / QR Rendering */}
-                                {selectedPreset === 'qr_tag' ? (
+                                {!getEffectivePayload() ? (
+                                    <div style={{
+                                        border: '1.5px dashed #cbd5e1',
+                                        borderRadius: '8px',
+                                        padding: '1.25rem',
+                                        textAlign: 'center',
+                                        color: '#64748b',
+                                        background: 'rgba(0,0,0,0.02)',
+                                        margin: '0.5rem 0',
+                                        width: '100%',
+                                        boxSizing: 'border-box'
+                                    }}>
+                                        <Scan size={22} style={{ margin: '0 auto 0.35rem', opacity: 0.5, display: 'block' }} />
+                                        <div style={{ fontSize: '0.78rem', fontWeight: '700' }}>No Barcode Value Entered</div>
+                                        <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>Enter a SKU / code or select an inventory product above</div>
+                                    </div>
+                                ) : selectedPreset === 'qr_tag' ? (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', padding: '0.5rem 0' }}>
                                         <QRCodeCanvas 
                                             value={getEffectivePayload()} 
@@ -1708,7 +1740,11 @@ const BusinessBarcode = () => {
 
                             {/* ENLARGED BARCODE GRAPHIC */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '0.75rem 0' }}>
-                                {codeType === 'QR' ? (
+                                {!getEffectivePayload() ? (
+                                    <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
+                                        No barcode value entered yet. Enter a SKU / code above to preview.
+                                    </div>
+                                ) : codeType === 'QR' ? (
                                     <div style={{ padding: `${format.margin}px`, textAlign: 'center' }}>
                                         <QRCodeCanvas 
                                             value={getEffectivePayload()} 

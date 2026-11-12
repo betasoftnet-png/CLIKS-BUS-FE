@@ -556,7 +556,7 @@ export default function StockItemDetailView() {
         document.body.removeChild(link);
     };
 
-    const resolvedBarcode = currentItem.sku || currentItem.barcode || `CLKS-1001-PR0D`;
+    const resolvedBarcode = currentItem.sku || currentItem.barcode || (currentItem.id ? `SKU-${currentItem.id}` : '');
 
     return (
         <div style={{
