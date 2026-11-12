@@ -143,109 +143,7 @@ const getDaysFromTerms = (termText) => {
     return match ? parseInt(match[0], 10) : 0;
 };
 
-const INITIAL_BILLING_DELIVERIES = [
-    {
-        delivery_id: 'DLV-401',
-        delivery_number: 'CLIKS/DEL/26/101',
-        delivery_status: 'Out For Delivery',
-        delivery_date: '2026-05-06',
-        shipment_id: 'SHP-8802',
-        tracking_number: 'TRK998248102',
-        courier_name: 'CLIKS Logistics',
-        dispatch_date: '2026-05-06 09:30 AM',
-        estimated_delivery_date: '2026-05-06',
-        driver_name: 'Satish Yadav',
-        vehicle_number: 'MH-12-QB-8821',
-        customer_name: 'Aman Deep',
-        shipping_address: 'Flat 402, Green Meadows, Senapati Bapat Road',
-        city: 'Pune',
-        state: 'Maharashtra',
-        pincode: '411016',
-        package_count: 2,
-        package_weight: 4.5,
-        challan_number: 'CHL-2026-4402',
-        challan_type: 'GST',
-        challan_date: '2026-05-06',
-        linked_invoice_id: 'INV-40292',
-        otp_code: '5829'
-    },
-    {
-        delivery_id: 'DLV-402',
-        delivery_number: 'CLIKS/DEL/26/102',
-        delivery_status: 'Delivered',
-        delivery_date: '2026-05-05',
-        shipment_id: 'SHP-8791',
-        tracking_number: 'TRK998248091',
-        courier_name: 'Delhivery',
-        dispatch_date: '2026-05-05 10:15 AM',
-        estimated_delivery_date: '2026-05-05',
-        driver_name: 'Rajesh Patil',
-        vehicle_number: 'MH-14-EU-4592',
-        customer_name: 'Megha Sharma',
-        shipping_address: 'Sector 21, Plot 14, Nigdi Pradhikaran',
-        city: 'Pune',
-        state: 'Maharashtra',
-        pincode: '411044',
-        package_count: 1,
-        package_weight: 1.2,
-        challan_number: 'CHL-2026-4403',
-        challan_type: 'GST',
-        challan_date: '2026-05-05',
-        linked_invoice_id: 'INV-40280',
-        otp_code: '1102'
-    },
-    {
-        delivery_id: 'DLV-403',
-        delivery_number: 'CLIKS/DEL/26/103',
-        delivery_status: 'Failed Attempt',
-        delivery_date: '2026-05-04',
-        shipment_id: 'SHP-8750',
-        tracking_number: 'TRK998248002',
-        courier_name: 'CLIKS Logistics',
-        dispatch_date: '2026-05-04 11:00 AM',
-        estimated_delivery_date: '2026-05-04',
-        driver_name: 'Satish Yadav',
-        vehicle_number: 'MH-12-QB-8821',
-        customer_name: 'Rahul Varma',
-        shipping_address: 'Building B, Apartment 801, Hinjewadi Phase 1',
-        city: 'Pune',
-        state: 'Maharashtra',
-        pincode: '411057',
-        package_count: 3,
-        package_weight: 12.8,
-        challan_number: 'CHL-2026-4390',
-        challan_type: 'GST',
-        challan_date: '2026-05-04',
-        linked_invoice_id: 'INV-40250',
-        otp_code: '4452',
-        failed_delivery_reason: 'Customer out of town / Premises locked'
-    },
-    {
-        delivery_id: 'DLV-404',
-        delivery_number: 'CLIKS/DEL/26/104',
-        delivery_status: 'Packed',
-        delivery_date: '2026-05-07',
-        shipment_id: 'SHP-8820',
-        tracking_number: 'TRK998248220',
-        courier_name: 'CLIKS Logistics',
-        dispatch_date: '2026-05-07 08:30 AM',
-        estimated_delivery_date: '2026-05-07',
-        driver_name: 'Rajesh Patil',
-        vehicle_number: 'MH-14-EU-4592',
-        customer_name: 'Snehal Deshmukh',
-        shipping_address: 'Flat 101, Shivneri Sadan, Kothrud',
-        city: 'Pune',
-        state: 'Maharashtra',
-        pincode: '411038',
-        package_count: 1,
-        package_weight: 2.0,
-        challan_number: 'CHL-2026-4420',
-        challan_type: 'Non-GST',
-        challan_date: '2026-05-06',
-        linked_invoice_id: 'INV-40301',
-        otp_code: '8910'
-    }
-];
+const INITIAL_BILLING_DELIVERIES = [];
 
 const INITIAL_BILLING_STAFF = [
     { staff_id: 'STF-05', name: 'Satish Yadav', vehicle: 'MH-12-QB-8821', mobile: '+91 98234 56789', status: 'On Delivery', avg_time: '48 mins', delivery_success_rate: 96 },
@@ -334,9 +232,19 @@ const BusinessBilling = () => {
     const [billingDeliveries, setBillingDeliveries] = useState(() => {
         const local = localStorage.getItem('cliks_deliveries');
         if (local) {
-            try { return JSON.parse(local); } catch(e) {}
+            try {
+                const parsed = JSON.parse(local);
+                if (Array.isArray(parsed)) {
+                    const dummyIds = new Set(['DLV-401', 'DLV-402', 'DLV-403', 'DLV-404']);
+                    const dummyChallans = new Set(['CHL-2026-4402', 'CHL-2026-4403', 'CHL-2026-4390', 'CHL-2026-4420']);
+                    const dummyNames = new Set(['Aman Deep', 'Megha Sharma', 'Rahul Varma', 'Snehal Deshmukh']);
+                    const cleaned = parsed.filter(d => !dummyIds.has(d.delivery_id) && !dummyChallans.has(d.challan_number) && !dummyNames.has(d.customer_name));
+                    localStorage.setItem('cliks_deliveries', JSON.stringify(cleaned));
+                    return cleaned;
+                }
+            } catch(e) {}
         }
-        return INITIAL_BILLING_DELIVERIES;
+        return [];
     });
     const [deliverySubTab, setDeliverySubTab] = useState('shipments'); // 'shipments' | 'challans' | 'staff' | 'returns'
     const [deliverySearch, setDeliverySearch] = useState('');
@@ -347,10 +255,10 @@ const BusinessBilling = () => {
 
     // Form state for creating and dispatching a new shipment / delivery challan
     const [dispatchFormData, setDispatchFormData] = useState({
-        delivery_number: `CLIKS/DEL/26/${100 + INITIAL_BILLING_DELIVERIES.length + 1}`,
+        delivery_number: 'CLIKS/DEL/26/101',
         delivery_status: 'Packed',
         delivery_date: new Date().toISOString().split('T')[0],
-        shipment_id: `SHP-${8800 + INITIAL_BILLING_DELIVERIES.length + 1}`,
+        shipment_id: 'SHP-8801',
         tracking_number: `TRK${Math.floor(100000000 + Math.random() * 900000000)}`,
         courier_name: 'CLIKS Logistics',
         dispatch_date: '',
@@ -368,7 +276,7 @@ const BusinessBilling = () => {
         package_weight: 1.0,
         warehouse_id: 'WH-MAIN-01',
         dispatch_by: 'Kiran Mane',
-        challan_number: `CHL-2026-${4420 + INITIAL_BILLING_DELIVERIES.length + 1}`,
+        challan_number: 'CHL-2026-1001',
         challan_type: 'GST',
         challan_date: new Date().toISOString().split('T')[0],
         linked_invoice_id: '',
@@ -377,7 +285,7 @@ const BusinessBilling = () => {
     });
 
     const resetDispatchForm = () => {
-        const nextCount = billingDeliveries.length + 1;
+        const nextCount = (billingDeliveries?.length || 0) + 1;
         setDispatchFormData({
             delivery_number: `CLIKS/DEL/26/${100 + nextCount}`,
             delivery_status: 'Packed',
@@ -400,7 +308,7 @@ const BusinessBilling = () => {
             package_weight: 1.0,
             warehouse_id: 'WH-MAIN-01',
             dispatch_by: 'Kiran Mane',
-            challan_number: `CHL-2026-${4420 + nextCount}`,
+            challan_number: `CHL-2026-${1000 + nextCount}`,
             challan_type: 'GST',
             challan_date: new Date().toISOString().split('T')[0],
             linked_invoice_id: '',
@@ -492,11 +400,11 @@ const BusinessBilling = () => {
         const delivered = billingDeliveries.filter(d => d.delivery_status === 'Delivered').length;
         const failed = billingDeliveries.filter(d => d.delivery_status === 'Failed Attempt').length;
         const ongoing = billingDeliveries.filter(d => ['Out For Delivery', 'Packed', 'Dispatched', 'In Transit'].includes(d.delivery_status)).length;
-        const rate = total > 0 ? Math.round((delivered / total) * 100) : 25;
+        const rate = total > 0 ? Math.round((delivered / total) * 100) : 0;
 
         return {
-            successRate: `${rate}%`,
-            avgSpeed: '52 mins',
+            successRate: total > 0 ? `${rate}%` : '0%',
+            avgSpeed: total > 0 ? '52 mins' : '--',
             failedCount: failed,
             ongoingCount: ongoing
         };
@@ -4045,33 +3953,43 @@ const BusinessBilling = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {billingDeliveries.map((chl) => (
-                                        <tr key={chl.delivery_id} style={{ borderBottom: '1px solid #F8FAFC', fontSize: '0.85rem' }}>
-                                            <td style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#0284C7' }}>{chl.challan_number}</td>
-                                            <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#0F172A' }}>{chl.customer_name}</td>
-                                            <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontFamily: 'monospace' }}>{chl.linked_invoice_id || 'N/A'}</td>
-                                            <td style={{ padding: '0.75rem 1rem' }}>
-                                                <span style={{ padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '800', background: chl.challan_type === 'GST' ? '#E0F2FE' : '#F1F5F9', color: chl.challan_type === 'GST' ? '#0369A1' : '#475569' }}>
-                                                    {chl.challan_type}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>{chl.challan_date}</td>
-                                            <td style={{ padding: '0.75rem 1rem' }}>
-                                                <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: chl.delivery_status === 'Delivered' ? '#D1FAE5' : chl.delivery_status === 'Failed Attempt' ? '#FEE2E2' : '#FEF3C7', color: chl.delivery_status === 'Delivered' ? '#065F46' : chl.delivery_status === 'Failed Attempt' ? '#991B1B' : '#92400E' }}>
-                                                    {chl.delivery_status.toUpperCase()}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                                                <button 
-                                                    type="button"
-                                                    onClick={() => { setSelectedChallanConfirm(chl); setConfirmOtp(chl.otp_code || ''); }} 
-                                                    style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}
-                                                >
-                                                    View Details
-                                                </button>
+                                    {billingDeliveries.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#64748B' }}>
+                                                <Package size={40} style={{ margin: '0 auto 0.5rem', color: '#94A3B8' }} />
+                                                <h4 style={{ fontWeight: '800', color: '#1E293B', marginBottom: '0.25rem', fontSize: '0.95rem' }}>No Delivery Challans Generated</h4>
+                                                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>Dispatch a shipment to generate and track delivery challans.</p>
                                             </td>
                                         </tr>
-                                    ))}
+                                    ) : (
+                                        billingDeliveries.map((chl) => (
+                                            <tr key={chl.delivery_id} style={{ borderBottom: '1px solid #F8FAFC', fontSize: '0.85rem' }}>
+                                                <td style={{ padding: '0.75rem 1rem', fontWeight: '800', color: '#0284C7' }}>{chl.challan_number}</td>
+                                                <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#0F172A' }}>{chl.customer_name}</td>
+                                                <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontFamily: 'monospace' }}>{chl.linked_invoice_id || 'N/A'}</td>
+                                                <td style={{ padding: '0.75rem 1rem' }}>
+                                                    <span style={{ padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '800', background: chl.challan_type === 'GST' ? '#E0F2FE' : '#F1F5F9', color: chl.challan_type === 'GST' ? '#0369A1' : '#475569' }}>
+                                                        {chl.challan_type}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontSize: '0.8rem' }}>{chl.challan_date}</td>
+                                                <td style={{ padding: '0.75rem 1rem' }}>
+                                                    <span style={{ padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800', background: chl.delivery_status === 'Delivered' ? '#D1FAE5' : chl.delivery_status === 'Failed Attempt' ? '#FEE2E2' : '#FEF3C7', color: chl.delivery_status === 'Delivered' ? '#065F46' : chl.delivery_status === 'Failed Attempt' ? '#991B1B' : '#92400E' }}>
+                                                        {chl.delivery_status.toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => { setSelectedChallanConfirm(chl); setConfirmOtp(chl.otp_code || ''); }} 
+                                                        style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}
+                                                    >
+                                                        View Details
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -4118,28 +4036,35 @@ const BusinessBilling = () => {
                         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.25rem' }}>🔄 Reverse Logistics (Return pick-ups & Failures)</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                                {billingDeliveries.filter(d => d.delivery_status === 'Failed Attempt' || d.failed_delivery_reason).map((dlv) => (
-                                    <div key={dlv.delivery_id} style={{ background: '#FFFDFD', border: '1px solid #FEE2E2', padding: '1.25rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-                                                <h4 style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.95rem', margin: 0 }}>{dlv.customer_name}</h4>
-                                                <span style={{ fontSize: '0.7rem', fontWeight: '800', background: '#FEE2E2', color: '#EF4444', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
-                                                    {dlv.delivery_status}
-                                                </span>
-                                            </div>
-                                            <p style={{ fontSize: '0.82rem', color: '#64748B', margin: 0 }}>
-                                                Ref: <strong>{dlv.delivery_number}</strong> • Destination: <strong>{dlv.city}</strong> • Reason: <span style={{ color: '#DC2626', fontWeight: '600' }}>{dlv.failed_delivery_reason || 'Premises locked'}</span>
-                                            </p>
-                                        </div>
-                                        <button 
-                                            type="button"
-                                            onClick={() => alert(`Rescheduling reverse logistics pickup for ${dlv.customer_name}. Assigned Fleet: ${dlv.driver_name}`)}
-                                            style={{ padding: '0.45rem 0.85rem', border: '1px solid #EF4444', background: 'white', color: '#EF4444', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '750', cursor: 'pointer' }}
-                                        >
-                                            Reschedule Pickup
-                                        </button>
+                                {billingDeliveries.filter(d => d.delivery_status === 'Failed Attempt' || d.failed_delivery_reason).length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '3.5rem 1rem', background: '#FAFDFB', borderRadius: '16px', border: '1px dashed #CBD5E1', color: '#64748B' }}>
+                                        <p style={{ fontWeight: '750', fontSize: '0.92rem', color: '#1E293B', margin: '0 0 0.25rem 0' }}>No Returns or Failed Deliveries</p>
+                                        <p style={{ fontSize: '0.8rem', margin: 0 }}>All shipments are on schedule with no return claims logged.</p>
                                     </div>
-                                ))}
+                                ) : (
+                                    billingDeliveries.filter(d => d.delivery_status === 'Failed Attempt' || d.failed_delivery_reason).map((dlv) => (
+                                        <div key={dlv.delivery_id} style={{ background: '#FFFDFD', border: '1px solid #FEE2E2', padding: '1.25rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
+                                                    <h4 style={{ fontWeight: '800', color: '#1E293B', fontSize: '0.95rem', margin: 0 }}>{dlv.customer_name}</h4>
+                                                    <span style={{ fontSize: '0.7rem', fontWeight: '800', background: '#FEE2E2', color: '#EF4444', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>
+                                                        {dlv.delivery_status}
+                                                    </span>
+                                                </div>
+                                                <p style={{ fontSize: '0.82rem', color: '#64748B', margin: 0 }}>
+                                                    Ref: <strong>{dlv.delivery_number}</strong> • Destination: <strong>{dlv.city}</strong> • Reason: <span style={{ color: '#DC2626', fontWeight: '600' }}>{dlv.failed_delivery_reason || 'Premises locked'}</span>
+                                                </p>
+                                            </div>
+                                            <button 
+                                                type="button"
+                                                onClick={() => alert(`Rescheduling reverse logistics pickup for ${dlv.customer_name}. Assigned Fleet: ${dlv.driver_name}`)}
+                                                style={{ padding: '0.45rem 0.85rem', border: '1px solid #EF4444', background: 'white', color: '#EF4444', borderRadius: '8px', fontSize: '0.78rem', fontWeight: '750', cursor: 'pointer' }}
+                                            >
+                                                Reschedule Pickup
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     )}

@@ -34,176 +34,7 @@ import { settingsService } from '../services';
 import { complianceService } from '../services/complianceService';
 import FilterableTableHead from '../components/FilterableTableHead';
 
-const INITIAL_DELIVERIES = [
-    {
-        delivery_id: 'DLV-401',
-        delivery_number: 'CLIKS/DEL/26/101',
-        delivery_status: 'Out For Delivery',
-        delivery_date: '2026-05-06',
-        shipment_id: 'SHP-8802',
-        tracking_number: 'TRK998248102',
-        courier_name: 'CLIKS Logistics',
-        dispatch_date: '2026-05-06 09:30 AM',
-        estimated_delivery_date: '2026-05-06',
-        delivered_date: '',
-        delivery_staff_id: 'STF-05',
-        driver_name: 'Satish Yadav',
-        vehicle_number: 'MH-12-QB-8821',
-        contact_number: '+91 98234 56789',
-        customer_name: 'Aman Deep',
-        shipping_address: 'Flat 402, Green Meadows, Senapati Bapat Road',
-        city: 'Pune',
-        state: 'Maharashtra',
-        pincode: '411016',
-        geo_location: '18.5308, 73.8315',
-        package_count: 2,
-        package_weight: 4.5,
-        packing_status: 'packed',
-        packaging_notes: 'Fragile electronics inside. Handle with care.',
-        warehouse_id: 'WH-MAIN-01',
-        dispatch_by: 'Kiran Mane',
-        stock_reserved: true,
-        dispatch_status: 'dispatched',
-        challan_number: 'CHL-2026-4402',
-        challan_type: 'GST',
-        challan_date: '2026-05-06',
-        linked_invoice_id: 'INV-40292',
-        otp_code: '5829',
-        customer_signature: '',
-        delivery_photo: '',
-        delivery_feedback: 0,
-        pickup_request_id: '',
-        pickup_status: '',
-        failed_delivery_reason: '',
-        reverse_logistics_status: ''
-    },
-    {
-        delivery_id: 'DLV-402',
-        delivery_number: 'CLIKS/DEL/26/102',
-        delivery_status: 'Delivered',
-        delivery_date: '2026-05-05',
-        shipment_id: 'SHP-8791',
-        tracking_number: 'TRK998248091',
-        courier_name: 'Delhivery',
-        dispatch_date: '2026-05-05 10:15 AM',
-        estimated_delivery_date: '2026-05-05',
-        delivered_date: '2026-05-05 04:45 PM',
-        delivery_staff_id: 'STF-02',
-        driver_name: 'Rajesh Patil',
-        vehicle_number: 'MH-14-EU-4592',
-        contact_number: '+91 91234 56711',
-        customer_name: 'Megha Sharma',
-        shipping_address: 'Sector 21, Plot 14, Nigdi Pradhikaran',
-        city: 'Pune',
-        state: 'Maharashtra',
-        pincode: '411044',
-        geo_location: '18.6472, 73.7745',
-        package_count: 1,
-        package_weight: 1.2,
-        packing_status: 'packed',
-        packaging_notes: 'Standard box package.',
-        warehouse_id: 'WH-MAIN-01',
-        dispatch_by: 'Kiran Mane',
-        stock_reserved: true,
-        dispatch_status: 'dispatched',
-        challan_number: 'CHL-2026-4403',
-        challan_type: 'GST',
-        challan_date: '2026-05-05',
-        linked_invoice_id: 'INV-40280',
-        otp_code: '1102',
-        customer_signature: 'Megha S.',
-        delivery_photo: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=400&q=80',
-        delivery_feedback: 5,
-        pickup_request_id: '',
-        pickup_status: '',
-        failed_delivery_reason: '',
-        reverse_logistics_status: ''
-    },
-    {
-        delivery_id: 'DLV-403',
-        delivery_number: 'CLIKS/DEL/26/103',
-        delivery_status: 'Failed Attempt',
-        delivery_date: '2026-05-04',
-        shipment_id: 'SHP-8750',
-        tracking_number: 'TRK998248002',
-        courier_name: 'CLIKS Logistics',
-        dispatch_date: '2026-05-04 11:00 AM',
-        estimated_delivery_date: '2026-05-04',
-        delivered_date: '',
-        delivery_staff_id: 'STF-05',
-        driver_name: 'Satish Yadav',
-        vehicle_number: 'MH-12-QB-8821',
-        contact_number: '+91 98234 56789',
-        customer_name: 'Rahul Varma',
-        shipping_address: 'Building B, Apartment 801, Hinjewadi Phase 1',
-        city: 'Pune',
-        state: 'Maharashtra',
-        pincode: '411057',
-        geo_location: '18.5913, 73.7389',
-        package_count: 3,
-        package_weight: 12.8,
-        packing_status: 'packed',
-        packaging_notes: 'Heavy weight desktop unit. Lift delivery required.',
-        warehouse_id: 'WH-TECH-02',
-        dispatch_by: 'Suresh Patil',
-        stock_reserved: true,
-        dispatch_status: 'dispatched',
-        challan_number: 'CHL-2026-4390',
-        challan_type: 'GST',
-        challan_date: '2026-05-04',
-        linked_invoice_id: 'INV-40250',
-        otp_code: '4452',
-        customer_signature: '',
-        delivery_photo: '',
-        delivery_feedback: 0,
-        pickup_request_id: 'RET-9901',
-        pickup_status: 'scheduled',
-        failed_delivery_reason: 'Customer out of town / Premises locked',
-        reverse_logistics_status: 'Return to warehouse initiated'
-    },
-    {
-        delivery_id: 'DLV-404',
-        delivery_number: 'CLIKS/DEL/26/104',
-        delivery_status: 'Packed',
-        delivery_date: '2026-05-07',
-        shipment_id: 'SHP-8820',
-        tracking_number: '',
-        courier_name: 'Pending Assignment',
-        dispatch_date: '',
-        estimated_delivery_date: '2026-05-07',
-        delivered_date: '',
-        delivery_staff_id: '',
-        driver_name: '',
-        vehicle_number: '',
-        contact_number: '',
-        customer_name: 'Snehal Deshmukh',
-        shipping_address: 'Flat 101, Shivneri Sadan, Kothrud',
-        city: 'Pune',
-        state: 'Maharashtra',
-        pincode: '411038',
-        geo_location: '18.5074, 73.8077',
-        package_count: 1,
-        package_weight: 2.0,
-        packing_status: 'packed',
-        packaging_notes: 'Fragile printer cartridge.',
-        warehouse_id: 'WH-MAIN-01',
-        dispatch_by: 'Kiran Mane',
-        stock_reserved: true,
-        dispatch_status: 'pending',
-        challan_number: 'CHL-2026-4420',
-        challan_type: 'Non-GST',
-        challan_date: '2026-05-06',
-        linked_invoice_id: '',
-        otp_code: '8910',
-        customer_signature: '',
-        delivery_photo: '',
-        delivery_feedback: 0,
-        pickup_request_id: '',
-        pickup_status: '',
-        failed_delivery_reason: '',
-        reverse_logistics_status: ''
-    }
-];
+const INITIAL_DELIVERIES = [];
 
 const INITIAL_STAFF = [
     { staff_id: 'STF-01', name: 'Ramesh Sawant', vehicle: 'MH-12-SA-9102', mobile: '+91 99234 88102', status: 'Available', delivery_success_rate: 98, avg_time: '45 mins' },
@@ -231,7 +62,20 @@ const BusinessDelivery = () => {
 
     const [deliveries, setDeliveries] = useState(() => {
         const local = localStorage.getItem('cliks_deliveries');
-        return local ? JSON.parse(local) : INITIAL_DELIVERIES;
+        if (local) {
+            try {
+                const parsed = JSON.parse(local);
+                if (Array.isArray(parsed)) {
+                    const dummyIds = new Set(['DLV-401', 'DLV-402', 'DLV-403', 'DLV-404']);
+                    const dummyChallans = new Set(['CHL-2026-4402', 'CHL-2026-4403', 'CHL-2026-4390', 'CHL-2026-4420']);
+                    const dummyNames = new Set(['Aman Deep', 'Megha Sharma', 'Rahul Varma', 'Snehal Deshmukh']);
+                    const cleaned = parsed.filter(d => !dummyIds.has(d.delivery_id) && !dummyChallans.has(d.challan_number) && !dummyNames.has(d.customer_name));
+                    localStorage.setItem('cliks_deliveries', JSON.stringify(cleaned));
+                    return cleaned;
+                }
+            } catch(e) {}
+        }
+        return [];
     });
 
     const staff = INITIAL_STAFF;
@@ -818,7 +662,16 @@ const BusinessDelivery = () => {
         { key: '_actions', label: 'Action', noFilter: true }
     ]} onFilterChange={setColFilters} />
                         <tbody>
-                            {deliveries.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((dlv) => (
+                            {deliveries.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#64748B' }}>
+                                        <Package size={40} style={{ margin: '0 auto 0.5rem', color: '#94A3B8' }} />
+                                        <h4 style={{ fontWeight: '800', color: '#1E293B', marginBottom: '0.25rem', fontSize: '0.95rem' }}>No Delivery Challans Generated</h4>
+                                        <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>Dispatch a shipment to generate and track delivery challans.</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                deliveries.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((dlv) => (
                                 <tr key={dlv.delivery_id} style={{ borderBottom: '1px solid #F1F5F9', fontSize: '0.9rem', color: '#334155' }}>
                                     <td style={{ padding: '1rem', fontWeight: '750', color: '#0F172A' }}>
                                         {dlv.challan_number}
@@ -863,7 +716,7 @@ const BusinessDelivery = () => {
                                         )}
                                     </td>
                                 </tr>
-                            ))}
+                            )))}
                         </tbody>
                     </table>
                 </div>
