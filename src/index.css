@@ -770,6 +770,22 @@ body.dark-theme .sidebar-item.active {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
 }
 
+[data-theme='dark'] .topbar-toolbar-toggle-wrapper,
+.dark-theme .topbar-toolbar-toggle-wrapper,
+.dark .topbar-toolbar-toggle-wrapper {
+  background-color: #081B11 !important;
+  background: #081B11 !important;
+  border-bottom: 1px solid #1E293B !important;
+}
+
+[data-theme='dark'] .topbar-fixed-right-toolbar,
+.dark-theme .topbar-fixed-right-toolbar,
+.dark .topbar-fixed-right-toolbar {
+  background-color: #0B111E !important;
+  background: #0B111E !important;
+  border-left: 1px solid #1E293B !important;
+}
+
 /* Cards, Stat Cards, Panels & White Surfaces */
 [data-theme='dark'] .card,
 [data-theme='dark'] .stat-card,

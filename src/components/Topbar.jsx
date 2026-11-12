@@ -1054,6 +1054,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                 {isRightSidebarOpen && (
                     <motion.div
                         key="right-toolbar"
+                        className="topbar-fixed-right-toolbar"
                         initial={{ x: '100%' }}
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
@@ -1063,15 +1064,16 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                             top: '64px',
                             right: 0,
                             height: 'calc(100vh - 64px)',
-                            backgroundColor: '#FFFFFF',
-                            boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.05)',
+                            backgroundColor: isDarkMode ? '#0B111E' : '#FFFFFF',
+                            boxShadow: isDarkMode ? '-4px 0 20px rgba(0, 0, 0, 0.4)' : '-4px 0 20px rgba(0, 0, 0, 0.05)',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             zIndex: 2005,
                             width: '64px',
                             fontFamily: "'Inter', sans-serif",
-                            borderLeft: '1px solid #99DBC3'
+                            borderLeft: isDarkMode ? '1px solid #1E293B' : '1px solid #99DBC3',
+                            transition: 'background-color 0.2s ease, border-color 0.2s ease'
                         }}
                     >
                         {/* Toolbar Body Container */}
@@ -1283,15 +1285,18 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                 flexShrink: 0
                             }}>
                                 {/* Horizontal Separator */}
-                                <div style={{ width: '24px', height: '1px', backgroundColor: '#E2E8F0', margin: '0 0 4px 0', opacity: 0.8, flexShrink: 0 }} />
+                                <div style={{ width: '24px', height: '1px', backgroundColor: isDarkMode ? '#1E293B' : '#E2E8F0', margin: '0 0 4px 0', opacity: 0.8, flexShrink: 0 }} />
 
                                 <button
                                     onClick={() => setIsEditingAccess(!isEditingAccess)}
                                     title="Edit Access Kit"
                                     style={{
-                                        width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#F8FAFC',
-                                        border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
+                                        width: '38px', height: '38px', borderRadius: '12px', 
+                                        backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC',
+                                        border: isDarkMode ? '1px solid #334155' : '1px solid #E2E8F0', 
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        color: isDarkMode ? '#CBD5E1' : '#64748B', 
+                                        cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
                                     }}
                                     onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                                     onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
@@ -1300,11 +1305,14 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                                 </button>
                                 <button
                                     title="Settings / Customization"
+                                    onClick={() => navigate('/customization')}
                                     style={{
                                         width: '38px', height: '38px', borderRadius: '12px',
-                                        backgroundColor: '#F8FAFC',
-                                        border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        color: '#64748B', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
+                                        backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC',
+                                        border: isDarkMode ? '1px solid #334155' : '1px solid #E2E8F0', 
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        color: isDarkMode ? '#CBD5E1' : '#64748B', 
+                                        cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
                                     }}
                                     onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                                     onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
@@ -1318,20 +1326,25 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
             </AnimatePresence>
 
             {/* Always Visible Top-Right Toolbar Toggle Button */}
-            <div style={{
-                position: 'fixed',
-                top: 0,
-                right: 0,
-                width: '64px',
-                height: '64px',
-                backgroundColor: '#135029',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 1001,
-                borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
-            }}>
+            <div 
+                className="topbar-toolbar-toggle-wrapper"
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    right: 0,
+                    width: '64px',
+                    height: '64px',
+                    backgroundColor: isDarkMode ? '#081B11' : '#135029',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1001,
+                    borderBottom: isDarkMode ? '1px solid #1E293B' : '1px solid rgba(255, 255, 255, 0.1)',
+                    transition: 'background-color 0.2s ease, border-color 0.2s ease'
+                }}
+            >
                 <button
+                    className="topbar-toolbar-toggle-btn"
                     onClick={() => {
                         if (isRightSidebarOpen) {
                             setIsRightSidebarOpen(false);
@@ -1348,12 +1361,24 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                         width: '36px',
                         height: '36px',
                         borderRadius: '11px',
-                        backgroundColor: isRightSidebarOpen ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.1)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        backgroundColor: isRightSidebarOpen 
+                            ? (isDarkMode ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.25)') 
+                            : (isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.1)'),
+                        border: isRightSidebarOpen 
+                            ? (isDarkMode ? '1px solid #10B981' : '1px solid rgba(255, 255, 255, 0.35)') 
+                            : '1px solid rgba(255, 255, 255, 0.2)',
                         cursor: 'pointer',
-                        color: '#FFFFFF',
+                        color: isRightSidebarOpen && isDarkMode ? '#34D399' : '#FFFFFF',
                         outline: 'none',
                         transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = isDarkMode ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.22)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = isRightSidebarOpen 
+                            ? (isDarkMode ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.25)') 
+                            : (isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.1)');
                     }}
                 >
                     <Sliders size={18} />

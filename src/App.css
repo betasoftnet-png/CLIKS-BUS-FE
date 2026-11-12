@@ -803,6 +803,19 @@
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
 }
 
+.topbar-toolbar-toggle-wrapper {
+    background-color: #135029;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .topbar-toolbar-toggle-wrapper,
+.dark-theme .topbar-toolbar-toggle-wrapper,
+.dark .topbar-toolbar-toggle-wrapper {
+    background-color: #081B11 !important;
+    background: #081B11 !important;
+    border-bottom: 1px solid #1E293B !important;
+}
+
 .topbar-left {
     display: flex;
     align-items: center;
