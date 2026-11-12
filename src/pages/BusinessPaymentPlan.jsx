@@ -19,7 +19,13 @@ import {
     AlertCircle,
     Phone,
     Mail,
-    Building2
+    Building2,
+    Repeat,
+    Home,
+    Briefcase,
+    Zap,
+    TrendingUp,
+    Sparkles
 } from 'lucide-react';
 import { plannedPaymentsService, peopleService } from '../services';
 import { customConfirm } from '../utils/customConfirm';
@@ -41,7 +47,8 @@ const BusinessPaymentPlan = () => {
         amount: '',
         due_date: new Date().toISOString().split('T')[0],
         type: 'SEND', // SEND or RECEIVE
-        category: 'General',
+        frequency: 'monthly', // 'monthly', 'one_time', 'weekly', 'quarterly', 'yearly'
+        category: 'Rent',
         description: ''
     });
 
@@ -119,10 +126,11 @@ const BusinessPaymentPlan = () => {
     // Mutations
     const createMutation = useMutation({
         mutationFn: plannedPaymentsService.createPayment,
-        onSuccess: () => {
+        onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['planned-payments'] });
+            const freqNote = formData.frequency === 'monthly' ? ' (Recurring Monthly)' : '';
             closeModal();
-            alert('✅ Payment scheduled successfully!');
+            alert(`✅ Payment "${data?.name || formData.name}" scheduled successfully${freqNote}! Instant email notification has been dispatched.`);
         },
         onError: (err) => {
             alert(err?.response?.data?.message || 'Failed to schedule payment. Please try again.');
@@ -131,8 +139,16 @@ const BusinessPaymentPlan = () => {
 
     const markPaidMutation = useMutation({
         mutationFn: plannedPaymentsService.markAsPaid,
-        onSuccess: () => {
+        onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['planned-payments'] });
+            if (data?.nextRecurringPayment) {
+                alert(`✅ Payment marked as paid! Next monthly cycle automatically scheduled for ${data.nextRecurringPayment.due_date}.`);
+            } else {
+                alert('✅ Payment marked as paid!');
+            }
+        },
+        onError: (err) => {
+            alert(err?.response?.data?.message || 'Failed to mark payment as paid.');
         }
     });
 
@@ -151,7 +167,8 @@ const BusinessPaymentPlan = () => {
             amount: '',
             due_date: new Date().toISOString().split('T')[0],
             type: 'SEND',
-            category: 'General',
+            frequency: 'monthly',
+            category: 'Rent',
             description: ''
         });
     };
@@ -168,6 +185,7 @@ const BusinessPaymentPlan = () => {
         let toSendTotal = 0;
         let toReceiveTotal = 0;
         let pendingCount = 0;
+        let monthlyCount = 0;
 
         schedulesList.forEach((item) => {
             // 1. Sanitize amount safely
@@ -200,7 +218,13 @@ const BusinessPaymentPlan = () => {
                 pendingCount += 1;
             }
 
-            // 4. Accumulate totals
+            // 4. Monthly recurring count
+            const isMonthly = item.frequency === 'monthly' || String(item.name || '').toLowerCase().includes('rent') || String(item.category || '').toLowerCase().includes('rent');
+            if (isMonthly) {
+                monthlyCount += 1;
+            }
+
+            // 5. Accumulate totals
             if (isReceive) {
                 toReceiveTotal += amount;
             } else if (isSend) {
@@ -212,7 +236,8 @@ const BusinessPaymentPlan = () => {
             totalScheduled,
             toSendTotal,
             toReceiveTotal,
-            pendingCount
+            pendingCount,
+            monthlyCount
         };
     }, [plans]);
 
@@ -222,7 +247,8 @@ const BusinessPaymentPlan = () => {
         toSendTotal: metrics.toSendTotal,
         toReceive: metrics.toReceiveTotal,
         toReceiveTotal: metrics.toReceiveTotal,
-        pendingCount: metrics.pendingCount
+        pendingCount: metrics.pendingCount,
+        monthlyCount: metrics.monthlyCount
     };
 
     const filteredPlans = React.useMemo(() => {
@@ -231,16 +257,19 @@ const BusinessPaymentPlan = () => {
             const matchesSearch = !searchTerm || 
                 p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                 p.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                p.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 p.person_name?.toLowerCase().includes(searchTerm.toLowerCase());
 
             const direction = String(p.direction || p.type || p.entry_type || p.flow || '').toUpperCase();
             const isReceive = direction === 'RECEIVE' || direction === 'INWARD' || direction === 'INCOMING' || p.is_receive === true || String(p.flow || '').toLowerCase() === 'in';
             const isSend = direction === 'SEND' || direction === 'OUTWARD' || direction === 'OUTGOING' || p.is_send === true || String(p.flow || '').toLowerCase() === 'out';
+            const isMonthly = p.frequency === 'monthly' || String(p.name || '').toLowerCase().includes('rent') || String(p.category || '').toLowerCase().includes('rent');
 
             const active = (activeFilter || 'ALL').toUpperCase();
             if (active === 'ALL') return matchesSearch;
             if (active === 'SEND') return matchesSearch && isSend;
             if (active === 'RECEIVE') return matchesSearch && isReceive;
+            if (active === 'MONTHLY') return matchesSearch && isMonthly;
             return matchesSearch;
         });
     }, [plans, searchTerm, activeFilter]);
@@ -280,9 +309,9 @@ const BusinessPaymentPlan = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
                 {[
                     { label: 'Total Scheduled', value: stats.totalScheduled, icon: CalendarIcon, color: '#1B6B3A', bg: '#DCF2E4' },
-                    { label: 'Total sended', value: formatCurrency(stats.toSend), icon: ArrowUpRight, color: '#EF4444', bg: '#FEE2E2' },
-                    { label: 'Total received', value: formatCurrency(stats.toReceive), icon: ArrowDownRight, color: '#10B981', bg: '#D1FAE5' },
-                    { label: 'Pending Task', value: stats.pendingCount, icon: Clock, color: '#F59E0B', bg: '#FEF3C7' }
+                    { label: 'Total Outward', value: formatCurrency(stats.toSend), icon: ArrowUpRight, color: '#EF4444', bg: '#FEE2E2' },
+                    { label: 'Total Inward', value: formatCurrency(stats.toReceive), icon: ArrowDownRight, color: '#10B981', bg: '#D1FAE5' },
+                    { label: 'Monthly / Rent Plans', value: stats.monthlyCount, icon: Repeat, color: '#7C3AED', bg: '#F5F3FF' }
                 ].map((stat, idx) => (
                     <div key={idx} style={{ background: 'white', padding: '1.25rem', borderRadius: '20px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
@@ -338,6 +367,19 @@ const BusinessPaymentPlan = () => {
                         >
                             Receive
                         </button>
+
+                        {/* Monthly / Rent Filter Button */}
+                        <button
+                            type="button"
+                            onClick={() => setActiveFilter('MONTHLY')}
+                            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                activeFilter === 'MONTHLY'
+                                    ? 'bg-purple-50 text-purple-700 border border-purple-300 font-bold'
+                                    : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200'
+                            }`}
+                        >
+                            <Repeat size={12} /> Monthly / Rent
+                        </button>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', background: '#F8FAFC', padding: '0.5rem 1rem', borderRadius: '12px', width: '300px' }}>
                         <Search size={18} color="#94A3B8" />
@@ -385,18 +427,35 @@ const BusinessPaymentPlan = () => {
                                                     "{item.description || item.notes}"
                                                 </p>
                                             )}
-                                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                                            <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', marginTop: '0.35rem', flexWrap: 'wrap' }}>
                                                 <span style={{ fontSize: '0.8rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: '600' }}>
-                                                    <Clock size={14} /> {new Date(item.scheduledDate || item.due_date).toLocaleDateString()}
+                                                    <Clock size={14} /> Due: {new Date(item.scheduledDate || item.due_date).toLocaleDateString()}
                                                 </span>
-                                                <span style={{ fontSize: '0.8rem', color: '#1B6B3A', background: '#DCF2E4', padding: '0.1rem 0.5rem', borderRadius: '6px', fontWeight: '750' }}>
+                                                {item.frequency === 'monthly' || String(item.name || '').toLowerCase().includes('rent') ? (
+                                                    <span style={{ fontSize: '0.76rem', color: '#7C3AED', background: '#F5F3FF', border: '1px solid #DDD6FE', padding: '0.12rem 0.55rem', borderRadius: '6px', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Repeat size={12} /> Monthly Recurring
+                                                    </span>
+                                                ) : item.frequency && item.frequency !== 'one_time' ? (
+                                                    <span style={{ fontSize: '0.76rem', color: '#475569', background: '#F1F5F9', padding: '0.12rem 0.55rem', borderRadius: '6px', fontWeight: '750' }}>
+                                                        🔄 {item.frequency.toUpperCase()}
+                                                    </span>
+                                                ) : null}
+                                                {item.category && (
+                                                    <span style={{ fontSize: '0.76rem', color: '#047857', background: '#ECFDF5', padding: '0.12rem 0.55rem', borderRadius: '6px', fontWeight: '750' }}>
+                                                        🏷️ {item.category}
+                                                    </span>
+                                                )}
+                                                <span style={{ fontSize: '0.8rem', color: item.status === 'paid' ? '#166534' : '#1B6B3A', background: item.status === 'paid' ? '#DCFCE7' : '#DCF2E4', padding: '0.12rem 0.55rem', borderRadius: '6px', fontWeight: '750' }}>
                                                     {(item.status || 'PENDING').toUpperCase()}
                                                 </span>
                                                 {(item.contactName || item.person_name) && (
-                                                    <span style={{ fontSize: '0.8rem', color: '#0369A1', background: '#E0F2FE', padding: '0.1rem 0.5rem', borderRadius: '6px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                    <span style={{ fontSize: '0.8rem', color: '#0369A1', background: '#E0F2FE', padding: '0.12rem 0.55rem', borderRadius: '6px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                                         <User size={12} /> {item.contactName || item.person_name}
                                                     </span>
                                                 )}
+                                                <span title="Automated email notification active via BNX Mail" style={{ fontSize: '0.74rem', color: '#0284C7', background: '#F0F9FF', border: '1px solid #BAE6FD', padding: '0.1rem 0.45rem', borderRadius: '6px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                                    <Mail size={11} /> Auto Notified
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -437,9 +496,12 @@ const BusinessPaymentPlan = () => {
             {/* Schedule Modal */}
             {isModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)' }}>
-                    <div style={{ background: 'white', width: '500px', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B' }}>Schedule New Payment</h2>
+                    <div style={{ background: 'white', width: '520px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '32px', padding: '2.25rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div>
+                                <h2 style={{ fontSize: '1.45rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Schedule Payment</h2>
+                                <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: '600' }}>Schedule transfers, monthly rent, and trigger automated email notifications</span>
+                            </div>
                             <button onClick={closeModal} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={22} /></button>
                         </div>
                         <form 
@@ -458,18 +520,20 @@ const BusinessPaymentPlan = () => {
                                     remark: ''
                                 });
                             }}
-                            style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+                            style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}
                         >
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            {/* Direction Selector */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <button 
                                     type="button"
                                     onClick={() => setFormData({...formData, type: 'SEND'})}
                                     style={{ 
-                                        padding: '1rem', borderRadius: '16px', border: '2px solid', 
+                                        padding: '0.85rem', borderRadius: '14px', border: '2px solid', 
                                         borderColor: formData.type === 'SEND' ? '#EF4444' : '#E2E8F0',
                                         background: formData.type === 'SEND' ? '#FEF2F2' : 'white',
                                         color: formData.type === 'SEND' ? '#EF4444' : '#64748B',
-                                        fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                                        fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                                        fontSize: '0.9rem'
                                     }}
                                 >
                                     <ArrowUpRight size={18} /> I am Sending
@@ -478,30 +542,115 @@ const BusinessPaymentPlan = () => {
                                     type="button"
                                     onClick={() => setFormData({...formData, type: 'RECEIVE'})}
                                     style={{ 
-                                        padding: '1rem', borderRadius: '16px', border: '2px solid', 
+                                        padding: '0.85rem', borderRadius: '14px', border: '2px solid', 
                                         borderColor: formData.type === 'RECEIVE' ? '#10B981' : '#E2E8F0',
                                         background: formData.type === 'RECEIVE' ? '#F0FDF4' : 'white',
                                         color: formData.type === 'RECEIVE' ? '#10B981' : '#64748B',
-                                        fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                                        fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                                        fontSize: '0.9rem'
                                     }}
                                 >
                                     <ArrowDownRight size={18} /> I am Receiving
                                 </button>
                             </div>
 
+                            {/* Quick Select Preset Templates */}
+                            <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                                    ⚡ Quick Template Presets
+                                </label>
+                                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                    {[
+                                        { label: '🏠 Monthly Rent', name: 'Office / House Rent', category: 'Rent', frequency: 'monthly', type: 'SEND' },
+                                        { label: '🏢 Vendor Bill', name: 'Vendor Invoice Payment', category: 'Vendor', frequency: 'one_time', type: 'SEND' },
+                                        { label: '💼 Client Retainer', name: 'Monthly Client Retainer', category: 'Retainer', frequency: 'monthly', type: 'RECEIVE' },
+                                        { label: '⚡ Utilities', name: 'Electricity / Internet Bill', category: 'Utilities', frequency: 'monthly', type: 'SEND' },
+                                        { label: '📈 Loan / EMI', name: 'Monthly Loan EMI', category: 'EMI', frequency: 'monthly', type: 'SEND' }
+                                    ].map((preset, idx) => {
+                                        const isSelected = formData.category === preset.category && formData.name === preset.name;
+                                        return (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({
+                                                    ...prev,
+                                                    name: preset.name,
+                                                    category: preset.category,
+                                                    frequency: preset.frequency,
+                                                    type: preset.type
+                                                }))}
+                                                style={{
+                                                    padding: '0.3rem 0.65rem',
+                                                    borderRadius: '8px',
+                                                    border: isSelected ? '1px solid #1B6B3A' : '1px solid #CBD5E1',
+                                                    background: isSelected ? '#DCF2E4' : 'white',
+                                                    color: isSelected ? '#1B6B3A' : '#334155',
+                                                    fontSize: '0.74rem',
+                                                    fontWeight: '750',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.15s'
+                                                }}
+                                            >
+                                                {preset.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Reference Name */}
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Reference Name</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Reference Name <span style={{ color: '#EF4444' }}>*</span></label>
                                 <input 
                                     required 
-                                    placeholder="e.g. Monthly Rent, Client Payment" 
+                                    placeholder="e.g. Monthly Rent, Client Retainer, Vendor Bill" 
                                     value={formData.name} 
                                     onChange={e => setFormData({...formData, name: e.target.value})} 
-                                    style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
                                 />
                             </div>
 
+                            {/* Frequency & Category Grid */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                                        Payment Frequency
+                                    </label>
+                                    <select 
+                                        value={formData.frequency} 
+                                        onChange={e => setFormData({...formData, frequency: e.target.value})} 
+                                        style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', fontSize: '0.85rem' }}
+                                    >
+                                        <option value="monthly">🔄 Monthly (e.g. Rent, EMI)</option>
+                                        <option value="one_time">📅 One-Time Payment</option>
+                                        <option value="weekly">📅 Weekly</option>
+                                        <option value="quarterly">📅 Quarterly</option>
+                                        <option value="yearly">📅 Yearly</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                                        Category
+                                    </label>
+                                    <select 
+                                        value={formData.category} 
+                                        onChange={e => setFormData({...formData, category: e.target.value})} 
+                                        style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700', fontSize: '0.85rem' }}
+                                    >
+                                        <option value="Rent">🏠 Rent (Monthly)</option>
+                                        <option value="Utilities">⚡ Utilities</option>
+                                        <option value="Vendor">🏢 Vendor Bill</option>
+                                        <option value="Salary">👥 Payroll / Salary</option>
+                                        <option value="EMI">📈 Loan / EMI</option>
+                                        <option value="Retainer">💼 Retainer / Service</option>
+                                        <option value="General">🏷️ General</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Link to Person */}
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Link to Person (Optional)</label>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Link to Person (Optional)</label>
                                 <select 
                                     value={formData.person_id} 
                                     onChange={e => {
@@ -511,25 +660,26 @@ const BusinessPaymentPlan = () => {
                                             setFormData({...formData, person_id: e.target.value});
                                         }
                                     }} 
-                                    style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', background: 'white' }}
+                                    style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontSize: '0.88rem' }}
                                 >
-                                    <option value="">Select Person...</option>
+                                    <option value="">Select Person / Payee...</option>
                                     {people.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                        <option key={p.id} value={p.id}>{p.name} {p.email ? `(${p.email})` : ''}</option>
                                     ))}
                                     <option value="ADD_NEW_PERSON" style={{ fontWeight: 'bold', color: '#1B6B3A' }}>+ Add New Person...</option>
                                 </select>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            {/* Amount & Due Date */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Amount ({currency.symbol})</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Amount ({currency.symbol}) <span style={{ color: '#EF4444' }}>*</span></label>
                                     <input 
                                         required 
                                         type="number" 
                                         min="0"
                                         step="any"
-                                        placeholder="0" 
+                                        placeholder="0.00" 
                                         value={formData.amount} 
                                         onKeyDown={(e) => {
                                             if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
@@ -543,18 +693,28 @@ const BusinessPaymentPlan = () => {
                                                 setFormData({...formData, amount: val});
                                             }
                                         }}
-                                        style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '700' }} 
+                                        style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '800', fontSize: '1rem', color: '#0F172A' }} 
                                     />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Scheduled Date</label>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Scheduled Date <span style={{ color: '#EF4444' }}>*</span></label>
                                     <input 
                                         required 
                                         type="date" 
                                         value={formData.due_date} 
                                         onChange={e => setFormData({...formData, due_date: e.target.value})} 
-                                        style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                        style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontWeight: '600' }} 
                                     />
+                                </div>
+                            </div>
+
+                            {/* Automated Email Notification Callout */}
+                            <div style={{ background: '#F0FDF4', border: '1px solid #DCF2E4', borderRadius: '14px', padding: '0.75rem 1rem', display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
+                                <div style={{ color: '#1B6B3A', marginTop: '1px' }}>
+                                    <Mail size={16} />
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: '#166534', lineHeight: 1.4 }}>
+                                    <strong>Automated Email Notification Active:</strong> Instant confirmation email is dispatched via BNX Mail API upon scheduling. {formData.frequency === 'monthly' && <span>Monthly recurring payments (like rent) will automatically roll forward to next month when marked as paid.</span>}
                                 </div>
                             </div>
 
@@ -562,16 +722,21 @@ const BusinessPaymentPlan = () => {
                                 type="submit" 
                                 disabled={createMutation.isLoading || !formData.amount || Number(formData.amount) <= 0}
                                 style={{ 
-                                    width: '100%', padding: '1.1rem', borderRadius: '18px', 
+                                    width: '100%', padding: '1rem', borderRadius: '16px', 
                                     background: (!formData.amount || Number(formData.amount) <= 0) ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
-                                    color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', 
-                                    marginTop: '0.5rem', 
+                                    color: 'white', border: 'none', fontWeight: '800', fontSize: '1.05rem', 
+                                    marginTop: '0.25rem', 
                                     cursor: (createMutation.isLoading || !formData.amount || Number(formData.amount) <= 0) ? 'not-allowed' : 'pointer', 
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
-                                    opacity: (createMutation.isLoading || !formData.amount || Number(formData.amount) <= 0) ? 0.6 : 1
+                                    opacity: (createMutation.isLoading || !formData.amount || Number(formData.amount) <= 0) ? 0.6 : 1,
+                                    boxShadow: '0 4px 14px rgba(27, 107, 58, 0.25)'
                                 }}
                             >
-                                {createMutation.isLoading ? <Loader2 className="animate-spin" /> : 'Schedule Payment'}
+                                {createMutation.isLoading ? <Loader2 className="animate-spin" /> : (
+                                    <>
+                                        <Plus size={18} /> Schedule Payment
+                                    </>
+                                )}
                             </button>
                         </form>
                     </div>
