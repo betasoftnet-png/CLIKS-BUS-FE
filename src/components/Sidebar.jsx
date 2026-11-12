@@ -18,6 +18,7 @@ import {
     Plus,
     Banknote,
     ShoppingCart,
+    ShoppingBag,
     Users,
     ArrowDownRight,
     Package,
@@ -424,9 +425,9 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         if (path.includes('/pos')) return 'POS Billing';
         if (path.includes('/billing/simple') || path.includes('/billing/records')) return 'Simple Billing';
         if (path.includes('/dashboard')) return 'Dashboard';
+        if (path.includes('/sales/orders')) return 'Sales Orders';
         if (path.includes('/sales/invoice')) return 'Sales Invoice';
         if (path.includes('/sales/loyalty')) return 'Loyalty Points';
-        if (path.includes('/sales/orders')) return 'Orders';
         if (path.includes('/sales/delivery')) return 'Delivery';
         if (path.includes('/sales/customers')) return 'Customers';
         if (path.includes('/sales/returns')) return 'Returns';
@@ -591,6 +592,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                 icon: TrendingUp,
                 permission: PERMISSIONS.SALES_ALL,
                 children: [
+                    { label: 'Sales Orders', icon: ShoppingBag, path: '/sales/orders', permission: PERMISSIONS.SALES_ORDERS_LIST },
                     { label: 'Sales Invoice', icon: Receipt, path: '/sales/invoice', permission: PERMISSIONS.SALES_SEC_ALL },
                     { label: 'Loyalty Points', icon: Award, path: '/sales/loyalty', permission: PERMISSIONS.SALES_ALL },
                     { label: 'Customers', icon: Users, path: '/sales/customers', permission: PERMISSIONS.SALES_CUST_ALL }
