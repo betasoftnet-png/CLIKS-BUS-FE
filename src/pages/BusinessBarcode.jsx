@@ -130,7 +130,15 @@ const BusinessBarcode = () => {
 
     // Branding & Icon options
     const [logoUrl, setLogoUrl] = useState('');
+    const logoInputRef = useRef(null);
     const [selectedBadge, setSelectedBadge] = useState('made_in_india');
+
+    const handleRemoveLogo = () => {
+        setLogoUrl('');
+        if (logoInputRef.current) {
+            logoInputRef.current.value = '';
+        }
+    };
 
     const [customFieldsLayout, setCustomFieldsLayout] = useState('grid'); // 'grid', 'list'
 
@@ -185,18 +193,6 @@ const BusinessBarcode = () => {
         loadInventoryProducts();
     }, []);
 
-    // Ensure Code 128 encoded payload barcode maintains full height and scannability
-    useEffect(() => {
-        if (encodeCustomData && codeType !== 'QR' && barcodeRef.current) {
-            const svgs = barcodeRef.current.querySelectorAll('svg');
-            svgs.forEach(svg => {
-                svg.setAttribute('preserveAspectRatio', 'none');
-                svg.style.width = '100%';
-                svg.style.height = `${format.height || 90}px`;
-                svg.style.display = 'block';
-            });
-        }
-    }, [encodeCustomData, codeType, codeValue, labelDetails, customFields, format, isScanPreviewOpen]);
 
     // Auto-fill when inventory product selected
     const handleSelectStockProduct = (id) => {
@@ -854,16 +850,67 @@ const BusinessBarcode = () => {
                             </h4>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '0.4rem' }}>Upload Store Logo</label>
-                                    <input 
-                                        type="file" 
-                                        accept="image/*"
-                                        onChange={handleLogoUpload}
-                                        style={{ fontSize: '0.78rem', width: '100%' }}
-                                    />
-                                    <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', fontWeight: '600', marginTop: '0.35rem' }}>
-                                        Recommended image size: 200 × 200 px
-                                    </span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b' }}>Store Logo</label>
+                                        {logoUrl && (
+                                            <button
+                                                type="button"
+                                                onClick={handleRemoveLogo}
+                                                style={{ 
+                                                    display: 'inline-flex', 
+                                                    alignItems: 'center', 
+                                                    gap: '4px', 
+                                                    background: '#fee2e2', 
+                                                    color: '#dc2626', 
+                                                    border: 'none', 
+                                                    padding: '2px 8px', 
+                                                    borderRadius: '6px', 
+                                                    fontSize: '0.7rem', 
+                                                    fontWeight: '700', 
+                                                    cursor: 'pointer' 
+                                                }}
+                                                title="Remove current logo"
+                                            >
+                                                <Trash2 size={12} />
+                                                Remove Logo
+                                            </button>
+                                        )}
+                                    </div>
+                                    {logoUrl ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0.5rem 0.75rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                                            <img src={logoUrl} alt="Store logo preview" style={{ height: '34px', maxWidth: '80px', objectFit: 'contain', background: '#fff', padding: '2px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#166534' }}>✓ Logo Uploaded</div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => logoInputRef.current?.click()}
+                                                    style={{ fontSize: '0.7rem', color: '#1B6B3A', background: 'transparent', border: 'none', padding: 0, fontWeight: '700', cursor: 'pointer', textDecoration: 'underline' }}
+                                                >
+                                                    Change Logo
+                                                </button>
+                                            </div>
+                                            <input 
+                                                ref={logoInputRef}
+                                                type="file" 
+                                                accept="image/*"
+                                                onChange={handleLogoUpload}
+                                                style={{ display: 'none' }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <input 
+                                                ref={logoInputRef}
+                                                type="file" 
+                                                accept="image/*"
+                                                onChange={handleLogoUpload}
+                                                style={{ fontSize: '0.78rem', width: '100%' }}
+                                            />
+                                            <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', fontWeight: '600', marginTop: '0.35rem' }}>
+                                                Recommended image size: 200 × 200 px
+                                            </span>
+                                        </>
+                                    )}
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginBottom: '0.4rem' }}>Tag Badge Icon</label>
@@ -1138,8 +1185,9 @@ const BusinessBarcode = () => {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     color: format.lineColor,
-                                    width: selectedPreset === 'jewelry' ? '280px' : '360px',
+                                    width: selectedPreset === 'jewelry' ? '280px' : `${Math.max(340, Math.min(640, 240 + ((format.width || 2) * 60)))}px`,
                                     maxWidth: '100%',
+                                    overflowX: 'auto',
                                     boxSizing: 'border-box',
                                     border: `2px solid ${format.borderColor || '#e2e8f0'}`,
                                     position: 'relative'
@@ -1147,8 +1195,32 @@ const BusinessBarcode = () => {
                             >
                                 {/* LOGO DISPLAY */}
                                 {logoUrl && (
-                                    <div style={{ marginBottom: '0.5rem', textAlign: 'center' }}>
+                                    <div style={{ marginBottom: '0.5rem', textAlign: 'center', position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <img src={logoUrl} alt="Store Logo" style={{ maxHeight: '36px', maxWidth: '120px', objectFit: 'contain' }} />
+                                        <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); handleRemoveLogo(); }}
+                                            title="Remove logo"
+                                            style={{ 
+                                                position: 'absolute', 
+                                                top: '-6px', 
+                                                right: '-14px', 
+                                                width: '18px', 
+                                                height: '18px', 
+                                                borderRadius: '50%', 
+                                                background: '#ef4444', 
+                                                color: '#ffffff', 
+                                                border: 'none', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center', 
+                                                cursor: 'pointer',
+                                                padding: 0,
+                                                boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                                            }}
+                                        >
+                                            <X size={11} />
+                                        </button>
                                     </div>
                                 )}
 
@@ -1216,13 +1288,13 @@ const BusinessBarcode = () => {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', padding: '0.5rem 0' }}>
                                         <QRCodeCanvas 
                                             value={getEffectivePayload()} 
-                                            size={format.height + 20} 
+                                            size={Math.round((format.height + 20) * ((format.width || 2) / 2))} 
                                             bgColor={format.background}
                                             fgColor={format.lineColor}
                                             level={"H"}
                                         />
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.72rem', flex: 1 }}>
-                                            <span style={{ fontWeight: '900', fontFamily: 'monospace', fontSize: '0.85rem' }}>{codeValue}</span>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                                            <span style={{ fontWeight: '900', fontFamily: 'monospace', fontSize: `${format.fontSize}px` }}>{codeValue}</span>
                                             {encodeCustomData && (
                                                 <span style={{ fontSize: '0.68rem', color: '#1B6B3A', fontWeight: '700' }}>✓ Encoded Payload</span>
                                             )}
@@ -1238,7 +1310,7 @@ const BusinessBarcode = () => {
                                             <div style={{ padding: `${format.margin}px`, textAlign: 'center' }}>
                                                 <QRCodeCanvas 
                                                     value={getEffectivePayload()} 
-                                                    size={format.height + 30} 
+                                                    size={Math.round((format.height + 30) * ((format.width || 2) / 2))} 
                                                     bgColor={format.background}
                                                     fgColor={format.lineColor}
                                                     level={"H"}
@@ -1252,14 +1324,14 @@ const BusinessBarcode = () => {
                                         ) : (
                                             encodeCustomData ? (
                                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                                                    <div style={{ width: '100%', height: `${format.height}px`, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                                                    <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflowX: 'auto', padding: '4px 0' }}>
                                                         <Barcode 
+                                                            key={`barcode-custom-${codeType}-${getEffectivePayload()}-${format.width}-${format.height}-${format.fontSize}-${format.lineColor}-${format.background}`}
                                                             value={getEffectivePayload()}
                                                             format={codeType}
-                                                            width={1}
+                                                            width={format.width}
                                                             height={format.height}
                                                             displayValue={false}
-                                                            fontSize={format.fontSize}
                                                             background={format.background}
                                                             lineColor={format.lineColor}
                                                             margin={2}
@@ -1272,17 +1344,20 @@ const BusinessBarcode = () => {
                                                     )}
                                                 </div>
                                             ) : (
-                                                <Barcode 
-                                                    value={getEffectivePayload()}
-                                                    format={codeType}
-                                                    width={format.width}
-                                                    height={format.height}
-                                                    displayValue={format.displayValue}
-                                                    fontSize={format.fontSize}
-                                                    background={format.background}
-                                                    lineColor={format.lineColor}
-                                                    margin={format.margin}
-                                                />
+                                                <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflowX: 'auto', padding: '4px 0' }}>
+                                                    <Barcode 
+                                                        key={`barcode-std-${codeType}-${getEffectivePayload()}-${format.width}-${format.height}-${format.fontSize}-${format.displayValue}-${format.lineColor}-${format.background}`}
+                                                        value={getEffectivePayload()}
+                                                        format={codeType}
+                                                        width={format.width}
+                                                        height={format.height}
+                                                        displayValue={format.displayValue}
+                                                        fontSize={format.fontSize}
+                                                        background={format.background}
+                                                        lineColor={format.lineColor}
+                                                        margin={format.margin}
+                                                    />
+                                                </div>
                                             )
                                         )}
                                     </div>
@@ -1567,7 +1642,7 @@ const BusinessBarcode = () => {
                                     <div style={{ padding: `${format.margin}px`, textAlign: 'center' }}>
                                         <QRCodeCanvas 
                                             value={getEffectivePayload()} 
-                                            size={format.height + 60} 
+                                            size={Math.round((format.height + 50) * ((format.width || 2) / 2))} 
                                             bgColor={format.background}
                                             fgColor={format.lineColor}
                                             level={"H"}
@@ -1581,14 +1656,14 @@ const BusinessBarcode = () => {
                                 ) : (
                                     encodeCustomData ? (
                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                                            <div style={{ width: '100%', height: `${format.height + 40}px`, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                                            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflowX: 'auto', padding: '6px 0' }}>
                                                 <Barcode 
+                                                    key={`modal-custom-${codeType}-${getEffectivePayload()}-${format.width}-${format.height}-${format.fontSize}-${format.lineColor}-${format.background}`}
                                                     value={getEffectivePayload()}
                                                     format={codeType}
-                                                    width={1}
+                                                    width={format.width}
                                                     height={format.height + 40}
                                                     displayValue={false}
-                                                    fontSize={format.fontSize + 2}
                                                     background={format.background}
                                                     lineColor={format.lineColor}
                                                     margin={2}
@@ -1601,17 +1676,20 @@ const BusinessBarcode = () => {
                                             )}
                                         </div>
                                     ) : (
-                                        <Barcode 
-                                            value={getEffectivePayload()}
-                                            format={codeType}
-                                            width={Math.max(format.width, 2.5)}
-                                            height={format.height + 40}
-                                            displayValue={format.displayValue}
-                                            fontSize={format.fontSize + 2}
-                                            background={format.background}
-                                            lineColor={format.lineColor}
-                                            margin={format.margin}
-                                        />
+                                        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflowX: 'auto', padding: '6px 0' }}>
+                                            <Barcode 
+                                                key={`modal-std-${codeType}-${getEffectivePayload()}-${format.width}-${format.height}-${format.fontSize}-${format.displayValue}-${format.lineColor}-${format.background}`}
+                                                value={getEffectivePayload()}
+                                                format={codeType}
+                                                width={format.width}
+                                                height={format.height + 40}
+                                                displayValue={format.displayValue}
+                                                fontSize={format.fontSize + 2}
+                                                background={format.background}
+                                                lineColor={format.lineColor}
+                                                margin={format.margin}
+                                            />
+                                        </div>
                                     )
                                 )}
                             </div>
