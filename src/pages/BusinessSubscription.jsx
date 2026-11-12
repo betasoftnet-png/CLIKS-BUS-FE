@@ -420,25 +420,97 @@ const BusinessSubscription = () => {
                 </span>
             );
         }
-        return <span style={{ fontWeight: val === 'Unlimited' ? '800' : '600', color: val === 'Unlimited' ? '#16A34A' : '#1E293B', fontSize: '0.88rem' }}>{val}</span>;
+        return <span className={`cmp-cell-val ${val === 'Unlimited' ? 'unlimited' : ''}`} style={{ fontWeight: val === 'Unlimited' ? '800' : '600', fontSize: '0.88rem' }}>{val}</span>;
     };
 
     return (
-        <div style={{ padding: '1.25rem 2.5rem', background: '#F0F9F4', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
+        <div className="subscription-page-root" style={{ padding: '1.25rem 2.5rem', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
             <style>{`
+                .subscription-page-root {
+                    background-color: #F0F9F4;
+                    color: #1E293B;
+                }
+                .subscription-title {
+                    color: #064E3B;
+                }
+                .subscription-subtitle {
+                    color: #475569;
+                }
+                .sub-billing-cycle-badge {
+                    background: #DCF2E4;
+                }
+                .sub-billing-cycle-label {
+                    color: #064E3B;
+                }
+                .sub-tabs-pill-container {
+                    background: rgba(220, 242, 228, 0.7);
+                    backdrop-filter: blur(8px);
+                    border: 1px solid rgba(27, 107, 58, 0.15);
+                    box-shadow: 0 8px 32px 0 rgba(27, 107, 58, 0.04);
+                }
                 .sub-tab-btn {
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .sub-tab-btn:not(.active) {
+                    color: #475569;
+                }
+                .sub-tab-btn.active {
+                    color: #ffffff;
                 }
                 .sub-tab-btn:hover {
                     transform: translateY(-1px) scale(1.03);
                     opacity: 0.95;
                 }
+                .sub-beta-card {
+                    background: #ffffff;
+                    color: #1E293B;
+                    border: 1px solid #E2E8F0;
+                }
+                .sub-section-title {
+                    color: #064E3B;
+                }
                 .plan-card {
+                    background: #ffffff;
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 }
                 .plan-card:hover {
                     transform: translateY(-8px) !important;
                     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08) !important;
+                }
+                .plan-title {
+                    color: #1E293B;
+                }
+                .plan-desc {
+                    color: #64748B;
+                }
+                .plan-orig-price {
+                    color: #94A3B8;
+                }
+                .plan-save-badge {
+                    color: #1B6B3A;
+                    background: #DCF2E4;
+                }
+                .plan-price {
+                    color: #1E293B;
+                }
+                .plan-period,
+                .plan-equiv {
+                    color: #64748B;
+                }
+                .firm-stepper-box {
+                    background: #F8FAFC;
+                    border: 1px solid #E2E8F0;
+                }
+                .firm-stepper-box span {
+                    color: #475569;
+                }
+                .firm-stepper-box button {
+                    background: white;
+                    border: 1px solid #CBD5E1;
+                    color: #1E293B;
+                }
+                .plan-card .upgrade-btn {
+                    background: white;
                 }
                 .upgrade-btn {
                     transition: all 0.2s ease-in-out;
@@ -447,8 +519,441 @@ const BusinessSubscription = () => {
                     opacity: 0.95;
                     transform: scale(1.02);
                 }
-                .cmp-table tr:hover {
+                .plan-divider {
+                    border-color: #F1F5F9;
+                }
+                .plan-included-header {
+                    color: #1E293B;
+                }
+                .plan-feature-item {
+                    color: #475569;
+                }
+                .cmp-table-container {
+                    background: white;
+                    border: 1px solid #E2E8F0;
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04);
+                }
+                .cmp-header-icon-wrap {
+                    background: #DCF2E4;
+                    color: #1B6B3A;
+                }
+                .cmp-title {
+                    color: #064E3B;
+                }
+                .cmp-desc {
+                    color: #64748B;
+                }
+                .cmp-table-inner-wrap {
+                    border: 1px solid #E2E8F0;
+                }
+                .cmp-th-feature {
+                    color: #0F172A;
+                    background: #F8FAFC;
+                    border-bottom: 2px solid #E2E8F0;
+                }
+                .cmp-row {
+                    border-bottom: 1px solid #E2E8F0;
+                }
+                .cmp-row-even {
+                    background: #ffffff;
+                }
+                .cmp-row-odd {
+                    background: #FAFAFA;
+                }
+                .cmp-table tr:hover td {
                     background-color: #F8FAFC !important;
+                }
+                .cmp-feature-name {
+                    color: #334155;
+                }
+                .cmp-cell-val {
+                    color: #1E293B;
+                }
+                .cmp-cell-val.unlimited {
+                    color: #16A34A;
+                }
+                .invoices-history-card {
+                    background: white;
+                    border: 1px solid #E2E8F0;
+                }
+                .invoices-title {
+                    color: #064E3B;
+                }
+                .invoices-table-inner-wrap {
+                    border: 1px solid #E2E8F0;
+                }
+                .invoices-thead {
+                    background: #F8FAFC;
+                }
+                .invoices-thead th {
+                    color: #94A3B8;
+                }
+                .invoice-row {
+                    border-bottom: 1px solid #F1F5F9;
+                }
+                .invoice-row.inv-row-even {
+                    background: #ffffff;
+                }
+                .invoice-row.inv-row-odd {
+                    background: #FAFAFA;
+                }
+                .invoice-id {
+                    color: #064E3B;
+                }
+                .invoice-date {
+                    color: #64748B;
+                }
+                .invoice-tier {
+                    color: #1E293B;
+                }
+                .invoice-method-pill {
+                    background: #F1F5F9;
+                    color: #475569;
+                }
+                .invoice-status-pill {
+                    background: #F0FDF4;
+                    color: #1B6B3A;
+                }
+                .invoice-amount {
+                    color: #1E293B;
+                }
+                .icai-modal-card {
+                    background: #ffffff;
+                    border: 1px solid #E2E8F0;
+                    color: #0F172A;
+                }
+                .icai-modal-card h3 {
+                    color: #0F172A;
+                }
+                .icai-modal-card p {
+                    color: #64748B;
+                }
+                .icai-modal-info {
+                    background: #F8FAFC;
+                    border-top: 1px solid #F1F5F9;
+                    border-bottom: 1px solid #F1F5F9;
+                    color: #475569;
+                }
+                .icai-modal-cancel-btn {
+                    background: #F1F5F9;
+                    color: #475569;
+                    border: 1px solid #CBD5E1;
+                }
+
+                /* Dark Mode Overrides for Subscription Page */
+                [data-theme='dark'] .subscription-page-root,
+                .dark-theme .subscription-page-root,
+                .dark .subscription-page-root {
+                    background-color: #0B0F19 !important;
+                    background: #0B0F19 !important;
+                    color: #F8FAFC !important;
+                }
+                [data-theme='dark'] .subscription-title,
+                .dark-theme .subscription-title,
+                .dark .subscription-title,
+                [data-theme='dark'] .sub-section-title,
+                .dark-theme .sub-section-title,
+                .dark .sub-section-title,
+                [data-theme='dark'] .cmp-title,
+                .dark-theme .cmp-title,
+                .dark .cmp-title,
+                [data-theme='dark'] .invoices-title,
+                .dark-theme .invoices-title,
+                .dark .invoices-title {
+                    color: #F8FAFC !important;
+                }
+                [data-theme='dark'] .subscription-subtitle,
+                .dark-theme .subscription-subtitle,
+                .dark .subscription-subtitle,
+                [data-theme='dark'] .cmp-desc,
+                .dark-theme .cmp-desc,
+                .dark .cmp-desc {
+                    color: #94A3B8 !important;
+                }
+                [data-theme='dark'] .sub-billing-cycle-badge,
+                .dark-theme .sub-billing-cycle-badge,
+                .dark .sub-billing-cycle-badge {
+                    background: rgba(16, 185, 129, 0.15) !important;
+                    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+                }
+                [data-theme='dark'] .sub-billing-cycle-label,
+                .dark-theme .sub-billing-cycle-label,
+                .dark .sub-billing-cycle-label {
+                    color: #34D399 !important;
+                }
+                [data-theme='dark'] .sub-tabs-pill-container,
+                .dark-theme .sub-tabs-pill-container,
+                .dark .sub-tabs-pill-container {
+                    background: #141E33 !important;
+                    border: 1px solid #1E293B !important;
+                    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+                }
+                [data-theme='dark'] .sub-tab-btn:not(.active),
+                .dark-theme .sub-tab-btn:not(.active),
+                .dark .sub-tab-btn:not(.active) {
+                    color: #94A3B8 !important;
+                }
+                [data-theme='dark'] .sub-beta-card,
+                .dark-theme .sub-beta-card,
+                .dark .sub-beta-card {
+                    background: #141E33 !important;
+                    border: 1px solid #1E293B !important;
+                    color: #F8FAFC !important;
+                }
+                [data-theme='dark'] .plan-card,
+                .dark-theme .plan-card,
+                .dark .plan-card {
+                    background: #141E33 !important;
+                    border-color: #1E293B !important;
+                    color: #F8FAFC !important;
+                }
+                [data-theme='dark'] .plan-card.is-active,
+                .dark-theme .plan-card.is-active,
+                .dark .plan-card.is-active {
+                    border-color: #0f766e !important;
+                    box-shadow: 0 20px 25px -5px rgba(15, 118, 110, 0.35) !important;
+                }
+                [data-theme='dark'] .plan-title,
+                .dark-theme .plan-title,
+                .dark .plan-title,
+                [data-theme='dark'] .plan-price,
+                .dark-theme .plan-price,
+                .dark .plan-price {
+                    color: #F8FAFC !important;
+                }
+                [data-theme='dark'] .plan-desc,
+                .dark-theme .plan-desc,
+                .dark .plan-desc,
+                [data-theme='dark'] .plan-period,
+                .dark-theme .plan-period,
+                .dark .plan-period,
+                [data-theme='dark'] .plan-equiv,
+                .dark-theme .plan-equiv,
+                .dark .plan-equiv {
+                    color: #94A3B8 !important;
+                }
+                [data-theme='dark'] .plan-orig-price,
+                .dark-theme .plan-orig-price,
+                .dark .plan-orig-price {
+                    color: #64748B !important;
+                }
+                [data-theme='dark'] .plan-save-badge,
+                .dark-theme .plan-save-badge,
+                .dark .plan-save-badge {
+                    background: rgba(16, 185, 129, 0.2) !important;
+                    color: #6EE7B7 !important;
+                }
+                [data-theme='dark'] .firm-stepper-box,
+                .dark-theme .firm-stepper-box,
+                .dark .firm-stepper-box {
+                    background: #0F172A !important;
+                    border-color: #1E293B !important;
+                }
+                [data-theme='dark'] .firm-stepper-box span,
+                .dark-theme .firm-stepper-box span,
+                .dark .firm-stepper-box span {
+                    color: #E2E8F0 !important;
+                }
+                [data-theme='dark'] .firm-stepper-box button,
+                .dark-theme .firm-stepper-box button,
+                .dark .firm-stepper-box button {
+                    background: #1E293B !important;
+                    border-color: #334155 !important;
+                    color: #F8FAFC !important;
+                }
+                [data-theme='dark'] .plan-card .upgrade-btn,
+                .dark-theme .plan-card .upgrade-btn,
+                .dark .plan-card .upgrade-btn {
+                    background: #141E33 !important;
+                }
+                [data-theme='dark'] .plan-card .upgrade-btn:hover,
+                .dark-theme .plan-card .upgrade-btn:hover,
+                .dark .plan-card .upgrade-btn:hover {
+                    background: #1E293B !important;
+                }
+                [data-theme='dark'] .plan-divider,
+                .dark-theme .plan-divider,
+                .dark .plan-divider {
+                    border-color: #1E293B !important;
+                }
+                [data-theme='dark'] .plan-included-header,
+                .dark-theme .plan-included-header,
+                .dark .plan-included-header {
+                    color: #E2E8F0 !important;
+                }
+                [data-theme='dark'] .plan-feature-item,
+                .dark-theme .plan-feature-item,
+                .dark .plan-feature-item {
+                    color: #CBD5E1 !important;
+                }
+                [data-theme='dark'] .cmp-table-container,
+                .dark-theme .cmp-table-container,
+                .dark .cmp-table-container,
+                [data-theme='dark'] .invoices-history-card,
+                .dark-theme .invoices-history-card,
+                .dark .invoices-history-card {
+                    background: #141E33 !important;
+                    border-color: #1E293B !important;
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4) !important;
+                    color: #F8FAFC !important;
+                }
+                [data-theme='dark'] .cmp-header-icon-wrap,
+                .dark-theme .cmp-header-icon-wrap,
+                .dark .cmp-header-icon-wrap {
+                    background: rgba(16, 185, 129, 0.15) !important;
+                    color: #34D399 !important;
+                }
+                [data-theme='dark'] .cmp-table-inner-wrap,
+                .dark-theme .cmp-table-inner-wrap,
+                .dark .cmp-table-inner-wrap,
+                [data-theme='dark'] .invoices-table-inner-wrap,
+                .dark-theme .invoices-table-inner-wrap,
+                .dark .invoices-table-inner-wrap {
+                    border-color: #1E293B !important;
+                }
+                [data-theme='dark'] .cmp-table,
+                .dark-theme .cmp-table,
+                .dark .cmp-table {
+                    background: #141E33 !important;
+                }
+                [data-theme='dark'] .cmp-th-feature,
+                .dark-theme .cmp-th-feature,
+                .dark .cmp-th-feature {
+                    background: #0F172A !important;
+                    color: #F8FAFC !important;
+                    border-bottom: 2px solid #1E293B !important;
+                }
+                [data-theme='dark'] .cmp-table th,
+                .dark-theme .cmp-table th,
+                .dark .cmp-table th {
+                    border-bottom: 2px solid #1E293B !important;
+                }
+                [data-theme='dark'] .cmp-row,
+                .dark-theme .cmp-row,
+                .dark .cmp-row {
+                    border-bottom: 1px solid #1E293B !important;
+                }
+                [data-theme='dark'] .cmp-row-even,
+                .dark-theme .cmp-row-even,
+                .dark .cmp-row-even {
+                    background: #141E33 !important;
+                }
+                [data-theme='dark'] .cmp-row-odd,
+                .dark-theme .cmp-row-odd,
+                .dark .cmp-row-odd {
+                    background: #0F172A !important;
+                }
+                [data-theme='dark'] .cmp-table tr:hover td,
+                .dark-theme .cmp-table tr:hover td,
+                .dark .cmp-table tr:hover td {
+                    background-color: #1E293B !important;
+                }
+                [data-theme='dark'] .cmp-feature-name,
+                .dark-theme .cmp-feature-name,
+                .dark .cmp-feature-name {
+                    color: #E2E8F0 !important;
+                }
+                [data-theme='dark'] .cmp-cell-val,
+                .dark-theme .cmp-cell-val,
+                .dark .cmp-cell-val {
+                    color: #F1F5F9 !important;
+                }
+                [data-theme='dark'] .cmp-cell-val.unlimited,
+                .dark-theme .cmp-cell-val.unlimited,
+                .dark .cmp-cell-val.unlimited {
+                    color: #34D399 !important;
+                }
+                [data-theme='dark'] .invoices-header-icon,
+                .dark-theme .invoices-header-icon,
+                .dark .invoices-header-icon {
+                    color: #34D399 !important;
+                }
+                [data-theme='dark'] .invoices-thead,
+                .dark-theme .invoices-thead,
+                .dark .invoices-thead {
+                    background: #0F172A !important;
+                }
+                [data-theme='dark'] .invoices-thead th,
+                .dark-theme .invoices-thead th,
+                .dark .invoices-thead th {
+                    color: #94A3B8 !important;
+                    border-bottom: 1px solid #1E293B !important;
+                }
+                [data-theme='dark'] .invoice-row,
+                .dark-theme .invoice-row,
+                .dark .invoice-row {
+                    border-bottom: 1px solid #1E293B !important;
+                }
+                [data-theme='dark'] .invoice-row.inv-row-even,
+                .dark-theme .invoice-row.inv-row-even,
+                .dark .invoice-row.inv-row-even {
+                    background: #141E33 !important;
+                }
+                [data-theme='dark'] .invoice-row.inv-row-odd,
+                .dark-theme .invoice-row.inv-row-odd,
+                .dark .invoice-row.inv-row-odd {
+                    background: #0F172A !important;
+                }
+                [data-theme='dark'] .invoice-id,
+                .dark-theme .invoice-id,
+                .dark .invoice-id {
+                    color: #34D399 !important;
+                }
+                [data-theme='dark'] .invoice-date,
+                .dark-theme .invoice-date,
+                .dark .invoice-date {
+                    color: #94A3B8 !important;
+                }
+                [data-theme='dark'] .invoice-tier,
+                .dark-theme .invoice-tier,
+                .dark .invoice-tier,
+                [data-theme='dark'] .invoice-amount,
+                .dark-theme .invoice-amount,
+                .dark .invoice-amount {
+                    color: #F8FAFC !important;
+                }
+                [data-theme='dark'] .invoice-method-pill,
+                .dark-theme .invoice-method-pill,
+                .dark .invoice-method-pill {
+                    background: #1E293B !important;
+                    color: #CBD5E1 !important;
+                }
+                [data-theme='dark'] .invoice-status-pill,
+                .dark-theme .invoice-status-pill,
+                .dark .invoice-status-pill {
+                    background: rgba(16, 185, 129, 0.18) !important;
+                    color: #34D399 !important;
+                }
+                [data-theme='dark'] .icai-modal-card,
+                .dark-theme .icai-modal-card,
+                .dark .icai-modal-card {
+                    background: #141E33 !important;
+                    border-color: #1E293B !important;
+                    color: #F8FAFC !important;
+                }
+                [data-theme='dark'] .icai-modal-card h3,
+                .dark-theme .icai-modal-card h3,
+                .dark .icai-modal-card h3 {
+                    color: #F8FAFC !important;
+                }
+                [data-theme='dark'] .icai-modal-card p,
+                .dark-theme .icai-modal-card p,
+                .dark .icai-modal-card p {
+                    color: #94A3B8 !important;
+                }
+                [data-theme='dark'] .icai-modal-info,
+                .dark-theme .icai-modal-info,
+                .dark .icai-modal-info {
+                    background: #0F172A !important;
+                    border-color: #1E293B !important;
+                    color: #CBD5E1 !important;
+                }
+                [data-theme='dark'] .icai-modal-cancel-btn,
+                .dark-theme .icai-modal-cancel-btn,
+                .dark .icai-modal-cancel-btn {
+                    background: #1E293B !important;
+                    border-color: #334155 !important;
+                    color: #CBD5E1 !important;
                 }
             `}</style>
 
@@ -459,14 +964,14 @@ const BusinessSubscription = () => {
                         <div style={{ width: '42px', height: '42px', borderRadius: '14px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
                             <CreditCard size={22} />
                         </div>
-                        <h1 style={{ fontSize: '2rem', fontWeight: '850', color: '#064E3B' }}>Subscription & Billing</h1>
+                        <h1 className="subscription-title" style={{ fontSize: '2rem', fontWeight: '850' }}>Subscription & Billing</h1>
                     </div>
-                    <p style={{ color: '#475569', fontWeight: '500' }}>Manage your active workspace tier, features access, and transaction statements.</p>
+                    <p className="subscription-subtitle" style={{ fontWeight: '500' }}>Manage your active workspace tier, features access, and transaction statements.</p>
                 </div>
                 
                 {/* Billing Badge */}
-                <div style={{ display: 'flex', background: '#DCF2E4', padding: '0.6rem 1.25rem', borderRadius: '14px', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ color: '#064E3B', fontWeight: '800', fontSize: '0.85rem' }}>Annual Billing Cycle</span>
+                <div className="sub-billing-cycle-badge" style={{ display: 'flex', padding: '0.6rem 1.25rem', borderRadius: '14px', alignItems: 'center', gap: '0.5rem' }}>
+                    <span className="sub-billing-cycle-label" style={{ fontWeight: '800', fontSize: '0.85rem' }}>Annual Billing Cycle</span>
                     <span style={{ background: '#1B6B3A', color: 'white', fontSize: '0.65rem', padding: '0.15rem 0.4rem', borderRadius: '6px', fontWeight: '800' }}>ACTIVE</span>
                 </div>
             </div>
@@ -536,14 +1041,10 @@ const BusinessSubscription = () => {
 
             {/* Custom Modern Tabs */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-                <div style={{ 
+                <div className="sub-tabs-pill-container" style={{ 
                     display: 'flex', 
-                    background: 'rgba(220, 242, 228, 0.7)', 
-                    backdropFilter: 'blur(8px)',
                     padding: '0.4rem', 
                     borderRadius: '24px', 
-                    border: '1px solid rgba(27, 107, 58, 0.15)',
-                    boxShadow: '0 8px 32px 0 rgba(27, 107, 58, 0.04)',
                     gap: '0.25rem',
                     flexWrap: 'wrap',
                     justifyContent: 'center'
@@ -557,7 +1058,7 @@ const BusinessSubscription = () => {
                         return (
                             <button
                                 key={tab.id}
-                                className="sub-tab-btn"
+                                className={`sub-tab-btn ${isTabActive ? 'active' : ''}`}
                                 onClick={() => setActiveCategory(tab.id)}
                                 style={{
                                     padding: '0.75rem 2rem',
@@ -566,7 +1067,6 @@ const BusinessSubscription = () => {
                                     background: isTabActive 
                                         ? `linear-gradient(135deg, ${tab.color} 0%, #0c0f1d 160%)` 
                                         : 'transparent',
-                                    color: isTabActive ? 'white' : '#475569',
                                     fontSize: '0.9rem',
                                     fontWeight: '800',
                                     cursor: 'pointer',
@@ -598,10 +1098,9 @@ const BusinessSubscription = () => {
                 }}>
                     <div 
                         onClick={() => setBetaSubCategory('investor')}
+                        className={`sub-beta-card ${betaSubCategory === 'investor' ? 'active' : ''}`}
                         style={{
-                            background: betaSubCategory === 'investor' ? 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)' : 'white',
-                            color: betaSubCategory === 'investor' ? 'white' : '#1E293B',
-                            border: betaSubCategory === 'investor' ? 'none' : '1px solid #E2E8F0',
+                            background: betaSubCategory === 'investor' ? 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)' : undefined,
                             padding: '1.25rem 2rem',
                             borderRadius: '24px',
                             cursor: 'pointer',
@@ -619,10 +1118,9 @@ const BusinessSubscription = () => {
 
                     <div 
                         onClick={() => setBetaSubCategory('product')}
+                        className={`sub-beta-card ${betaSubCategory === 'product' ? 'active' : ''}`}
                         style={{
-                            background: betaSubCategory === 'product' ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : 'white',
-                            color: betaSubCategory === 'product' ? 'white' : '#1E293B',
-                            border: betaSubCategory === 'product' ? 'none' : '1px solid #E2E8F0',
+                            background: betaSubCategory === 'product' ? 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)' : undefined,
                             padding: '1.25rem 2rem',
                             borderRadius: '24px',
                             cursor: 'pointer',
@@ -641,7 +1139,7 @@ const BusinessSubscription = () => {
             )}
 
             {/* Pricing Tiers Selection Grid */}
-            <h3 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.25rem' }}>Upgrade Workspace Tier</h3>
+            <h3 className="sub-section-title" style={{ fontSize: '1.5rem', fontWeight: '850', marginBottom: '1.25rem' }}>Upgrade Workspace Tier</h3>
             <div style={{ 
                 display: 'grid', 
                 gridTemplateColumns: `repeat(${allTiers[activeCategory === 'betaclub' ? (betaSubCategory === 'investor' ? 'betaclub_investor' : 'betaclub_product') : activeCategory].length}, minmax(0, 1fr))`, 
@@ -667,10 +1165,9 @@ const BusinessSubscription = () => {
                     return (
                         <div 
                             key={idx} 
-                            className="plan-card"
+                            className={`plan-card ${isActive ? 'is-active' : ''}`}
                             onClick={() => setSelectedTier(tier.name)}
                             style={{ 
-                                background: 'white', 
                                 borderRadius: '24px', 
                                 border: isActive ? `3px solid #0f766e` : '1px solid #E2E8F0',
                                 padding: '1.75rem 2rem',
@@ -688,42 +1185,40 @@ const BusinessSubscription = () => {
                             <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: `${tier.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tier.color, marginBottom: '1rem' }}>
                                 <TierIcon size={24} />
                             </div>
-                            <h4 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#1E293B', marginBottom: '0.5rem' }}>{tier.name}</h4>
-                            <p style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: '500', marginBottom: '1.25rem', minHeight: '34px' }}>{tier.desc}</p>
+                            <h4 className="plan-title" style={{ fontSize: '1.35rem', fontWeight: '850', marginBottom: '0.5rem' }}>{tier.name}</h4>
+                            <p className="plan-desc" style={{ fontSize: '0.85rem', fontWeight: '500', marginBottom: '1.25rem', minHeight: '34px' }}>{tier.desc}</p>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '1.25rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-                                    <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#94A3B8', textDecoration: 'line-through' }}>{formatCurrency(originalPrice)}</span>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1B6B3A', background: '#DCF2E4', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Save {formatCurrency(originalPrice - price)}</span>
+                                    <span className="plan-orig-price" style={{ fontSize: '1.25rem', fontWeight: '700', textDecoration: 'line-through' }}>{formatCurrency(originalPrice)}</span>
+                                    <span className="plan-save-badge" style={{ fontSize: '0.8rem', fontWeight: '800', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>Save {formatCurrency(originalPrice - price)}</span>
                                 </div>
                                 <div className="flex items-baseline gap-1.5" style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
-                                    <span className="leading-none" style={{ fontSize: '2.25rem', fontWeight: '900', color: '#1E293B', lineHeight: 1 }}>{formatCurrency(price)}</span>
-                                    <span style={{ color: '#64748B', fontWeight: '600', fontSize: '0.9rem', lineHeight: 1 }}>/ {tier.period || 'year'}</span>
+                                    <span className="plan-price leading-none" style={{ fontSize: '2.25rem', fontWeight: '900', lineHeight: 1 }}>{formatCurrency(price)}</span>
+                                    <span className="plan-period" style={{ fontWeight: '600', fontSize: '0.9rem', lineHeight: 1 }}>/ {tier.period || 'year'}</span>
                                 </div>
                                 {(!tier.period || tier.period === 'year') ? (
-                                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748B', marginTop: '0.15rem' }}>
+                                    <span className="plan-equiv" style={{ fontSize: '0.85rem', fontWeight: '600', marginTop: '0.15rem' }}>
                                         (Equivalent to {formatCurrency(Math.round(price / 12))} per month)
                                     </span>
                                 ) : (
-                                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748B', marginTop: '0.15rem' }}>
+                                    <span className="plan-equiv" style={{ fontSize: '0.85rem', fontWeight: '600', marginTop: '0.15rem' }}>
                                         (Billed every month)
                                     </span>
                                 )}
                             </div>
 
                             {isFirmPlan && (
-                                <div style={{ 
+                                <div className="firm-stepper-box" style={{ 
                                     margin: '0 0 1.25rem 0', 
                                     padding: '0.75rem 1rem', 
-                                    background: '#F8FAFC', 
                                     borderRadius: '16px', 
-                                    border: '1px solid #E2E8F0',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     gap: '0.35rem'
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#475569' }}>Total Team Members:</span>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: '700' }}>Total Team Members:</span>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                             <button 
                                                 onClick={(e) => {
@@ -734,8 +1229,6 @@ const BusinessSubscription = () => {
                                                     width: '24px', 
                                                     height: '24px', 
                                                     borderRadius: '50%', 
-                                                    border: '1px solid #CBD5E1', 
-                                                    background: 'white', 
                                                     fontWeight: '800', 
                                                     cursor: 'pointer',
                                                     display: 'flex',
@@ -744,7 +1237,7 @@ const BusinessSubscription = () => {
                                                     fontSize: '0.85rem'
                                                 }}
                                             >-</button>
-                                            <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E293B', minWidth: '16px', textAlign: 'center' }}>{firmMembersCount}</span>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: '800', minWidth: '16px', textAlign: 'center' }}>{firmMembersCount}</span>
                                             <button 
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -754,8 +1247,6 @@ const BusinessSubscription = () => {
                                                     width: '24px', 
                                                     height: '24px', 
                                                     borderRadius: '50%', 
-                                                    border: '1px solid #CBD5E1', 
-                                                    background: 'white', 
                                                     fontWeight: '800', 
                                                     cursor: 'pointer',
                                                     display: 'flex',
@@ -806,13 +1297,12 @@ const BusinessSubscription = () => {
                                         e.preventDefault();
                                         e.stopPropagation();
                                     }}
-                                    className="w-full py-2.5 px-4 border border-purple-400 text-purple-600 bg-white rounded-xl text-sm font-semibold cursor-default select-none transition-none shadow-none"
+                                    className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold cursor-default select-none transition-none shadow-none"
                                     style={{ 
                                         width: '100%', 
                                         padding: '0.85rem', 
                                         borderRadius: '16px', 
                                         border: `1px solid ${tier.color || '#a855f7'}`,
-                                        background: 'white',
                                         color: tier.color || '#7c3aed',
                                         fontWeight: '800',
                                         cursor: 'default',
@@ -836,7 +1326,6 @@ const BusinessSubscription = () => {
                                         padding: '0.85rem', 
                                         borderRadius: '16px', 
                                         border: `1px solid ${tier.color}`,
-                                        background: isProcessing ? '#94A3B8' : 'white',
                                         color: tier.color,
                                         fontWeight: '800',
                                         cursor: isProcessing ? 'not-allowed' : 'pointer',
@@ -847,11 +1336,11 @@ const BusinessSubscription = () => {
                                 </button>
                             )}
 
-                            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem' }}>
-                                <p style={{ fontSize: '0.8rem', fontWeight: '800', color: '#1E293B', textTransform: 'uppercase', marginBottom: '0.75rem', letterSpacing: '0.05em' }}>What's Included</p>
+                            <div className="plan-divider" style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem' }}>
+                                <p className="plan-included-header" style={{ fontSize: '0.8rem', fontWeight: '800', textTransform: 'uppercase', marginBottom: '0.75rem', letterSpacing: '0.05em' }}>What's Included</p>
                                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                     {tier.features.map((feature, i) => (
-                                        <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>
+                                        <li key={i} className="plan-feature-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.85rem', fontWeight: '500' }}>
                                             <Check size={16} style={{ color: tier.color, flexShrink: 0, marginTop: '0.15rem' }} />
                                             <span>{feature}</span>
                                         </li>
@@ -865,27 +1354,27 @@ const BusinessSubscription = () => {
 
             {/* Plan Comparison Table Section (Business Category) */}
             {activeCategory === 'business' && (
-                <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2rem 2.5rem', marginBottom: '3rem', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.04)' }}>
+                <div className="cmp-table-container" style={{ borderRadius: '32px', padding: '2rem 2.5rem', marginBottom: '3rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '12px', background: '#DCF2E4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B6B3A' }}>
+                        <div className="cmp-header-icon-wrap" style={{ width: '36px', height: '36px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <ShieldCheck size={20} />
                         </div>
                         <div>
-                            <h3 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>Plan Features Comparison</h3>
-                            <p style={{ fontSize: '0.85rem', color: '#64748B', margin: 0, fontWeight: '500' }}>Compare exact features, usage quotas, and capabilities across all subscription tiers.</p>
+                            <h3 className="cmp-title" style={{ fontSize: '1.35rem', fontWeight: '850', margin: 0 }}>Plan Features Comparison</h3>
+                            <p className="cmp-desc" style={{ fontSize: '0.85rem', margin: 0, fontWeight: '500' }}>Compare exact features, usage quotas, and capabilities across all subscription tiers.</p>
                         </div>
                     </div>
 
-                    <div style={{ border: '1px solid #E2E8F0', borderRadius: '20px', overflow: 'hidden' }}>
+                    <div className="cmp-table-inner-wrap" style={{ borderRadius: '20px', overflow: 'hidden' }}>
                         <table className="cmp-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontFamily: "'Inter', sans-serif" }}>
                             <thead>
                                 <tr>
-                                    <th style={{ width: '31%', padding: '1.25rem 1.5rem', textAlign: 'left', fontSize: '1.1rem', fontWeight: '850', color: '#0F172A', background: '#F8FAFC', borderBottom: '2px solid #E2E8F0' }}>
+                                    <th className="cmp-th-feature" style={{ width: '31%', padding: '1.25rem 1.5rem', textAlign: 'left', fontSize: '1.1rem', fontWeight: '850' }}>
                                         Platform / Feature
                                     </th>
                                     
                                     {/* Starter Plan Header Column */}
-                                    <th style={{ width: '23%', padding: '1.25rem 1rem', background: '#16A34A', color: 'white', borderBottom: '2px solid #E2E8F0', verticalAlign: 'top' }}>
+                                    <th style={{ width: '23%', padding: '1.25rem 1rem', background: '#16A34A', color: 'white', verticalAlign: 'top' }}>
                                         <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Starter</div>
                                         <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹2,999 / year</div>
                                         <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹250/month)</div>
@@ -895,7 +1384,7 @@ const BusinessSubscription = () => {
                                     </th>
 
                                     {/* Growth Plan Header Column */}
-                                    <th style={{ width: '23%', padding: '1.25rem 1rem', background: '#2563EB', color: 'white', borderBottom: '2px solid #E2E8F0', verticalAlign: 'top' }}>
+                                    <th style={{ width: '23%', padding: '1.25rem 1rem', background: '#2563EB', color: 'white', verticalAlign: 'top' }}>
                                         <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Growth</div>
                                         <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹6,999 / year</div>
                                         <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹583/month)</div>
@@ -905,7 +1394,7 @@ const BusinessSubscription = () => {
                                     </th>
 
                                     {/* Elite Plan Header Column */}
-                                    <th style={{ width: '23%', padding: '1.25rem 1rem', background: '#7C3AED', color: 'white', borderBottom: '2px solid #E2E8F0', verticalAlign: 'top' }}>
+                                    <th style={{ width: '23%', padding: '1.25rem 1rem', background: '#7C3AED', color: 'white', verticalAlign: 'top' }}>
                                         <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.01em', marginBottom: '0.35rem' }}>Elite</div>
                                         <div style={{ fontSize: '1rem', fontWeight: '800' }}>₹8,999 / year</div>
                                         <div style={{ fontSize: '0.75rem', opacity: 0.9, fontWeight: '600', marginBottom: '0.5rem' }}>(~₹750/month)</div>
@@ -920,20 +1409,20 @@ const BusinessSubscription = () => {
                                 {comparisonRows.map((row, rIdx) => {
                                     const RowIcon = row.icon;
                                     return (
-                                        <tr key={rIdx} style={{ borderBottom: rIdx === comparisonRows.length - 1 ? 'none' : '1px solid #E2E8F0', background: rIdx % 2 === 0 ? 'white' : '#FAFAFA' }}>
-                                            <td style={{ padding: '0.85rem 1.5rem', textAlign: 'left', fontWeight: '700', color: '#334155', fontSize: '0.88rem' }}>
+                                        <tr key={rIdx} className={`cmp-row ${rIdx % 2 === 0 ? 'cmp-row-even' : 'cmp-row-odd'}`}>
+                                            <td className="cmp-feature-name" style={{ padding: '0.85rem 1.5rem', textAlign: 'left', fontWeight: '700', fontSize: '0.88rem' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                                                     <RowIcon size={17} color="#2563EB" />
                                                     <span>{row.feature}</span>
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '0.85rem 1rem', background: 'rgba(22, 163, 74, 0.02)' }}>
+                                            <td style={{ padding: '0.85rem 1rem' }}>
                                                 {renderCellValue(row.starter)}
                                             </td>
-                                            <td style={{ padding: '0.85rem 1rem', background: 'rgba(37, 99, 235, 0.02)' }}>
+                                            <td style={{ padding: '0.85rem 1rem' }}>
                                                 {renderCellValue(row.growth)}
                                             </td>
-                                            <td style={{ padding: '0.85rem 1rem', background: 'rgba(124, 58, 237, 0.02)' }}>
+                                            <td style={{ padding: '0.85rem 1rem' }}>
                                                 {renderCellValue(row.elite)}
                                             </td>
                                         </tr>
@@ -946,32 +1435,32 @@ const BusinessSubscription = () => {
             )}
 
             {/* Invoices History list */}
-            <div style={{ background: 'white', borderRadius: '32px', border: '1px solid #E2E8F0', padding: '2.5rem' }}>
+            <div className="invoices-history-card" style={{ borderRadius: '32px', padding: '2.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
-                    <History size={20} style={{ color: '#1B6B3A' }} />
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#064E3B', margin: 0 }}>Billing & Statement History</h3>
+                    <History size={20} className="invoices-header-icon" />
+                    <h3 className="invoices-title" style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0 }}>Billing & Statement History</h3>
                 </div>
-                <div style={{ border: '1px solid #E2E8F0', borderRadius: '24px', overflow: 'hidden' }}>
+                <div className="invoices-table-inner-wrap" style={{ borderRadius: '24px', overflow: 'hidden' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead style={{ background: '#F8FAFC' }}>
+                        <thead className="invoices-thead">
                             <tr style={{ textAlign: 'left' }}>
-                                <th style={{ padding: '1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Invoice ID</th>
-                                <th style={{ padding: '1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Billing Date</th>
-                                <th style={{ padding: '1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Tier Details</th>
-                                <th style={{ padding: '1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Payment Mode</th>
-                                <th style={{ padding: '1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                                <th style={{ padding: '1.25rem', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Amount Paid</th>
+                                <th style={{ padding: '1.25rem', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>Invoice ID</th>
+                                <th style={{ padding: '1.25rem', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>Billing Date</th>
+                                <th style={{ padding: '1.25rem', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>Tier Details</th>
+                                <th style={{ padding: '1.25rem', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>Payment Mode</th>
+                                <th style={{ padding: '1.25rem', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase' }}>Status</th>
+                                <th style={{ padding: '1.25rem', fontSize: '0.7rem', fontWeight: '800', textTransform: 'uppercase', textAlign: 'right' }}>Amount Paid</th>
                             </tr>
                         </thead>
                         <tbody>
                             {invoices.map((inv, idx) => (
-                                <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                    <td style={{ padding: '1.25rem', fontWeight: '800', color: '#064E3B' }}>{inv.id}</td>
-                                    <td style={{ padding: '1.25rem', fontSize: '0.85rem', color: '#64748B', fontWeight: '500' }}>{inv.date}</td>
-                                    <td style={{ padding: '1.25rem', fontWeight: '700', color: '#1E293B' }}>{inv.tier}</td>
-                                    <td style={{ padding: '1.25rem', fontSize: '0.8rem', color: '#475569', fontWeight: '600' }}><span style={{ background: '#F1F5F9', padding: '0.3rem 0.6rem', borderRadius: '8px' }}>{inv.method}</span></td>
-                                    <td style={{ padding: '1.25rem' }}><span style={{ padding: '0.4rem 0.8rem', borderRadius: '10px', background: '#F0FDF4', color: '#1B6B3A', fontSize: '0.8rem', fontWeight: '750' }}>{inv.status}</span></td>
-                                    <td style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '850', color: '#1E293B' }}>{formatCurrency(inv.amount)}</td>
+                                <tr key={idx} className={`invoice-row ${idx % 2 === 0 ? 'inv-row-even' : 'inv-row-odd'}`}>
+                                    <td className="invoice-id" style={{ padding: '1.25rem', fontWeight: '800' }}>{inv.id}</td>
+                                    <td className="invoice-date" style={{ padding: '1.25rem', fontSize: '0.85rem', fontWeight: '500' }}>{inv.date}</td>
+                                    <td className="invoice-tier" style={{ padding: '1.25rem', fontWeight: '700' }}>{inv.tier}</td>
+                                    <td className="invoice-method" style={{ padding: '1.25rem', fontSize: '0.8rem', fontWeight: '600' }}><span className="invoice-method-pill">{inv.method}</span></td>
+                                    <td className="invoice-status" style={{ padding: '1.25rem' }}><span className="invoice-status-pill">{inv.status}</span></td>
+                                    <td className="invoice-amount" style={{ padding: '1.25rem', textAlign: 'right', fontWeight: '850' }}>{formatCurrency(inv.amount)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -995,14 +1484,12 @@ const BusinessSubscription = () => {
                     zIndex: 999999,
                     padding: '20px'
                 }}>
-                    <div style={{
-                        background: '#FFFFFF',
+                    <div className="icai-modal-card" style={{
                         borderRadius: '24px',
                         width: '100%',
                         maxWidth: '520px',
                         overflow: 'hidden',
-                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                        border: '1px solid #E2E8F0'
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
                     }}>
                         <div style={{
                             padding: '28px 28px 20px',
@@ -1025,25 +1512,22 @@ const BusinessSubscription = () => {
                             }}>
                                 <ShieldAlert size={34} />
                             </div>
-                            <h3 style={{ fontSize: '20px', fontWeight: '850', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+                            <h3 style={{ fontSize: '20px', fontWeight: '850', margin: 0, letterSpacing: '-0.02em' }}>
                                 Institutional ICAI Verification Required
                             </h3>
-                            <p style={{ fontSize: '14px', color: '#64748B', marginTop: '10px', lineHeight: '1.6' }}>
+                            <p style={{ fontSize: '14px', marginTop: '10px', lineHeight: '1.6' }}>
                                 You must verify your official ICAI credentials before subscribing to the <strong>FIN-PRO Advisory Suite</strong>. This ensures compliance with institutional CA standards.
                             </p>
                         </div>
 
-                        <div style={{
-                            background: '#F8FAFC',
+                        <div className="icai-modal-info" style={{
                             padding: '16px 28px',
-                            borderTop: '1px solid #F1F5F9',
-                            borderBottom: '1px solid #F1F5F9',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '12px'
                         }}>
                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669', flexShrink: 0 }} />
-                            <span style={{ fontSize: '12.5px', color: '#475569', fontWeight: '600' }}>
+                            <span style={{ fontSize: '12.5px', fontWeight: '600' }}>
                                 Verification takes only a minute and unlocks multi-client auditing, direct workpapers, and client billing.
                             </span>
                         </div>
@@ -1056,13 +1540,11 @@ const BusinessSubscription = () => {
                         }}>
                             <button
                                 type="button"
+                                className="icai-modal-cancel-btn"
                                 onClick={() => setShowIcaiGuardModal(false)}
                                 style={{
                                     padding: '11px 20px',
                                     borderRadius: '12px',
-                                    background: '#F1F5F9',
-                                    color: '#475569',
-                                    border: '1px solid #CBD5E1',
                                     fontSize: '13.5px',
                                     fontWeight: '700',
                                     cursor: 'pointer'
