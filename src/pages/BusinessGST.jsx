@@ -1027,14 +1027,12 @@ const BusinessGST = () => {
             </div>
 
             {/* Quick Metrics Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: activeTab === 'gstr1' ? 'repeat(auto-fit, minmax(180px, 1fr))' : 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                 {activeTab === 'gstr1' ? (
                     <>
                         {[
                             { label: 'Total Taxable Sales', value: formatCurrency(totalTaxableSales), icon: FileText, color: '#3B82F6', bg: '#EFF6FF' },
                             { label: 'Total Output GST', value: formatCurrency(totalOutputGSTCollected), icon: ArrowUpRight, color: '#EC4899', bg: '#FDF2F8' },
-                            { label: 'Total IGST', value: formatCurrency(totalIGST), icon: Zap, color: '#8B5CF6', bg: '#F5F3FF' },
-                            { label: 'Total CGST + SGST', value: formatCurrency(totalCGST + totalSGST), icon: PercentCircle, color: '#10B981', bg: '#ECFDF5' },
                             { label: 'B2B Invoices', value: countB2B, icon: Building, color: '#6366F1', bg: '#EEF2FF' },
                             { label: 'B2C Invoices', value: countB2C, icon: User, color: '#F59E0B', bg: '#FFFBEB' },
                             { label: 'Export Invoices', value: countExport, icon: Truck, color: '#14B8A6', bg: '#F0FDFA' },
@@ -1124,8 +1122,6 @@ const BusinessGST = () => {
                                 { key: 'type', label: 'Type', placeholder: 'B2B/B2C' },
                                 { key: 'place_of_supply', label: 'Place of Supply', placeholder: 'State' },
                                 { key: 'taxable_value', label: 'Taxable Value', placeholder: 'e.g. 10000' },
-                                { key: 'cgst_sgst', label: 'CGST/SGST', placeholder: 'e.g. 900' },
-                                { key: 'igst', label: 'IGST', placeholder: 'e.g. 1800' },
                                 { key: 'total_gst', label: 'Total GST', placeholder: 'e.g. 1800' },
                                 { key: 'status', label: 'Status', placeholder: 'e.g. Filed' },
                                 { key: '_actions', label: 'Actions', noFilter: true }
@@ -1133,7 +1129,7 @@ const BusinessGST = () => {
                             <tbody>
                                 {filteredInvoices.length === 0 ? (
                                     <tr>
-                                        <td colSpan="11" style={{ padding: '3rem', textAlign: 'center' }}>
+                                        <td colSpan="9" style={{ padding: '3rem', textAlign: 'center' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
                                                 <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
                                                     <FileText size={24} />
@@ -1159,12 +1155,6 @@ const BusinessGST = () => {
                                             </td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#475569', fontSize: '0.82rem' }}>{inv.place_of_supply}</td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#1E293B', fontSize: '0.82rem' }}>{formatCurrency(inv.taxable_value)}</td>
-                                            <td style={{ padding: '0.6rem 1rem', color: '#475569', fontSize: '0.8rem' }}>
-                                                {inv.cgst_amount > 0 ? `${formatCurrency(inv.cgst_amount)} + ${formatCurrency(inv.sgst_amount)}` : '—'}
-                                            </td>
-                                            <td style={{ padding: '0.6rem 1rem', color: '#475569', fontSize: '0.8rem' }}>
-                                                {inv.igst_amount > 0 ? formatCurrency(inv.igst_amount) : '—'}
-                                            </td>
                                             <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: '#1D4ED8', fontSize: '0.82rem' }}>{formatCurrency(inv.total_tax)}</td>
                                             <td style={{ padding: '0.6rem 1rem' }}>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
