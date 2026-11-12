@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Filter, ChevronDown, X } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 /**
  * FilterableTableHead
@@ -10,6 +11,7 @@ import { Filter, ChevronDown, X } from 'lucide-react';
  *   thStyle?: React.CSSProperties  – extra styles for each <th>
  */
 const FilterableTableHead = ({ columns = [], onFilterChange, thStyle = {} }) => {
+    const { t } = useLanguage();
     const [openCols, setOpenCols] = useState({});
     const [filters, setFilters] = useState(() =>
         Object.fromEntries(columns.map(c => [c.key, '']))
@@ -67,11 +69,11 @@ const FilterableTableHead = ({ columns = [], onFilterChange, thStyle = {} }) => 
                                 gap: '0.3rem',
                                 justifyContent: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start'
                             }}>
-                                <span>{col.label}</span>
+                                <span>{t ? t(col.label, col.label) : col.label}</span>
                                 {!col.noFilter && (
                                     <button
                                         onClick={() => toggleCol(col.key)}
-                                        title={`Filter by ${col.label}`}
+                                        title={t ? `${t('filterBy', 'Filter by')} ${t(col.label, col.label)}` : `Filter by ${col.label}`}
                                         style={{
                                             background: isOpen || hasValue ? '#F1F5F9' : 'transparent',
                                             border: `1px solid ${isOpen || hasValue ? '#94A3B8' : '#E2E8F0'}`,

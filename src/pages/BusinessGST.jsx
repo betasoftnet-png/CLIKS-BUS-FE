@@ -5,7 +5,7 @@ import { applyTableFilters } from '../utils/filterUtils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { gstService, billingService, crmService, inventoryService, complianceService, profileService } from '../services';
 import FilterableTableHead from '../components/FilterableTableHead';
-import { useCurrency } from '../context';
+import { useCurrency, useLanguage } from '../context';
 import { 
     PercentCircle, 
     Plus, 
@@ -86,6 +86,7 @@ const GST_STATE_MAP = {
 
 const BusinessGST = () => {
     const { currency, formatCurrency } = useCurrency();
+    const { t } = useLanguage();
     const [searchParams, setSearchParams] = useSearchParams();
     const activeTab = searchParams.get('tab') || 'gstr1';
     const setActiveTab = (tabId) => {
@@ -1052,9 +1053,9 @@ const BusinessGST = () => {
                         <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}>
                             <PercentCircle size={18} />
                         </div>
-                        <h1 style={{ fontSize: '1.45rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>GST & Tax Compliance</h1>
+                        <h1 style={{ fontSize: '1.45rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{t ? t('gstTaxCompliance', 'GST & Tax Compliance') : 'GST & Tax Compliance'}</h1>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.82rem', fontWeight: '500', margin: 0 }}>Prepare returns, authenticate tax records, and reconcile purchase ITC.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.82rem', fontWeight: '500', margin: 0 }}>{t ? t('gstSubtitle', 'Prepare returns, authenticate tax records, and reconcile purchase ITC.') : 'Prepare returns, authenticate tax records, and reconcile purchase ITC.'}</p>
                 </div>
 
                 {/* Right side of heading: Compact GST & Organization Badge */}
@@ -1117,7 +1118,7 @@ const BusinessGST = () => {
                         ].map((stat, idx) => (
                             <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                                    <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                                    <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{t ? t(stat.label, stat.label) : stat.label}</p>
                                     <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
                                 </div>
                                 <div style={{ width: '40px', height: '42px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
@@ -1140,7 +1141,7 @@ const BusinessGST = () => {
                         ].map((stat, idx) => (
                             <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                                    <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                                    <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{t ? t(stat.label, stat.label) : stat.label}</p>
                                     <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
                                 </div>
                                 <div style={{ width: '40px', height: '42px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
@@ -1158,7 +1159,7 @@ const BusinessGST = () => {
                     ].map((stat, idx) => (
                         <div key={idx} className="stat-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)', cursor: 'default' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                                <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{stat.label}</p>
+                                <p style={{ fontSize: '0.72rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{t ? t(stat.label, stat.label) : stat.label}</p>
                                 <h3 style={{ fontSize: '1.35rem', fontWeight: '900', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>{stat.value}</h3>
                             </div>
                             <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0 }}>
@@ -1189,7 +1190,7 @@ const BusinessGST = () => {
                             boxShadow: activeTab === tab.id ? `0 4px 10px ${tab.shadowColor}` : 'none'
                         }}
                     >
-                        <tab.icon size={16} /> {tab.label}
+                        <tab.icon size={16} /> {t ? t(tab.label, tab.label) : tab.label}
                     </button>
                 ))}
             </div>
@@ -1205,7 +1206,7 @@ const BusinessGST = () => {
                             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
                             <input 
                                 type="text" 
-                                placeholder="Search GST invoices or state..." 
+                                placeholder={t ? t('searchGstPlaceholder', 'Search GST invoices or state...') : 'Search GST invoices or state...'}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 style={{ width: '100%', padding: '0.45rem 1rem 0.45rem 2.25rem', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none', fontSize: '0.85rem' }}

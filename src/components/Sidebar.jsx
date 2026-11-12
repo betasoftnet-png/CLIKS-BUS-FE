@@ -279,6 +279,7 @@ const sanitizeTierLabel = (rawTier) => {
  * Renders the subscription widget in the sidebar, with the exact 2-plan side-by-side layout.
  */
 export const DynamicSubscriptionWidget = ({ activePlans, plans, user, selectedPlan, planDaysRemaining, onNavigate }) => {
+    const { t } = useLanguage();
     const list = activePlans || plans || [];
 
     if (list.length === 2) {
@@ -305,7 +306,7 @@ export const DynamicSubscriptionWidget = ({ activePlans, plans, user, selectedPl
                                         {daysLeft}
                                     </span>
                                     <span className="text-[6px] font-extrabold text-[#0b1329] tracking-tighter uppercase leading-none mt-0.5">
-                                        DAYS
+                                        {t ? t('days', 'DAYS') : 'DAYS'}
                                     </span>
                                 </div>
 
@@ -988,7 +989,7 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                 </span>
                             </div>
                             <div className="sidebar-storage-sub">
-                                {`${storageData.usedFormatted} of ${storageData.totalCapacityFormatted} used`}
+                                {`${storageData.usedFormatted} ${t ? t('of', 'of') : 'of'} ${storageData.totalCapacityFormatted} ${t ? t('used', 'used') : 'used'}`}
                             </div>
                         </div>
 

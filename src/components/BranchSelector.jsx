@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, ChevronDown, Check, Lock, Building2, Plus, Sparkles, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useBranch } from '../context';
+import { useBranch, useLanguage } from '../context';
 
 export const BranchSelector = () => {
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const {
         branches,
         selectedBranchId,
@@ -76,7 +77,7 @@ export const BranchSelector = () => {
                         fontWeight: '800'
                     }}
                 >
-                    <Lock size={10} /> Branch
+                    <Lock size={10} /> {t('branch', 'Branch')}
                 </span>
             </div>
         );
@@ -122,8 +123,8 @@ export const BranchSelector = () => {
                     flexShrink: 0
                 }} />
                 
-                <span className="branch-selector-text" title={isAll ? 'All Showrooms (Consolidated)' : activeBranchName} style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {isAll ? 'All Showrooms' : activeBranchName}
+                <span className="branch-selector-text" title={isAll ? t('allShowroomsConsolidated', 'All Showrooms (Consolidated)') : activeBranchName} style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {isAll ? t('allShowrooms', 'All Showrooms') : activeBranchName}
                 </span>
 
                 <ChevronDown 
@@ -172,9 +173,9 @@ export const BranchSelector = () => {
                             justifyContent: 'space-between',
                             borderBottom: '1px solid #F1F5F9'
                         }}>
-                            <span>Branch / Showroom Scope</span>
+                            <span>{t('branchScope', 'Branch / Showroom Scope')}</span>
                             <span style={{ color: '#059669', fontSize: '10px' }}>
-                                {branches.length} Registered
+                                {branches.length} {t('registered', 'Registered')}
                             </span>
                         </div>
 
@@ -218,10 +219,10 @@ export const BranchSelector = () => {
                                 </div>
                                 <div style={{ textAlign: 'left' }}>
                                     <div style={{ fontSize: '13px', fontWeight: '800', color: isAll ? '#166534' : '#1E293B' }}>
-                                        All Showrooms
+                                        {t('allShowrooms', 'All Showrooms')}
                                     </div>
                                     <div style={{ fontSize: '11px', color: '#64748B' }}>
-                                        Company-wide consolidated data
+                                        {t('consolidatedAnalyticsDesc', 'Company-wide consolidated data')}
                                     </div>
                                 </div>
                             </div>

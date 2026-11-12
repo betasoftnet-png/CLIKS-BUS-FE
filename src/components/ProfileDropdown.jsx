@@ -2,13 +2,14 @@ import React, { useState, useRef, useEffect } from "react";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, User as UserIcon, LogOut, User, Globe, Coins, Flag, ArrowLeft, Search, ShieldCheck, Camera, UserCog, UserPlus, Users, X, CheckCircle2, Building, Store } from "lucide-react";
-import { useAuth, useCurrency } from "../context";
+import { useAuth, useCurrency, useLanguage } from "../context";
 import { useNavigate } from "react-router-dom";
 
 export function ProfileDropdown({
     onAccount,
     onLogout,
 }) {
+    const { t } = useLanguage();
     const [open, setOpen] = useState(false);
     const { user, accounts = [], switchAccount, removeAccount, logoutAll } = useAuth();
     const navigate = useNavigate();
@@ -887,7 +888,7 @@ export function ProfileDropdown({
                                         marginBottom: '10px'
                                     }}>
                                         <CheckCircle2 size={13} color="#16A34A" />
-                                        <span>Active Account</span>
+                                        <span>{t ? t('activeAccount', 'Active Account') : 'Active Account'}</span>
                                     </div>
 
                                     {/* Manage Account Button */}
@@ -931,7 +932,7 @@ export function ProfileDropdown({
                                         }}
                                     >
                                         <UserCog size={13} color="#4b5563" />
-                                        Manage your account
+                                        {t ? t('manageYourAccount', 'Manage your account') : 'Manage your account'}
                                     </button>
 
                                     {/* Other Logged-in IDs & Account Switcher */}
@@ -955,7 +956,7 @@ export function ProfileDropdown({
                                                 color: '#94a3b8',
                                                 letterSpacing: '0.02em'
                                             }}>
-                                                <span>Switch account</span>
+                                                <span>{t ? t('switchAccount', 'Switch account') : 'Switch account'}</span>
                                                 <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '600' }}>
                                                     {otherAccounts.length} {otherAccounts.length === 1 ? 'other ID' : 'other IDs'}
                                                 </span>
@@ -1107,7 +1108,7 @@ export function ProfileDropdown({
                                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                         >
                                             <Building size={16} color="#5f6368" />
-                                            <span>Manage Branches</span>
+                                            <span>{t ? t('manageBranches', 'Manage Branches') : 'Manage Branches'}</span>
                                         </button>
                                     )}
 
@@ -1123,7 +1124,7 @@ export function ProfileDropdown({
                                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                         >
                                             <Users size={16} color="#5f6368" />
-                                            <span>{isBranchManager ? 'Manage Showroom Sub-IDs' : 'Manage SubIDs'}</span>
+                                            <span>{isBranchManager ? (t ? t('manageShowroomSubIds', 'Manage Showroom Sub-IDs') : 'Manage Showroom Sub-IDs') : (t ? t('manageSubIds', 'Manage SubIDs') : 'Manage SubIDs')}</span>
                                         </button>
                                     )}
 
@@ -1134,7 +1135,7 @@ export function ProfileDropdown({
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
                                         <UserPlus size={16} color="#5f6368" />
-                                        <span>Add another account</span>
+                                        <span>{t ? t('addAnotherAccount', 'Add another account') : 'Add another account'}</span>
                                     </button>
 
                                     <button
@@ -1148,7 +1149,7 @@ export function ProfileDropdown({
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
                                         <LogOut size={16} color="#5f6368" />
-                                        <span>Sign out of all accounts</span>
+                                        <span>{t ? t('signOutAll', 'Sign out of all accounts') : 'Sign out of all accounts'}</span>
                                     </button>
 
                                     <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 6px' }} />
@@ -1160,7 +1161,7 @@ export function ProfileDropdown({
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
                                         <LogOut size={16} />
-                                        Sign out
+                                        {t ? t('signOut', 'Sign out') : 'Sign out'}
                                     </button>
                                 </div>
                             </>

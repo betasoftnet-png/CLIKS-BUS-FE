@@ -447,7 +447,16 @@ const BusinessDashboard = () => {
         financial_year: dashboardSummary?.fy_label || 'FY 2026-27',
         all_time: 'All Time'
     };
-    const currentPeriodBadge = periodLabelMap[dashboardPeriod] || 'FY 2026-27';
+    const periodKeyMap = {
+        today: 'today',
+        this_week: 'thisWeek',
+        this_month: 'thisMonth',
+        financial_year: 'financialYear',
+        all_time: 'allTime'
+    };
+    const currentPeriodBadge = dashboardPeriod === 'financial_year' && dashboardSummary?.fy_label
+        ? dashboardSummary.fy_label
+        : (t ? t(periodKeyMap[dashboardPeriod] || 'financialYear', periodLabelMap[dashboardPeriod] || 'FY 2026-27') : (periodLabelMap[dashboardPeriod] || 'FY 2026-27'));
 
     const DONUT_COLORS = ['#1B6B3A', '#10B981', '#059669', '#34D399', '#6EE7B7', '#A7F3D0'];
 
@@ -522,10 +531,10 @@ const BusinessDashboard = () => {
     }, [rawAllExpenses, selectedExpenseCategory, expenseSearchQuery]);
 
     const stats = [
-        { label: `Sales Revenue (${currentPeriodBadge})`, value: formatCurrency(totalSalesAmount), change: currentPeriodBadge, color: '#059669', icon: TrendingUp },
-        { label: `Purchases (${currentPeriodBadge})`, value: formatCurrency(totalPurchasesAmount), change: currentPeriodBadge, color: '#2563EB', icon: ShoppingCart },
-        { label: `Expenses (${currentPeriodBadge})`, value: formatCurrency(totalExpensesAmount), change: currentPeriodBadge, color: '#D97706', icon: Receipt },
-        { label: `Est. Net Profit (${currentPeriodBadge})`, value: formatCurrency(estimatedNetProfit), change: currentPeriodBadge, color: estimatedNetProfit >= 0 ? '#10B981' : '#DC2626', icon: ArrowUpRight },
+        { label: `${t ? t('salesRevenue', 'Sales Revenue') : 'Sales Revenue'} (${currentPeriodBadge})`, value: formatCurrency(totalSalesAmount), change: currentPeriodBadge, color: '#059669', icon: TrendingUp },
+        { label: `${t ? t('purchases', 'Purchases') : 'Purchases'} (${currentPeriodBadge})`, value: formatCurrency(totalPurchasesAmount), change: currentPeriodBadge, color: '#2563EB', icon: ShoppingCart },
+        { label: `${t ? t('expenses', 'Expenses') : 'Expenses'} (${currentPeriodBadge})`, value: formatCurrency(totalExpensesAmount), change: currentPeriodBadge, color: '#D97706', icon: Receipt },
+        { label: `${t ? t('estNetProfit', 'Est. Net Profit') : 'Est. Net Profit'} (${currentPeriodBadge})`, value: formatCurrency(estimatedNetProfit), change: currentPeriodBadge, color: estimatedNetProfit >= 0 ? '#10B981' : '#DC2626', icon: ArrowUpRight },
     ];
 
     // Data formatters for Custom SVG Sales Graph
@@ -603,11 +612,11 @@ const BusinessDashboard = () => {
                         gap: '4px'
                     }}>
                         {[
-                            { id: 'today', label: 'Today' },
-                            { id: 'this_week', label: 'This Week' },
-                            { id: 'this_month', label: 'This Month' },
-                            { id: 'financial_year', label: dashboardSummary?.fy_label || 'FY 2026-27' },
-                            { id: 'all_time', label: 'All Time' }
+                            { id: 'today', label: 'Today', key: 'today' },
+                            { id: 'this_week', label: 'This Week', key: 'thisWeek' },
+                            { id: 'this_month', label: 'This Month', key: 'thisMonth' },
+                            { id: 'financial_year', label: dashboardSummary?.fy_label || 'FY 2026-27', key: 'financialYear' },
+                            { id: 'all_time', label: 'All Time', key: 'allTime' }
                         ].map(p => (
                             <button
                                 key={p.id}
@@ -625,7 +634,7 @@ const BusinessDashboard = () => {
                                     transition: 'all 0.15s ease'
                                 }}
                             >
-                                {p.label}
+                                {p.id === 'financial_year' && dashboardSummary?.fy_label ? dashboardSummary.fy_label : (t ? t(p.key, p.label) : p.label)}
                             </button>
                         ))}
                     </div>
@@ -701,21 +710,21 @@ const BusinessDashboard = () => {
                                             }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: '800', color: '#0F172A' }}>
                                                     <span style={{ fontSize: '1rem' }}>⏱️</span>
-                                                    <span>Sales By Timeframe:</span>
+                                                    <span>{t ? t('salesByTimeframe', 'Sales By Timeframe') : 'Sales By Timeframe'}:</span>
                                                     <span style={{ background: '#ECFDF5', color: '#065F46', padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '850', border: '1px solid #A7F3D0' }}>
-                                                        Viewing: {currentPeriodBadge}
+                                                        {t ? t('viewing', 'Viewing') : 'Viewing'}: {currentPeriodBadge}
                                                     </span>
                                                 </div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.78rem', fontWeight: '750', color: '#64748B', flexWrap: 'wrap' }}>
-                                                    <span>Today: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.today?.sales || 0)}</strong></span>
+                                                    <span>{t ? t('today', 'Today') : 'Today'}: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.today?.sales || 0)}</strong></span>
                                                     <span style={{ color: '#CBD5E1' }}>•</span>
-                                                    <span>This Week: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.this_week?.sales || 0)}</strong></span>
+                                                    <span>{t ? t('thisWeek', 'This Week') : 'This Week'}: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.this_week?.sales || 0)}</strong></span>
                                                     <span style={{ color: '#CBD5E1' }}>•</span>
-                                                    <span>This Month: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.this_month?.sales || 0)}</strong></span>
+                                                    <span>{t ? t('thisMonth', 'This Month') : 'This Month'}: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.this_month?.sales || 0)}</strong></span>
                                                     <span style={{ color: '#CBD5E1' }}>•</span>
-                                                    <span>{dashboardSummary?.fy_label || 'Current FY'}: <strong style={{ color: '#064E3B' }}>{formatCurrency(dashboardSummary?.breakdown?.financial_year?.sales || 0)}</strong></span>
+                                                    <span>{dashboardSummary?.fy_label || (t ? t('currentFy', 'Current FY') : 'Current FY')}: <strong style={{ color: '#064E3B' }}>{formatCurrency(dashboardSummary?.breakdown?.financial_year?.sales || 0)}</strong></span>
                                                     <span style={{ color: '#CBD5E1' }}>•</span>
-                                                    <span>All-Time: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.all_time?.sales || 0)}</strong></span>
+                                                    <span>{t ? t('allTime', 'All-Time') : 'All-Time'}: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.all_time?.sales || 0)}</strong></span>
                                                 </div>
                                             </div>
                                         </div>
@@ -935,8 +944,8 @@ const BusinessDashboard = () => {
                                             <div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                                     <div>
-                                                        <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Top Performing Products</h2>
-                                                        <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Highest volume contributors matrix.</p>
+                                                        <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{t ? t('topProducts', 'Top Performing Products') : 'Top Performing Products'}</h2>
+                                                        <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>{t ? t('highestVolumeContributors', 'Highest volume contributors matrix.') : 'Highest volume contributors matrix.'}</p>
                                                     </div>
                                                     <button
                                                         type="button"
@@ -958,7 +967,7 @@ const BusinessDashboard = () => {
                                                         onMouseEnter={e => e.currentTarget.style.background = '#D1FAE5'}
                                                         onMouseLeave={e => e.currentTarget.style.background = '#ECFDF5'}
                                                     >
-                                                        <span>View Details ({rawTopProducts.length})</span>
+                                                        <span>{t ? t('viewDetails', 'View Details') : 'View Details'} ({rawTopProducts.length})</span>
                                                         <ExternalLink size={12} />
                                                     </button>
                                                 </div>
@@ -994,13 +1003,13 @@ const BusinessDashboard = () => {
                                                                 <div style={{ flex: 1, minWidth: 0 }}>
                                                                     <h4 style={{ fontSize: '0.88rem', fontWeight: '800', color: '#1E293B', margin: '0 0 0.15rem 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prod.name || 'Active Item'}</h4>
                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '650' }}>Sold: <strong style={{ color: '#064E3B' }}>{prod.sold || prod.total_quantity || 0} pcs</strong></span>
+                                                                        <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '650' }}>{t ? t('sold', 'Sold') : 'Sold'}: <strong style={{ color: '#064E3B' }}>{prod.sold || prod.total_quantity || 0} {t ? t('pcs', 'pcs') : 'pcs'}</strong></span>
                                                                         {prod.sku && <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontFamily: 'monospace' }}>• {prod.sku}</span>}
                                                                     </div>
                                                                 </div>
                                                                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                                                                     <div style={{ fontSize: '0.92rem', fontWeight: '850', color: '#0F172A' }}>{formatCurrency(prod.total_sales || 0)}</div>
-                                                                    <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '800', textTransform: 'uppercase' }}>Details →</span>
+                                                                    <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '800', textTransform: 'uppercase' }}>{t ? t('detailsArrow', 'Details →') : 'Details →'}</span>
                                                                 </div>
                                                             </div>
                                                         ))
@@ -1020,8 +1029,8 @@ const BusinessDashboard = () => {
                                             <div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                                                     <div>
-                                                        <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>Expense Distribution</h2>
-                                                        <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>Expense allocation grouped by categories.</p>
+                                                        <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{t ? t('expenseDistribution', 'Expense Distribution') : 'Expense Distribution'}</h2>
+                                                        <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>{t ? t('expenseAllocationGrouped', 'Expense allocation grouped by categories.') : 'Expense allocation grouped by categories.'}</p>
                                                     </div>
                                                     <button
                                                         type="button"
@@ -1046,7 +1055,7 @@ const BusinessDashboard = () => {
                                                         onMouseEnter={e => e.currentTarget.style.background = '#FDE68A'}
                                                         onMouseLeave={e => e.currentTarget.style.background = '#FEF3C7'}
                                                     >
-                                                        <span>Inspect Vouchers ({rawAllExpenses.length})</span>
+                                                        <span>{t ? t('inspectVouchers', 'Inspect Vouchers') : 'Inspect Vouchers'} ({rawAllExpenses.length})</span>
                                                         <ExternalLink size={12} />
                                                     </button>
                                                 </div>
@@ -1114,7 +1123,7 @@ const BusinessDashboard = () => {
                                                                     textTransform: 'uppercase',
                                                                     letterSpacing: '0.5px'
                                                                 }}>
-                                                                    {hoveredDonutSegment ? hoveredDonutSegment.name : 'Total Expense'}
+                                                                    {hoveredDonutSegment ? hoveredDonutSegment.name : (t ? t('totalExpense', 'Total Expense') : 'Total Expense')}
                                                                 </div>
                                                                 <div style={{ 
                                                                     fontSize: '15px', 
