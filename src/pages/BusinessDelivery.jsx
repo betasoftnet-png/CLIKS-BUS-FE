@@ -60,6 +60,20 @@ const BusinessDelivery = () => {
         ...(fetchedSettings.settings || {})
     };
 
+    const [isActivatingLogistics, setIsActivatingLogistics] = useState(false);
+    const handleQuickActivateDelivery = async () => {
+        setIsActivatingLogistics(true);
+        try {
+            await settingsService.updateSettings({ ...activeConfig, deliveryChallan: true });
+            await queryClient.invalidateQueries({ queryKey: ['settings'] });
+        } catch (err) {
+            console.error('Failed to activate logistics module', err);
+            window.location.href = '/customization';
+        } finally {
+            setIsActivatingLogistics(false);
+        }
+    };
+
     const [deliveries, setDeliveries] = useState(() => {
         const local = localStorage.getItem('cliks_deliveries');
         if (local) {
@@ -414,16 +428,18 @@ const BusinessDelivery = () => {
                     </p>
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
                         <button 
-                            onClick={() => window.location.href = '/customization'}
+                            disabled={isActivatingLogistics}
+                            onClick={handleQuickActivateDelivery}
                             style={{ 
                                 display: 'flex', alignItems: 'center', gap: '0.5rem', 
                                 padding: '0.75rem 1.5rem', borderRadius: '12px', 
                                 background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', 
-                                fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
-                                boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)'
+                                fontWeight: '800', cursor: isActivatingLogistics ? 'not-allowed' : 'pointer', fontSize: '0.85rem',
+                                boxShadow: '0 8px 16px rgba(27, 107, 58, 0.2)',
+                                opacity: isActivatingLogistics ? 0.7 : 1
                             }}
                         >
-                            Activate Logistics Engine
+                            {isActivatingLogistics ? 'Activating Logistics...' : 'Activate Logistics Engine'}
                         </button>
                     </div>
                 </div>

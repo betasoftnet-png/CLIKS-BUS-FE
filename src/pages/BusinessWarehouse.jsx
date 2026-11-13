@@ -56,6 +56,20 @@ const BusinessWarehouse = () => {
     });
     const activeConfig = userSettings?.data || userSettings || {};
 
+    const [isActivatingGodown, setIsActivatingGodown] = useState(false);
+    const handleQuickActivateGodown = async () => {
+        setIsActivatingGodown(true);
+        try {
+            await settingsService.updateSettings({ ...activeConfig, godown: true });
+            await queryClient.invalidateQueries({ queryKey: ['settings'] });
+        } catch (err) {
+            console.error('Failed to activate godown module', err);
+            window.location.href = '/customization';
+        } finally {
+            setIsActivatingGodown(false);
+        }
+    };
+
     const [activeTab, setActiveTab] = useState('profiles');
     const [colFilters, setColFilters] = React.useState({}); // 'profiles', 'stock', 'operations', 'transfers'
 
@@ -1027,16 +1041,18 @@ const BusinessWarehouse = () => {
                     </p>
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
                         <button
-                            onClick={() => window.location.href = '/customization'}
+                            disabled={isActivatingGodown}
+                            onClick={handleQuickActivateGodown}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: '0.5rem',
                                 padding: '0.75rem 1.5rem', borderRadius: '12px',
                                 background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', color: 'white', border: 'none',
-                                fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
-                                boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)'
+                                fontWeight: '800', cursor: isActivatingGodown ? 'not-allowed' : 'pointer', fontSize: '0.85rem',
+                                boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)',
+                                opacity: isActivatingGodown ? 0.7 : 1
                             }}
                         >
-                            <Sliders size={16} /> Enable Godown Links
+                            <Sliders size={16} /> {isActivatingGodown ? 'Activating Godowns...' : 'Enable Godown Links'}
                         </button>
                     </div>
                 </div>

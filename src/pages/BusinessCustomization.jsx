@@ -193,7 +193,7 @@ const BusinessCustomization = () => {
         negativeStock: false, 
         blockParties: false, 
         deliveryChallan: true, 
-        godown: false, 
+        godown: true, 
         autoBackup: true, 
         auditTrail: true,
         reverseGoodsLogic: true,
