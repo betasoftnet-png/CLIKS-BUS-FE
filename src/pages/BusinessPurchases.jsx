@@ -105,7 +105,15 @@ const BusinessPurchases = () => {
         queryFn: settingsService.getSettings,
         refetchOnWindowFocus: false
     });
-    const activeConfig = React.useMemo(() => userSettings?.data || userSettings || {}, [userSettings]);
+    const activeConfig = React.useMemo(() => {
+        let localCfg = {};
+        try {
+            const raw = localStorage.getItem('cliks_business_config') || localStorage.getItem('cliks_active_config');
+            if (raw) localCfg = JSON.parse(raw);
+        } catch {}
+        const serverCfg = userSettings?.data || userSettings || {};
+        return { ...serverCfg, ...localCfg };
+    }, [userSettings]);
 
     // Handle instant PO/Bill/Return creation and tab deep linking via Quick Actions Shortcut
     const [searchParams, setSearchParams] = useSearchParams();

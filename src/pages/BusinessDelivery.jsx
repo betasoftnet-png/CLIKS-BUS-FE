@@ -161,7 +161,17 @@ const BusinessDelivery = () => {
         packaging_notes: '',
         warehouse_id: 'WH-MAIN-01',
         dispatch_by: 'Kiran Mane',
-        challan_number: `CHL-2026-${4420 + deliveries.length + 1}`,
+        challan_number: (() => {
+            let pref = 'DC-';
+            try {
+                const raw = localStorage.getItem('cliks_business_config') || localStorage.getItem('cliks_active_config');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed.prefixChallan) pref = parsed.prefixChallan;
+                }
+            } catch {}
+            return `${pref}${Date.now().toString().slice(-4)}`;
+        })(),
         challan_type: 'GST',
         challan_date: '2026-05-06',
         linked_invoice_id: '',

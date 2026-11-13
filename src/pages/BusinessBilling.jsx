@@ -732,7 +732,14 @@ const BusinessBilling = () => {
         refetchOnWindowFocus: true
     });
 
-    const [realtimeConfig, setRealtimeConfig] = useState(null);
+    const [realtimeConfig, setRealtimeConfig] = useState(() => {
+        try {
+            const cached = localStorage.getItem('cliks_business_config') || localStorage.getItem('cliks_active_config');
+            return cached ? JSON.parse(cached) : null;
+        } catch {
+            return null;
+        }
+    });
 
     React.useEffect(() => {
         const handleConfigUpdate = (e) => {
@@ -740,16 +747,32 @@ const BusinessBilling = () => {
                 setRealtimeConfig(e.detail);
             }
         };
+        const handleStorageUpdate = (e) => {
+            if (e.key === 'cliks_business_config' || e.key === 'cliks_active_config') {
+                try {
+                    const parsed = JSON.parse(e.newValue);
+                    if (parsed) setRealtimeConfig(parsed);
+                } catch {}
+            }
+        };
         window.addEventListener('cliksConfigUpdated', handleConfigUpdate);
+        window.addEventListener('storage', handleStorageUpdate);
         return () => {
             window.removeEventListener('cliksConfigUpdated', handleConfigUpdate);
+            window.removeEventListener('storage', handleStorageUpdate);
         };
     }, []);
 
     const activeConfig = React.useMemo(() => {
+        let localCfg = {};
+        try {
+            const raw = localStorage.getItem('cliks_business_config') || localStorage.getItem('cliks_active_config');
+            if (raw) localCfg = JSON.parse(raw);
+        } catch {}
         const serverCfg = userSettings?.data || userSettings || {};
         return {
             ...serverCfg,
+            ...localCfg,
             ...(realtimeConfig || {})
         };
     }, [userSettings, realtimeConfig]);
@@ -932,62 +955,81 @@ const BusinessBilling = () => {
     const getPrefixForType = React.useCallback((type) => {
         if (!activeConfig) return 'INV-';
         if (type === 'Proforma') return activeConfig.prefixProforma || 'PRO-';
-        if (type === 'Quotation') return activeConfig.prefixEstimate || 'EST-';
+        if (type === 'Quotation' || type === 'Estimate') return activeConfig.prefixEstimate || 'EST-';
+        if (type === 'Return' || type === 'CreditNote') return activeConfig.prefixCredit || 'CN-';
+        if (type === 'POS') return activeConfig.prefixPos || 'POS-';
         return activeConfig.prefixSale || 'INV-';
     }, [activeConfig]);
-    const [formData, setFormData] = useState(() => ({
-        invoice_number: 'INV-000001',
-        client_name: '',
-        client_email: '',
-        client_gstin: '',
-        billing_address: '',
-        shipping_address: '',
-        amount: 0,
-        tax_amount: 0,
-        total_amount: 0,
-        paid_amount: 0,
-        due_amount: 0,
-        bank_account_id: '',
-        discount_amount: 0,
-        round_off: 0,
-        status: 'Unpaid',
-        due_date: new Date().toISOString().split('T')[0],
-        payment_mode: 'Cash',
-        invoice_type: 'GST', // GST, Non-GST, Proforma, Quotation, Return, CreditNote, DebitNote, Purchase
-        tax_type: 'Exclusive', // Inclusive, Exclusive
-        sendPurchaseHistoryToCustomer: true,
-        sendToCustomerHistory: true,
-        redeemed_points: 0,
-        earned_points: 0,
-        items: [{ 
-            description: '', 
-            quantity: 1, 
-            price: 0, 
-            tax_rate: 18, 
-            unit: 'Pcs',
-            hsn_code: '',
-            discount_percent: 0,
+
+    const [formData, setFormData] = useState(() => {
+        let initialPrefix = 'INV-';
+        try {
+            const raw = localStorage.getItem('cliks_business_config') || localStorage.getItem('cliks_active_config');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed.prefixSale) initialPrefix = parsed.prefixSale;
+            }
+        } catch {}
+        return {
+            invoice_number: `${initialPrefix}000001`,
+            client_name: '',
+            client_email: '',
+            client_gstin: '',
+            billing_address: '',
+            shipping_address: '',
+            amount: 0,
+            tax_amount: 0,
+            total_amount: 0,
+            paid_amount: 0,
+            due_amount: 0,
+            bank_account_id: '',
             discount_amount: 0,
-            total: 0 
-        }]
-    }));
+            round_off: 0,
+            status: 'Unpaid',
+            due_date: new Date().toISOString().split('T')[0],
+            payment_mode: 'Cash',
+            invoice_type: 'GST', // GST, Non-GST, Proforma, Quotation, Return, CreditNote, DebitNote, Purchase
+            tax_type: 'Exclusive', // Inclusive, Exclusive
+            sendPurchaseHistoryToCustomer: true,
+            sendToCustomerHistory: true,
+            redeemed_points: 0,
+            earned_points: 0,
+            items: [{ 
+                description: '', 
+                quantity: 1, 
+                price: 0, 
+                tax_rate: 18, 
+                unit: 'Pcs',
+                hsn_code: '',
+                discount_percent: 0,
+                discount_amount: 0,
+                total: 0 
+            }]
+        };
+    });
 
     React.useEffect(() => {
         if (isModalOpen && !editingInvoice) {
             const defaultTaxType = activeConfig?.inclusiveTax === true ? 'Inclusive' : 'Exclusive';
             const defaultPayMode = activeConfig?.cashSale ? 'Cash' : 'Bank';
-            billingService.getNextNumber(formData.invoice_type || 'GST').then(nextNum => {
+            const targetPrefix = getPrefixForType(formData.invoice_type || 'GST');
+            billingService.getNextNumber(formData.invoice_type || 'GST', null, targetPrefix).then(nextNum => {
                 setFormData(prev => ({
                     ...prev,
-                    invoice_number: nextNum || prev.invoice_number,
+                    invoice_number: nextNum || `${targetPrefix}000001`,
                     tax_type: defaultTaxType,
                     payment_mode: defaultPayMode,
                     client_name: activeConfig?.cashSale ? 'Cash Customer' : prev.client_name,
                     client_email: activeConfig?.cashSale ? 'cash@customer.local' : prev.client_email
                 }));
-            }).catch(() => {});
+            }).catch(() => {
+                setFormData(prev => ({
+                    ...prev,
+                    invoice_number: `${targetPrefix}000001`
+                }));
+            });
         }
-    }, [isModalOpen, editingInvoice, activeConfig]);
+    }, [isModalOpen, editingInvoice, activeConfig, getPrefixForType]);
 
     const handleViewHistory = (invoice) => {
         setSelectedHistoryInvoice(invoice);
@@ -1089,18 +1131,19 @@ const BusinessBilling = () => {
             setSelectedCustomerObject(selectedCustomer);
             const billAddr = selectedCustomer.billing_address || selectedCustomer.address || '';
             const shipAddr = selectedCustomer.shipping_address || selectedCustomer.address || selectedCustomer.billing_address || '';
-            setFormData({
-                ...formData,
+            setFormData(prev => ({
+                ...prev,
                 client_name: selectedCustomer.name,
+                billing_name: selectedCustomer.company || selectedCustomer.billing_name || selectedCustomer.name,
                 client_email: selectedCustomer.email || '',
                 client_gstin: selectedCustomer.gstin || '',
-                place_of_supply: selectedCustomer.place_of_supply || selectedCustomer.state || formData.place_of_supply || '',
+                place_of_supply: selectedCustomer.place_of_supply || selectedCustomer.state || prev.place_of_supply || '',
                 billing_address: billAddr, 
                 shipping_address: shipAddr
-            });
+            }));
         } else {
             setSelectedCustomerObject(null);
-            setFormData({ ...formData, client_name: value, redeemed_points: 0 });
+            setFormData(prev => ({ ...prev, client_name: value, billing_name: value, redeemed_points: 0 }));
         }
     };
 
@@ -1121,6 +1164,7 @@ const BusinessBilling = () => {
                     inventory_id: null,
                     is_weighted: weighted,
                     price: parseFloat(selectedProd.selling_price || selectedProd.price || 0),
+                    purchase_price: parseFloat(selectedProd.purchase_price || 0),
                     hsn_code: selectedProd.hsn_code || selectedProd.sku || '',
                     tax_rate: (selectedProd.gst_percentage !== undefined && selectedProd.gst_percentage !== null) ? parseInt(selectedProd.gst_percentage, 10) : ((selectedProd.tax_percentage !== undefined && selectedProd.tax_percentage !== null) ? parseInt(selectedProd.tax_percentage, 10) : 18),
                     unit: assignedUnit,
@@ -1141,6 +1185,7 @@ const BusinessBilling = () => {
                         product_id: null,
                         is_weighted: weighted,
                         price: parseFloat(selectedInvItem.price || 0),
+                        purchase_price: parseFloat(selectedInvItem.purchase_price || 0),
                         hsn_code: selectedInvItem.hsn_sac || '',
                         tax_rate: parseInt(selectedInvItem.gst_rate || 18),
                         unit: assignedUnit,
@@ -2578,26 +2623,28 @@ const BusinessBilling = () => {
                     >
                         <Settings size={15} /> Settings
                     </button>
-                    <button 
-                        type="button"
-                        onClick={() => {
-                            if (showLivePreview) {
-                                handleCloseLivePreview();
-                            } else {
-                                setShowLivePreview(true);
-                            }
-                        }} 
-                        style={{ 
-                            display: 'flex', alignItems: 'center', gap: '6px', 
-                            padding: '0.45rem 0.85rem', borderRadius: '8px', 
-                            background: showLivePreview ? '#FCE7F3' : '#F1F5F9', 
-                            color: showLivePreview ? '#BE185D' : '#64748B', 
-                            border: showLivePreview ? '1px solid #FBCFE8' : '1px solid transparent',
-                            fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer'
-                        }}
-                    >
-                        <Eye size={15} /> {showLivePreview ? 'Hide Real-time Preview' : 'Live Preview Mode'}
-                    </button>
+                    {!activeConfig.noInvoicePreview && (
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                if (showLivePreview) {
+                                    handleCloseLivePreview();
+                                } else {
+                                    setShowLivePreview(true);
+                                }
+                            }} 
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '6px', 
+                                padding: '0.45rem 0.85rem', borderRadius: '8px', 
+                                background: showLivePreview ? '#FCE7F3' : '#F1F5F9', 
+                                color: showLivePreview ? '#BE185D' : '#64748B', 
+                                border: showLivePreview ? '1px solid #FBCFE8' : '1px solid transparent',
+                                fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer'
+                            }}
+                        >
+                            <Eye size={15} /> {showLivePreview ? 'Hide Real-time Preview' : 'Live Preview Mode'}
+                        </button>
+                    )}
                     <button onClick={handleExitInvoiceWorkspace} title="Close" style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#64748B' }}><X size={18} /></button>
                 </div>
             </div>
@@ -2623,15 +2670,20 @@ const BusinessBilling = () => {
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Type</label>
                                     <select value={formData.invoice_type} onChange={(e) => {
                                         const nextType = e.target.value;
+                                        const targetPrefix = getPrefixForType(nextType);
                                         setFormData(prev => ({
                                             ...prev,
                                             invoice_type: nextType
                                         }));
-                                        billingService.getNextNumber(nextType).then(nextNum => {
+                                        billingService.getNextNumber(nextType, null, targetPrefix).then(nextNum => {
                                             if (nextNum) {
                                                 setFormData(prev => ({ ...prev, invoice_number: nextNum }));
+                                            } else {
+                                                setFormData(prev => ({ ...prev, invoice_number: `${targetPrefix}000001` }));
                                             }
-                                        }).catch(() => {});
+                                        }).catch(() => {
+                                            setFormData(prev => ({ ...prev, invoice_number: `${targetPrefix}000001` }));
+                                        });
                                     }} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', background: 'white', fontSize: '0.85rem' }}>
                                         {(dropdownOptions.invoiceTypes || DEFAULT_DROPDOWNS.invoiceTypes).map((type, idx) => (
                                             <option key={idx}>{type}</option>
@@ -2694,7 +2746,7 @@ const BusinessBilling = () => {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${3 + (activeConfig.placeSupply ? 1 : 0) + (activeConfig.customerPo ? 1 : 0) + (activeConfig.ewayBill ? 1 : 0)}, 1fr)`, gap: '1rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${2 + (activeConfig.billingName ? 1 : 0) + (activeConfig.placeSupply ? 1 : 0) + (activeConfig.customerPo ? 1 : 0) + (activeConfig.ewayBill ? 1 : 0)}, 1fr)`, gap: '1rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client Name</label>
                                     <input 
@@ -2714,6 +2766,18 @@ const BusinessBilling = () => {
                                         })()}
                                     </datalist>
                                 </div>
+                                {activeConfig.billingName && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Billing Name</label>
+                                        <input 
+                                            type="text" 
+                                            value={formData.billing_name || ''} 
+                                            onChange={(e) => setFormData({...formData, billing_name: e.target.value})} 
+                                            style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} 
+                                            placeholder="Trade / Billing Name"
+                                        />
+                                    </div>
+                                )}
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Client Email</label>
                                     <input required={activeConfig.billingType !== 'lite'} type="email" value={formData.client_email} onChange={(e) => setFormData({...formData, client_email: e.target.value})} style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '0.85rem' }} />
@@ -3262,10 +3326,12 @@ const BusinessBilling = () => {
                                             <span>- {formatCurrency(formData.redeemed_points / (activeConfig.loyaltyPointsPer1Rs !== undefined ? activeConfig.loyaltyPointsPer1Rs : 100))}</span>
                                         </div>
                                     )}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
-                                        <span>Round Off:</span>
-                                        <span>{currency.symbol} {(parseFloat(formData.round_off) || 0).toFixed(2)}</span>
-                                    </div>
+                                    {activeConfig.roundOff !== false && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B', fontWeight: '600', fontSize: '0.8rem' }}>
+                                            <span>Round Off:</span>
+                                            <span>{currency.symbol} {(parseFloat(formData.round_off) || 0).toFixed(2)}</span>
+                                        </div>
+                                    )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#1E3A8A', fontWeight: '900', fontSize: String(formData.total_amount || '').length > 10 ? '0.95rem' : '1.25rem', marginTop: '0.3rem', borderTop: '1px dashed #DBEAFE', paddingTop: '0.4rem', gap: '0.5rem', alignItems: 'center' }}>
                                         <span>Total:</span>
                                         <span style={{ maxWidth: '65%', overflowWrap: 'break-word', wordBreak: 'break-all', textAlign: 'right' }}>{formatCurrency(formData.total_amount)}</span>

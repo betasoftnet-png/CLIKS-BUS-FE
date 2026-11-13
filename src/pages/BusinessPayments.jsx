@@ -313,7 +313,17 @@ const BusinessPayments = ({
                     pending_amount: Math.max(0, totalAmt - paidAmt),
                     payment_mode: variables.payment_mode || 'UPI',
                     transaction_reference: variables.reference_number || `REF-${Date.now().toString().slice(-4)}`,
-                    receipt_number: `RCT-${Date.now().toString().slice(-4)}`,
+                    receipt_number: (() => {
+                        let p = 'PAY-';
+                        try {
+                            const raw = localStorage.getItem('cliks_business_config') || localStorage.getItem('cliks_active_config');
+                            if (raw) {
+                                const parsed = JSON.parse(raw);
+                                if (parsed.prefixPaymentIn) p = parsed.prefixPaymentIn;
+                            }
+                        } catch {}
+                        return `${p}${Date.now().toString().slice(-4)}`;
+                    })(),
                     reconciliation_status: 'matched'
                 };
                 setCustomerReceivables(prev => [newReceipt, ...prev.filter(x => x.payment_id !== newReceipt.payment_id)]);

@@ -114,6 +114,17 @@ const BusinessSalesOrders = () => {
         loadProducts();
     }, []);
 
+    const activePrefix = React.useMemo(() => {
+        try {
+            const raw = localStorage.getItem('cliks_business_config') || localStorage.getItem('cliks_active_config');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed.prefixSaleOrder) return parsed.prefixSaleOrder;
+            }
+        } catch {}
+        return 'SO-';
+    }, []);
+
     // Order Form State
     const [formData, setFormData] = useState(() => ({
         order_number: '',
@@ -715,7 +726,7 @@ const BusinessSalesOrders = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                             <div>
                                 <h2 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#7C3AED' }}>{editingOrder ? 'Edit Sales Order' : 'New Sales Order'}</h2>
-                                <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Order Number: {formData.order_number}</p>
+                                <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Order Number: {formData.order_number || `Auto Generated (${activePrefix}...)`}</p>
                             </div>
                             <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.6rem', borderRadius: '14px', cursor: 'pointer' }}><X size={20} /></button>
                         </div>

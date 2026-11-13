@@ -19,9 +19,9 @@ const saveLocalInvoices = (invoices) => {
 
 export const billingService = {
     // Fetch next sequential monotonic bill number preview
-    getNextNumber: async (type = 'GST', branchId = null) => {
+    getNextNumber: async (type = 'GST', branchId = null, prefix = null) => {
         try {
-            const res = await apiClient.get('/billing/next-number', { params: { type, branch_id: branchId } });
+            const res = await apiClient.get('/billing/next-number', { params: { type, branch_id: branchId, prefix } });
             return res.data?.data?.invoice_number || res.data?.invoice_number || null;
         } catch (e) {
             console.warn('[BillingService] Failed to fetch next invoice number:', e);

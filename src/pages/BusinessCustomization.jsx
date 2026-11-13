@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
     ArrowLeft, Save, Sliders, FileText, RefreshCw, Building2, 
     ShieldCheck, CheckCircle2, Truck, ArrowRightLeft, Database, 
@@ -309,9 +309,9 @@ const BusinessCustomization = () => {
                 setConfig(prev => {
                     const merged = {
                         ...prev,
-                        ...parsedLocal,
                         ...dbSettings,
-                        ...(dbSettings.settings || {})
+                        ...(dbSettings.settings || {}),
+                        ...parsedLocal
                     };
 
                     if (merged.loyalty !== undefined && merged.loyaltyEnabled === undefined) {
@@ -381,6 +381,36 @@ const BusinessCustomization = () => {
         loadMasterConfig();
     }, []);
 
+    // Debounced automatic backend synchronization
+    const autoSaveTimerRef = useRef(null);
+
+    const triggerAutoSave = useCallback((newConfig) => {
+        if (autoSaveTimerRef.current) {
+            clearTimeout(autoSaveTimerRef.current);
+        }
+        autoSaveTimerRef.current = setTimeout(async () => {
+            try {
+                await settingsService.updateSettings(newConfig);
+                queryClient.setQueryData(['settings'], (old) => ({ ...(old || {}), ...newConfig }));
+            } catch (err) {
+                console.warn('[AutoSave] Background sync failed, local state retained:', err);
+            }
+        }, 600);
+    }, [queryClient]);
+
+    useEffect(() => {
+        const handleStorageChange = (e) => {
+            if (e.key === 'cliks_business_config' || e.key === 'cliks_active_config') {
+                try {
+                    const parsed = JSON.parse(e.newValue);
+                    if (parsed) setConfig(prev => ({ ...prev, ...parsed }));
+                } catch {}
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
     const handleToggle = (key) => {
         setConfig(prev => {
             const updated = { ...prev, [key]: !prev[key] };
@@ -404,6 +434,7 @@ const BusinessCustomization = () => {
             localStorage.setItem('cliks_business_config', JSON.stringify(updated));
             localStorage.setItem('cliks_active_config', JSON.stringify(updated));
             window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+            triggerAutoSave(updated);
             return updated;
         });
     };
@@ -426,7 +457,9 @@ const BusinessCustomization = () => {
                     ...(stateAuto ? { stateRegistered: stateAuto } : {})
                 };
                 localStorage.setItem('cliks_business_config', JSON.stringify(updated));
+                localStorage.setItem('cliks_active_config', JSON.stringify(updated));
                 window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+                triggerAutoSave(updated);
                 return updated;
             });
             return;
@@ -443,6 +476,7 @@ const BusinessCustomization = () => {
                 localStorage.setItem('cliks_business_config', JSON.stringify(updated));
                 localStorage.setItem('cliks_active_config', JSON.stringify(updated));
                 window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+                triggerAutoSave(updated);
                 return updated;
             });
             return;
@@ -454,6 +488,7 @@ const BusinessCustomization = () => {
                 localStorage.setItem('cliks_business_config', JSON.stringify(updated));
                 localStorage.setItem('cliks_active_config', JSON.stringify(updated));
                 window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+                triggerAutoSave(updated);
                 return updated;
             });
             return;
@@ -463,6 +498,7 @@ const BusinessCustomization = () => {
             localStorage.setItem('cliks_business_config', JSON.stringify(updated));
             localStorage.setItem('cliks_active_config', JSON.stringify(updated));
             window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+            triggerAutoSave(updated);
             return updated;
         });
     };
