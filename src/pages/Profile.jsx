@@ -56,7 +56,11 @@ const Profile = () => {
 
         const handleSave = () => {
             if (isEditing) {
-                mutation.mutate(localUser);
+                mutation.mutate({
+                    name: localUser.name,
+                    username: localUser.name,
+                    phone: localUser.phone
+                });
             } else {
                 setIsEditing(true);
             }

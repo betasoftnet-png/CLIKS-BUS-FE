@@ -353,12 +353,12 @@ const BusinessCustomization = () => {
                         merged.signatureUrl = dbSettings.settings.signatureUrl;
                     }
 
-                    if (dbSettings.logoUrl !== undefined) {
+                    if (dbSettings.logoUrl !== undefined && dbSettings.logoUrl !== null && dbSettings.logoUrl !== '') {
                         merged.logoUrl = dbSettings.logoUrl;
-                    } else if (dbSettings.settings && dbSettings.settings.logoUrl !== undefined) {
+                    } else if (dbSettings.settings && dbSettings.settings.logoUrl !== undefined && dbSettings.settings.logoUrl !== null && dbSettings.settings.logoUrl !== '') {
                         merged.logoUrl = dbSettings.settings.logoUrl;
-                    } else if (userProfile.avatar_url) {
-                        merged.logoUrl = userProfile.avatar_url;
+                    } else if (parsedLocal.logoUrl) {
+                        merged.logoUrl = parsedLocal.logoUrl;
                     }
 
                     // Fallback empty profile settings to registered account details
@@ -639,7 +639,6 @@ const BusinessCustomization = () => {
             await Promise.allSettled([
                 settingsService.updateSettings(config),
                 profileService.updateProfile({
-                    name: orgProfile.business_name,
                     business_name: orgProfile.business_name,
                     gstin: orgProfile.gstin,
                     state_registered: orgProfile.state_registered,
@@ -687,7 +686,6 @@ const BusinessCustomization = () => {
                 });
                 try {
                     await settingsService.updateSettings({ logoUrl: logoDataUrl });
-                    await profileService.updateProfile({ avatar_data: logoDataUrl, avatar_name: file.name });
                 } catch (err) {
                     console.warn('[Logo Persistence] Failed to sync logo to cloud backend:', err);
                 }

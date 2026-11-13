@@ -139,7 +139,15 @@ const Settings = () => {
         }
 
         mutation.mutate(payload);
-        window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: payload }));
+        try {
+            const currentConfig = JSON.parse(localStorage.getItem('cliks_business_config') || '{}');
+            const mergedConfig = { ...currentConfig, ...payload };
+            localStorage.setItem('cliks_business_config', JSON.stringify(mergedConfig));
+            localStorage.setItem('cliks_active_config', JSON.stringify(mergedConfig));
+            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: mergedConfig }));
+        } catch (e) {
+            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: payload }));
+        }
     };
 
     if (isLoading) {
