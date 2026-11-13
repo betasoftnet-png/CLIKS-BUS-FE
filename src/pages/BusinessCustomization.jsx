@@ -254,7 +254,7 @@ const BusinessCustomization = () => {
         payReminder: true,
 
         // ACCOUNTING & REMINDERS
-        accountingModule: false,
+        accountingModule: true,
         serviceReminders: false,
 
         // SYSTEM PREFERENCES (INTEGRATED FROM SETTINGS PAGE)

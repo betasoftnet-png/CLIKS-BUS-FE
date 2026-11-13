@@ -84,6 +84,20 @@ const BusinessAccounting = () => {
     });
     const activeConfig = userSettings?.data || userSettings || {};
 
+    const [isActivatingEngine, setIsActivatingEngine] = useState(false);
+    const handleQuickActivateAccounting = async () => {
+        setIsActivatingEngine(true);
+        try {
+            await settingsService.updateSettings({ ...activeConfig, accountingModule: true });
+            await queryClient.invalidateQueries({ queryKey: ['settings'] });
+        } catch (err) {
+            console.error('Failed to activate accounting module', err);
+            window.location.href = '/customization';
+        } finally {
+            setIsActivatingEngine(false);
+        }
+    };
+
     const [balanceSheetConfig, setBalanceSheetConfig] = useState(() => {
         const stored = localStorage.getItem(`balanceSheetConfig_${user?.id || 'default'}`);
         if (stored) {
@@ -1422,16 +1436,18 @@ const BusinessAccounting = () => {
                     </p>
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
                         <button
-                            onClick={() => window.location.href = '/customization'}
+                            disabled={isActivatingEngine}
+                            onClick={handleQuickActivateAccounting}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: '0.5rem',
                                 padding: '0.75rem 1.5rem', borderRadius: '12px',
                                 background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none',
-                                fontWeight: '800', cursor: 'pointer', fontSize: '0.85rem',
-                                boxShadow: '0 8px 16px rgba(124, 58, 237, 0.2)'
+                                fontWeight: '800', cursor: isActivatingEngine ? 'not-allowed' : 'pointer', fontSize: '0.85rem',
+                                boxShadow: '0 8px 16px rgba(124, 58, 237, 0.2)',
+                                opacity: isActivatingEngine ? 0.7 : 1
                             }}
                         >
-                            Activate Accounting Engine
+                            {isActivatingEngine ? 'Activating Engine...' : 'Activate Accounting Engine'}
                         </button>
                     </div>
                 </div>
