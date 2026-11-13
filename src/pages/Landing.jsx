@@ -203,9 +203,7 @@ export default function Landing() {
     const [processedCode, setProcessedCode] = useState(null);
 
     const CLIENT_ID = 'cliks-business';
-    const REDIRECT_URI = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
-        ? `${window.location.origin}/`
-        : 'https://cliksbusiness.com/';
+    const REDIRECT_URI = typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://cliksbusiness.com/';
     const BNX_AUTH_URL = 'https://www.b2auth.com';
     const BNX_API_URL = 'https://api.bnxmail.com';
 
@@ -312,8 +310,9 @@ export default function Landing() {
     const handleLogin = (e) => {
         if (e) e.preventDefault();
         const state = 'cliks-business-auth-state';
+        const redirectUri = encodeURIComponent(window.location.origin + '/');
         window.location.href =
-            `${BNX_AUTH_URL}/?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${state}&mode=business`;
+            `${BNX_AUTH_URL}/?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&state=${state}&mode=business`;
     };
 
     const scrollToSection = (id) => {

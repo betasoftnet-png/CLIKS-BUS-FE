@@ -354,16 +354,14 @@ export function ProfileDropdown({
 
     const handleAddAccount = () => {
         const CLIENT_ID = 'cliks-business';
-        const redirectUri = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
-            ? `${window.location.origin}/`
-            : 'https://cliksbusiness.com/';
+        const redirectUri = encodeURIComponent(window.location.origin + '/');
         const BNX_AUTH_URL = 'https://www.b2auth.com';
         const state = 'cliks-business-add-account';
         try {
             sessionStorage.setItem('cliks_adding_account', 'true');
         } catch (e) {}
 
-        window.location.href = `${BNX_AUTH_URL}/?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&mode=business&prompt=login`;
+        window.location.href = `${BNX_AUTH_URL}/?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&state=${state}&mode=business&prompt=login`;
     };
 
     // Calculate dynamic trust score
