@@ -1553,6 +1553,27 @@ const SimpleBilling = () => {
                         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                         overflow: 'hidden'
                     }}>
+                        {/* Dynamic Page Print CSS Rule for Thermal Receipt */}
+                        <style dangerouslySetInnerHTML={{ __html: `
+                            @media print {
+                                @page { size: 80mm 200mm; margin: 0; }
+                                body * { visibility: hidden !important; }
+                                #printable-bill-receipt, #printable-bill-receipt * { visibility: visible !important; }
+                                #printable-bill-receipt {
+                                    position: absolute !important;
+                                    left: 0 !important;
+                                    top: 0 !important;
+                                    width: 80mm !important;
+                                    max-width: 80mm !important;
+                                    margin: 0 !important;
+                                    padding: 8px !important;
+                                    background: #ffffff !important;
+                                    color: #000000 !important;
+                                }
+                                .no-print { display: none !important; }
+                            }
+                        ` }} />
+
                         {/* Receipt Top Bar */}
                         <div style={{
                             padding: '1rem 1.25rem',

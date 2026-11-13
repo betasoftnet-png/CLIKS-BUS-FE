@@ -190,8 +190,9 @@ const POSReceiptModal = ({
                 {/* Dynamic Page Print CSS Rule for Target Printer Size */}
                 <style dangerouslySetInnerHTML={{ __html: `
                     @media print {
-                        @page { size: ${activePrinterConfig.widthMm} auto; margin: 0; }
-                        #printable-pos-receipt { width: ${activePrinterConfig.widthMm} !important; }
+                        @page { size: ${activePrinterConfig.widthMm} 200mm; margin: 0; }
+                        body { margin: 0 !important; padding: 0 !important; }
+                        #printable-pos-receipt { width: ${activePrinterConfig.widthMm} !important; max-width: ${activePrinterConfig.widthMm} !important; margin: 0 auto !important; }
                     }
                 ` }} />
 

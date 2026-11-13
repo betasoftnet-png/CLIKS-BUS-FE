@@ -512,28 +512,52 @@ const BusinessCustomization = () => {
         }
 
         const businessTitle = config.displayTitlePrint || config.companyName || 'CLIKS BUSINESS';
-        const paperLabel = config.paperSize || (isThermal ? '3 Inch (Thermal)' : 'A4 Size');
+        const paperLabel = isThermal 
+            ? ((config.paperSize && config.paperSize.includes('Thermal')) ? config.paperSize : '3 Inch (Thermal)')
+            : (config.paperSize || 'A4 Size');
+
+        const thermalWidth = (paperLabel.includes('2 Inch') || paperLabel.includes('58mm'))
+            ? '58mm'
+            : (paperLabel.includes('4 Inch') || paperLabel.includes('100mm'))
+                ? '100mm'
+                : '80mm';
+
+        const pageSize = isThermal 
+            ? `${thermalWidth} 200mm` 
+            : (paperLabel.includes('Letter') ? 'letter portrait' : paperLabel.includes('Legal') ? 'legal portrait' : 'a4 portrait');
 
         const htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="utf-8" />
                 <title>Test Print Output - ${businessTitle}</title>
                 <style>
                     @page {
-                        size: ${isThermal ? '80mm auto' : (paperLabel.includes('Letter') ? 'letter' : paperLabel.includes('Legal') ? 'legal' : 'A4')};
-                        margin: ${isThermal ? '2mm' : '10mm'};
+                        size: ${pageSize};
+                        margin: ${isThermal ? '0' : '10mm'};
+                    }
+                    * {
+                        box-sizing: border-box;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    html, body {
+                        margin: 0;
+                        padding: 0;
+                        width: ${isThermal ? thermalWidth : '100%'};
+                        background: #fff;
+                        color: #000;
                     }
                     body {
-                        font-family: ${isThermal ? "'Courier New', monospace" : "'Inter', system-ui, sans-serif"};
-                        margin: 0;
-                        padding: ${isThermal ? '8px' : '20px'};
-                        color: #000;
-                        background: #fff;
-                        font-size: ${isThermal ? '12px' : '14px'};
+                        font-family: ${isThermal ? "'Courier New', Courier, monospace" : "'Inter', system-ui, sans-serif"};
+                        padding: ${isThermal ? '3mm' : '20px'};
+                        font-size: ${isThermal ? (thermalWidth === '58mm' ? '10px' : '12px') : '14px'};
+                        line-height: 1.35;
                     }
                     .ticket {
-                        max-width: ${isThermal ? '280px' : '100%'};
+                        width: 100%;
+                        max-width: ${isThermal ? thermalWidth : '800px'};
                         margin: 0 auto;
                     }
                     .header {
@@ -543,42 +567,46 @@ const BusinessCustomization = () => {
                         margin-bottom: 10px;
                     }
                     .title {
-                        font-size: ${isThermal ? '16px' : '22px'};
+                        font-size: ${isThermal ? (thermalWidth === '58mm' ? '14px' : '16px') : '22px'};
                         font-weight: bold;
                         text-transform: uppercase;
+                        letter-spacing: 0.5px;
                     }
                     .subtitle {
-                        font-size: 11px;
-                        color: #444;
-                        margin-top: 4px;
+                        font-size: ${isThermal ? '10px' : '11px'};
+                        color: #333;
+                        margin-top: 3px;
                     }
                     .table {
                         width: 100%;
                         border-collapse: collapse;
-                        margin: 10px 0;
+                        margin: 8px 0;
                     }
                     .table th, .table td {
                         text-align: left;
-                        padding: 4px 0;
-                        font-size: ${isThermal ? '11px' : '13px'};
+                        padding: ${isThermal ? '3px 0' : '6px 0'};
+                        font-size: ${isThermal ? (thermalWidth === '58mm' ? '10px' : '11px') : '13px'};
                     }
                     .table th {
                         border-bottom: 1px solid #000;
+                        font-weight: 700;
                     }
                     .table td.right, .table th.right {
                         text-align: right;
                     }
                     .total-row {
                         border-top: ${isThermal ? '1px dashed #000' : '2px solid #000'};
+                        border-bottom: ${isThermal ? '1px dashed #000' : '2px solid #000'};
                         font-weight: bold;
-                        font-size: ${isThermal ? '13px' : '16px'};
+                        font-size: ${isThermal ? (thermalWidth === '58mm' ? '11px' : '13px') : '16px'};
                     }
                     .footer {
-                        margin-top: 15px;
+                        margin-top: 12px;
                         text-align: center;
-                        font-size: 10px;
+                        font-size: ${isThermal ? '10px' : '11px'};
                         border-top: ${isThermal ? '1px dashed #000' : 'none'};
                         padding-top: 8px;
+                        color: #222;
                     }
                 </style>
             </head>
@@ -587,7 +615,7 @@ const BusinessCustomization = () => {
                     <div class="header">
                         <div class="title">${businessTitle}</div>
                         <div class="subtitle">PRINTER MECHANISM TEST SHEET</div>
-                        <div class="subtitle">Mode: ${isThermal ? 'THERMAL RECEIPT (80mm / 3")' : 'STANDARD PAGE (' + paperLabel + ')'}</div>
+                        <div class="subtitle">Mode: ${isThermal ? `THERMAL RECEIPT (${thermalWidth} / ${paperLabel})` : `STANDARD PAGE (${paperLabel})`}</div>
                         <div class="subtitle">Date: ${new Date().toLocaleString()}</div>
                     </div>
 
@@ -622,15 +650,18 @@ const BusinessCustomization = () => {
 
                     <div class="footer">
                         <div>✓ Printer Mechanism Operational</div>
-                        <div>Configuration: ${isThermal ? 'Thermal Slip Printer' : 'Standard Document Printer'}</div>
-                        <div style="margin-top: 4px;">CLIKS Business Printing Engine</div>
+                        <div>Configuration: ${isThermal ? `Thermal Slip Printer (${thermalWidth})` : 'Standard Document Printer'}</div>
+                        <div style="margin-top: 4px; font-size: 9px; color: #666;">CLIKS Business Printing Engine</div>
                     </div>
                 </div>
 
                 <script>
                     window.onload = function() {
+                        window.focus();
                         window.print();
-                        setTimeout(function() { window.close(); }, 750);
+                    };
+                    window.onafterprint = function() {
+                        setTimeout(function() { window.close(); }, 300);
                     };
                 </script>
             </body>
@@ -2006,7 +2037,15 @@ const BusinessCustomization = () => {
                         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
                             <button 
                                 type="button"
-                                onClick={() => handleTextChange('printerType', 'regular')} 
+                                onClick={() => {
+                                    setConfig((prev) => {
+                                        const newPaper = (prev.paperSize && prev.paperSize.includes('Thermal')) ? 'A4 Size' : (prev.paperSize || 'A4 Size');
+                                        const updated = { ...prev, printerType: 'regular', paperSize: newPaper };
+                                        window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+                                        triggerAutoSave(updated);
+                                        return updated;
+                                    });
+                                }} 
                                 style={{ 
                                     flex: 1, 
                                     padding: '0.75rem', 
@@ -2024,7 +2063,15 @@ const BusinessCustomization = () => {
                             </button>
                             <button 
                                 type="button"
-                                onClick={() => handleTextChange('printerType', 'thermal')} 
+                                onClick={() => {
+                                    setConfig((prev) => {
+                                        const newPaper = (prev.paperSize && prev.paperSize.includes('Thermal')) ? prev.paperSize : '3 Inch (Thermal)';
+                                        const updated = { ...prev, printerType: 'thermal', paperSize: newPaper };
+                                        window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+                                        triggerAutoSave(updated);
+                                        return updated;
+                                    });
+                                }} 
                                 style={{ 
                                     flex: 1, 
                                     padding: '0.75rem', 
@@ -2064,7 +2111,7 @@ const BusinessCustomization = () => {
                                 transition: 'all 0.2s'
                             }}
                         >
-                            <Printer size={16} /> Test Print Output ({isThermal ? '3" Thermal Receipt' : (config.paperSize || 'A4 Size')})
+                            <Printer size={16} /> Test Print Output ({isThermal ? ((config.paperSize && config.paperSize.includes('Thermal')) ? config.paperSize : '3" Thermal Receipt') : (config.paperSize || 'A4 Size')})
                         </button>
                     </CustomizationCard>
                     <CustomizationCard title="Info Overrides" icon={Edit}>
@@ -2080,12 +2127,23 @@ const BusinessCustomization = () => {
                                 <select 
                                     style={selectStyle} 
                                     value={config.paperSize} 
-                                    onChange={(e) => handleTextChange('paperSize', e.target.value)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        const targetPrinterType = val.includes('Thermal') ? 'thermal' : 'regular';
+                                        setConfig((prev) => {
+                                            const updated = { ...prev, paperSize: val, printerType: targetPrinterType };
+                                            window.dispatchEvent(new CustomEvent('cliksConfigUpdated', { detail: updated }));
+                                            triggerAutoSave(updated);
+                                            return updated;
+                                        });
+                                    }}
                                 >
                                     <option>A4 Size</option>
                                     <option>Letter</option>
                                     <option>Legal</option>
+                                    <option>2 Inch (Thermal)</option>
                                     <option>3 Inch (Thermal)</option>
+                                    <option>4 Inch (Thermal)</option>
                                 </select>
                             </div>
                         </div>
