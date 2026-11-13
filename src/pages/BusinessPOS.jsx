@@ -764,7 +764,7 @@ const BusinessPOS = () => {
 
     // Modal & Kiosk Display States
     const [showPosSettingsModal, setShowPosSettingsModal] = useState(false);
-    const [posSettingsTab, setPosSettingsTab] = useState('print'); // 'print' | 'credit' | 'kiosk'
+    const [posSettingsTab, setPosSettingsTab] = useState('display'); // 'display' | 'print' | 'credit' | 'kiosk'
     const [isCustomerViewActive, setIsCustomerViewActive] = useState(() => {
         try {
             return sessionStorage.getItem('pos_kiosk_active') === 'true';
@@ -2428,7 +2428,7 @@ const BusinessPOS = () => {
         const filtered = inventory.filter(prod => {
             // Warehouse matching logic (Multi-select)
             let matchesWarehouse = true;
-            if (selectedWarehouseIds.length > 0) {
+            if (dbWarehouses && dbWarehouses.length > 0 && selectedWarehouseIds.length > 0) {
                 matchesWarehouse = selectedWarehouseIds.some(whId => {
                     const selectedWh = dbWarehouses.find(w => String(w.id) === String(whId) || w.code === whId || w.name === whId);
                     const targetId = String(whId).toLowerCase();
@@ -3486,10 +3486,10 @@ const BusinessPOS = () => {
                                 <History size={17} strokeWidth={2.2} />
                             </button>
 
-                            {/* POS Settings Icon Button (Print, Credit, Kiosk, etc.) */}
+                            {/* POS Settings Icon Button (Pictures, Print, Credit, Kiosk, etc.) */}
                             <button
                                 onClick={() => setShowPosSettingsModal(true)}
-                                title="POS Settings: Print, Credit, Customer View, Kiosk PIN"
+                                title="POS Settings: Pictures, Print, Credit, Customer View, Kiosk PIN"
                                 style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
@@ -3546,8 +3546,8 @@ const BusinessPOS = () => {
 
                     {/* Top Filtering Row (Warehouse, Search, Categories) */}
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                        {/* Warehouse Filter Dropdown (With Multi-Select Checkboxes) */}
-                        {!isStarterPlan && (
+                        {/* Warehouse Filter Dropdown (Visible only when user has warehouses registered) */}
+                        {!isStarterPlan && dbWarehouses && dbWarehouses.length > 0 && (
                             <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={warehouseDropdownRef}>
                                 <button
                                     type="button"
@@ -3920,37 +3920,6 @@ const BusinessPOS = () => {
                             <span>Scan QR / Barcode</span>
                         </button> */}
 
-                        {/* Quick Picture In/Out Toggle for Internal POS */}
-                        <button
-                            type="button"
-                            onClick={() => {
-                                const nextVal = !posShowImages;
-                                setLocalPosShowImages(nextVal);
-                                try { localStorage.setItem('pos_show_pictures', String(nextVal)); } catch { /* ignore */ }
-                                handleSavePosSettings({ pos_show_images: nextVal });
-                            }}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                padding: '0 0.85rem',
-                                height: '40px',
-                                borderRadius: '12px',
-                                border: posShowImages ? '1.5px solid #10B981' : '1px solid #CBD5E1',
-                                background: posShowImages ? '#ECFDF5' : '#FFFFFF',
-                                color: posShowImages ? '#047857' : '#64748B',
-                                fontSize: '0.8rem',
-                                fontWeight: '800',
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap',
-                                transition: 'all 0.15s ease',
-                                boxShadow: posShowImages ? '0 1px 3px rgba(16, 185, 129, 0.12)' : 'none'
-                            }}
-                            title={posShowImages ? 'Product Pictures: ON in POS (Click to switch to compact text cards)' : 'Product Pictures: OFF in POS (Click to show product pictures on cards)'}
-                        >
-                            <ImageIcon size={16} color={posShowImages ? '#059669' : '#64748B'} />
-                            <span style={{ fontSize: '0.78rem' }}>{posShowImages ? 'Pictures: ON' : 'Pictures: OFF'}</span>
-                        </button>
 
                         {/* Product Filter & Sort / List Dropdown (Icon Only) */}
                         <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }} ref={sortFilterDropdownRef}>
@@ -8747,6 +8716,7 @@ const BusinessPOS = () => {
                                                         const val = e.target.checked;
                                                         setLocalPosShowImages(val);
                                                         try { localStorage.setItem('pos_show_pictures', String(val)); } catch { /* ignore */ }
+                                                        handleSavePosSettings({ pos_show_images: val });
                                                     }}
                                                     style={{ opacity: 0, width: 0, height: 0 }}
                                                 />
