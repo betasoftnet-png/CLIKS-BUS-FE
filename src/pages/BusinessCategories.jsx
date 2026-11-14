@@ -25,7 +25,9 @@ import {
     Smartphone,
     Shirt,
     Milk,
-    Cookie
+    Cookie,
+    CheckSquare,
+    Square
 } from 'lucide-react';
 import { productsService } from '../services/productsService';
 import { storageService } from '../services/storageService';
@@ -90,6 +92,25 @@ const BusinessCategories = () => {
         staleTime: 1000 * 60 * 2 // 2 minutes cache
     });
 
+    // Fetch products list to enable assigning uncategorized & parent products during category creation
+    const { data: rawProducts = [], isLoading: isLoadingProducts } = useQuery({
+        queryKey: ['products'],
+        queryFn: () => productsService.getProducts(),
+        staleTime: 1000 * 60 * 2
+    });
+
+    const productsList = useMemo(() => {
+        if (Array.isArray(rawProducts)) return rawProducts;
+        if (rawProducts?.products && Array.isArray(rawProducts.products)) return rawProducts.products;
+        if (rawProducts?.items && Array.isArray(rawProducts.items)) return rawProducts.items;
+        if (rawProducts?.data && Array.isArray(rawProducts.data)) return rawProducts.data;
+        return [];
+    }, [rawProducts]);
+
+    // Product assignment state inside category modal
+    const [selectedProductIds, setSelectedProductIds] = useState([]);
+    const [productSearchQuery, setProductSearchQuery] = useState('');
+
     // Extract top groups and subgroups
     const groups = useMemo(() => {
         if (!categoriesData) return [];
@@ -106,6 +127,90 @@ const BusinessCategories = () => {
         return categoriesData.categories || [];
     }, [categoriesData]);
 
+    // Helper: detect if a product has no category (uncategorized)
+    const isUncategorized = (p) => {
+        if (!p) return false;
+        const cat = (p.category || '').trim().toLowerCase();
+        const hasNoGroupId = !p.group_id || p.group_id === 0;
+        const hasNoSubgroupId = !p.subgroup_id || p.subgroup_id === 0;
+        if (!hasNoGroupId || !hasNoSubgroupId) return false;
+        return !cat || cat === 'uncategorized' || cat === 'none' || cat === 'general' || cat === 'no category' || cat === '-';
+    };
+
+    const isSubcategoryMode = Boolean(formData.parent_id);
+    const selectedParentId = formData.parent_id ? Number(formData.parent_id) : null;
+    const selectedParentGroup = useMemo(() => {
+        if (!selectedParentId) return null;
+        return groups.find(g => Number(g.id) === selectedParentId) || null;
+    }, [groups, selectedParentId]);
+
+    // Filter eligible products for the modal:
+    // 1. Top-Level Main Category: ONLY products with no category
+    // 2. Subcategory: products in the selected parent category + products with no category
+    const eligibleProducts = useMemo(() => {
+        if (!productsList || !Array.isArray(productsList)) return [];
+
+        return productsList.filter(p => {
+            // If editing, always keep products currently assigned to this category visible & selectable
+            if (editingCategory) {
+                if (isSubcategoryMode) {
+                    if (p.subgroup_id === editingCategory.id) return true;
+                } else {
+                    if (p.group_id === editingCategory.id && (!p.subgroup_id || p.subgroup_id === 0)) return true;
+                    if (p.category && p.category.toLowerCase() === editingCategory.category_name?.toLowerCase()) return true;
+                }
+            }
+
+            if (isSubcategoryMode) {
+                // In Subcategory mode:
+                // 1. Products that were added to the parent category previously
+                const inParentCategory = (
+                    p.group_id === selectedParentId ||
+                    (selectedParentGroup && (
+                        p.category?.toLowerCase() === selectedParentGroup.category_name?.toLowerCase() ||
+                        p.category?.toLowerCase().startsWith(selectedParentGroup.category_name?.toLowerCase() + ' >')
+                    ))
+                );
+                if (inParentCategory) return true;
+
+                // 2. Products with NO category
+                if (isUncategorized(p)) return true;
+
+                return false;
+            } else {
+                // In Top-Level Main Category mode:
+                // ONLY products with NO category can be displayed!
+                return isUncategorized(p);
+            }
+        });
+    }, [productsList, isSubcategoryMode, selectedParentId, selectedParentGroup, editingCategory]);
+
+    const filteredEligibleProducts = useMemo(() => {
+        if (!productSearchQuery.trim()) return eligibleProducts;
+        const q = productSearchQuery.toLowerCase().trim();
+        return eligibleProducts.filter(p =>
+            (p.name || '').toLowerCase().includes(q) ||
+            (p.sku || '').toLowerCase().includes(q) ||
+            (p.barcode || '').toLowerCase().includes(q)
+        );
+    }, [eligibleProducts, productSearchQuery]);
+
+    const handleToggleProduct = (id) => {
+        setSelectedProductIds(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    };
+
+    const handleSelectAllFiltered = () => {
+        const filteredIds = filteredEligibleProducts.map(p => p.id);
+        const allSelected = filteredIds.length > 0 && filteredIds.every(id => selectedProductIds.includes(id));
+        if (allSelected) {
+            setSelectedProductIds(prev => prev.filter(id => !filteredIds.includes(id)));
+        } else {
+            setSelectedProductIds(prev => Array.from(new Set([...prev, ...filteredIds])));
+        }
+    };
+
     // Create / Update mutation
     const saveCategoryMutation = useMutation({
         mutationFn: async (payload) => {
@@ -118,8 +223,12 @@ const BusinessCategories = () => {
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['product_categories'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['stocks'] });
+            queryClient.invalidateQueries({ queryKey: ['pos-catalog'] });
             setIsModalOpen(false);
             setEditingCategory(null);
+            setSelectedProductIds([]);
+            setProductSearchQuery('');
             showBanner(editingCategory ? 'Category updated successfully!' : 'Category created successfully!', 'success');
         },
         onError: (err) => {
@@ -219,6 +328,8 @@ const BusinessCategories = () => {
     // Modal openers
     const handleOpenCreateModal = (preselectedParentId = '') => {
         setEditingCategory(null);
+        setSelectedProductIds([]);
+        setProductSearchQuery('');
         setFormData({
             category_name: '',
             parent_id: preselectedParentId ? String(preselectedParentId) : '',
@@ -231,6 +342,24 @@ const BusinessCategories = () => {
 
     const handleOpenEditModal = (cat) => {
         setEditingCategory(cat);
+        setProductSearchQuery('');
+        const parentId = cat.parent_id ? Number(cat.parent_id) : null;
+        
+        // Find existing assigned products to pre-populate selection
+        const currentAssigned = productsList.filter(p => {
+            if (parentId) {
+                // Subcategory
+                return p.subgroup_id === cat.id || 
+                       p.category === cat.category_name || 
+                       (p.category && p.category.endsWith(` > ${cat.category_name}`));
+            } else {
+                // Main category
+                return (p.group_id === cat.id && (!p.subgroup_id || p.subgroup_id === 0)) ||
+                       p.category === cat.category_name;
+            }
+        }).map(p => p.id);
+
+        setSelectedProductIds(currentAssigned);
         setFormData({
             category_name: cat.category_name || '',
             parent_id: cat.parent_id ? String(cat.parent_id) : '',
@@ -295,7 +424,8 @@ const BusinessCategories = () => {
             parent_id: formData.parent_id ? Number(formData.parent_id) : null,
             description: formData.description?.trim() || null,
             image_url: formData.image_url?.trim() || null,
-            is_active: Number(formData.is_active)
+            is_active: Number(formData.is_active),
+            product_ids: selectedProductIds
         };
 
         saveCategoryMutation.mutate(payload);
@@ -1014,7 +1144,7 @@ const BusinessCategories = () => {
             {/* Create / Edit Category Modal */}
             {isModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-                    <div style={{ background: '#FFFFFF', borderRadius: '24px', maxWidth: '580px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ background: '#FFFFFF', borderRadius: '24px', maxWidth: '660px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column' }}>
                         {/* Modal Header */}
                         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <div>
@@ -1255,6 +1385,196 @@ const BusinessCategories = () => {
                                 >
                                     {formData.is_active === 1 ? 'Active' : 'Inactive'}
                                 </button>
+                            </div>
+
+                            {/* Product Assignment Section */}
+                            <div style={{
+                                background: '#F8FAFC',
+                                borderRadius: '16px',
+                                border: '1px solid #E2E8F0',
+                                padding: '1.1rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.75rem'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#DCFCE7', color: '#16A34A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Package size={16} />
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '0.86rem', fontWeight: '850', color: '#0F172A', display: 'block' }}>
+                                                {isSubcategoryMode ? 'Assign / Reassign Products to this Subcategory' : 'Assign Products to this Category'}
+                                            </span>
+                                            <span style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                                                {isSubcategoryMode
+                                                    ? `Select products from "${selectedParentGroup?.category_name || 'parent'}" or uncategorized items to place in this subcategory.`
+                                                    : 'Only products with no category are shown here for safe assignment.'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span style={{
+                                        fontSize: '0.72rem',
+                                        fontWeight: '800',
+                                        padding: '0.2rem 0.65rem',
+                                        borderRadius: '20px',
+                                        background: selectedProductIds.length > 0 ? '#1B6B3A' : '#E2E8F0',
+                                        color: selectedProductIds.length > 0 ? '#FFFFFF' : '#64748B'
+                                    }}>
+                                        {selectedProductIds.length} Selected
+                                    </span>
+                                </div>
+
+                                {/* Filter & Select All toolbar */}
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    <div style={{ position: 'relative', flex: 1 }}>
+                                        <Search size={14} color="#94A3B8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                                        <input
+                                            type="text"
+                                            placeholder="Filter products by name, SKU..."
+                                            value={productSearchQuery}
+                                            onChange={(e) => setProductSearchQuery(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                boxSizing: 'border-box',
+                                                padding: '0.45rem 0.75rem 0.45rem 2rem',
+                                                borderRadius: '8px',
+                                                border: '1px solid #CBD5E1',
+                                                fontSize: '0.78rem',
+                                                background: '#FFFFFF',
+                                                outline: 'none'
+                                            }}
+                                        />
+                                        {productSearchQuery && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setProductSearchQuery('')}
+                                                style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: '11px' }}
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {filteredEligibleProducts.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={handleSelectAllFiltered}
+                                            style={{
+                                                padding: '0.45rem 0.75rem',
+                                                borderRadius: '8px',
+                                                border: '1px solid #CBD5E1',
+                                                background: '#FFFFFF',
+                                                color: '#334155',
+                                                fontSize: '0.75rem',
+                                                fontWeight: '750',
+                                                cursor: 'pointer',
+                                                whiteSpace: 'nowrap'
+                                            }}
+                                        >
+                                            {filteredEligibleProducts.every(p => selectedProductIds.includes(p.id)) ? 'Deselect All' : 'Select All'}
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Scrollable List */}
+                                <div style={{
+                                    maxHeight: '220px',
+                                    overflowY: 'auto',
+                                    border: '1px solid #E2E8F0',
+                                    borderRadius: '10px',
+                                    background: '#FFFFFF'
+                                }}>
+                                    {isLoadingProducts ? (
+                                        <div style={{ padding: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: '#64748B' }}>
+                                            Loading products catalog...
+                                        </div>
+                                    ) : filteredEligibleProducts.length === 0 ? (
+                                        <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+                                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: '750', color: '#64748B' }}>
+                                                {productSearchQuery ? 'No matching products found' : 'No eligible products to display'}
+                                            </p>
+                                            <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: '#94A3B8' }}>
+                                                {isSubcategoryMode
+                                                    ? `Only products in "${selectedParentGroup?.category_name || 'parent'}" or uncategorized items can be assigned.`
+                                                    : 'Only products with no category are shown. All your current products already have categories.'}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        filteredEligibleProducts.map(p => {
+                                            const isChecked = selectedProductIds.includes(p.id);
+                                            const isCurrentlyAssigned = editingCategory && (
+                                                isSubcategoryMode
+                                                    ? p.subgroup_id === editingCategory.id
+                                                    : (p.group_id === editingCategory.id || p.category?.toLowerCase() === editingCategory.category_name?.toLowerCase())
+                                            );
+                                            const inParent = isSubcategoryMode && (
+                                                p.group_id === selectedParentId ||
+                                                (selectedParentGroup && (
+                                                    p.category?.toLowerCase() === selectedParentGroup.category_name?.toLowerCase() ||
+                                                    p.category?.toLowerCase().startsWith(selectedParentGroup.category_name?.toLowerCase() + ' >')
+                                                ))
+                                            );
+
+                                            return (
+                                                <div
+                                                    key={p.id}
+                                                    onClick={() => handleToggleProduct(p.id)}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        padding: '0.6rem 0.85rem',
+                                                        borderBottom: '1px solid #F1F5F9',
+                                                        cursor: 'pointer',
+                                                        background: isChecked ? '#F0FDF4' : '#FFFFFF',
+                                                        transition: 'background 0.15s'
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: 0 }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isChecked}
+                                                            onChange={() => {}} // toggled by row click
+                                                            style={{ accentColor: '#1B6B3A', cursor: 'pointer', width: '16px', height: '16px' }}
+                                                        />
+                                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                                <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                    {p.name || p.product_name}
+                                                                </span>
+                                                                {p.sku && (
+                                                                    <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>
+                                                                        ({p.sku})
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.1rem' }}>
+                                                                Price: ₹{parseFloat(p.selling_price || p.price || 0).toLocaleString()} • Stock: {p.quantity ?? p.stock ?? 0} {p.unit || p.primary_unit || 'pcs'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ shrink: 0, marginLeft: '0.5rem' }}>
+                                                        {isCurrentlyAssigned ? (
+                                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#DCFCE7', color: '#166534' }}>
+                                                                Assigned
+                                                            </span>
+                                                        ) : inParent ? (
+                                                            <span style={{ fontSize: '0.68rem', fontWeight: '800', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#DBEAFE', color: '#1E40AF' }}>
+                                                                ↳ In {selectedParentGroup?.category_name}
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{ fontSize: '0.68rem', fontWeight: '750', padding: '0.15rem 0.45rem', borderRadius: '6px', background: '#F1F5F9', color: '#64748B' }}>
+                                                                Uncategorized
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
                             </div>
 
                             {/* Modal Actions */}
