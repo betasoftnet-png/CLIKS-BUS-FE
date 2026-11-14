@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { applyTableFilters } from '../utils/filterUtils';
 import {
     Users,
@@ -131,6 +131,7 @@ const BusinessStaffing = () => {
     const [colFilters, setColFilters] = React.useState({}); // 'profiles', 'employment', 'payroll', 'leaves', 'performance'
     const [searchTerm, setSearchTerm] = useState('');
     const [isOnboardModalOpen, setIsOnboardModalOpen] = useState(false);
+    const isSubmittingOnboardRef = useRef(false);
     const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -599,6 +600,12 @@ const BusinessStaffing = () => {
             alert('Employee onboarding sequence completed! Welcome package circular emailed.');
             setNewEmp(initialEmpState);
             setIsOnboardModalOpen(false);
+        },
+        onError: (err) => {
+            alert(err.response?.data?.message || err.message || 'Failed to onboard employee.');
+        },
+        onSettled: () => {
+            isSubmittingOnboardRef.current = false;
         }
     });
 
@@ -890,10 +897,17 @@ const BusinessStaffing = () => {
     const handleOnboardSubmit = (e) => {
         e.preventDefault();
 
+        // Prevent duplicate submissions on rapid clicks
+        if (isSubmittingOnboardRef.current || createEmpMutation.isPending) {
+            return;
+        }
+        isSubmittingOnboardRef.current = true;
+
         const activePlan = selectedPlan || user?.tier || 'Starter Plan';
         const maxStaff = activePlan === 'Elite Suite' ? Infinity : (activePlan === 'Growth Plan' ? 25 : 5);
         if (employees.length >= maxStaff) {
             alert(`You have reached the maximum limit of ${maxStaff} staff profiles for your ${activePlan}. Upgrade your subscription plan for additional staff capacity.`);
+            isSubmittingOnboardRef.current = false;
             return;
         }
 
@@ -903,6 +917,7 @@ const BusinessStaffing = () => {
         if (cleanStaffPhone && cleanEmergPhone) {
             if (cleanStaffPhone === cleanEmergPhone || (cleanStaffPhone.length >= 10 && cleanEmergPhone.length >= 10 && cleanStaffPhone.slice(-10) === cleanEmergPhone.slice(-10))) {
                 alert('Emergency contact number cannot be the same as the staff phone number. Please enter a different emergency contact number.');
+                isSubmittingOnboardRef.current = false;
                 return;
             }
         }
@@ -913,6 +928,7 @@ const BusinessStaffing = () => {
             const existingWithEsi = employees.find(emp => (emp.esi_number || '').trim().toLowerCase() === cleanEsi.toLowerCase());
             if (existingWithEsi) {
                 alert(`ESI Number "${cleanEsi}" is already assigned to ${existingWithEsi.name || 'another staff member'}. ESI Number must be unique.`);
+                isSubmittingOnboardRef.current = false;
                 return;
             }
         }
@@ -2242,7 +2258,19 @@ const BusinessStaffing = () => {
                                 <button
                                     type="submit"
                                     disabled={createEmpMutation.isPending}
-                                    style={{ padding: '0.75rem 2rem', borderRadius: '12px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(6, 78, 59, 0.2)' }}
+                                    style={{
+                                        padding: '0.75rem 2rem',
+                                        borderRadius: '12px',
+                                        background: createEmpMutation.isPending ? '#94A3B8' : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)',
+                                        color: 'white',
+                                        border: 'none',
+                                        fontWeight: '800',
+                                        fontSize: '0.85rem',
+                                        cursor: createEmpMutation.isPending ? 'not-allowed' : 'pointer',
+                                        boxShadow: '0 4px 12px rgba(6, 78, 59, 0.2)',
+                                        opacity: createEmpMutation.isPending ? 0.7 : 1,
+                                        pointerEvents: createEmpMutation.isPending ? 'none' : 'auto'
+                                    }}
                                 >
                                     {createEmpMutation.isPending ? 'Onboarding...' : 'Onboard Staff Employee'}
                                 </button>
