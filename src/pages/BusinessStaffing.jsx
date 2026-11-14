@@ -32,7 +32,9 @@ import {
     Download,
     Send,
     Sliders,
-    Sun
+    Sun,
+    ChevronUp,
+    ChevronDown
 } from 'lucide-react';
 import '../App.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -3207,7 +3209,17 @@ const BusinessStaffing = () => {
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
                                     Standard Monthly Quota (Days / Month)
                                 </label>
-                                <div style={{ position: 'relative' }}>
+                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                    <style>{`
+                                        .quota-input-clean::-webkit-inner-spin-button,
+                                        .quota-input-clean::-webkit-outer-spin-button {
+                                            -webkit-appearance: none !important;
+                                            margin: 0 !important;
+                                        }
+                                        .quota-input-clean {
+                                            -moz-appearance: textfield !important;
+                                        }
+                                    `}</style>
                                     <input
                                         type="number"
                                         step="0.5"
@@ -3216,9 +3228,83 @@ const BusinessStaffing = () => {
                                         required
                                         value={tempQuota}
                                         onChange={(e) => setTempQuota(e.target.value)}
-                                        style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '1.1rem', fontWeight: '800', color: '#064E3B', boxSizing: 'border-box' }}
+                                        className="quota-input-clean"
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem 6.5rem 0.75rem 0.85rem',
+                                            borderRadius: '12px',
+                                            border: '1px solid #CBD5E1',
+                                            outline: 'none',
+                                            fontSize: '1.1rem',
+                                            fontWeight: '800',
+                                            color: '#064E3B',
+                                            boxSizing: 'border-box'
+                                        }}
                                     />
-                                    <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Days/mo</span>
+                                    <div style={{
+                                        position: 'absolute',
+                                        right: '8px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        userSelect: 'none'
+                                    }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setTempQuota(prev => Math.min(30, parseFloat((parseFloat(prev || 0) + 0.5).toFixed(1))))}
+                                                style={{
+                                                    background: '#F1F5F9',
+                                                    border: '1px solid #CBD5E1',
+                                                    borderRadius: '4px',
+                                                    width: '20px',
+                                                    height: '14px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    color: '#064E3B',
+                                                    padding: 0
+                                                }}
+                                                title="Increase by 0.5"
+                                            >
+                                                <ChevronUp size={12} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setTempQuota(prev => Math.max(0, parseFloat((parseFloat(prev || 0) - 0.5).toFixed(1))))}
+                                                style={{
+                                                    background: '#F1F5F9',
+                                                    border: '1px solid #CBD5E1',
+                                                    borderRadius: '4px',
+                                                    width: '20px',
+                                                    height: '14px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    color: '#064E3B',
+                                                    padding: 0
+                                                }}
+                                                title="Decrease by 0.5"
+                                            >
+                                                <ChevronDown size={12} />
+                                            </button>
+                                        </div>
+                                        <span style={{
+                                            fontSize: '0.72rem',
+                                            fontWeight: '800',
+                                            color: '#065F46',
+                                            background: '#ECFDF5',
+                                            padding: '0.2rem 0.45rem',
+                                            borderRadius: '6px',
+                                            border: '1px solid #A7F3D0'
+                                        }}>
+                                            Days/mo
+                                        </span>
+                                    </div>
                                 </div>
                                 <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: '750', marginTop: '0.35rem', display: 'block' }}>
                                     🌴 Equals {((parseFloat(tempQuota) || 0) * 12).toFixed(1)} Days Annual Leave Quota
