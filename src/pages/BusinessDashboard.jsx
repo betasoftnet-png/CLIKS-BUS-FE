@@ -42,7 +42,9 @@ import {
     Layers,
     Search,
     ExternalLink,
-    Filter
+    Filter,
+    ChevronUp,
+    ChevronDown
 } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -227,6 +229,13 @@ const BusinessDashboard = () => {
     const [isDashboardCustomiseOpen, setIsDashboardCustomiseOpen] = useState(false);
     const [modalFeatures, setModalFeatures] = useState(dashboardFeatures);
     const [isSavingFeatures, setIsSavingFeatures] = useState(false);
+    const [isSalesGraphCollapsed, setIsSalesGraphCollapsed] = useState(() => {
+        try {
+            return localStorage.getItem('cliks_sales_graph_collapsed') === 'true';
+        } catch (e) {
+            return false;
+        }
+    });
 
     // Sync shortcuts & features from database whenever settings are fetched
     useEffect(() => {
@@ -549,12 +558,12 @@ const BusinessDashboard = () => {
     const monthsLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const maxSales = Math.max(...salesData, 100000);
 
-    const svgWidth = 700;
-    const svgHeight = 220;
+    const svgWidth = 850;
+    const svgHeight = 135;
     const paddingLeft = 40;
-    const paddingRight = 20;
-    const paddingTop = 20;
-    const paddingBottom = 30;
+    const paddingRight = 15;
+    const paddingTop = 10;
+    const paddingBottom = 22;
     const chartWidth = svgWidth - paddingLeft - paddingRight;
     const chartHeight = svgHeight - paddingTop - paddingBottom;
 
@@ -814,23 +823,64 @@ const BusinessDashboard = () => {
 
                                 case 'sales_performance':
                                     return (
-                                        <div key="sales_performance" className="col-span-1 lg:col-span-12" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '24px', padding: '24px', position: 'relative', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                        <div key="sales_performance" className="col-span-1 lg:col-span-12" style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '20px', padding: '16px 20px', position: 'relative', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isSalesGraphCollapsed ? 0 : '12px' }}>
                                                 <div>
-                                                    <h2 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{t('salesPerformance', 'Sales Performance')}</h2>
-                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '4px 0 0 0' }}>{t('interactiveSalesGraph', 'Interactive monthly sales aggregation graph.')}</p>
+                                                    <h2 style={{ fontSize: '1.05rem', fontWeight: '850', color: '#0F172A', margin: 0 }}>{t('salesPerformance', 'Sales Performance')}</h2>
+                                                    <p style={{ fontSize: '0.74rem', color: '#64748B', margin: '2px 0 0 0' }}>{t('interactiveSalesGraph', 'Interactive monthly sales aggregation graph.')}</p>
                                                 </div>
-                                                <div style={{ background: '#F0FDF4', color: '#1B6B3A', border: '1px solid #BBF7D0', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '800' }}>
-                                                    {t('liveStream', 'Live Stream')}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div style={{ background: '#F0FDF4', color: '#1B6B3A', border: '1px solid #BBF7D0', padding: '2px 8px', borderRadius: '16px', fontSize: '0.7rem', fontWeight: '800' }}>
+                                                        {t('liveStream', 'Live Stream')}
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                             setIsSalesGraphCollapsed(prev => {
+                                                                 const next = !prev;
+                                                                 try { localStorage.setItem('cliks_sales_graph_collapsed', String(next)); } catch (e) {}
+                                                                 return next;
+                                                             });
+                                                        }}
+                                                        title={isSalesGraphCollapsed ? "Expand Graph" : "Minimize Graph"}
+                                                        style={{
+                                                             display: 'flex',
+                                                             alignItems: 'center',
+                                                             gap: '4px',
+                                                             background: '#F8FAFC',
+                                                             border: '1px solid #E2E8F0',
+                                                             borderRadius: '8px',
+                                                             padding: '3px 8px',
+                                                             fontSize: '0.7rem',
+                                                             fontWeight: '750',
+                                                             color: '#475569',
+                                                             cursor: 'pointer',
+                                                             transition: 'all 0.15s ease'
+                                                        }}
+                                                        onMouseEnter={e => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#0F172A'; }}
+                                                        onMouseLeave={e => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#475569'; }}
+                                                    >
+                                                        {isSalesGraphCollapsed ? (
+                                                             <>
+                                                                 <ChevronDown size={13} />
+                                                                 <span>Expand</span>
+                                                             </>
+                                                        ) : (
+                                                             <>
+                                                                 <ChevronUp size={13} />
+                                                                 <span>Minimize</span>
+                                                             </>
+                                                        )}
+                                                    </button>
                                                 </div>
                                             </div>
 
-                                            {/* Custom SVG Sales Line/Area Graph */}
-                                            <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
-                                                <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%" style={{ display: 'block', overflow: 'visible', height: 'auto' }}>
+                                            {!isSalesGraphCollapsed && (
+                                                <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
+                                                <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%" style={{ display: 'block', overflow: 'visible', height: 'auto', maxHeight: '140px' }}>
                                                     <defs>
                                                         <linearGradient id="salesAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                                                            <stop offset="0%" stopColor="#1B6B3A" stopOpacity="0.3" />
+                                                            <stop offset="0%" stopColor="#1B6B3A" stopOpacity="0.25" />
                                                             <stop offset="100%" stopColor="#1B6B3A" stopOpacity="0.0" />
                                                         </linearGradient>
                                                         <linearGradient id="salesLineGradient" x1="0" y1="0" x2="1" y2="0">
@@ -849,14 +899,14 @@ const BusinessDashboard = () => {
                                                                     x2={svgWidth - paddingRight} 
                                                                     y2={y} 
                                                                     stroke="#F1F5F9" 
-                                                                    strokeWidth="1.5" 
+                                                                    strokeWidth="1.2" 
                                                                     strokeDasharray="4 4"
                                                                 />
                                                                 <text 
-                                                                    x={paddingLeft - 10} 
-                                                                    y={y + 4} 
+                                                                    x={paddingLeft - 8} 
+                                                                    y={y + 3} 
                                                                     textAnchor="end" 
-                                                                    style={{ fontSize: '10px', fontWeight: '750', fill: '#94A3B8' }}
+                                                                    style={{ fontSize: '9px', fontWeight: '750', fill: '#94A3B8' }}
                                                                 >
                                                                     {formatCurrency(maxSales * (1 - ratio)).split('.')[0]}
                                                                 </text>
@@ -873,7 +923,7 @@ const BusinessDashboard = () => {
                                                             d={linePath} 
                                                             fill="none" 
                                                             stroke="url(#salesLineGradient)" 
-                                                            strokeWidth="3.5" 
+                                                            strokeWidth="2.5" 
                                                             strokeLinecap="round" 
                                                             strokeLinejoin="round" 
                                                         />
@@ -883,9 +933,9 @@ const BusinessDashboard = () => {
                                                         <g key={idx}>
                                                             <text 
                                                                 x={p.x} 
-                                                                y={paddingTop + chartHeight + 18} 
+                                                                y={paddingTop + chartHeight + 14} 
                                                                 textAnchor="middle" 
-                                                                style={{ fontSize: '10px', fontWeight: '800', fill: '#64748B' }}
+                                                                style={{ fontSize: '9.5px', fontWeight: '800', fill: '#64748B' }}
                                                             >
                                                                 {p.month}
                                                             </text>
@@ -893,17 +943,17 @@ const BusinessDashboard = () => {
                                                             <circle 
                                                                 cx={p.x} 
                                                                 cy={p.y} 
-                                                                r={hoveredSalesPoint?.month === p.month ? "7" : "5"} 
+                                                                r={hoveredSalesPoint?.month === p.month ? "5" : "3.5"} 
                                                                 fill="#ffffff" 
                                                                 stroke="#1B6B3A" 
-                                                                strokeWidth="2.5" 
+                                                                strokeWidth="2" 
                                                                 style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
                                                             />
                                                             
                                                             <circle 
                                                                 cx={p.x} 
                                                                 cy={p.y} 
-                                                                r="18" 
+                                                                r="14" 
                                                                 fill="transparent" 
                                                                 style={{ cursor: 'pointer' }}
                                                                 onMouseEnter={() => setHoveredSalesPoint(p)}
@@ -916,25 +966,26 @@ const BusinessDashboard = () => {
                                                 {hoveredSalesPoint && (
                                                     <div style={{
                                                         position: 'absolute',
-                                                        top: `${(hoveredSalesPoint.y / svgHeight) * 100 - 18}%`,
+                                                        top: `${(hoveredSalesPoint.y / svgHeight) * 100 - 14}%`,
                                                         left: `${(hoveredSalesPoint.x / svgWidth) * 100}%`,
                                                         transform: 'translate(-50%, -100%)',
                                                         background: '#0F172A',
                                                         color: 'white',
-                                                        padding: '8px 12px',
-                                                        borderRadius: '10px',
-                                                        fontSize: '11px',
+                                                        padding: '6px 10px',
+                                                        borderRadius: '8px',
+                                                        fontSize: '10px',
                                                         fontWeight: '800',
                                                         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
                                                         whiteSpace: 'nowrap',
                                                         pointerEvents: 'none',
                                                         zIndex: 10
                                                     }}>
-                                                        <div style={{ color: '#34D399', fontSize: '9px', textTransform: 'uppercase', marginBottom: '2px' }}>{hoveredSalesPoint.month} Sales</div>
+                                                        <div style={{ color: '#34D399', fontSize: '8.5px', textTransform: 'uppercase', marginBottom: '2px' }}>{hoveredSalesPoint.month} Sales</div>
                                                         <div>{formatCurrency(hoveredSalesPoint.val)}</div>
                                                     </div>
                                                 )}
                                             </div>
+                                            )}
                                         </div>
                                     );
 
