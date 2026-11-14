@@ -1501,15 +1501,15 @@ const BusinessAccounting = () => {
                 }
             `}</style>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '0.85rem' }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 16px rgba(236, 72, 153, 0.2)' }}>
-                            <Calculator size={18} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.2rem' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 10px rgba(236, 72, 153, 0.2)' }}>
+                            <Calculator size={16} />
                         </div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>Accounting</h1>
+                        <h1 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#0F172A', letterSpacing: '-0.02em', margin: 0 }}>Accounting</h1>
                     </div>
-                    <p style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: '500', margin: 0 }}>Compliance-ready financial management and GST reporting.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.8rem', fontWeight: '500', margin: 0 }}>Compliance-ready financial management and GST reporting.</p>
                 </div>
                 <div style={{ display: 'flex' }}>
                     <button
@@ -1518,16 +1518,16 @@ const BusinessAccounting = () => {
                             setIsEntryModalOpen(true);
                         }}
                         className="crm-btn"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: '10px', background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 8px 16px rgba(59, 130, 246, 0.2)' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.85rem', borderRadius: '8px', background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)' }}
                     >
-                        <Plus size={15} /> Record Entry
+                        <Plus size={14} /> Record Entry
                     </button>
                 </div>
             </div>
 
             {/* Main Stats */}
             {/* Specialized Accounting Prime Stats Layout */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '0.9rem' }}>
                 {summaryStats.filter(item => applyTableFilters(item, typeof colFilters !== "undefined" ? colFilters : {})).map((stat, idx) => (
                     <div
                         key={idx}
@@ -1538,32 +1538,32 @@ const BusinessAccounting = () => {
                             flexDirection: 'column',
                             justifyContent: 'space-between',
                             background: 'white',
-                            padding: '1.5rem 1.75rem',
-                            borderRadius: '20px',
+                            padding: '0.75rem 1rem',
+                            borderRadius: '12px',
                             border: '1px solid #E2E8F0',
-                            borderTop: `4px solid ${stat.color}`,
-                            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02), 0 4px 6px -2px rgba(0,0,0,0.01)',
+                            borderTop: `3px solid ${stat.color}`,
+                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.01)',
                             cursor: 'default',
                             overflow: 'hidden'
                         }}
                     >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
                             <div>
-                                <p style={{ fontSize: '0.7rem', fontWeight: '850', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</p>
+                                <p style={{ fontSize: '0.68rem', fontWeight: '850', color: '#64748B', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{stat.label}</p>
                             </div>
                             <div 
                                 onClick={() => handleSummaryCardIconClick(stat.label)}
-                                style={{ width: '42px', height: '42px', borderRadius: '50%', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0, boxShadow: `0 4px 12px ${stat.color}15`, cursor: 'pointer' }}
+                                style={{ width: '30px', height: '30px', borderRadius: '50%', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color, flexShrink: 0, boxShadow: `0 2px 8px ${stat.color}15`, cursor: 'pointer' }}
                             >
-                                <stat.icon size={18} />
+                                <stat.icon size={15} />
                             </div>
                         </div>
 
                         <div>
-                            <h3 style={{ fontSize: '1.85rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.03em', margin: '0 0 0.4rem 0', lineHeight: 1 }}>{stat.value}</h3>
+                            <h3 style={{ fontSize: '1.35rem', fontWeight: '950', color: '#0F172A', letterSpacing: '-0.02em', margin: '0 0 0.15rem 0', lineHeight: 1 }}>{stat.value}</h3>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: stat.color }} />
-                                <span style={{ fontSize: '0.65rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Live Position</span>
+                                <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: stat.color }} />
+                                <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase' }}>Live Position</span>
                             </div>
                         </div>
                     </div>
@@ -1571,7 +1571,7 @@ const BusinessAccounting = () => {
             </div>
 
             {/* Tabs Selector */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.85rem' }}>
                 {[
                     { id: 'p&l', label: 'P & L', gradient: 'linear-gradient(135deg, #6366F1 0%, #4338CA 100%)', shadowColor: 'rgba(99, 102, 241, 0.15)' },
                     { id: 'balance-sheet', label: 'Balance Sheet', gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)', shadowColor: 'rgba(59, 130, 246, 0.15)' },
@@ -1585,11 +1585,11 @@ const BusinessAccounting = () => {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         style={{
-                            padding: '0.5rem 1rem', borderRadius: '8px',
+                            padding: '0.45rem 0.85rem', borderRadius: '8px',
                             background: activeTab === tab.id ? tab.gradient : 'white',
                             color: activeTab === tab.id ? 'white' : '#64748B',
-                            border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.8rem', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            border: '1px solid #E2E8F0', fontWeight: '800', fontSize: '0.78rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '0.35rem',
                             boxShadow: activeTab === tab.id ? `0 4px 10px ${tab.shadowColor}` : 'none'
                         }}
                     >
@@ -1602,20 +1602,20 @@ const BusinessAccounting = () => {
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '1.25rem 1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
                 {activeTab === 'expenses' && (
                     <div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '0.9rem' }}>
                             {[
                                 { label: 'Total MTD', value: formatCurrency(totalExpenseGroupSum), icon: TrendingDown, color: '#EF4444' },
                                 { label: 'Operating Costs', value: formatCurrency(totalExpenseGroupSum * 0.7), icon: Layers, color: '#0D9488' }, // Derived generically from recorded entries
                                 { label: 'Top Expense Cat.', value: Object.keys(pAndLExpenseGroups).length > 0 ? Object.keys(pAndLExpenseGroups)[0] : 'N/A', icon: Building2, color: '#7C3AED' },
                                 { label: 'Payables Balance', value: dbBalanceSheet?.liabilities?.payables ? formatCurrency(dbBalanceSheet.liabilities.payables) : formatCurrency(0), icon: Receipt, color: '#B45309' }
                             ].map((stat, i) => (
-                                <div key={i} style={{ padding: '0.85rem 1.1rem', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div key={i} style={{ padding: '0.65rem 0.85rem', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <div>
-                                        <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#94A3B8', margin: 0, textTransform: 'uppercase' }}>{stat.label}</p>
-                                        <h4 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#1E293B', margin: 0 }}>{stat.value}</h4>
+                                        <p style={{ fontSize: '0.68rem', fontWeight: '800', color: '#94A3B8', margin: 0, textTransform: 'uppercase' }}>{stat.label}</p>
+                                        <h4 style={{ fontSize: '1.05rem', fontWeight: '850', color: '#1E293B', margin: 0 }}>{stat.value}</h4>
                                     </div>
-                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${stat.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
-                                        <stat.icon size={18} />
+                                    <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: `${stat.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: stat.color }}>
+                                        <stat.icon size={15} />
                                     </div>
                                 </div>
                             ))}
@@ -1691,18 +1691,18 @@ const BusinessAccounting = () => {
                     return (
                         <div>
                             {/* Dashboard Summary Widgets */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                                <div style={{ background: '#F0FDF4', padding: '1.25rem 1.5rem', borderRadius: '16px', border: '1px solid #DCFCE7', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: '#16A34A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Cash</p>
-                                    <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.5rem', fontWeight: '900', color: '#14532D' }}>{formatCurrency(totalCashVal)}</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
+                                <div style={{ background: '#F0FDF4', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #DCFCE7', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                                    <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: '800', color: '#16A34A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Cash</p>
+                                    <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.25rem', fontWeight: '900', color: '#14532D' }}>{formatCurrency(totalCashVal)}</h3>
                                 </div>
-                                <div style={{ background: '#EFF6FF', padding: '1.25rem 1.5rem', borderRadius: '16px', border: '1px solid #DBEAFE', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Bank Balance</p>
-                                    <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.5rem', fontWeight: '900', color: '#1E3A8A' }}>{formatCurrency(totalBankVal)}</h3>
+                                <div style={{ background: '#EFF6FF', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #DBEAFE', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                                    <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: '800', color: '#2563EB', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Bank Balance</p>
+                                    <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.25rem', fontWeight: '900', color: '#1E3A8A' }}>{formatCurrency(totalBankVal)}</h3>
                                 </div>
-                                <div style={{ background: '#EEF2FF', padding: '1.25rem 1.5rem', borderRadius: '16px', border: '1px solid #E0E7FF', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Available Funds</p>
-                                    <h3 style={{ margin: '0.35rem 0 0 0', fontSize: '1.5rem', fontWeight: '900', color: '#312E81' }}>{formatCurrency(totalCashVal + totalBankVal)}</h3>
+                                <div style={{ background: '#EEF2FF', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #E0E7FF', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)' }}>
+                                    <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: '800', color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Available Funds</p>
+                                    <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.25rem', fontWeight: '900', color: '#312E81' }}>{formatCurrency(totalCashVal + totalBankVal)}</h3>
                                 </div>
                                 <div 
                                     onClick={() => {
@@ -1722,8 +1722,8 @@ const BusinessAccounting = () => {
                                     }}
                                     style={{ 
                                         background: '#FEF2F2', 
-                                        padding: '1.25rem 1.5rem', 
-                                        borderRadius: '16px', 
+                                        padding: '0.75rem 1rem', 
+                                        borderRadius: '12px', 
                                         border: '1px solid #FEE2E2', 
                                         boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)',
                                         display: 'flex',
@@ -1735,7 +1735,7 @@ const BusinessAccounting = () => {
                                     }}
                                     className="stat-card"
                                 >
-                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '950', color: '#B91C1C', textTransform: 'uppercase', letterSpacing: '0.5px' }}>ADD NEW BANK</h3>
+                                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '950', color: '#B91C1C', textTransform: 'uppercase', letterSpacing: '0.5px' }}>+ ADD NEW BANK</h3>
                                 </div>
                             </div>
 
@@ -1791,17 +1791,17 @@ const BusinessAccounting = () => {
                                                 style={{
                                                     position: 'relative',
                                                     background: 'white',
-                                                    padding: '1.25rem 1.5rem',
-                                                    borderRadius: '16px',
+                                                    padding: '0.85rem 1.1rem',
+                                                    borderRadius: '12px',
                                                     border: isSelected ? '2px solid #1D4ED8' : '1px solid #E2E8F0',
                                                     boxShadow: isSelected ? '0 10px 15px -3px rgba(29, 78, 216, 0.1)' : '0 4px 6px -1px rgba(0,0,0,0.01)',
                                                     cursor: 'pointer',
                                                     transition: 'all 0.2s ease-in-out'
                                                 }}
                                             >
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `#1D4ED815`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
-                                                        <Building2 size={20} />
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.6rem' }}>
+                                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: `#1D4ED815`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1D4ED8' }}>
+                                                        <Building2 size={16} />
                                                     </div>
                                                     <button 
                                                         onClick={(e) => {
@@ -2057,7 +2057,7 @@ const BusinessAccounting = () => {
                         {receivablesSubView === 'dashboard' ? (
                             <>
                                 {/* Small Dashboard Summary Cards */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.65rem', marginBottom: '1rem' }}>
                                     {[
                                         { label: 'Total Receivables', value: formatCurrency(totalReceivableAmount), count: `${totalOutstandingInvoicesCount} Pending Invoices`, color: '#7C3AED', bg: '#F3E8FF' },
                                         { label: 'Overdue Amount', value: formatCurrency(overdueAmount), count: `${overdueInvoices.length} Overdue Invoices`, color: '#EF4444', bg: '#FEF2F2' },
@@ -2065,10 +2065,10 @@ const BusinessAccounting = () => {
                                         { label: 'Due This Week', value: formatCurrency(dueThisWeekAmount), count: `${dueThisWeekInvoices.length} Due in 7 days`, color: '#3B82F6', bg: '#DBEAFE' },
                                         { label: 'Customers with Dues', value: totalCustomersWithOutstanding, count: 'Unique customer profiles', color: '#10B981', bg: '#D1FAE5' }
                                     ].map((card, i) => (
-                                        <div key={i} style={{ background: card.bg, padding: '1.25rem', borderRadius: '16px', border: `1px solid rgba(0,0,0,0.03)` }}>
-                                            <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: '800', color: card.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{card.label}</p>
-                                            <h3 style={{ margin: '0.35rem 0 0.15rem 0', fontSize: '1.35rem', fontWeight: '900', color: '#1E293B' }}>{card.value}</h3>
-                                            <span style={{ fontSize: '0.7rem', fontWeight: '600', color: '#64748B' }}>{card.count}</span>
+                                        <div key={i} style={{ background: card.bg, padding: '0.65rem 0.85rem', borderRadius: '12px', border: `1px solid rgba(0,0,0,0.03)` }}>
+                                            <p style={{ margin: 0, fontSize: '0.68rem', fontWeight: '800', color: card.color, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{card.label}</p>
+                                            <h3 style={{ margin: '0.2rem 0 0.1rem 0', fontSize: '1.15rem', fontWeight: '900', color: '#1E293B' }}>{card.value}</h3>
+                                            <span style={{ fontSize: '0.65rem', fontWeight: '600', color: '#64748B' }}>{card.count}</span>
                                         </div>
                                     ))}
                                 </div>
