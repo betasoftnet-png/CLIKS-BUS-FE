@@ -143,6 +143,10 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(!!token && !user);
     const [planDaysRemaining, setPlanDaysRemaining] = useState(342);
     const queryClient = useQueryClient();
+    const userRef = React.useRef(user);
+    useEffect(() => {
+        userRef.current = user;
+    }, [user]);
 
     const isLoggingOutRef = React.useRef(false);
 
@@ -320,8 +324,8 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem(`bnx_auth_token_${key}`);
         } catch (e) {}
 
-        const isCurrent = (user?.email && user.email.toLowerCase() === key) ||
-                          (user?.id && String(user.id).toLowerCase() === key);
+        const isCurrent = (userRef.current?.email && userRef.current.email.toLowerCase() === key) ||
+                          (userRef.current?.id && String(userRef.current.id).toLowerCase() === key);
 
         if (isCurrent) {
             if (remaining.length > 0) {
@@ -330,7 +334,7 @@ export const AuthProvider = ({ children }) => {
                 logoutAll();
             }
         }
-    }, [user, switchAccount, logoutAll]);
+    }, [switchAccount, logoutAll]);
 
     // Sign out current account; switches to remaining account if one exists, else full logout
     const logout = React.useCallback(() => {
@@ -347,7 +351,7 @@ export const AuthProvider = ({ children }) => {
             storedAccounts = JSON.parse(localStorage.getItem('cliks_multi_accounts') || '[]');
         } catch (e) {}
 
-        const currentKey = user?.email?.toLowerCase() || (user?.id ? String(user.id).toLowerCase() : null);
+        const currentKey = userRef.current?.email?.toLowerCase() || (userRef.current?.id ? String(userRef.current.id).toLowerCase() : null);
         const remaining = storedAccounts.filter(a => 
             (a.email && a.email.toLowerCase() !== currentKey) &&
             (a.id && String(a.id).toLowerCase() !== currentKey)
@@ -389,7 +393,7 @@ export const AuthProvider = ({ children }) => {
             isLoggingOutRef.current = false;
         }, 1500);
         return false;
-    }, [queryClient, user, switchAccount]);
+    }, [queryClient, switchAccount]);
 
     useEffect(() => {
         const initAuth = async () => {
@@ -556,7 +560,7 @@ export const AuthProvider = ({ children }) => {
             }, 30000);
             return () => clearInterval(heartbeatTimer);
         }
-    }, [user, token]);
+    }, [user?.id, token]);
 
     const changePlan = async (newPlanName, targetCategory = null) => {
         const duration = getPlanDuration(newPlanName);
