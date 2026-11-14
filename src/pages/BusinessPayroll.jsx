@@ -372,6 +372,7 @@ const BusinessPayroll = () => {
     // Submissions
     const handleProcessPayroll = (e) => {
         e.preventDefault();
+        if (processPayrollMutation.isPending) return;
         const base = parseFloat(payForm.basic_salary) || 0;
         const hra = parseFloat(payForm.hra_amount) || 0;
         const spec = parseFloat(payForm.special_allowance) || 0;
@@ -999,7 +1000,7 @@ const BusinessPayroll = () => {
                                     </span>
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>ESI Deduction</label>
                                     <input 
@@ -1012,6 +1013,22 @@ const BusinessPayroll = () => {
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             setPayForm({ ...payForm, esi_deduction: val === '' ? '' : Math.max(0, parseFloat(val) || 0) });
+                                        }} 
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Professional Tax (PT)</label>
+                                    <input 
+                                        type="number" 
+                                        min="0"
+                                        step="any"
+                                        onKeyDown={preventNegativeKeys}
+                                        placeholder="e.g. 200"
+                                        value={payForm.professional_tax} 
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setPayForm({ ...payForm, professional_tax: val === '' ? '' : Math.max(0, parseFloat(val) || 0) });
                                         }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                     />
@@ -1035,8 +1052,25 @@ const BusinessPayroll = () => {
                                 </div>
                             </div>
 
-                            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '16px', background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', color: 'white', border: 'none', fontWeight: '800', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 10px 20px rgba(124, 58, 237, 0.25)' }}>
-                                Settle Monthly Take-Home Salary
+                            <button 
+                                type="submit" 
+                                disabled={processPayrollMutation.isPending}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '1rem', 
+                                    borderRadius: '16px', 
+                                    background: processPayrollMutation.isPending ? '#94A3B8' : 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    fontWeight: '800', 
+                                    fontSize: '1.1rem', 
+                                    cursor: processPayrollMutation.isPending ? 'not-allowed' : 'pointer', 
+                                    boxShadow: '0 10px 20px rgba(124, 58, 237, 0.25)',
+                                    opacity: processPayrollMutation.isPending ? 0.7 : 1,
+                                    transition: 'all 0.15s ease'
+                                }}
+                            >
+                                {processPayrollMutation.isPending ? 'Settling Take-Home Salary...' : 'Settle Monthly Take-Home Salary'}
                             </button>
                         </form>
                     </div>
@@ -1446,7 +1480,7 @@ const BusinessPayroll = () => {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                         {payrollRecords.filter(r => r.employee_name === rec.employee_name).map((hr, idx, arr) => {
                                             const hGross = hr.basic_salary + hr.hra_amount + hr.special_allowance + hr.bonus_amount;
-                                            const hNet = hGross - hr.pf_deduction - hr.esi_deduction - hr.tds_deduction;
+                                            const hNet = hGross - hr.pf_deduction - hr.esi_deduction - hr.tds_deduction - (hr.professional_tax || 0);
                                             return (
                                                 <div key={hr.payroll_id} style={{ display: 'flex', gap: '12px' }}>
                                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

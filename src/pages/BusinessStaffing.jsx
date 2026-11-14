@@ -2170,21 +2170,6 @@ const BusinessStaffing = () => {
                                         />
                                     </div>
                                 </div>
-                                <div style={{ marginTop: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F1F5F9', padding: '0.65rem 0.85rem', borderRadius: '10px' }}>
-                                    <input 
-                                        type="checkbox" 
-                                        id="onboard_deduct_tds"
-                                        checked={Boolean(newEmp.deduct_tds)} 
-                                        onChange={(e) => setNewEmp({ ...newEmp, deduct_tds: e.target.checked })} 
-                                        style={{ width: '16px', height: '16px', accentColor: '#1B6B3A', cursor: 'pointer' }} 
-                                    />
-                                    <label htmlFor="onboard_deduct_tds" style={{ fontSize: '0.75rem', fontWeight: '800', color: '#0F172A', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                        Deduct TDS (Income Tax Deducted at Source)
-                                    </label>
-                                    <span style={{ fontSize: '0.7rem', color: newEmp.deduct_tds ? '#15803D' : '#64748B', fontWeight: '600', marginLeft: 'auto' }}>
-                                        {newEmp.deduct_tds ? '5% TDS Active' : 'No TDS Deduction'}
-                                    </span>
-                                </div>
                             </div>
                             
                             {/* Contact Info section (Optional) */}
