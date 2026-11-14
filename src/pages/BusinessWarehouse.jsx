@@ -27,7 +27,8 @@ import {
     Sliders,
     Truck,
     Folder,
-    Trash2
+    Trash2,
+    Printer
 } from 'lucide-react';
 import '../App.css';
 import { useCurrency, useAuth } from '../context';
@@ -91,6 +92,7 @@ const BusinessWarehouse = () => {
     const [editingWarehouse, setEditingWarehouse] = useState(null);
     const [editWarehouseForm, setEditWarehouseForm] = useState({});
     const [selectedStock, setSelectedStock] = useState(null);
+    const [viewingInwardReceipt, setViewingInwardReceipt] = useState(null);
 
     // Warehouse Card Actions State: Add New Product & View List
     const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
@@ -511,6 +513,8 @@ const BusinessWarehouse = () => {
             ? inw.received_by 
             : (inw.staff_name || user?.name || user?.username || 'Authorized Staff');
 
+        const resolvedZone = inw.zone || inw.storage_zone || inw.location_zone || 'Zone A';
+
         return {
             inward_id: `INW-${inw.id}`,
             purchase_id: inw.purchase_bill_ref || 'N/A',
@@ -520,7 +524,9 @@ const BusinessWarehouse = () => {
             staff_name: staffName,
             inward_date: inw.created_at ? inw.created_at.split('T')[0] : 'N/A',
             warehouse_name: resolvedWhName || defaultWhName,
-            destination_warehouse: { name: resolvedWhName || defaultWhName }
+            destination_warehouse: { name: resolvedWhName || defaultWhName },
+            zone: resolvedZone,
+            storage_zone: resolvedZone
         };
     });
 
@@ -548,7 +554,8 @@ const BusinessWarehouse = () => {
         staff_name: '',
         warehouse_id: '',
         destination_warehouse_id: '',
-        warehouse_name: ''
+        warehouse_name: '',
+        zone: 'Zone A'
     });
 
     const [newTransfer, setNewTransfer] = useState({
@@ -914,7 +921,9 @@ const BusinessWarehouse = () => {
             staff_name: data.staff_name,
             warehouse_id: data.warehouse_id,
             destination_warehouse_id: data.destination_warehouse_id,
-            warehouse_name: data.warehouse_name
+            warehouse_name: data.warehouse_name,
+            zone: data.zone,
+            storage_zone: data.zone
         }),
         onSuccess: async () => {
             await Promise.all([
@@ -926,7 +935,7 @@ const BusinessWarehouse = () => {
                 queryClient.refetchQueries({ queryKey: ['warehouseReports'] }),
                 queryClient.refetchQueries({ queryKey: ['warehouses'] })
             ]);
-            alert('Goods Inward receipt logged! Warehouse inventory adjusted automatically.');
+            alert(`Goods Inward receipt logged! Allocated to ${newInward.warehouse_name || 'Warehouse'} (${newInward.zone || 'Zone A'}). Warehouse inventory adjusted automatically.`);
             setIsInwardModalOpen(false);
         }
     });
@@ -938,6 +947,7 @@ const BusinessWarehouse = () => {
         const matchedWh = warehouses.find(w => String(w.id) === String(parsedWhId));
         const finalWhName = newInward.warehouse_name || matchedWh?.warehouse_name || 'Main Godown';
         const finalStaff = newInward.received_by || newInward.staff_name || user?.name || user?.username || 'Authorized Staff';
+        const finalZone = newInward.zone ? newInward.zone.trim() : 'Zone A';
 
         createInwardMutation.mutate({
             stock_id: parseInt(newInward.stock_id),
@@ -947,7 +957,9 @@ const BusinessWarehouse = () => {
             staff_name: finalStaff,
             warehouse_id: parsedWhId,
             destination_warehouse_id: parsedWhId,
-            warehouse_name: finalWhName
+            warehouse_name: finalWhName,
+            zone: finalZone,
+            storage_zone: finalZone
         });
     };
 
