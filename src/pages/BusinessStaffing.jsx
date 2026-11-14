@@ -721,8 +721,13 @@ const BusinessStaffing = () => {
             finalWeeklyOff = (rosterForm.custom_weekly_off || '').trim() || 'Sunday Off';
         }
 
-        const quota = parseFloat(rosterForm.monthly_leave_quota) || defaultLeaveQuota;
-        const newBalance = rosterForm.sync_balance ? Math.round(quota * 12) : (parseFloat(rosterForm.leave_balance) || 18);
+        const parsedQuota = parseFloat(rosterForm.monthly_leave_quota);
+        const quota = (!isNaN(parsedQuota) && rosterForm.monthly_leave_quota !== '' && rosterForm.monthly_leave_quota !== null) ? Math.max(0, parsedQuota) : defaultLeaveQuota;
+
+        const parsedBal = parseFloat(rosterForm.leave_balance);
+        const newBalance = rosterForm.sync_balance 
+            ? Math.round(quota * 12) 
+            : ((!isNaN(parsedBal) && rosterForm.leave_balance !== '' && rosterForm.leave_balance !== null) ? Math.max(0, parsedBal) : 18);
 
         const annualBonusAmt = rosterForm.bonus_mode === 'fixed' ? (parseFloat(rosterForm.annual_bonus_amt) || 0) : null;
         const annualBonusPct = rosterForm.bonus_mode === 'percentage' ? (parseFloat(rosterForm.annual_bonus_pct) || 10) : null;
@@ -756,7 +761,8 @@ const BusinessStaffing = () => {
 
     const handleSaveCompanyQuota = async (e) => {
         e.preventDefault();
-        const val = parseFloat(tempQuota) || 1.5;
+        const parsed = parseFloat(tempQuota);
+        const val = (!isNaN(parsed) && tempQuota !== '' && tempQuota !== null) ? Math.max(0, parsed) : 1.5;
         setDefaultLeaveQuota(val);
         
         if (applyToAll && employees.length > 0) {
@@ -827,7 +833,7 @@ const BusinessStaffing = () => {
             aadhaar_file: 'aadhaar_arun.pdf',
             pan_file: 'pan_arun.pdf',
             shift_name: e.shift ? (typeof e.shift === 'string' && e.shift.startsWith('{') ? (safeParse(e.shift).shift || safeParse(e.shift).shift_name || e.shift) : e.shift) : (addrMeta.shift_name || 'General Shift (9 AM - 6 PM)'),
-            leave_balance: (e.leave_balance !== undefined && e.leave_balance !== null && e.leave_balance !== '') ? parseFloat(e.leave_balance) : (addrMeta.leave_balance !== undefined ? parseFloat(addrMeta.leave_balance) : 18),
+            leave_balance: (e.leave_balance !== undefined && e.leave_balance !== null && e.leave_balance !== '') ? parseFloat(e.leave_balance) : ((addrMeta.leave_balance !== undefined && addrMeta.leave_balance !== null && addrMeta.leave_balance !== '') ? parseFloat(addrMeta.leave_balance) : 18),
             monthly_leave_quota: (e.monthly_leave_quota !== undefined && e.monthly_leave_quota !== null && e.monthly_leave_quota !== '') ? parseFloat(e.monthly_leave_quota) : ((addrMeta.monthly_leave_quota !== undefined && addrMeta.monthly_leave_quota !== null && addrMeta.monthly_leave_quota !== '') ? parseFloat(addrMeta.monthly_leave_quota) : defaultLeaveQuota),
             annual_bonus: (e.annual_bonus !== undefined && e.annual_bonus !== null && e.annual_bonus !== '') ? parseFloat(e.annual_bonus) : ((addrMeta.annual_bonus !== undefined && addrMeta.annual_bonus !== null && addrMeta.annual_bonus !== '') ? parseFloat(addrMeta.annual_bonus) : null),
             annual_bonus_pct: (e.annual_bonus_pct !== undefined && e.annual_bonus_pct !== null && e.annual_bonus_pct !== '') ? parseFloat(e.annual_bonus_pct) : ((addrMeta.annual_bonus_pct !== undefined && addrMeta.annual_bonus_pct !== null) ? parseFloat(addrMeta.annual_bonus_pct) : 10),
@@ -955,7 +961,7 @@ const BusinessStaffing = () => {
         const finalMonthlyQuota = newEmp.monthly_leave_quota !== undefined && newEmp.monthly_leave_quota !== '' ? parseFloat(newEmp.monthly_leave_quota) : defaultLeaveQuota;
         const finalBonus = newEmp.annual_bonus !== undefined && newEmp.annual_bonus !== '' ? parseFloat(newEmp.annual_bonus) : null;
         const finalWeeklyOff = newEmp.weekly_off || 'Sunday Off';
-        const finalLeaveBalance = (defaultLeaveQuota * 12) || 18;
+        const finalLeaveBalance = (defaultLeaveQuota !== undefined && !isNaN(defaultLeaveQuota)) ? Math.round(defaultLeaveQuota * 12) : 18;
 
         createEmpMutation.mutate({
             name: `${newEmp.first_name} ${newEmp.last_name}`,
@@ -1062,7 +1068,10 @@ const BusinessStaffing = () => {
             }
         }
 
-        const finalMonthlyQuota = editForm.monthly_leave_quota !== undefined && editForm.monthly_leave_quota !== '' ? parseFloat(editForm.monthly_leave_quota) : defaultLeaveQuota;
+        const parsedMonthlyQuota = parseFloat(editForm.monthly_leave_quota);
+        const finalMonthlyQuota = (!isNaN(parsedMonthlyQuota) && editForm.monthly_leave_quota !== '' && editForm.monthly_leave_quota !== null) ? Math.max(0, parsedMonthlyQuota) : defaultLeaveQuota;
+        const parsedLeaveBal = parseFloat(editForm.leave_balance);
+        const finalLeaveBalance = (!isNaN(parsedLeaveBal) && editForm.leave_balance !== '' && editForm.leave_balance !== null) ? Math.max(0, parsedLeaveBal) : 14;
         const finalBonus = editForm.annual_bonus !== undefined && editForm.annual_bonus !== '' ? parseFloat(editForm.annual_bonus) : null;
         const finalWeeklyOff = editForm.weekly_off || 'Sunday Off';
         const finalShift = editForm.shift_name || 'General Shift (9 AM - 6 PM)';
@@ -1083,6 +1092,7 @@ const BusinessStaffing = () => {
             pincode: editForm.pincode || '',
             shift: JSON.stringify({ shift: finalShift, shift_name: finalShift }),
             monthly_leave_quota: finalMonthlyQuota,
+            leave_balance: finalLeaveBalance,
             annual_bonus: finalBonus,
             weekly_off: finalWeeklyOff,
             address: JSON.stringify({ 
@@ -1104,7 +1114,7 @@ const BusinessStaffing = () => {
                 pan_number: (editForm.pan_number || '').trim().toUpperCase(),
                 pf_number: editForm.pf_number,
                 esi_number: editForm.esi_number,
-                leave_balance: parseInt(editForm.leave_balance) || 14,
+                leave_balance: finalLeaveBalance,
                 designation_name: editForm.designation,
                 joining_date: editForm.joining_date,
                 salary_type: editForm.salary_type,
@@ -1547,12 +1557,12 @@ const BusinessStaffing = () => {
                                                         </span>
                                                     </td>
                                                     <td style={{ padding: '1rem' }}>
-                                                        <div style={{ fontWeight: '700', color: '#2563EB' }}>{emp.monthly_leave_quota || defaultLeaveQuota} Days / mo</div>
+                                                        <div style={{ fontWeight: '700', color: '#2563EB' }}>{(emp.monthly_leave_quota !== undefined && emp.monthly_leave_quota !== null) ? emp.monthly_leave_quota : defaultLeaveQuota} Days / mo</div>
                                                         <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: '600' }}>
-                                                            {((emp.monthly_leave_quota || defaultLeaveQuota) * 12).toFixed(1)} Days / year
+                                                            {(((emp.monthly_leave_quota !== undefined && emp.monthly_leave_quota !== null) ? emp.monthly_leave_quota : defaultLeaveQuota) * 12).toFixed(1)} Days / year
                                                         </span>
                                                     </td>
-                                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#E11D48' }}>{emp.leave_balance} Days Left</td>
+                                                    <td style={{ padding: '1rem', fontWeight: '800', color: '#E11D48' }}>{(emp.leave_balance !== undefined && emp.leave_balance !== null) ? emp.leave_balance : 0} Days Left</td>
                                                     <td style={{ padding: '1rem' }}>
                                                         <span style={{ background: '#F1F5F9', color: '#334155', border: '1px solid #E2E8F0', padding: '0.25rem 0.6rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '750', display: 'inline-block' }}>
                                                             {emp.weekly_off || 'Sunday Off'}
@@ -3505,16 +3515,17 @@ const BusinessStaffing = () => {
                                                 checked={rosterForm.sync_balance}
                                                 onChange={(e) => {
                                                     const chk = e.target.checked;
+                                                    const curQ = (!isNaN(parseFloat(rosterForm.monthly_leave_quota)) && rosterForm.monthly_leave_quota !== '') ? parseFloat(rosterForm.monthly_leave_quota) : 1.5;
                                                     setRosterForm({
                                                         ...rosterForm,
                                                         sync_balance: chk,
-                                                        leave_balance: chk ? Math.round((parseFloat(rosterForm.monthly_leave_quota) || 1.5) * 12) : rosterForm.leave_balance
+                                                        leave_balance: chk ? Math.round(curQ * 12) : rosterForm.leave_balance
                                                     });
                                                 }}
                                                 style={{ accentColor: '#2563EB', cursor: 'pointer' }}
                                             />
                                             <label htmlFor="sync_bal" style={{ fontSize: '0.68rem', color: '#475569', fontWeight: '700', cursor: 'pointer' }}>
-                                                Reset to Quota × 12 ({Math.round((parseFloat(rosterForm.monthly_leave_quota) || 1.5) * 12)} d)
+                                                Reset to Quota × 12 ({Math.round(((!isNaN(parseFloat(rosterForm.monthly_leave_quota)) && rosterForm.monthly_leave_quota !== '') ? parseFloat(rosterForm.monthly_leave_quota) : 1.5) * 12)} d)
                                             </label>
                                         </div>
                                     </div>
