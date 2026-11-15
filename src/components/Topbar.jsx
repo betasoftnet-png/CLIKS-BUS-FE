@@ -120,7 +120,6 @@ const staticPages = [
     { name: 'Trial Balance', path: '/finance/accounting?tab=trial-balance', module: 'Finance', type: 'Internal Feature', desc: 'Debit and credit balance verification for all ledger accounts', icon: 'FileCheck', rank: 3, synonyms: ['trial balance', 'debit credit check', 'ledger verification'] },
     { name: 'General Ledger & Accounts', path: '/finance/accounting?tab=ledger', module: 'Finance', type: 'Internal Feature', desc: 'Comprehensive chart of accounts, party ledgers & account statements', icon: 'BookOpen', rank: 3, synonyms: ['general ledger', 'chart of accounts', 'account heads', 'ledger statement'] },
     { name: 'Cash Flow Statement', path: '/finance/accounting?tab=cash-flow', module: 'Finance', type: 'Internal Feature', desc: 'Operating, investing and financing cash inflows and outflows', icon: 'Coins', rank: 3, synonyms: ['cash flow statement', 'inflows outflows', 'cash movement', 'liquidity'] },
-    { name: 'Bank Statement Reconciliation', path: '/finance/accounting?tab=reconciliation', module: 'Finance', type: 'Internal Feature', desc: 'Upload bank statement CSV/Excel, match ledger entries & auto-reconcile', icon: 'Landmark', rank: 3, synonyms: ['bank reconciliation', 'statement upload', 'reconcile bank', 'csv statement import', 'bank statement'] },
     { name: 'Expenses Tracker & Log', path: '/finance/expenses', module: 'Finance', type: 'Page', desc: 'Business expenses log, category breakdown & receipt attachments', icon: 'TrendingUp', rank: 3, synonyms: ['expenses', 'expense tracker', 'operating expenses', 'spend log', 'costs'] },
     { name: 'Add Expense (Log Spend)', path: '/finance/expenses?create=true', module: 'Finance', type: 'Action', desc: 'Record a new business expense, vendor spend or operational cost', icon: 'Plus', rank: 3, synonyms: ['add expense', 'log expense', 'record spend', 'new expense', 'pay cost'] },
     { name: 'Add Income (Record Revenue)', path: '/finance/accounting?tab=income', module: 'Finance', type: 'Action', desc: 'Log non-invoice income, consulting revenue or interest earned', icon: 'Plus', rank: 3, synonyms: ['add income', 'record income', 'log revenue', 'new income', 'earned revenue'] },
@@ -158,6 +157,8 @@ const staticPages = [
     // ══════════════════════════════════════════════════════════════════
     // 12. PAYMENTS & CASH FLOW ENGINE
     // ══════════════════════════════════════════════════════════════════
+    { name: 'Transactions & Bank Statements', path: '/payments/transaction', module: 'Transaction', type: 'Page', desc: 'Bank accounts ledger, inflow/outflow entries & reconciliation workspace', icon: 'CreditCard', rank: 3, synonyms: ['transaction', 'transactions', 'bank transaction', 'bank transactions', 'payments ledger', 'transaction section'] },
+    { name: 'Bank Statement Reconciliation', path: '/payments/transaction?reconcile=true', module: 'Transaction', type: 'Internal Feature', desc: 'Upload bank statement CSV/Excel, match ledger entries & auto-reconcile in Transactions', icon: 'Landmark', rank: 3, synonyms: ['bank reconciliation', 'bank reconcillation', 'bank recouncillation', 'reconcile bank', 'statement upload', 'reconcile statement', 'recouncillation', 'reconcillation', 'reconcile', 'bank statement', 'csv statement import', 'transaction reconciliation', 'reconcile transactions'] },
     { name: 'People Network & Escrow', path: '/payments/people', module: 'Payments', type: 'Page', desc: 'P2P relationships, friendly loans, advances & payment escrow', icon: 'Users', rank: 3, synonyms: ['people network', 'escrow', 'p2p ledger', 'parties', 'advances', 'friendly loans'] },
     { name: 'Add People Contact', path: '/payments/people?action=add-contact', module: 'Payments', type: 'Action', desc: 'Add customer, vendor or personal peer contact to your People network', icon: 'Plus', rank: 3, synonyms: ['add people contact', 'new contact', 'add party', 'new person', 'add peer'] },
     { name: 'Add Transaction (Log Money Entry)', path: '/payments/people?action=log-transaction', module: 'Payments', type: 'Action', desc: 'Record a money entry, transfer, payment, expense or income note', icon: 'Plus', rank: 3, synonyms: ['add transaction', 'log transaction', 'money entry', 'record transfer', 'note payment', 'income or expense note'] },
@@ -696,6 +697,12 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
                             sessionStorage.setItem('active_cliks_module', 'books');
                         }
                         navigate(pathWithQuery);
+                        if (pathWithQuery.includes('reconcile') && typeof window !== 'undefined') {
+                            window.dispatchEvent(new CustomEvent('open-bank-reconciliation'));
+                            setTimeout(() => {
+                                window.dispatchEvent(new CustomEvent('open-bank-reconciliation'));
+                            }, 150);
+                        }
                         setIsSearchExpanded(false);
                         setSearchQuery('');
                     };
