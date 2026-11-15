@@ -6,6 +6,16 @@
 export const PLAN_FEATURES = {
     // Business Category Tiers
     'Free Plan': [],
+    'Trial Plan': [
+        'accounting',
+        'gst-filings',
+        'payroll-attendance',
+        'email-support',
+        'multi-warehouse',
+        'api-webhooks',
+        'fin-pro-export',
+        'priority-support'
+    ],
     'Starter Plan': [
         'accounting',
         'gst-filings',
@@ -115,6 +125,23 @@ export const PLAN_LIMITS = {
         mobileApp: true,
         support: 'VIP 24/7 Email Chat'
     },
+    'Trial Plan': {
+        websiteUsers: 10,
+        warehouses: 5,
+        invoicesPerYear: 10000,
+        billsExpensesPerYear: 10000,
+        products: 10000,
+        customers: 5000,
+        vendors: 2000,
+        staff: 50,
+        inventory: 'Advanced',
+        eInvoiceEWayBill: 'Full',
+        apiWebhooks: true,
+        whiteLabelInvoices: true,
+        dataExport: 'Advanced',
+        mobileApp: true,
+        support: 'VIP 24/7 Email Chat'
+    },
     'Starter Plan': {
         websiteUsers: 3,
         warehouses: 0,
@@ -170,6 +197,8 @@ export const PLAN_LIMITS = {
 
 export const PLAN_RANKS = {
     'Free Plan': 0,
+    'Trial Plan': 2,
+    'Trial': 2,
     'Starter Plan': 1,
     'Starter': 1,
     'Growth Plan': 2,
@@ -270,6 +299,8 @@ export const calculateDaysRemaining = (expiryDate) => {
  * @returns {number} duration in days
  */
 export const getPlanDuration = (planName) => {
+    if (!planName) return 15;
+    if (String(planName).toLowerCase().includes('trial')) return 15;
     const annualPlans = ['Starter Plan', 'Growth Plan', 'Elite Suite', 'Yearly Founder'];
     return annualPlans.includes(planName) ? 365 : 30;
 };

@@ -57,7 +57,9 @@ const normalizePlan = (rawPlan, idx = 0, defaultDays = 346) => {
     // Determine normalized tier name
     let tierTitle = 'GROWTH';
     const tierUpper = String(rawTier).toUpperCase();
-    if (tierUpper.includes('GROWTH')) {
+    if (tierUpper.includes('TRIAL')) {
+        tierTitle = 'TRIAL';
+    } else if (tierUpper.includes('GROWTH')) {
         tierTitle = 'GROWTH';
     } else if (tierUpper.includes('STARTER')) {
         tierTitle = 'STARTER';
@@ -228,7 +230,8 @@ export const SubscriptionBadgeWidget = ({
         const rawTier = subs.business?.plan || selectedPlan || user?.tier || 'Growth Plan';
         let tier1 = 'GROWTH';
         const upTier = String(rawTier).toUpperCase();
-        if (upTier.includes('STARTER')) tier1 = 'STARTER';
+        if (upTier.includes('TRIAL')) tier1 = 'TRIAL';
+        else if (upTier.includes('STARTER')) tier1 = 'STARTER';
         else if (upTier.includes('GROWTH')) tier1 = 'GROWTH';
         else if (upTier.includes('ELITE')) tier1 = 'ELITE';
         else if (rawTier && rawTier !== 'Free Plan') tier1 = upTier;

@@ -558,7 +558,7 @@ export const AuthProvider = ({ children }) => {
             const businessExp = businessSub?.expiryDate || businessSub?.valid_until;
             if (businessExp) {
                 remaining = calculateDaysRemaining(businessExp);
-            } else if (user.subscription_days_remaining !== undefined && user.subscription_days_remaining !== null && user.subscription_days_remaining !== 0) {
+            } else if (user.subscription_days_remaining !== undefined && user.subscription_days_remaining !== null) {
                 remaining = user.subscription_days_remaining;
             } else if (user.created_at) {
                 const totalDays = getPlanDuration(user.tier || 'Elite Suite');
@@ -568,7 +568,7 @@ export const AuthProvider = ({ children }) => {
                 const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                 remaining = Math.max(0, totalDays - diffDays);
             } else {
-                remaining = 342;
+                remaining = 15;
             }
             
             setPlanDaysRemaining(remaining);
