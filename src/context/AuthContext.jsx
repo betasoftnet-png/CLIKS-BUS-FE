@@ -121,6 +121,7 @@ export const AuthProvider = ({ children }) => {
                 const dName = cachedAcc?.displayName || payload.displayName || payload.display_name || null;
                 const fName = cachedAcc?.fullName || payload.fullName || payload.full_name || null;
                 const uName = dName || fName || cachedAcc?.name || payload.name || payload.username || (uEmail ? uEmail.split('@')[0] : 'User');
+                const cachedPhoto = cachedAcc?.profilePhoto || cachedAcc?.profilePictureUrl || localStorage.getItem('profile_photo') || null;
                 return {
                     id: payload.id,
                     username: payload.username || uName,
@@ -128,6 +129,8 @@ export const AuthProvider = ({ children }) => {
                     displayName: dName,
                     fullName: fName,
                     email: payload.email,
+                    profilePhoto: cachedPhoto,
+                    profilePictureUrl: cachedPhoto,
                     role: payload.role,
                     account_type: payload.account_type || payload.accountType || 'business',
                     is_sub_id: Boolean(payload.is_sub_id || payload.isSubId),
@@ -457,6 +460,22 @@ export const AuthProvider = ({ children }) => {
                 const fName = bnxData?.fullName || bnxData?.full_name || userData.fullName || userData.full_name || null;
                 const effectiveName = dName || fName || userData.name || userData.username || (uEmail ? uEmail.split('@')[0] : 'User');
 
+                // Resolve profile picture from BNX Mail profile: prepend https://api.bnxmail.com before /api
+                const rawPicUrl = bnxData?.profilePictureUrl || bnxData?.profile_picture_url || userData.profilePictureUrl || userData.profile_picture_url || null;
+                let bnxProfilePic = null;
+                if (rawPicUrl) {
+                    bnxProfilePic = rawPicUrl.startsWith('http') ? rawPicUrl : `https://api.bnxmail.com${rawPicUrl.startsWith('/') ? '' : '/'}${rawPicUrl}`;
+                } else if (bnxData?.profilePicture || bnxData?.profile_picture) {
+                    const uName = bnxData.username || userData.username || (uEmail ? uEmail.split('@')[0] : 'user');
+                    bnxProfilePic = `https://api.bnxmail.com/api/users/profile-picture/${encodeURIComponent(uName)}`;
+                } else if (userData.avatar_url) {
+                    bnxProfilePic = userData.avatar_url;
+                }
+
+                if (bnxProfilePic && !localStorage.getItem('profile_photo')) {
+                    localStorage.setItem('profile_photo', bnxProfilePic);
+                }
+
                 setUser(prev => {
                     const fullUser = {
                         ...prev,
@@ -464,7 +483,9 @@ export const AuthProvider = ({ children }) => {
                         displayName: dName,
                         fullName: fName,
                         username: userData.username || prev?.username || effectiveName,
-                        name: effectiveName
+                        name: effectiveName,
+                        profilePhoto: bnxProfilePic || localStorage.getItem('profile_photo') || null,
+                        profilePictureUrl: bnxProfilePic || null
                     };
                     saveOrUpdateAccount({
                         id: fullUser.id,
@@ -479,7 +500,9 @@ export const AuthProvider = ({ children }) => {
                         bnxToken: validBnxToken,
                         is_sub_id: fullUser.is_sub_id,
                         branch_id: fullUser.branch_id,
-                        branch_name: fullUser.branch_name
+                        branch_name: fullUser.branch_name,
+                        profilePhoto: bnxProfilePic || localStorage.getItem('profile_photo') || null,
+                        profilePictureUrl: bnxProfilePic || null
                     });
                     return fullUser;
                 });
@@ -684,9 +707,23 @@ export const AuthProvider = ({ children }) => {
         const ssoFullName = bnxData?.fullName || bnxData?.full_name || newUser.fullName || newUser.full_name || null;
         const ssoEffectiveName = ssoDisplayName || ssoFullName || newUser.name || newUser.username || (newUser.email ? newUser.email.split('@')[0] : 'User');
 
+        // Resolve profile picture from BNX Mail profile: prepend https://api.bnxmail.com before /api
+        const rawPicUrl = bnxData?.profilePictureUrl || bnxData?.profile_picture_url || null;
+        let bnxProfilePic = null;
+        if (rawPicUrl) {
+            bnxProfilePic = rawPicUrl.startsWith('http') ? rawPicUrl : `https://api.bnxmail.com${rawPicUrl.startsWith('/') ? '' : '/'}${rawPicUrl}`;
+        } else if (bnxData?.profilePicture || bnxData?.profile_picture) {
+            const uName = bnxData.username || newUser.username || (newUser.email ? newUser.email.split('@')[0] : 'user');
+            bnxProfilePic = `https://api.bnxmail.com/api/users/profile-picture/${encodeURIComponent(uName)}`;
+        }
+
         newUser.displayName = ssoDisplayName;
         newUser.fullName = ssoFullName;
         newUser.name = ssoEffectiveName;
+        if (bnxProfilePic) {
+            newUser.profilePhoto = bnxProfilePic;
+            newUser.profilePictureUrl = bnxProfilePic;
+        }
 
         // Save BNX token into multi-account token store immediately under all aliases
         const tokenAliases = [
@@ -737,6 +774,8 @@ export const AuthProvider = ({ children }) => {
             is_sub_id: newUser.is_sub_id,
             branch_id: newUser.branch_id,
             branch_name: newUser.branch_name,
+            profilePhoto: bnxProfilePic || null,
+            profilePictureUrl: bnxProfilePic || null,
             lastActive: Date.now()
         };
         saveOrUpdateAccount(accountEntry);

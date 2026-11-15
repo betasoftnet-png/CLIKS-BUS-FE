@@ -19,10 +19,31 @@ export function ProfileDropdown({
     const isBranchManager = Boolean(user && (user.is_sub_id || user.role === 'sub_id' || user.role === 'SUB_ID') && user.branch_id);
     
     // Profile Photo & Camera Menu States
-    const [profilePhoto, setProfilePhoto] = useState(() => localStorage.getItem("profile_photo") || null);
+    const getResolvedProfilePic = () => {
+        const local = localStorage.getItem("profile_photo");
+        if (local) return local;
+        const pic = user?.profilePhoto || user?.profilePictureUrl || user?.profile_picture_url || null;
+        if (pic) {
+            return pic.startsWith('http') ? pic : `https://api.bnxmail.com${pic.startsWith('/') ? '' : '/'}${pic}`;
+        }
+        if (user?.profilePicture || user?.profile_picture) {
+            const uName = user.username || user.name || (user.email ? user.email.split('@')[0] : null);
+            if (uName) return `https://api.bnxmail.com/api/users/profile-picture/${encodeURIComponent(uName)}`;
+        }
+        return null;
+    };
+
+    const [profilePhoto, setProfilePhoto] = useState(getResolvedProfilePic);
+    const [imgError, setImgError] = useState(false);
     const [isCameraMenuOpen, setIsCameraMenuOpen] = useState(false);
     const [isViewPhotoModalOpen, setIsViewPhotoModalOpen] = useState(false);
     const fileInputRef = useRef(null);
+
+    useEffect(() => {
+        const resolved = getResolvedProfilePic();
+        setProfilePhoto(resolved);
+        setImgError(false);
+    }, [user?.profilePhoto, user?.profilePictureUrl, user?.profile_picture_url, user?.profilePicture, user?.username, user?.email]);
 
     const handleFileChange = (e) => {
         const file = e.target.files?.[0];
@@ -36,6 +57,7 @@ export function ProfileDropdown({
                 const base64String = reader.result;
                 localStorage.setItem("profile_photo", base64String);
                 setProfilePhoto(base64String);
+                setImgError(false);
                 alert("Profile photo updated successfully!");
             };
             reader.readAsDataURL(file);
@@ -346,6 +368,8 @@ export function ProfileDropdown({
                     ? String(user.full_name).trim()
                     : user?.name || user?.username || (user?.email ? user.email.split('@')[0] : "User");
 
+    const firstLetter = (displayName || user?.name || user?.username || user?.email || 'U').trim().charAt(0).toUpperCase();
+
     const otherAccounts = (accounts || []).filter(acc => {
         if (!acc || !acc.email) return false;
         if (!user || !user.email) return true;
@@ -562,10 +586,17 @@ export function ProfileDropdown({
                     flexShrink: 0,
                     overflow: 'hidden'
                 }}>
-                    {profilePhoto ? (
-                        <img src={profilePhoto} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {profilePhoto && !imgError ? (
+                        <img 
+                            src={profilePhoto} 
+                            alt="Avatar" 
+                            onError={() => setImgError(true)}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
                     ) : (
-                        <UserIcon size={14} />
+                        <span style={{ fontSize: '11px', fontWeight: '800', color: '#135029', lineHeight: 1, textTransform: 'uppercase' }}>
+                            {firstLetter}
+                        </span>
                     )}
                 </div>
                 <span className="profile-name-text" style={{ 
@@ -741,10 +772,15 @@ export function ProfileDropdown({
                                         boxShadow: '0 4px 12px rgba(26, 115, 232, 0.15)',
                                         overflow: 'visible'
                                     }}>
-                                        {profilePhoto ? (
-                                            <img src={profilePhoto} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                        {profilePhoto && !imgError ? (
+                                            <img 
+                                                src={profilePhoto} 
+                                                alt="Profile" 
+                                                onError={() => setImgError(true)}
+                                                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                                            />
                                         ) : (
-                                            displayName.charAt(0).toUpperCase()
+                                            firstLetter
                                         )}
                                         
                                         {/* Camera Icon Overlap */}
@@ -1024,7 +1060,12 @@ export function ProfileDropdown({
                                                                     flexShrink: 0
                                                                 }}>
                                                                     {acc.profilePhoto ? (
-                                                                        <img src={acc.profilePhoto} alt={accName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                                                        <img 
+                                                                            src={acc.profilePhoto.startsWith('http') ? acc.profilePhoto : `https://api.bnxmail.com${acc.profilePhoto.startsWith('/') ? '' : '/'}${acc.profilePhoto}`} 
+                                                                            alt={accName} 
+                                                                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                                            style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                                                                        />
                                                                     ) : (
                                                                         accInitial
                                                                     )}
@@ -1185,11 +1226,11 @@ export function ProfileDropdown({
                             <button onClick={() => setIsViewPhotoModalOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.5rem', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
                         </div>
                         
-                        {profilePhoto ? (
+                        {profilePhoto && !imgError ? (
                             <img src={profilePhoto} alt="Profile Large" style={{ width: '260px', height: '260px', borderRadius: '50%', objectFit: 'cover', border: '4px solid #1A73E8', boxShadow: '0 8px 24px rgba(26,115,232,0.15)' }} />
                         ) : (
                             <div style={{ width: '260px', height: '260px', borderRadius: '50%', backgroundColor: '#1A73E8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontSize: '96px', fontWeight: '800', boxShadow: '0 8px 24px rgba(26,115,232,0.15)' }}>
-                                {displayName.charAt(0).toUpperCase()}
+                                {firstLetter}
                             </div>
                         )}
                         
@@ -1208,6 +1249,7 @@ export function ProfileDropdown({
                                     onClick={() => {
                                         localStorage.removeItem("profile_photo");
                                         setProfilePhoto(null);
+                                        setImgError(false);
                                         setIsViewPhotoModalOpen(false);
                                         alert("Profile photo removed successfully!");
                                     }}

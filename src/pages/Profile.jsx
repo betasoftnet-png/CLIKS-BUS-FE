@@ -81,9 +81,13 @@ const Profile = () => {
             reader.readAsDataURL(file);
         };
 
-        // Construct absolute URL for rendering the backend served uploads file
+        // Construct absolute URL for rendering profile photo (local override, BNX profile picture, or backend served avatar)
+        const bnxPhoto = user?.profilePhoto || user?.profilePictureUrl || user?.profile_picture_url || (user?.profilePicture ? `/api/users/profile-picture/${encodeURIComponent(user?.username || user?.name || 'user')}` : null);
+        const resolvedBnxUrl = bnxPhoto ? (bnxPhoto.startsWith('http') ? bnxPhoto : `https://api.bnxmail.com${bnxPhoto.startsWith('/') ? '' : '/'}${bnxPhoto}`) : null;
+        const localPhoto = localStorage.getItem("profile_photo");
         const apiRoot = config.api.baseUrl ? config.api.baseUrl.replace(/\/api\/v1\/?$/, '') : '';
-        const avatarFullUrl = user.avatar_url ? `${apiRoot}${user.avatar_url}` : null;
+        const avatarFullUrl = localPhoto || (user?.avatar_url ? `${apiRoot}${user.avatar_url}` : resolvedBnxUrl);
+        const firstLetter = (user?.displayName || user?.name || user?.username || user?.email || 'U').trim().charAt(0).toUpperCase();
 
         return (
             <div className="dashboard-tile" style={{ maxWidth: '100%', height: '100%' }}>
@@ -130,9 +134,16 @@ const Profile = () => {
                                 className="avatar-hover-container"
                             >
                                 {avatarFullUrl ? (
-                                    <img src={avatarFullUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img 
+                                        src={avatarFullUrl} 
+                                        alt="Profile" 
+                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                    />
                                 ) : (
-                                    <User size={56} color="#94A3B8" />
+                                    <span style={{ fontSize: '48px', fontWeight: '800', color: '#1B6B3A', userSelect: 'none' }}>
+                                        {firstLetter}
+                                    </span>
                                 )}
                                 
                                 {/* Overlay that appears on top */}
