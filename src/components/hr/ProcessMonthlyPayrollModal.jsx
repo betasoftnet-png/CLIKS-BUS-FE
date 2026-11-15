@@ -36,6 +36,7 @@ export default function ProcessMonthlyPayrollModal({
     apply_pf: true,
     apply_tds: false,
     esi_deduction: '',
+    professional_tax: 200,
     tds_deduction: ''
   });
 
@@ -48,7 +49,16 @@ export default function ProcessMonthlyPayrollModal({
       return;
     }
     const cleanVal = Math.max(0, parseFloat(val) || 0);
-    setPayForm((prev) => ({ ...prev, [field]: cleanVal }));
+    setPayForm((prev) => {
+      const next = { ...prev, [field]: cleanVal };
+      if (field === 'basic_salary') {
+        const calculatedPT = cleanVal >= 15000 ? 200 : (cleanVal > 0 ? 0 : 200);
+        if (prev.professional_tax === '' || prev.professional_tax === 200 || prev.professional_tax === 0) {
+          next.professional_tax = calculatedPT;
+        }
+      }
+      return next;
+    });
   };
 
   const handleSubmit = (e) => {
@@ -56,6 +66,7 @@ export default function ProcessMonthlyPayrollModal({
     if (onProcessSubmitted) {
       onProcessSubmitted({
         ...payForm,
+        professional_tax: (payForm.professional_tax !== '' && payForm.professional_tax !== undefined) ? parseFloat(payForm.professional_tax) : 200,
         tds_deduction: payForm.apply_tds ? (parseFloat(payForm.tds_deduction) || 0) : 0,
         pf_deduction: payForm.apply_pf ? Math.round((parseFloat(payForm.basic_salary) || 0) * 0.12) : 0
       });
@@ -226,7 +237,7 @@ export default function ProcessMonthlyPayrollModal({
               </span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2.5">
             <div>
               <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
                 ESI Deduction
@@ -239,7 +250,22 @@ export default function ProcessMonthlyPayrollModal({
                 value={payForm.esi_deduction}
                 onKeyDown={preventNegativeKeys}
                 onChange={handleFieldChange('esi_deduction')}
-                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-amber-700 uppercase block mb-1">
+                Prof. Tax (PT)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                placeholder="₹200"
+                value={payForm.professional_tax}
+                onKeyDown={preventNegativeKeys}
+                onChange={handleFieldChange('professional_tax')}
+                className="w-full px-3 py-2 bg-amber-50/50 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 focus:outline-none"
               />
             </div>
             <div>
@@ -255,10 +281,56 @@ export default function ProcessMonthlyPayrollModal({
                 value={payForm.apply_tds ? payForm.tds_deduction : ''}
                 onKeyDown={preventNegativeKeys}
                 onChange={handleFieldChange('tds_deduction')}
-                className={`w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none ${!payForm.apply_tds ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none ${!payForm.apply_tds ? 'opacity-50 cursor-not-allowed' : ''}`}
               />
             </div>
           </div>
+
+          {/* Live Salary Processing Preview Card */}
+          {(() => {
+            const baseSalary = parseFloat(payForm.basic_salary) || 0;
+            const grossEarnings = baseSalary + (parseFloat(payForm.bonus_incentive) || 0) + (parseFloat(payForm.allowances) || 0);
+            const pfVal = payForm.apply_pf ? Math.round(baseSalary * 0.12) : 0;
+            const esiVal = parseFloat(payForm.esi_deduction) || 0;
+            const ptVal = (payForm.professional_tax !== '' && payForm.professional_tax !== undefined) ? parseFloat(payForm.professional_tax) : 0;
+            const tdsVal = payForm.apply_tds ? (parseFloat(payForm.tds_deduction) || 0) : 0;
+            const totalDeductions = pfVal + esiVal + ptVal + tdsVal;
+            const netSalary = Math.max(0, grossEarnings - totalDeductions);
+
+            return (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                    Salary Processing Summary
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-50 text-amber-800 border-amber-200">
+                    PT: {currency.symbol}{ptVal}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-2">
+                    <div className="text-[9px] font-bold text-emerald-700">Gross</div>
+                    <div className="text-xs font-extrabold text-emerald-800">{currency.symbol}{grossEarnings.toLocaleString('en-IN')}</div>
+                  </div>
+                  <div className="bg-rose-50 border border-rose-100 rounded-lg p-2">
+                    <div className="text-[9px] font-bold text-rose-700">Total Deductions</div>
+                    <div className="text-xs font-extrabold text-rose-800">-{currency.symbol}{totalDeductions.toLocaleString('en-IN')}</div>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-2">
+                    <div className="text-[9px] font-bold text-blue-700">Net Take-Home</div>
+                    <div className="text-xs font-extrabold text-blue-800">{currency.symbol}{netSalary.toLocaleString('en-IN')}</div>
+                  </div>
+                </div>
+                <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-200/60 flex flex-wrap gap-1.5 items-center">
+                  <span className="font-semibold">Deductions:</span>
+                  {pfVal > 0 && <span className="bg-white px-1.5 py-0.5 rounded border border-slate-200">PF: ₹{pfVal}</span>}
+                  {esiVal > 0 && <span className="bg-white px-1.5 py-0.5 rounded border border-slate-200">ESI: ₹{esiVal}</span>}
+                  <span className="bg-amber-100/70 text-amber-900 font-bold px-1.5 py-0.5 rounded border border-amber-300">Prof. Tax (PT): ₹{ptVal}</span>
+                  {tdsVal > 0 && <span className="bg-white px-1.5 py-0.5 rounded border border-slate-200">TDS: ₹{tdsVal}</span>}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Submit Button */}
           <div className="pt-2">

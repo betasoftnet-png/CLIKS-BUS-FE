@@ -637,7 +637,8 @@ const BusinessStaffing = () => {
         },
         onError: (err) => {
             console.error('Update Employee Error:', err);
-            alert('Failed to save changes. Please try again.');
+            const msg = err.response?.data?.message || err.message || 'Failed to save changes. Please try again.';
+            alert(msg);
         }
     });
 
@@ -650,7 +651,8 @@ const BusinessStaffing = () => {
         },
         onError: (err) => {
             console.error('Update Roster Error:', err);
-            alert('Failed to save roster settings. Please try again.');
+            const msg = err.response?.data?.message || err.message || 'Failed to save roster settings. Please try again.';
+            alert(msg);
         }
     });
 
@@ -688,7 +690,7 @@ const BusinessStaffing = () => {
         const isCustomWeekOff = emp.weekly_off && !standardWeekOffs.includes(emp.weekly_off);
 
         setRosterForm({
-            employee_id: emp.employee_id,
+            employee_id: emp.employee_id || emp.id,
             employee_name: `${emp.first_name} ${emp.last_name}`,
             basic_salary: emp.basic_salary,
             shift_mode: isCustomShift ? 'custom' : 'preset',
@@ -696,8 +698,8 @@ const BusinessStaffing = () => {
             custom_shift_name: customTitle,
             custom_start_time: customStart,
             custom_end_time: customEnd,
-            monthly_leave_quota: emp.monthly_leave_quota !== undefined ? emp.monthly_leave_quota : defaultLeaveQuota,
-            leave_balance: emp.leave_balance !== undefined ? emp.leave_balance : 18,
+            monthly_leave_quota: (emp.monthly_leave_quota !== undefined && emp.monthly_leave_quota !== null && emp.monthly_leave_quota !== '') ? emp.monthly_leave_quota : defaultLeaveQuota,
+            leave_balance: (emp.leave_balance !== undefined && emp.leave_balance !== null && emp.leave_balance !== '') ? emp.leave_balance : 0,
             sync_balance: false,
             bonus_mode: (emp.annual_bonus !== null && emp.annual_bonus !== undefined && emp.annual_bonus > 0) ? 'fixed' : 'percentage',
             annual_bonus_pct: emp.annual_bonus_pct !== undefined ? emp.annual_bonus_pct : 10,
@@ -727,15 +729,15 @@ const BusinessStaffing = () => {
         const parsedBal = parseFloat(rosterForm.leave_balance);
         const newBalance = rosterForm.sync_balance 
             ? Math.round(quota * 12) 
-            : ((!isNaN(parsedBal) && rosterForm.leave_balance !== '' && rosterForm.leave_balance !== null) ? Math.max(0, parsedBal) : 18);
+            : ((!isNaN(parsedBal) && rosterForm.leave_balance !== '' && rosterForm.leave_balance !== null) ? Math.max(0, parsedBal) : 0);
 
         const annualBonusAmt = rosterForm.bonus_mode === 'fixed' ? (parseFloat(rosterForm.annual_bonus_amt) || 0) : null;
         const annualBonusPct = rosterForm.bonus_mode === 'percentage' ? (parseFloat(rosterForm.annual_bonus_pct) || 10) : null;
 
-        const emp = employees.find(e => String(e.employee_id) === String(rosterForm.employee_id));
+        const emp = employees.find(e => String(e.employee_id) === String(rosterForm.employee_id) || String(e.id) === String(rosterForm.employee_id));
         let addrMeta = {};
-        if (emp && emp.address) {
-            addrMeta = safeParse(emp.address);
+        if (emp && (emp.address || emp.raw_address)) {
+            addrMeta = safeParse(emp.address || emp.raw_address);
         }
 
         const payload = {
@@ -800,7 +802,10 @@ const BusinessStaffing = () => {
     const employees = dbEmployees.length > 0 ? dbEmployees.map(e => {
         const addrMeta = safeParse(e.address);
         return {
+            id: e.id,
             employee_id: e.id,
+            raw_address: e.address,
+            address: e.address,
             employee_code: e.employee_code || addrMeta.employee_code || addrMeta.employee_id || `CLK-00${e.id}`,
             employee_status: e.status || 'active',
             joining_date: e.hire_date || addrMeta.joining_date || '2026-05-08',
@@ -833,7 +838,7 @@ const BusinessStaffing = () => {
             aadhaar_file: 'aadhaar_arun.pdf',
             pan_file: 'pan_arun.pdf',
             shift_name: e.shift ? (typeof e.shift === 'string' && e.shift.startsWith('{') ? (safeParse(e.shift).shift || safeParse(e.shift).shift_name || e.shift) : e.shift) : (addrMeta.shift_name || 'General Shift (9 AM - 6 PM)'),
-            leave_balance: (e.leave_balance !== undefined && e.leave_balance !== null && e.leave_balance !== '') ? parseFloat(e.leave_balance) : ((addrMeta.leave_balance !== undefined && addrMeta.leave_balance !== null && addrMeta.leave_balance !== '') ? parseFloat(addrMeta.leave_balance) : 18),
+            leave_balance: (e.leave_balance !== undefined && e.leave_balance !== null && e.leave_balance !== '') ? parseFloat(e.leave_balance) : ((addrMeta.leave_balance !== undefined && addrMeta.leave_balance !== null && addrMeta.leave_balance !== '') ? parseFloat(addrMeta.leave_balance) : 0),
             monthly_leave_quota: (e.monthly_leave_quota !== undefined && e.monthly_leave_quota !== null && e.monthly_leave_quota !== '') ? parseFloat(e.monthly_leave_quota) : ((addrMeta.monthly_leave_quota !== undefined && addrMeta.monthly_leave_quota !== null && addrMeta.monthly_leave_quota !== '') ? parseFloat(addrMeta.monthly_leave_quota) : defaultLeaveQuota),
             annual_bonus: (e.annual_bonus !== undefined && e.annual_bonus !== null && e.annual_bonus !== '') ? parseFloat(e.annual_bonus) : ((addrMeta.annual_bonus !== undefined && addrMeta.annual_bonus !== null && addrMeta.annual_bonus !== '') ? parseFloat(addrMeta.annual_bonus) : null),
             annual_bonus_pct: (e.annual_bonus_pct !== undefined && e.annual_bonus_pct !== null && e.annual_bonus_pct !== '') ? parseFloat(e.annual_bonus_pct) : ((addrMeta.annual_bonus_pct !== undefined && addrMeta.annual_bonus_pct !== null) ? parseFloat(addrMeta.annual_bonus_pct) : 10),
@@ -1071,7 +1076,7 @@ const BusinessStaffing = () => {
         const parsedMonthlyQuota = parseFloat(editForm.monthly_leave_quota);
         const finalMonthlyQuota = (!isNaN(parsedMonthlyQuota) && editForm.monthly_leave_quota !== '' && editForm.monthly_leave_quota !== null) ? Math.max(0, parsedMonthlyQuota) : defaultLeaveQuota;
         const parsedLeaveBal = parseFloat(editForm.leave_balance);
-        const finalLeaveBalance = (!isNaN(parsedLeaveBal) && editForm.leave_balance !== '' && editForm.leave_balance !== null) ? Math.max(0, parsedLeaveBal) : 14;
+        const finalLeaveBalance = (!isNaN(parsedLeaveBal) && editForm.leave_balance !== '' && editForm.leave_balance !== null) ? Math.max(0, parsedLeaveBal) : 0;
         const finalBonus = editForm.annual_bonus !== undefined && editForm.annual_bonus !== '' ? parseFloat(editForm.annual_bonus) : null;
         const finalWeeklyOff = editForm.weekly_off || 'Sunday Off';
         const finalShift = editForm.shift_name || 'General Shift (9 AM - 6 PM)';
@@ -3204,7 +3209,7 @@ const BusinessStaffing = () => {
                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
                                     Standard Monthly Quota (Days / Month)
                                 </label>
-                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'stretch' }}>
                                     <style>{`
                                         .quota-input-clean::-webkit-inner-spin-button,
                                         .quota-input-clean::-webkit-outer-spin-button {
@@ -3225,25 +3230,28 @@ const BusinessStaffing = () => {
                                         onChange={(e) => setTempQuota(e.target.value)}
                                         className="quota-input-clean"
                                         style={{
-                                            width: '100%',
-                                            padding: '0.75rem 6.5rem 0.75rem 0.85rem',
-                                            borderRadius: '12px',
+                                            flex: 1,
+                                            padding: '0.75rem 1rem',
+                                            borderTopLeftRadius: '12px',
+                                            borderBottomLeftRadius: '12px',
                                             border: '1px solid #CBD5E1',
+                                            borderRight: 'none',
                                             outline: 'none',
-                                            fontSize: '1.1rem',
+                                            fontSize: '1.15rem',
                                             fontWeight: '800',
                                             color: '#064E3B',
                                             boxSizing: 'border-box'
                                         }}
                                     />
                                     <div style={{
-                                        position: 'absolute',
-                                        right: '8px',
-                                        top: '50%',
-                                        transform: 'translateY(-50%)',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '6px',
+                                        gap: '8px',
+                                        background: '#ECFDF5',
+                                        border: '1px solid #A7F3D0',
+                                        borderTopRightRadius: '12px',
+                                        borderBottomRightRadius: '12px',
+                                        padding: '0 0.85rem',
                                         userSelect: 'none'
                                     }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -3251,8 +3259,8 @@ const BusinessStaffing = () => {
                                                 type="button"
                                                 onClick={() => setTempQuota(prev => Math.min(30, parseFloat((parseFloat(prev || 0) + 0.5).toFixed(1))))}
                                                 style={{
-                                                    background: '#F1F5F9',
-                                                    border: '1px solid #CBD5E1',
+                                                    background: 'white',
+                                                    border: '1px solid #A7F3D0',
                                                     borderRadius: '4px',
                                                     width: '20px',
                                                     height: '14px',
@@ -3260,7 +3268,7 @@ const BusinessStaffing = () => {
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                     cursor: 'pointer',
-                                                    color: '#064E3B',
+                                                    color: '#047857',
                                                     padding: 0
                                                 }}
                                                 title="Increase by 0.5"
@@ -3271,8 +3279,8 @@ const BusinessStaffing = () => {
                                                 type="button"
                                                 onClick={() => setTempQuota(prev => Math.max(0, parseFloat((parseFloat(prev || 0) - 0.5).toFixed(1))))}
                                                 style={{
-                                                    background: '#F1F5F9',
-                                                    border: '1px solid #CBD5E1',
+                                                    background: 'white',
+                                                    border: '1px solid #A7F3D0',
                                                     borderRadius: '4px',
                                                     width: '20px',
                                                     height: '14px',
@@ -3280,7 +3288,7 @@ const BusinessStaffing = () => {
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                     cursor: 'pointer',
-                                                    color: '#064E3B',
+                                                    color: '#047857',
                                                     padding: 0
                                                 }}
                                                 title="Decrease by 0.5"
@@ -3289,15 +3297,11 @@ const BusinessStaffing = () => {
                                             </button>
                                         </div>
                                         <span style={{
-                                            fontSize: '0.72rem',
+                                            fontSize: '0.8rem',
                                             fontWeight: '800',
-                                            color: '#065F46',
-                                            background: '#ECFDF5',
-                                            padding: '0.2rem 0.45rem',
-                                            borderRadius: '6px',
-                                            border: '1px solid #A7F3D0'
+                                            color: '#047857'
                                         }}>
-                                            Days/mo
+                                            Days / Mo
                                         </span>
                                     </div>
                                 </div>

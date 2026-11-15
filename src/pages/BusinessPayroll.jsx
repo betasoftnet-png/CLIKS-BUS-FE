@@ -602,6 +602,7 @@ const BusinessPayroll = () => {
         { key: 'base_salary', label: 'Base Salary', placeholder: 'e.g. 50000' },
         { key: 'earnings', label: 'Earnings', placeholder: 'e.g. 5000' },
         { key: 'deductions', label: 'Deductions', placeholder: 'e.g. 2000' },
+        { key: 'professional_tax', label: 'Prof. Tax (PT)', placeholder: 'e.g. 200' },
         { key: 'net_pay', label: 'Net Take Home', placeholder: 'e.g. 48000' },
         { key: 'bank_account', label: 'Bank Account', placeholder: 'Account' },
         { key: 'status', label: 'Status', placeholder: 'e.g. Paid' },
@@ -622,6 +623,9 @@ const BusinessPayroll = () => {
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', color: '#EF4444' }}>
                                                 -{formatCurrency(rec.deductions)}
+                                            </td>
+                                            <td style={{ padding: '1.5rem 2rem', fontWeight: '750', color: rec.professional_tax > 0 ? '#92400E' : '#64748B' }}>
+                                                {rec.professional_tax > 0 ? `-${formatCurrency(rec.professional_tax)}` : '₹0'}
                                             </td>
                                             <td style={{ padding: '1.5rem 2rem', fontWeight: '850', color: '#064E3B' }}>{formatCurrency(rec.net_pay)}</td>
                                             <td style={{ padding: '1.5rem 2rem' }}>
@@ -717,6 +721,7 @@ const BusinessPayroll = () => {
                                     <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Universal Account Number (UAN)</th>
                                     <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>ESI Identification No</th>
                                     <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Monthly EPF Contribution</th>
+                                    <th style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: '800', color: '#94A3B8' }}>Professional Tax (PT)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -727,6 +732,7 @@ const BusinessPayroll = () => {
                                         <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{rec.uan_number || 'N/A'}</td>
                                         <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{rec.esi_number || 'N/A'}</td>
                                         <td style={{ padding: '1rem', fontWeight: '800', color: '#1B6B3A' }}>{formatCurrency(rec.pf_deduction)} (Auto EPF 12%)</td>
+                                        <td style={{ padding: '1rem', fontWeight: '800', color: '#92400E' }}>{rec.professional_tax > 0 ? formatCurrency(rec.professional_tax) : '₹0 (Exempt)'}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -880,11 +886,15 @@ const BusinessPayroll = () => {
                                         onChange={(e) => {
                                             const selName = e.target.value;
                                             const sel = availableEmployees.find(s => s.name === selName);
+                                            const bSalary = sel && sel.salary ? sel.salary : '';
+                                            const numSalary = parseFloat(bSalary) || 0;
+                                            const calculatedPT = numSalary >= 15000 ? 200 : (numSalary > 0 ? 0 : 200);
                                             setPayForm({ 
                                                 ...payForm, 
                                                 employee_name: selName, 
                                                 employee_id: sel ? sel.id : '',
-                                                basic_salary: sel && sel.salary ? sel.salary : ''
+                                                basic_salary: bSalary,
+                                                professional_tax: calculatedPT
                                             });
                                         }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', background: 'white', fontWeight: '700' }}
@@ -908,7 +918,13 @@ const BusinessPayroll = () => {
                                         value={payForm.basic_salary} 
                                         onChange={(e) => {
                                             const val = e.target.value;
-                                            setPayForm({ ...payForm, basic_salary: val === '' ? '' : Math.max(0, parseFloat(val) || 0) });
+                                            const numSalary = val === '' ? '' : Math.max(0, parseFloat(val) || 0);
+                                            const calculatedPT = numSalary >= 15000 ? 200 : (numSalary > 0 ? 0 : 200);
+                                            setPayForm({ 
+                                                ...payForm, 
+                                                basic_salary: numSalary,
+                                                professional_tax: (payForm.professional_tax === '' || payForm.professional_tax === 200 || payForm.professional_tax === 0) ? calculatedPT : payForm.professional_tax
+                                            });
                                         }} 
                                         style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} 
                                     />
@@ -1051,6 +1067,60 @@ const BusinessPayroll = () => {
                                     />
                                 </div>
                             </div>
+
+                            {/* Live Salary Processing Breakdown with Professional Tax */}
+                            {(() => {
+                                const liveBase = parseFloat(payForm.basic_salary) || 0;
+                                const liveHra = parseFloat(payForm.hra_amount) || 0;
+                                const liveSpec = parseFloat(payForm.special_allowance) || 0;
+                                const liveBonus = parseFloat(payForm.bonus_amount) || 0;
+                                const liveOvertime = parseFloat(payForm.overtime_pay) || 0;
+                                const liveGross = liveBase + liveHra + liveSpec + liveBonus + liveOvertime;
+
+                                const livePf = payForm.apply_pf ? Math.round(liveBase * 0.12) : 0;
+                                const liveEsi = parseFloat(payForm.esi_deduction) || 0;
+                                const livePt = (payForm.professional_tax !== '' && payForm.professional_tax !== undefined) ? parseFloat(payForm.professional_tax) : 0;
+                                const liveTds = payForm.apply_tds ? (parseFloat(payForm.tds_deduction) || 0) : 0;
+                                const liveDeductions = livePf + liveEsi + livePt + liveTds;
+                                const liveNet = Math.max(0, liveGross - liveDeductions);
+
+                                return (
+                                    <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '1rem', border: '1px solid #E2E8F0' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                                                Salary Processing Calculation
+                                            </span>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: livePt > 0 ? '#92400E' : '#64748B', background: livePt > 0 ? '#FEF3C7' : '#F1F5F9', border: `1px solid ${livePt > 0 ? '#FDE68A' : '#E2E8F0'}`, padding: '2px 8px', borderRadius: '6px' }}>
+                                                PT Deduction: {formatCurrency(livePt)}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', textAlign: 'center' }}>
+                                            <div style={{ background: '#F0FDF4', padding: '0.45rem', borderRadius: '10px', border: '1px solid #DCFCE7' }}>
+                                                <div style={{ fontSize: '0.65rem', fontWeight: '750', color: '#166534' }}>Gross Earnings</div>
+                                                <div style={{ fontSize: '0.95rem', fontWeight: '900', color: '#15803D' }}>{formatCurrency(liveGross)}</div>
+                                            </div>
+                                            <div style={{ background: '#FEF2F2', padding: '0.45rem', borderRadius: '10px', border: '1px solid #FEE2E2' }}>
+                                                <div style={{ fontSize: '0.65rem', fontWeight: '750', color: '#991B1B' }}>Total Deductions</div>
+                                                <div style={{ fontSize: '0.95rem', fontWeight: '900', color: '#DC2626' }}>-{formatCurrency(liveDeductions)}</div>
+                                            </div>
+                                            <div style={{ background: '#EFF6FF', padding: '0.45rem', borderRadius: '10px', border: '1px solid #DBEAFE' }}>
+                                                <div style={{ fontSize: '0.65rem', fontWeight: '750', color: '#1E40AF' }}>Net Take-Home</div>
+                                                <div style={{ fontSize: '0.95rem', fontWeight: '900', color: '#2563EB' }}>{formatCurrency(liveNet)}</div>
+                                            </div>
+                                        </div>
+                                        {/* Statutory Deductions Chips Line */}
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.65rem', paddingTop: '0.5rem', borderTop: '1px dashed #CBD5E1', fontSize: '0.68rem', color: '#64748B' }}>
+                                            <span style={{ fontWeight: '750' }}>Deductions Itemized:</span>
+                                            {livePf > 0 && <span style={{ background: 'white', padding: '1px 6px', borderRadius: '4px', border: '1px solid #E2E8F0' }}>PF: {formatCurrency(livePf)}</span>}
+                                            {liveEsi > 0 && <span style={{ background: 'white', padding: '1px 6px', borderRadius: '4px', border: '1px solid #E2E8F0' }}>ESI: {formatCurrency(liveEsi)}</span>}
+                                            <span style={{ background: livePt > 0 ? '#FEF3C7' : 'white', color: livePt > 0 ? '#92400E' : '#64748B', fontWeight: '800', padding: '1px 6px', borderRadius: '4px', border: `1px solid ${livePt > 0 ? '#FDE68A' : '#E2E8F0'}` }}>
+                                                Prof. Tax (PT): {formatCurrency(livePt)}
+                                            </span>
+                                            {liveTds > 0 && <span style={{ background: 'white', padding: '1px 6px', borderRadius: '4px', border: '1px solid #E2E8F0' }}>TDS: {formatCurrency(liveTds)}</span>}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             <button 
                                 type="submit" 
