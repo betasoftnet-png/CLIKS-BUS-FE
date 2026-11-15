@@ -508,11 +508,11 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
         freeBytes: 1073741824,
         freeFormatted: '1.00 GB',
         moduleBreakdown: [
-            { module: 'Audit & Tax (FIN-PRO)', share: '40%', sharePercent: 40, files: 'PDFs, XLS, Signed Certificates', color: '#2563EB', badgeBg: '#EFF6FF' },
-            { module: 'Sales & Purchases', share: '25%', sharePercent: 25, files: 'PDF Invoices, Vendor Bills', color: '#10B981', badgeBg: '#ECFDF5' },
-            { module: 'Expenses', share: '15%', sharePercent: 15, files: 'Receipt Scans, Images', color: '#8B5CF6', badgeBg: '#F5F3FF' },
-            { module: 'HR & Payroll', share: '10%', sharePercent: 10, files: 'ID Documents, Payslip PDFs', color: '#F59E0B', badgeBg: '#FFFBEB' },
-            { module: 'Inventory & Media', share: '10%', sharePercent: 10, files: 'Product Photos, Barcodes', color: '#06B6D4', badgeBg: '#ECFEFF' }
+            { module: 'Audit & Tax (FIN-PRO)', formatted: '0 KB', allocatedFormatted: '400 MB', typicalQuota: '40%', bytes: 0, files: 'PDFs, XLS, Signed Certificates', color: '#2563EB', badgeBg: '#EFF6FF' },
+            { module: 'Sales & Purchases', formatted: '0 KB', allocatedFormatted: '250 MB', typicalQuota: '25%', bytes: 0, files: 'PDF Invoices, Vendor Bills', color: '#10B981', badgeBg: '#ECFDF5' },
+            { module: 'Expenses', formatted: '0 KB', allocatedFormatted: '150 MB', typicalQuota: '15%', bytes: 0, files: 'Receipt Scans, Images', color: '#8B5CF6', badgeBg: '#F5F3FF' },
+            { module: 'HR & Payroll', formatted: '0 KB', allocatedFormatted: '100 MB', typicalQuota: '10%', bytes: 0, files: 'ID Documents, Payslip PDFs', color: '#F59E0B', badgeBg: '#FFFBEB' },
+            { module: 'Inventory & Media', formatted: '0 KB', allocatedFormatted: '100 MB', typicalQuota: '10%', bytes: 0, files: 'Product Photos, Barcodes', color: '#06B6D4', badgeBg: '#ECFEFF' }
         ]
     };
 
@@ -1190,26 +1190,78 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                     </div>
                                 </div>
 
-                                {/* Multi-Color Segmented Storage Quota Distribution Bar */}
-                                <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.8rem', fontWeight: '700', color: '#475569' }}>
-                                        <span>Module Storage Quota Distribution</span>
-                                        <span>100% Allocated</span>
+                                {/* Storage Capacity Usage Visual Progress Bar */}
+                                <div style={{ backgroundColor: '#F8FAFC', padding: '1rem 1.15rem', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', fontSize: '0.82rem', fontWeight: '750', color: '#334155' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <Cloud size={16} color="#2563EB" /> Storage Capacity Usage ({storageData.totalCapacityFormatted})
+                                        </span>
+                                        <span style={{ color: storageData.usedPercent > 90 ? '#DC2626' : '#2563EB', fontWeight: '850', fontSize: '0.85rem' }}>
+                                            {storageData.usedPercent}% Used ({storageData.usedFormatted}) • {storageData.freeFormatted} Free
+                                        </span>
                                     </div>
-                                    <div style={{ display: 'flex', height: '10px', width: '100%', borderRadius: '999px', overflow: 'hidden', backgroundColor: '#E2E8F0' }}>
+
+                                    {/* Proportional Capacity Bar: Shows real usage out of 1.00 GB */}
+                                    <div style={{
+                                        display: 'flex',
+                                        height: '14px',
+                                        width: '100%',
+                                        borderRadius: '999px',
+                                        overflow: 'hidden',
+                                        backgroundColor: '#E2E8F0',
+                                        border: '1px solid #CBD5E1',
+                                        padding: '1px',
+                                        boxSizing: 'border-box'
+                                    }}>
+                                        {storageData.moduleBreakdown.map((item, idx) => {
+                                            const totalCap = storageData.totalCapacityBytes || 1073741824;
+                                            const pct = totalCap > 0 ? (item.bytes / totalCap) * 100 : 0;
+                                            if (!item.bytes || item.bytes <= 0) return null;
+                                            // Ensure small used space has at least 1.2% visible width
+                                            const visualPct = Math.max(1.2, pct);
+                                            return (
+                                                <div 
+                                                    key={idx} 
+                                                    style={{ 
+                                                        width: `${visualPct}%`, 
+                                                        backgroundColor: item.color,
+                                                        height: '100%',
+                                                        transition: 'width 0.3s ease'
+                                                    }} 
+                                                    title={`${item.module}: ${item.formatted} (${pct.toFixed(2)}% of 1 GB)`} 
+                                                />
+                                            );
+                                        })}
+                                        {storageData.usedBytes === 0 && (
+                                            <div style={{ width: '100%', height: '100%', backgroundColor: '#E2E8F0', borderRadius: '999px' }} />
+                                        )}
+                                    </div>
+
+                                    {/* Footprint Indicator */}
+                                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.85rem', marginTop: '0.75rem', fontSize: '0.74rem', color: '#64748B' }}>
                                         {storageData.moduleBreakdown.map((item, idx) => (
-                                            <div key={idx} style={{ width: `${item.sharePercent}%`, backgroundColor: item.color }} title={`${item.module}: ${item.share}`} />
+                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.color, flexShrink: 0 }} />
+                                                <span style={{ fontWeight: item.bytes > 0 ? '750' : '500', color: item.bytes > 0 ? '#0F172A' : '#64748B' }}>
+                                                    {item.module.split(' ')[0]}: {item.formatted || '0 KB'}
+                                                </span>
+                                            </div>
                                         ))}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginLeft: 'auto' }}>
+                                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#94A3B8', flexShrink: 0 }} />
+                                            <span style={{ fontWeight: '700', color: '#15803D' }}>Available: {storageData.freeFormatted}</span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Table Requested by User */}
+                                {/* Clean Module Allocation & Usage Table */}
                                 <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
                                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
                                         <thead>
                                             <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                                                 <th style={{ padding: '0.75rem 1rem', fontWeight: '750', color: '#475569' }}>Module</th>
-                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '750', color: '#475569', textAlign: 'center' }}>Typical Storage Share</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '750', color: '#475569', textAlign: 'center' }}>Allocated Quota</th>
+                                                <th style={{ padding: '0.75rem 1rem', fontWeight: '750', color: '#475569', textAlign: 'center' }}>Space Used</th>
                                                 <th style={{ padding: '0.75rem 1rem', fontWeight: '750', color: '#475569' }}>Main File Types</th>
                                             </tr>
                                         </thead>
@@ -1217,12 +1269,25 @@ const Sidebar = ({ isOpen, onClose, onReferralClick }) => {
                                             {storageData.moduleBreakdown.map((item, idx) => (
                                                 <tr key={idx} style={{ borderBottom: idx < storageData.moduleBreakdown.length - 1 ? '1px solid #F1F5F9' : 'none' }}>
                                                     <td style={{ padding: '0.75rem 1rem', fontWeight: '700', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.color, display: 'inline-block' }} />
+                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.color, display: 'inline-block', flexShrink: 0 }} />
                                                         {item.module}
                                                     </td>
                                                     <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                                                        <span style={{ backgroundColor: item.badgeBg, color: item.color, padding: '2px 8px', borderRadius: '999px', fontSize: '0.78rem', fontWeight: '800', border: `1px solid ${item.color}33` }}>
-                                                            {item.share}
+                                                        <span style={{ backgroundColor: '#F1F5F9', color: '#475569', padding: '3px 8px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: '750', border: '1px solid #E2E8F0' }}>
+                                                            {item.allocatedFormatted || item.typicalQuota} ({item.typicalQuota})
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                                                        <span style={{ 
+                                                            backgroundColor: item.bytes > 0 ? item.badgeBg : '#F8FAFC', 
+                                                            color: item.bytes > 0 ? item.color : '#94A3B8', 
+                                                            padding: '3px 10px', 
+                                                            borderRadius: '999px', 
+                                                            fontSize: '0.8rem', 
+                                                            fontWeight: '800', 
+                                                            border: `1px solid ${item.bytes > 0 ? item.color + '40' : '#E2E8F0'}` 
+                                                        }}>
+                                                            {item.formatted || '0 Bytes'}
                                                         </span>
                                                     </td>
                                                     <td style={{ padding: '0.75rem 1rem', color: '#64748B', fontWeight: '500' }}>
