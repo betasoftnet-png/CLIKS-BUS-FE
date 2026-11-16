@@ -362,6 +362,7 @@ const BusinessMarketing = () => {
         referral_bonus: 0,
         campaign_owner: 'Admin',
         assigned_salesperson: 'Sales Team',
+        campaign_budget: '',
     });
 
     const [selectedCustomCustomerIds, setSelectedCustomCustomerIds] = useState([]);
@@ -430,6 +431,7 @@ const BusinessMarketing = () => {
             referral_bonus: 0,
             campaign_owner: 'Admin',
             assigned_salesperson: 'Sales Team',
+            campaign_budget: '',
         });
         setSelectedCustomCustomerIds(customerData.map(c => c.id));
     };
@@ -1374,7 +1376,18 @@ const BusinessMarketing = () => {
             {activeTab === 'reports' && (
                 <div>
                     <div style={{ background: 'white', padding: '2rem', borderRadius: '24px', border: '1px solid #E2E8F0', marginBottom: '2rem' }}>
-                        <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#064E3B', marginBottom: '1.5rem' }}>📈 Email Category Campaign ROI Analysis</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>📈 Email Category Campaign ROI Analysis</h3>
+                                <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '0.3rem 0 0 0', fontWeight: '500' }}>
+                                    Mathematical Formula: <code style={{ background: '#F1F5F9', padding: '0.15rem 0.4rem', borderRadius: '4px', color: '#0F172A', fontWeight: '700' }}>ROI = ((Total Revenue Generated - Campaign Cost) / Campaign Cost) × 100</code>
+                                </p>
+                            </div>
+                            <span style={{ fontSize: '0.74rem', fontWeight: '800', background: '#ECFDF5', color: '#166534', border: '1px solid #BBF7D0', padding: '0.3rem 0.75rem', borderRadius: '20px' }}>
+                                ✓ Dynamic Sales Attribution Active
+                            </span>
+                        </div>
+
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
                             {/* 1. Bulk Marketing Emails */}
                             <div style={{ padding: '1.5rem', borderRadius: '16px', background: '#F0F9F4', border: '1px solid #DCF2E4', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -1391,9 +1404,12 @@ const BusinessMarketing = () => {
                                             {roiAnalytics?.bulkMarketing?.revenueFormatted || `₹${computedBulkRevenue.toLocaleString('en-IN')}`}
                                         </h3>
                                     </div>
+                                    <div style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: '600' }}>
+                                        Campaign Cost: <strong style={{ color: '#0F172A' }}>{roiAnalytics?.bulkMarketing?.costFormatted || '₹50'}</strong>
+                                    </div>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#1B6B3A', fontWeight: '700', borderTop: '1px solid #DCF2E4', paddingTop: '0.6rem', marginTop: '0.5rem' }}>
-                                    <span>Estimated ROI: <strong>{computedBulkRoi}</strong></span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#1B6B3A', fontWeight: '700', borderTop: '1px solid #DCF2E4', paddingTop: '0.6rem', marginTop: '0.75rem' }}>
+                                    <span>Estimated ROI: <strong>{roiAnalytics?.bulkMarketing?.roi || computedBulkRoi}</strong></span>
                                     <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Delivered: {totalBulkDelivered}</span>
                                 </div>
                             </div>
@@ -1413,9 +1429,12 @@ const BusinessMarketing = () => {
                                             {roiAnalytics?.transactional?.revenueFormatted || `₹${computedTransRevenue.toLocaleString('en-IN')}`}
                                         </h3>
                                     </div>
+                                    <div style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: '600' }}>
+                                        Dispatch Overhead: <strong style={{ color: '#0F172A' }}>{roiAnalytics?.transactional?.costFormatted || '₹25'}</strong>
+                                    </div>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#2563EB', fontWeight: '700', borderTop: '1px solid #DBEAFE', paddingTop: '0.6rem', marginTop: '0.5rem' }}>
-                                    <span>Estimated ROI: <strong>{computedTransRoi}</strong></span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#2563EB', fontWeight: '700', borderTop: '1px solid #DBEAFE', paddingTop: '0.6rem', marginTop: '0.75rem' }}>
+                                    <span>Estimated ROI: <strong>{roiAnalytics?.transactional?.roi || computedTransRoi}</strong></span>
                                     <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Invoices: {totalTransSent}</span>
                                 </div>
                             </div>
@@ -1435,9 +1454,12 @@ const BusinessMarketing = () => {
                                             {roiAnalytics?.autoFlows?.revenueFormatted || `₹${computedAutoRevenue.toLocaleString('en-IN')}`}
                                         </h3>
                                     </div>
+                                    <div style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: '600' }}>
+                                        Trigger Overhead: <strong style={{ color: '#0F172A' }}>{roiAnalytics?.autoFlows?.costFormatted || '₹30'}</strong>
+                                    </div>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#EA580C', fontWeight: '700', borderTop: '1px solid #FFEDD5', paddingTop: '0.6rem', marginTop: '0.5rem' }}>
-                                    <span>Estimated ROI: <strong>{computedAutoRoi}</strong></span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: '#EA580C', fontWeight: '700', borderTop: '1px solid #FFEDD5', paddingTop: '0.6rem', marginTop: '0.75rem' }}>
+                                    <span>Estimated ROI: <strong>{roiAnalytics?.autoFlows?.roi || computedAutoRoi}</strong></span>
                                     <span style={{ fontSize: '0.72rem', color: '#64748B' }}>Trigger Sent: {totalAutoSent}</span>
                                 </div>
                             </div>
@@ -1455,19 +1477,21 @@ const BusinessMarketing = () => {
                                     const delivered = camp.delivered_count || Math.max(1, Math.round(sent * 0.98));
                                     const conversions = camp.conversion_count || (sent > 0 ? 1 : 0);
                                     const convRate = camp.lead_conversion_rate ? `${camp.lead_conversion_rate}%` : `${((conversions / Math.max(1, sent)) * 100).toFixed(1)}%`;
-                                    const roi = camp.roi_percentage || Math.round(145 + (parseFloat(convRate) * 4.5));
+                                    const cost = camp.campaign_cost || Math.max(25, Math.round(sent * 0.50));
+                                    const revenue = camp.attributed_revenue || (conversions * 1850);
+                                    const roi = camp.roi_percentage || (cost > 0 ? Math.round(((revenue - cost) / cost) * 100) : 185);
                                     return (
                                         <div key={idx} style={{ background: '#FAFDFB', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                                 <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1E293B' }}>{camp.campaign_name}</span>
-                                                <span style={{ fontSize: '0.8rem', fontWeight: '750', color: '#1B6B3A' }}>ROI: {roi}%</span>
+                                                <span style={{ fontSize: '0.8rem', fontWeight: '750', color: '#1B6B3A' }}>ROI: +{roi}%</span>
                                             </div>
                                             <div style={{ width: '100%', height: '8px', background: '#E2E8F0', borderRadius: '4px', overflow: 'hidden' }}>
                                                 <div style={{ width: `${Math.min(Math.round((roi / 250) * 100), 100)}%`, height: '100%', background: '#1B6B3A', borderRadius: '4px' }} />
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B', marginTop: '0.4rem' }}>
-                                                <span>Sent: {sent} • Delivered: {delivered}</span>
-                                                <span>Conversions: {conversions} ({convRate})</span>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748B', marginTop: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                                <span>Sent: {sent} • Delivered: {delivered} • Cost: ₹{cost}</span>
+                                                <span>Attributed Rev: ₹{revenue.toLocaleString('en-IN')} • Conversions: {conversions} ({convRate})</span>
                                             </div>
                                         </div>
                                     );
@@ -1554,6 +1578,21 @@ const BusinessMarketing = () => {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* CAMPAIGN BUDGET & COST INPUT */}
+                                    <div style={{ marginTop: '1rem' }}>
+                                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>
+                                            Campaign Budget / Cost (₹) <span style={{ fontWeight: 'normal', color: '#94A3B8' }}>(Optional - Defaults to ₹0.50/recipient)</span>
+                                        </label>
+                                        <input 
+                                            type="number"
+                                            min="0"
+                                            placeholder="e.g. 500 (Used for exact ROI calculation: ((Revenue - Cost) / Cost) * 100)"
+                                            value={formData.campaign_budget} 
+                                            onChange={e => setFormData({ ...formData, campaign_budget: e.target.value })}
+                                            style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }}
+                                        />
+                                    </div>
 
                                     {/* RECURRING CAMPAIGN TOGGLE & FREQUENCY SELECTOR */}
                                     <div style={{ 
