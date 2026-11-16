@@ -350,7 +350,9 @@ const BusinessMarketing = () => {
             ...formData,
             campaign_name: trimmedName,
             total_recipients: activeRecipients,
-            recipient_emails: targetEmails
+            recipient_emails: targetEmails,
+            recurring_campaign: Boolean(formData.recurring_campaign),
+            recurrence_frequency: formData.recurring_campaign ? (formData.recurrence_frequency && formData.recurrence_frequency !== 'none' ? formData.recurrence_frequency : 'Weekly') : 'none'
         };
 
         setIsLaunching(true);
@@ -669,9 +671,9 @@ const BusinessMarketing = () => {
                                                 }}>
                                                     {camp.campaign_status}
                                                 </span>
-                                                {camp.recurring_campaign && (
+                                                {Boolean(camp.recurring_campaign && camp.recurring_campaign !== '0' && camp.recurring_campaign !== 'false' && camp.recurring_campaign !== 'none') && (
                                                     <span style={{ fontSize: '0.65rem', fontWeight: '800', padding: '0.15rem 0.45rem', borderRadius: '5px', background: '#FEF3C7', color: '#D97706' }}>
-                                                        🔄 {camp.recurrence_frequency}
+                                                        🔄 {camp.recurrence_frequency && camp.recurrence_frequency !== 'none' ? (camp.recurrence_frequency.charAt(0).toUpperCase() + camp.recurrence_frequency.slice(1)) : 'Weekly'}
                                                     </span>
                                                 )}
                                             </div>
@@ -988,6 +990,77 @@ const BusinessMarketing = () => {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* RECURRING CAMPAIGN TOGGLE & FREQUENCY SELECTOR */}
+                                    <div style={{ 
+                                        marginTop: '1rem', 
+                                        padding: '0.85rem', 
+                                        borderRadius: '12px', 
+                                        background: formData.recurring_campaign ? '#F0FDF4' : '#F8FAFC', 
+                                        border: formData.recurring_campaign ? '1.5px solid #86EFAC' : '1px solid #E2E8F0',
+                                        transition: 'all 0.2s ease'
+                                    }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', margin: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                                <input 
+                                                    type="checkbox"
+                                                    checked={Boolean(formData.recurring_campaign)}
+                                                    onChange={e => {
+                                                        const isChecked = e.target.checked;
+                                                        setFormData({
+                                                            ...formData,
+                                                            recurring_campaign: isChecked,
+                                                            recurrence_frequency: isChecked 
+                                                                ? (formData.recurrence_frequency && formData.recurrence_frequency !== 'none' ? formData.recurrence_frequency : 'Weekly') 
+                                                                : 'none'
+                                                        });
+                                                    }}
+                                                    style={{ accentColor: '#16A34A', width: '18px', height: '18px', cursor: 'pointer' }}
+                                                />
+                                                <div>
+                                                    <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#0F172A' }}>
+                                                        🔄 Repeat Campaign (Recurring Mail)
+                                                    </span>
+                                                    <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.72rem', color: '#64748B', fontWeight: '500' }}>
+                                                        Automatically re-dispatch this campaign on an ongoing schedule
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {Boolean(formData.recurring_campaign) && (
+                                                <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#DCFCE7', color: '#15803D', padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
+                                                    Active
+                                                </span>
+                                            )}
+                                        </label>
+
+                                        {Boolean(formData.recurring_campaign) && (
+                                            <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #DCFCE7', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#334155' }}>
+                                                    Recurrence Frequency:
+                                                </label>
+                                                <select 
+                                                    value={formData.recurrence_frequency || 'Weekly'}
+                                                    onChange={e => setFormData({ ...formData, recurrence_frequency: e.target.value })}
+                                                    style={{ 
+                                                        padding: '0.4rem 0.75rem', 
+                                                        borderRadius: '8px', 
+                                                        border: '1.5px solid #86EFAC', 
+                                                        fontSize: '0.82rem', 
+                                                        fontWeight: '750', 
+                                                        color: '#166534',
+                                                        outline: 'none', 
+                                                        background: 'white',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    <option value="Daily">Daily (Every 24 Hours)</option>
+                                                    <option value="Weekly">Weekly (Every 7 Days - Recommended)</option>
+                                                    <option value="Bi-Weekly">Bi-Weekly (Every 14 Days)</option>
+                                                    <option value="Monthly">Monthly (Every 30 Days)</option>
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* SECTION 2: AUDIENCE */}
@@ -1351,7 +1424,11 @@ const BusinessMarketing = () => {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
                                         <div>Date: <strong style={{ color: '#0F172A' }}>{selectedCampaign.scheduled_date || 'N/A'}</strong></div>
                                         <div>Time: <strong style={{ color: '#0F172A' }}>{selectedCampaign.scheduled_time || 'N/A'}</strong></div>
-                                        <div>Recurring: <strong style={{ color: '#0F172A' }}>{selectedCampaign.recurring_campaign ? `Yes (${selectedCampaign.recurrence_frequency})` : 'No (One time)'}</strong></div>
+                                        <div>Recurring: <strong style={{ color: '#0F172A' }}>
+                                            {(selectedCampaign.recurring_campaign && selectedCampaign.recurring_campaign !== '0' && selectedCampaign.recurring_campaign !== 'false' && selectedCampaign.recurring_campaign !== 'none') 
+                                                ? `Yes (${selectedCampaign.recurrence_frequency && selectedCampaign.recurrence_frequency !== 'none' ? (selectedCampaign.recurrence_frequency.charAt(0).toUpperCase() + selectedCampaign.recurrence_frequency.slice(1)) : 'Weekly'})` 
+                                                : 'No (One time)'}
+                                        </strong></div>
                                     </div>
                                 </div>
 
