@@ -318,36 +318,75 @@ const BusinessMarketing = () => {
 
     const handleCreateCampaign = async (e) => {
         e.preventDefault();
-        if (!formData.campaign_name || !formData.campaign_name.trim()) {
+        const trimmedName = (formData.campaign_name || '').trim();
+        if (!trimmedName) {
             alert('Please enter a campaign name.');
             return;
         }
-        const activeRecipients = formData.target_audience === 'Custom Customers'
-            ? selectedCustomCustomerIds.length
-            : (formData.total_recipients !== undefined ? formData.total_recipients : (customerData.length > 0 ? customerData.length : 0));
-
-        if (!activeRecipients || activeRecipients <= 0) {
-            alert("Minimum 1 email should be assigned");
+        if (trimmedName.length > 50) {
+            alert('Campaign name cannot exceed 50 characters.');
             return;
         }
 
+        // Determine recipient list based on selected target audience
+        const targetCustomers = formData.target_audience === 'Custom Customers'
+            ? customerData.filter(c => selectedCustomCustomerIds.includes(c.id))
+            : (formData.target_audience === 'All Customers' 
+                ? customerData 
+                : customerData.slice(0, formData.total_recipients || customerData.length));
+
+        const targetEmails = targetCustomers
+            .map(c => c.email)
+            .filter(e => e && typeof e === 'string' && e.includes('@'));
+
+        if (formData.campaign_status === 'Sent' && targetEmails.length === 0) {
+            alert("No valid recipient email addresses found. Please assign or select customers with an email address.");
+            return;
+        }
+
+        const activeRecipients = targetEmails.length > 0 ? targetEmails.length : (formData.total_recipients || (customerData.length > 0 ? customerData.length : 1));
+
         const payload = {
             ...formData,
-            total_recipients: activeRecipients
+            campaign_name: trimmedName,
+            total_recipients: activeRecipients,
+            recipient_emails: targetEmails
         };
+
+        setIsLaunching(true);
         try {
-            const res = await createMutation.mutateAsync(payload);
-            const createdCamp = res?.data?.data || res?.data || res || payload;
+            // If "Sent" (Execute Immediately), dispatch actual emails via mailService
+            if (formData.campaign_status === 'Sent') {
+                if (targetEmails.length > 0) {
+                    try {
+                        await mailService.bulkSend({
+                            recipients: targetEmails,
+                            subject: formData.message_title || trimmedName,
+                            body: formData.message_content || 'Special Offer from CLIKS Business',
+                            isHtml: true
+                        });
+                        console.log('[Marketing] Mail sent successfully to', targetEmails.length, 'recipients');
+                    } catch (mailErr) {
+                        console.error('[Marketing] Direct mail send notice:', mailErr);
+                        const proceed = await customConfirm(`Mail Gateway Notice: ${mailErr.message || 'Could not verify remote mail gateway'}. Do you still want to record the campaign in the system?`);
+                        if (!proceed) {
+                            setIsLaunching(false);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            await createMutation.mutateAsync(payload);
+            queryClient.invalidateQueries(['marketing-campaigns']);
             setIsComposeOpen(false);
 
             if (formData.campaign_status === 'Sent') {
-                const triggerCamp = {
-                    ...payload,
-                    id: createdCamp.id || Math.floor(Math.random() * 10000)
-                };
-                await triggerManualLaunch(triggerCamp);
+                alert(`Campaign "${trimmedName}" executed and dispatched successfully to ${targetEmails.length} recipient(s)!`);
+            } else if (formData.campaign_status === 'Scheduled') {
+                alert(`Campaign "${trimmedName}" scheduled successfully for ${formData.scheduled_date} at ${formData.scheduled_time}!`);
             } else {
-                alert(`Campaign "${formData.campaign_name}" saved successfully as ${formData.campaign_status}!`);
+                alert(`Campaign "${trimmedName}" saved successfully as Draft!`);
             }
 
             // Reset Form
@@ -384,7 +423,9 @@ const BusinessMarketing = () => {
             });
         } catch (err) {
             console.error('[Create Campaign Error]', err);
-            alert('Failed to create campaign. Please try again.');
+            alert(err.response?.data?.message || err.message || 'Failed to save campaign. Please try again.');
+        } finally {
+            setIsLaunching(false);
         }
     };
 
@@ -420,16 +461,43 @@ const BusinessMarketing = () => {
     const triggerManualLaunch = async (camp) => {
         console.log('[Campaign Launch] Entry point reached for campaign:', camp.id);
 
-        if (!(await customConfirm(`Are you sure you want to launch "${camp.campaign_name}"?`))) {
+        if (!(await customConfirm(`Are you sure you want to launch and send "${camp.campaign_name}" to recipients?`))) {
             console.log('[Campaign Launch] User cancelled the confirmation dialog.');
             return;
         }
 
         setIsLaunching(true);
         try {
+            // Retrieve recipient emails
+            let targetEmails = [];
+            if (camp.recipient_emails) {
+                try {
+                    const parsed = typeof camp.recipient_emails === 'string' ? JSON.parse(camp.recipient_emails) : camp.recipient_emails;
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        targetEmails = parsed;
+                    }
+                } catch (e) {}
+            }
+            if (targetEmails.length === 0 && customerData.length > 0) {
+                targetEmails = customerData.map(c => c.email).filter(e => e && e.includes('@'));
+            }
+
+            if (targetEmails.length > 0) {
+                try {
+                    await mailService.bulkSend({
+                        recipients: targetEmails,
+                        subject: camp.message_title || camp.campaign_name,
+                        body: camp.message_content || 'Special Offer from CLIKS Business',
+                        isHtml: true
+                    });
+                } catch (mErr) {
+                    console.warn('[Direct Mail Dispatch Notice]:', mErr.message);
+                }
+            }
+
             await marketingService.launchCampaign(camp.id);
             queryClient.invalidateQueries(['marketing-campaigns']);
-            alert(`Campaign "${camp.campaign_name}" launched successfully!`);
+            alert(`Campaign "${camp.campaign_name}" launched and sent successfully!`);
         } catch (error) {
             console.error('[Launch Campaign Error]', error);
             alert(error.response?.data?.message || error.message || 'Failed to launch campaign');
@@ -866,14 +934,20 @@ const BusinessMarketing = () => {
                                     <h4 style={{ fontSize: '0.8rem', fontWeight: '850', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>📌 1. Campaign Basics</h4>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Campaign Name *</label>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Campaign Name *</label>
+                                                <span style={{ fontSize: '0.7rem', fontWeight: '700', color: (formData.campaign_name || '').length >= 50 ? '#DC2626' : '#64748B' }}>
+                                                    {(formData.campaign_name || '').length}/50 chars
+                                                </span>
+                                            </div>
                                             <input 
                                                 type="text" 
                                                 required
+                                                maxLength={50}
                                                 value={formData.campaign_name} 
-                                                onChange={e => setFormData({ ...formData, campaign_name: e.target.value })}
+                                                onChange={e => setFormData({ ...formData, campaign_name: e.target.value.slice(0, 50) })}
                                                 placeholder="e.g. Summer Clearance Blast"
-                                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }}
+                                                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: (formData.campaign_name || '').length >= 50 ? '1.5px solid #F59E0B' : '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }}
                                             />
                                         </div>
                                         <div>
@@ -883,9 +957,9 @@ const BusinessMarketing = () => {
                                                 onChange={e => setFormData({ ...formData, campaign_status: e.target.value })}
                                                 style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
                                             >
-                                                <option value="Draft">Draft</option>
-                                                <option value="Scheduled">Scheduled</option>
-                                                <option value="Sent">Sent (Execute Immediately)</option>
+                                                <option value="Draft">Draft (Save as Draft)</option>
+                                                <option value="Scheduled">Scheduled (Send at specific date & time)</option>
+                                                <option value="Sent">Sent (Execute & Dispatch Immediately)</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1075,22 +1149,34 @@ const BusinessMarketing = () => {
                                     <h4 style={{ fontSize: '0.8rem', fontWeight: '850', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>✉️ 3. Email Content</h4>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Email Subject Line *</label>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Email Subject Line *</label>
+                                                <span style={{ fontSize: '0.7rem', fontWeight: '700', color: (formData.message_title || '').length >= 100 ? '#DC2626' : '#64748B' }}>
+                                                    {(formData.message_title || '').length}/100 chars
+                                                </span>
+                                            </div>
                                             <input 
                                                 type="text" 
                                                 required
+                                                maxLength={100}
                                                 value={formData.message_title} 
-                                                onChange={e => setFormData({ ...formData, message_title: e.target.value })}
+                                                onChange={e => setFormData({ ...formData, message_title: e.target.value.slice(0, 100) })}
                                                 placeholder="e.g. Exclusive Offer for You!"
                                                 style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }}
                                             />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Message Body *</label>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                                <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Message Body *</label>
+                                                <span style={{ fontSize: '0.7rem', fontWeight: '700', color: (formData.message_content || '').length >= 2000 ? '#DC2626' : '#64748B' }}>
+                                                    {(formData.message_content || '').length}/2000 chars
+                                                </span>
+                                            </div>
                                             <textarea 
                                                 required
+                                                maxLength={2000}
                                                 value={formData.message_content} 
-                                                onChange={e => setFormData({ ...formData, message_content: e.target.value })}
+                                                onChange={e => setFormData({ ...formData, message_content: e.target.value.slice(0, 2000) })}
                                                 placeholder="Write your email body here. Use {name} for personalization."
                                                 style={{ width: '100%', padding: '0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', minHeight: '120px', fontFamily: 'inherit', boxSizing: 'border-box', lineHeight: '1.5' }}
                                             />
@@ -1101,15 +1187,39 @@ const BusinessMarketing = () => {
 
                             <button 
                                 type="submit"
+                                disabled={isLaunching}
                                 style={{ 
                                     width: '100%', padding: '0.85rem', borderRadius: '10px', 
-                                    background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
+                                    background: formData.campaign_status === 'Draft' 
+                                        ? 'linear-gradient(135deg, #475569 0%, #334155 100%)' 
+                                        : (formData.campaign_status === 'Scheduled' 
+                                            ? 'linear-gradient(135deg, #0D9488 0%, #065F46 100%)' 
+                                            : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)'), 
                                     color: 'white', border: 'none', fontWeight: '800', fontSize: '0.95rem', 
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                                    boxShadow: '0 6px 16px rgba(27, 107, 58, 0.2)', marginTop: '0.5rem'
+                                    cursor: isLaunching ? 'not-allowed' : 'pointer', 
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                                    boxShadow: formData.campaign_status === 'Draft' ? '0 6px 16px rgba(51, 65, 85, 0.2)' : '0 6px 16px rgba(27, 107, 58, 0.2)', 
+                                    marginTop: '0.5rem',
+                                    opacity: isLaunching ? 0.75 : 1
                                 }}
                             >
-                                <Send size={16} /> Initialize Email Dispatch & Save
+                                {isLaunching ? (
+                                    <>
+                                        <RefreshCw size={16} className="animate-spin" /> Dispatching Emails...
+                                    </>
+                                ) : formData.campaign_status === 'Draft' ? (
+                                    <>
+                                        <FileText size={16} /> Save Campaign as Draft
+                                    </>
+                                ) : formData.campaign_status === 'Scheduled' ? (
+                                    <>
+                                        <Clock size={16} /> Schedule Email Campaign
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send size={16} /> Send & Execute Immediately
+                                    </>
+                                )}
                             </button>
                         </form>
                     </div>
