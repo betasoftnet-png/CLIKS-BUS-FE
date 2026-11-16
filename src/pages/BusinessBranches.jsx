@@ -363,10 +363,21 @@ const BusinessBranches = () => {
 
     const handleSaveBranch = (e) => {
         e.preventDefault();
+        if (branchForm.gstin && branchForm.gstin.trim()) {
+            const cleanGstin = branchForm.gstin.trim().toUpperCase();
+            if (cleanGstin.length !== 15 || !/^[A-Z0-9]{15}$/.test(cleanGstin)) {
+                showToast('Branch GSTIN must be exactly 15 alphanumeric characters.', 'error');
+                return;
+            }
+        }
+        const payload = {
+            ...branchForm,
+            gstin: branchForm.gstin ? branchForm.gstin.trim().toUpperCase() : ''
+        };
         if (editingBranch) {
-            updateBranchMutation.mutate({ id: editingBranch.id, data: branchForm });
+            updateBranchMutation.mutate({ id: editingBranch.id, data: payload });
         } else {
-            createBranchMutation.mutate(branchForm);
+            createBranchMutation.mutate(payload);
         }
     };
 
@@ -1995,16 +2006,44 @@ const BusinessBranches = () => {
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
-                                    Branch GSTIN (Optional)
-                                </label>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155' }}>
+                                        Branch GSTIN (Optional)
+                                    </label>
+                                    <span style={{
+                                        fontSize: '0.72rem',
+                                        fontWeight: '700',
+                                        color: branchForm.gstin && branchForm.gstin.length > 0 && branchForm.gstin.length !== 15 ? '#DC2626' : '#64748B'
+                                    }}>
+                                        {branchForm.gstin ? `${branchForm.gstin.length}/15 chars` : '15-digit alphanumeric'}
+                                    </span>
+                                </div>
                                 <input
                                     type="text"
+                                    maxLength={15}
                                     placeholder="e.g. 33AAAAA0000A1Z5"
                                     value={branchForm.gstin}
-                                    onChange={e => setBranchForm({ ...branchForm, gstin: e.target.value.toUpperCase() })}
-                                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }}
+                                    onChange={e => {
+                                        const clean = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15);
+                                        setBranchForm({ ...branchForm, gstin: clean });
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.65rem 0.85rem',
+                                        borderRadius: '10px',
+                                        border: branchForm.gstin && branchForm.gstin.length > 0 && branchForm.gstin.length !== 15 ? '1.5px solid #EF4444' : '1px solid #CBD5E1',
+                                        fontSize: '0.875rem',
+                                        outline: 'none',
+                                        boxSizing: 'border-box',
+                                        fontFamily: 'monospace',
+                                        letterSpacing: '0.5px'
+                                    }}
                                 />
+                                {branchForm.gstin && branchForm.gstin.length > 0 && branchForm.gstin.length !== 15 && (
+                                    <span style={{ display: 'block', marginTop: '4px', fontSize: '0.75rem', color: '#DC2626', fontWeight: '600' }}>
+                                        GSTIN must be exactly 15 alphanumeric characters ({15 - branchForm.gstin.length} remaining).
+                                    </span>
+                                )}
                             </div>
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.5rem 0' }}>

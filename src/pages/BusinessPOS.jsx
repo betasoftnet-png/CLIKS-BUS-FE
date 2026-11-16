@@ -7544,9 +7544,10 @@ const BusinessPOS = () => {
                                 <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '800', color: '#64748B', marginBottom: '4px', textTransform: 'uppercase' }}>GSTIN (Optional)</label>
                                 <input
                                     type="text"
+                                    maxLength={15}
                                     value={newCustomerData.gstin}
                                     onChange={(e) => {
-                                        const val = e.target.value.toUpperCase();
+                                        const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15);
                                         setNewCustomerData({ ...newCustomerData, gstin: val });
                                         if (touchedCustomerFields.gstin) {
                                             setCustomerErrors(prev => ({ ...prev, gstin: validateCustomerGstin(val) }));

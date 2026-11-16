@@ -3264,7 +3264,14 @@ const BusinessAccounting = () => {
                                             </div>
                                             <div>
                                                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Supplier GSTIN (Optional)</label>
-                                                <input type="text" placeholder="e.g. 29ABCDE1234F1ZP" value={entryForm.supplier_gstin || ''} onChange={(e) => setEntryForm({ ...entryForm, supplier_gstin: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0' }} />
+                                                <input 
+                                                    type="text" 
+                                                    maxLength={15}
+                                                    placeholder="e.g. 29ABCDE1234F1ZP" 
+                                                    value={entryForm.supplier_gstin || ''} 
+                                                    onChange={(e) => setEntryForm({ ...entryForm, supplier_gstin: e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15) })} 
+                                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', fontFamily: 'monospace' }} 
+                                                />
                                             </div>
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>

@@ -2055,7 +2055,14 @@ const BusinessPurchases = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>GSTIN Number</label>
-                                        <input type="text" value={formHeader.supplier_gstin} onChange={(e) => setFormHeader({ ...formHeader, supplier_gstin: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }} placeholder="27AAAAA1111A1Z1" />
+                                        <input 
+                                            type="text" 
+                                            maxLength={15}
+                                            value={formHeader.supplier_gstin} 
+                                            onChange={(e) => setFormHeader({ ...formHeader, supplier_gstin: e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15) })} 
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none', fontFamily: 'monospace' }} 
+                                            placeholder="27AAAAA1111A1Z1" 
+                                        />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Billing Address</label>
