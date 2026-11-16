@@ -145,6 +145,16 @@ export const marketingService = {
             console.error('[Marketing Service] Delete Automation Error:', error.message);
             throw error;
         }
+    },
+
+    getRoiAnalytics: async () => {
+        try {
+            const res = await apiClient.get('/marketing/roi-analytics');
+            return res.data || null;
+        } catch (error) {
+            console.error('[Marketing Service] Fetch ROI Analytics Error:', error.message);
+            return null;
+        }
     }
 };
 
