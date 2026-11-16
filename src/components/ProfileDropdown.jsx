@@ -1206,7 +1206,11 @@ export function ProfileDropdown({
                                     <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 6px' }} />
 
                                     <button
-                                        onClick={() => { onLogout?.(); setOpen(false); }}
+                                        onClick={() => { 
+                                            onLogout?.(); 
+                                            setOpen(false); 
+                                            navigate('/');
+                                        }}
                                         style={{ ...styles.menuItem, ...styles.logoutItem, justifyContent: 'center', fontWeight: '800' }}
                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}

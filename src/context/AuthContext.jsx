@@ -423,42 +423,29 @@ export const AuthProvider = ({ children }) => {
         }
     }, [switchAccount, logoutAll]);
 
-    // Sign out current account; switches to remaining account if one exists, else full logout
+    // Sign out: clean full logout to landing page without trapping user in account loops
     const logout = React.useCallback(() => {
         if (isLoggingOutRef.current) return false;
         isLoggingOutRef.current = true;
 
-        const currentToken = localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token');
-        if (currentToken && currentToken !== 'mock-test-token') {
-            caService.setUserOffline().catch(() => {});
-        }
-
-        let storedAccounts = [];
         try {
-            storedAccounts = JSON.parse(localStorage.getItem('cliks_multi_accounts') || '[]');
+            const currentToken = localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token');
+            if (currentToken && currentToken !== 'mock-test-token') {
+                caService.setUserOffline().catch(() => {});
+            }
         } catch (e) {}
 
-        const currentKey = userRef.current?.email?.toLowerCase() || (userRef.current?.id ? String(userRef.current.id).toLowerCase() : null);
-        const remaining = storedAccounts.filter(a => 
-            (a.email && a.email.toLowerCase() !== currentKey) &&
-            (a.id && String(a.id).toLowerCase() !== currentKey)
-        );
-
-        if (remaining.length > 0) {
-            localStorage.setItem('cliks_multi_accounts', JSON.stringify(remaining));
-            setAccounts(remaining);
-            isLoggingOutRef.current = false;
-            switchAccount(remaining[0]);
-            return true;
-        }
-
-        // No accounts left, full logout
+        // Full clean logout: clear all session credentials and multi-accounts
         localStorage.removeItem('books_auth_token');
         localStorage.removeItem('bnx_auth_token');
-        localStorage.removeItem('cliks_multi_accounts');
+        localStorage.removeItem('cliks_bnx_tokens');
         localStorage.removeItem('profile_photo');
-        
+        localStorage.removeItem('cliks_multi_accounts');
+
         Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('bnx_token_') || key.startsWith('bnx_auth_token_')) {
+                localStorage.removeItem(key);
+            }
             if (key !== 'cliks_dashboard_shortcuts' && (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_'))) {
                 localStorage.removeItem(key);
             }
@@ -478,9 +465,9 @@ export const AuthProvider = ({ children }) => {
 
         setTimeout(() => {
             isLoggingOutRef.current = false;
-        }, 1500);
+        }, 500);
         return false;
-    }, [queryClient, switchAccount]);
+    }, [queryClient]);
 
     useEffect(() => {
         const initAuth = async () => {
