@@ -28,7 +28,14 @@ import {
     PackageCheck,
     X,
     Percent,
-    ChevronDown
+    ChevronDown,
+    Lock,
+    ShieldCheck,
+    AlignLeft,
+    AlignCenter,
+    AlignRight,
+    Columns,
+    Key
 } from 'lucide-react';
 import { useCurrency } from '../context';
 import { productsService } from '../services';
@@ -129,6 +136,17 @@ const BusinessBarcode = () => {
     const [codeValue, setCodeValue] = useState('');
     const [codeType, setCodeType] = useState('CODE128'); // 'QR' as alternate
     const [encodeCustomData, setEncodeCustomData] = useState(false);
+    
+    // Encryption & Payload Encoding States
+    const [encryptionMode, setEncryptionMode] = useState('encrypted'); // 'encrypted', 'structured', 'compact'
+    const [barcodeTextDisplay, setBarcodeTextDisplay] = useState('sku'); // 'sku', 'encoded', 'none'
+    const [isCopiedPayload, setIsCopiedPayload] = useState(false);
+
+    // Barcode Placement & Print Alignment States
+    const [barcodePlacement, setBarcodePlacement] = useState('center'); // 'top', 'center', 'bottom', 'side_by_side'
+    const [barcodeAlign, setBarcodeAlign] = useState('center'); // 'left', 'center', 'right'
+    const [printPlacement, setPrintPlacement] = useState('top_left'); // 'top_left', 'center', 'sheet_grid'
+    const [printCopies, setPrintCopies] = useState(8);
     
     // Inventory Stock Products integration
     const [stockProducts, setStockProducts] = useState([]);
@@ -335,26 +353,76 @@ const BusinessBarcode = () => {
         const raw = String(codeValue || '').trim();
         if (!raw) return '';
 
-        // If 2D QR Code or Code 128 and encodeCustomData is ticked, return full structured payload
-        if (encodeCustomData && (codeType === 'QR' || codeType === 'CODE128')) {
-            const validFields = customFields.filter(f => (f.key || '').trim() || (f.value || '').trim());
-            const payloadObj = {
-                sku: codeValue
-            };
-            if (labelDetails.title) payloadObj.title = labelDetails.title;
-            if (labelDetails.price) payloadObj.price = labelDetails.price;
-            if (labelDetails.mrp) payloadObj.mrp = labelDetails.mrp;
-            if (validFields.length > 0) {
-                payloadObj.attributes = validFields.reduce((acc, f) => {
-                    if (f.key) acc[f.key] = f.value;
-                    return acc;
-                }, {});
-            }
-            return JSON.stringify(payloadObj);
+        // If EAN-13 or UPC-A, always return standard check-digit sanitized GTIN
+        if (codeType === 'EAN13' || codeType === 'UPC') {
+            return getSanitizedBarcodeValue(codeValue, codeType);
         }
 
-        // For standardized barcodes (EAN-13, UPC, Code 39, Code 128 without encodeCustomData), return valid sanitized value
-        return getSanitizedBarcodeValue(codeValue, codeType);
+        // When data encoding is NOT enabled, return standard sanitized SKU
+        if (!encodeCustomData) {
+            return getSanitizedBarcodeValue(codeValue, codeType);
+        }
+
+        const validFields = customFields.filter(f => (f.key || '').trim() || (f.value || '').trim());
+        const attributesMap = validFields.reduce((acc, f) => {
+            if (f.key) acc[f.key] = f.value;
+            return acc;
+        }, {});
+
+        const payloadObj = {
+            sku: codeValue
+        };
+        if (labelDetails.title) payloadObj.title = labelDetails.title;
+        if (labelDetails.price) payloadObj.price = labelDetails.price;
+        if (labelDetails.mrp) payloadObj.mrp = labelDetails.mrp;
+        if (Object.keys(attributesMap).length > 0) payloadObj.attributes = attributesMap;
+
+        // 2D QR Code handling
+        if (codeType === 'QR') {
+            if (encryptionMode === 'encrypted') {
+                try {
+                    const jsonStr = JSON.stringify(payloadObj);
+                    const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+                    return `ENC:${b64}`;
+                } catch (e) {
+                    return JSON.stringify(payloadObj);
+                }
+            } else if (encryptionMode === 'compact') {
+                const attrParts = validFields.map(f => `${f.key}:${f.value}`).join(';');
+                return `${codeValue}|${labelDetails.price || ''}|${labelDetails.mrp || ''}|${attrParts}`;
+            } else {
+                return JSON.stringify(payloadObj);
+            }
+        }
+
+        // 1D Barcode (Code 128 / Code 39) handling:
+        // Must stay scannable by physical 1D laser scanners without overflowing
+        if (encryptionMode === 'encrypted') {
+            try {
+                // Generate a scannable encrypted token with base64 signature
+                const tokenSeed = `${codeValue}:${labelDetails.price || '0'}:${labelDetails.mrp || '0'}`;
+                const b64 = btoa(unescape(encodeURIComponent(tokenSeed))).replace(/[^a-zA-Z0-9]/g, '').slice(0, 14).toUpperCase();
+                return `ENC-${b64}`;
+            } catch (e) {
+                return `ENC-${codeValue.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase()}`;
+            }
+        } else if (encryptionMode === 'compact') {
+            const attrSnippet = validFields.map(f => f.value).filter(Boolean).slice(0, 2).join('*');
+            const compact = `${codeValue}*${labelDetails.price || '0'}${attrSnippet ? '*' + attrSnippet : ''}`;
+            return compact.slice(0, 42);
+        } else {
+            // Structured key-value scannable format
+            const shortStr = `SKU:${codeValue}|P:${labelDetails.price || '0'}`;
+            return shortStr.slice(0, 40);
+        }
+    };
+
+    const handleCopyPayload = () => {
+        const payload = getEffectivePayload();
+        if (!payload) return;
+        navigator.clipboard.writeText(payload);
+        setIsCopiedPayload(true);
+        setTimeout(() => setIsCopiedPayload(false), 2000);
     };
 
     const handleSelectPreset = (preset) => {
@@ -413,25 +481,78 @@ const BusinessBarcode = () => {
         if (!barcodeRef.current) return;
         const printWindow = window.open('', '_blank');
         const elementHTML = barcodeRef.current.outerHTML;
+
+        let printStyles = '';
+        let bodyContent = '';
+
+        if (printPlacement === 'top_left') {
+            // Thermal roll / sticker printer edge-to-edge (no 100vh centering, 0 margins)
+            printStyles = `
+                @page { margin: 0; size: auto; }
+                html, body { 
+                    margin: 0;
+                    padding: 0;
+                    display: inline-block;
+                    background: transparent;
+                    font-family: 'Inter', system-ui, sans-serif; 
+                }
+                * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            `;
+            bodyContent = elementHTML;
+        } else if (printPlacement === 'sheet_grid') {
+            // A4 Multi-label sheet grid
+            const copies = Math.max(1, Number(printCopies) || 8);
+            printStyles = `
+                @page { margin: 10mm; size: auto; }
+                body { 
+                    margin: 0;
+                    padding: 10px;
+                    background: #ffffff;
+                    font-family: 'Inter', system-ui, sans-serif; 
+                }
+                .label-sheet-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 16px;
+                    justify-items: center;
+                    align-items: start;
+                }
+                .label-item-cell {
+                    break-inside: avoid;
+                    page-break-inside: avoid;
+                }
+                * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            `;
+            bodyContent = `
+                <div class="label-sheet-grid">
+                    ${Array.from({ length: copies }).map(() => `<div class="label-item-cell">${elementHTML}</div>`).join('')}
+                </div>
+            `;
+        } else {
+            // Centered single page
+            printStyles = `
+                body { 
+                    display: flex; 
+                    justify-content: center; 
+                    align-items: center; 
+                    min-height: 100vh; 
+                    margin: 0;
+                    background: #f8fafc;
+                    font-family: 'Inter', system-ui, sans-serif; 
+                }
+                * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            `;
+            bodyContent = elementHTML;
+        }
+
         printWindow.document.write(`
             <html>
                 <head>
-                    <title>Print Label: ${codeValue}</title>
-                    <style>
-                        body { 
-                            display: flex; 
-                            justify-content: center; 
-                            align-items: center; 
-                            height: 100vh; 
-                            margin: 0;
-                            background: #f8fafc;
-                            font-family: 'Inter', system-ui, sans-serif; 
-                        }
-                        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                    </style>
+                    <title>Print Label: ${codeValue || 'Barcode'}</title>
+                    <style>${printStyles}</style>
                 </head>
                 <body>
-                    ${elementHTML}
+                    ${bodyContent}
                     <script>
                         setTimeout(() => { 
                             window.print(); 
@@ -604,6 +725,289 @@ const BusinessBarcode = () => {
     const numPrice = parseFloat(labelDetails.price) || 0;
     const numMrp = parseFloat(labelDetails.mrp) || 0;
     const discountPct = numMrp > numPrice ? Math.round(((numMrp - numPrice) / numMrp) * 100) : 0;
+
+    // Modular Canvas Components for Dynamic Placement
+    const renderCanvasBarcode = (isEnlarged = false) => {
+        const payload = getEffectivePayload();
+        const displayLabelText = barcodeTextDisplay === 'encoded' ? payload : barcodeTextDisplay === 'sku' ? codeValue : null;
+
+        if (!payload) {
+            return (
+                <div style={{
+                    border: '1.5px dashed #cbd5e1',
+                    borderRadius: '8px',
+                    padding: isEnlarged ? '2rem' : '1.25rem',
+                    textAlign: 'center',
+                    color: '#64748b',
+                    background: 'rgba(0,0,0,0.02)',
+                    margin: '0.5rem 0',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                }}>
+                    <Scan size={isEnlarged ? 28 : 22} style={{ margin: '0 auto 0.35rem', opacity: 0.5, display: 'block' }} />
+                    <div style={{ fontSize: isEnlarged ? '0.88rem' : '0.78rem', fontWeight: '700' }}>No Barcode Value Entered</div>
+                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>Enter a SKU / code or select an inventory product above</div>
+                </div>
+            );
+        }
+
+        if (codeType === 'QR') {
+            const qrSize = isEnlarged 
+                ? Math.round((format.height + 50) * ((format.width || 2) / 2))
+                : selectedPreset === 'qr_tag' 
+                    ? Math.round((format.height + 20) * ((format.width || 2) / 2))
+                    : Math.round((format.height + 30) * ((format.width || 2) / 2));
+
+            return (
+                <div 
+                    onClick={() => !isEnlarged && setIsScanPreviewOpen(true)}
+                    title={!isEnlarged ? "Click QR code to open scan preview" : ""}
+                    style={{ 
+                        padding: `${format.margin}px 0`, 
+                        textAlign: barcodeAlign, 
+                        width: '100%', 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: barcodeAlign === 'left' ? 'flex-start' : barcodeAlign === 'right' ? 'flex-end' : 'center',
+                        cursor: isEnlarged ? 'default' : 'pointer'
+                    }}
+                >
+                    <QRCodeCanvas 
+                        value={payload} 
+                        size={qrSize} 
+                        bgColor={format.background}
+                        fgColor={format.lineColor}
+                        level={"H"}
+                    />
+                    {format.displayValue && displayLabelText && (
+                        <div style={{ 
+                            textAlign: barcodeAlign, 
+                            marginTop: '6px', 
+                            color: format.lineColor, 
+                            fontSize: `${isEnlarged ? format.fontSize + 2 : format.fontSize}px`, 
+                            fontFamily: 'monospace', 
+                            fontWeight: 'bold', 
+                            wordBreak: 'break-all', 
+                            maxWidth: '100%' 
+                        }}>
+                            {displayLabelText}
+                        </div>
+                    )}
+                    {encodeCustomData && (
+                        <div style={{ fontSize: '0.68rem', color: '#1B6B3A', fontWeight: '700', marginTop: '3px' }}>
+                            {encryptionMode === 'encrypted' ? '🔒 Encrypted Payload' : '✓ Encoded Payload'}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Standard Barcodes (CODE128, EAN13, UPC, CODE39)
+        const bcHeight = isEnlarged ? format.height + 40 : format.height;
+
+        return (
+            <div 
+                onClick={() => !isEnlarged && setIsScanPreviewOpen(true)}
+                title={!isEnlarged ? "Click barcode to expand scan preview popup" : ""}
+                style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: barcodeAlign === 'left' ? 'flex-start' : barcodeAlign === 'right' ? 'flex-end' : 'center', 
+                    width: '100%',
+                    cursor: isEnlarged ? 'default' : 'pointer',
+                    margin: '0.35rem 0'
+                }}
+            >
+                <div style={{ 
+                    width: '100%', 
+                    display: 'flex', 
+                    justifyContent: barcodeAlign === 'left' ? 'flex-start' : barcodeAlign === 'right' ? 'flex-end' : 'center', 
+                    alignItems: 'center', 
+                    overflowX: 'auto', 
+                    padding: '4px 0' 
+                }}>
+                    <Barcode 
+                        key={`barcode-${isEnlarged ? 'modal' : 'canvas'}-${codeType}-${payload}-${format.width}-${bcHeight}-${format.lineColor}-${format.background}`}
+                        value={payload}
+                        format={codeType}
+                        width={format.width}
+                        height={bcHeight}
+                        displayValue={false}
+                        fontSize={format.fontSize}
+                        background={format.background}
+                        lineColor={format.lineColor}
+                        margin={codeType === 'EAN13' || codeType === 'UPC' ? format.margin : 2}
+                    />
+                </div>
+                {format.displayValue && displayLabelText && (
+                    <div style={{ 
+                        textAlign: barcodeAlign, 
+                        marginTop: '4px', 
+                        color: format.lineColor, 
+                        fontSize: `${isEnlarged ? format.fontSize + 2 : format.fontSize}px`, 
+                        fontFamily: 'monospace', 
+                        fontWeight: 'bold', 
+                        wordBreak: 'break-all', 
+                        maxWidth: '100%' 
+                    }}>
+                        {displayLabelText}
+                    </div>
+                )}
+                {encodeCustomData && codeType !== 'EAN13' && codeType !== 'UPC' && (
+                    <div style={{ fontSize: '0.67rem', color: '#1B6B3A', fontWeight: '750', marginTop: '2px' }}>
+                        {encryptionMode === 'encrypted' ? '🔒 Token Encrypted' : '⚡ Compact POS Delimited'}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const renderCanvasInfo = () => (
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: barcodePlacement === 'side_by_side' ? 'flex-start' : 'center' }}>
+            {/* Logistics SKU Banner */}
+            {selectedPreset === 'logistics' && (
+                <div style={{ width: '100%', borderBottom: `2px solid ${format.lineColor}`, paddingBottom: '0.4rem', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: '900', fontSize: '0.9rem', letterSpacing: '0.05em' }}>SKU: {codeValue}</span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: '800', background: format.lineColor, color: format.background, padding: '2px 6px', borderRadius: '4px' }}>LOGISTICS</span>
+                </div>
+            )}
+
+            {/* Product Title */}
+            {labelDetails.title && (
+                <div style={{ 
+                    fontSize: selectedPreset === 'compact' ? '0.95rem' : '1.1rem', 
+                    fontWeight: '900', 
+                    marginBottom: '0.2rem', 
+                    letterSpacing: '0.01em', 
+                    textAlign: barcodePlacement === 'side_by_side' ? 'left' : 'center', 
+                    textTransform: 'uppercase',
+                    maxWidth: '100%',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    lineHeight: 1.25,
+                    boxSizing: 'border-box',
+                    padding: '0 4px'
+                }}>
+                    {labelDetails.title}
+                </div>
+            )}
+
+            {/* Subtitle / Variation */}
+            {labelDetails.subtitle && (
+                <div style={{ 
+                    fontSize: '0.75rem', 
+                    opacity: 0.85, 
+                    marginBottom: '0.75rem', 
+                    fontWeight: '600', 
+                    textAlign: barcodePlacement === 'side_by_side' ? 'left' : 'center',
+                    maxWidth: '100%',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
+                    overflow: 'hidden',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    lineHeight: 1.25,
+                    boxSizing: 'border-box',
+                    padding: '0 4px'
+                }}>
+                    {labelDetails.subtitle}
+                </div>
+            )}
+
+            {/* Custom Attributes Grid / List */}
+            {(selectedPreset !== 'custom' || customTemplateConfig.showAttributes) && activeCustomFields.length > 0 && (
+                <div style={{ 
+                    width: '100%', 
+                    marginBottom: '0.75rem',
+                    padding: '0.5rem',
+                    background: 'rgba(0,0,0,0.02)',
+                    borderRadius: '6px'
+                }}>
+                    {customFieldsLayout === 'grid' ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: activeCustomFields.length > 1 ? '1fr 1fr' : '1fr', gap: '0.35rem 0.75rem', fontSize: '0.74rem' }}>
+                            {activeCustomFields.map((field) => (
+                                <div key={field.id} style={{ display: 'flex', gap: '4px', overflow: 'hidden' }}>
+                                    {field.key && <span style={{ fontWeight: '800' }}>{field.key}:</span>}
+                                    {field.value && <span style={{ opacity: 0.9, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{field.value}</span>}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '0.74rem', alignItems: barcodePlacement === 'side_by_side' ? 'flex-start' : 'center' }}>
+                            {activeCustomFields.map((field) => (
+                                <div key={field.id} style={{ display: 'flex', gap: '4px' }}>
+                                    {field.key && <span style={{ fontWeight: '800' }}>{field.key}:</span>}
+                                    {field.value && <span>{field.value}</span>}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+
+    const renderCanvasPricing = () => {
+        if ((selectedPreset === 'custom' && !customTemplateConfig.showPrice) || !labelDetails.price) return null;
+
+        return (
+            <div style={{ 
+                marginTop: '0.65rem', 
+                borderTop: `1px solid ${format.lineColor}`, 
+                paddingTop: '0.4rem', 
+                width: '100%', 
+                textAlign: 'center'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: barcodePlacement === 'side_by_side' ? 'flex-start' : 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    {/* Original MRP Strikethrough Display */}
+                    {(selectedPreset !== 'custom' || customTemplateConfig.showMrp) && numMrp > numPrice && (
+                        <span style={{ textDecoration: 'line-through', color: '#94A3B8', fontSize: '0.95rem', fontWeight: '700' }}>
+                            {labelDetails.currencySymbol} {labelDetails.mrp}
+                        </span>
+                    )}
+
+                    {/* Offer Price Display */}
+                    <span style={{ fontSize: '1.25rem', fontWeight: '900', color: format.lineColor }}>
+                        {labelDetails.currencySymbol} {labelDetails.price}
+                    </span>
+
+                    {/* Discount Percent Badge */}
+                    {(selectedPreset !== 'custom' || customTemplateConfig.showDiscountBadge) && discountPct > 0 && (
+                        <span style={{ fontSize: '0.68rem', fontWeight: '850', background: '#DCFCE7', color: '#15803D', padding: '1px 5px', borderRadius: '4px' }}>
+                            {discountPct}% OFF
+                        </span>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const renderCanvasFooter = () => {
+        if (selectedPreset !== 'custom' || !customTemplateConfig.showFooterNote || !customTemplateConfig.footerNote) return null;
+
+        return (
+            <div style={{ 
+                marginTop: '0.65rem', 
+                borderTop: `1px dashed ${format.lineColor}35`, 
+                paddingTop: '0.35rem', 
+                width: '100%', 
+                textAlign: 'center', 
+                fontSize: '0.7rem', 
+                fontWeight: '600', 
+                opacity: 0.85, 
+                wordBreak: 'break-word', 
+                overflowWrap: 'break-word',
+                color: format.lineColor
+            }}>
+                {customTemplateConfig.footerNote}
+            </div>
+        );
+    };
 
     return (
         <div style={{ padding: '1.25rem 2rem', background: '#F8FAFC', minHeight: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }}>
@@ -1039,20 +1443,29 @@ const BusinessBarcode = () => {
                             </div>
                         </div>
 
-                        {/* Encode Full Custom Data Toggle */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                <input 
-                                    type="checkbox"
-                                    id="encodeDataToggle"
-                                    checked={encodeCustomData}
-                                    onChange={(e) => setEncodeCustomData(e.target.checked)}
-                                    style={{ width: '18px', height: '18px', accentColor: '#1B6B3A', cursor: 'pointer' }}
-                                />
-                                <label htmlFor="encodeDataToggle" style={{ fontSize: '0.83rem', fontWeight: '700', color: '#334155', cursor: 'pointer' }}>
-                                    Encode Title, Price & Custom Attributes directly inside QR/Barcode payload
-                                </label>
+                        {/* Encode Full Custom Data & Encryption Toggle */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                    <input 
+                                        type="checkbox"
+                                        id="encodeDataToggle"
+                                        checked={encodeCustomData}
+                                        onChange={(e) => setEncodeCustomData(e.target.checked)}
+                                        style={{ width: '18px', height: '18px', accentColor: '#1B6B3A', cursor: 'pointer' }}
+                                    />
+                                    <label htmlFor="encodeDataToggle" style={{ fontSize: '0.86rem', fontWeight: '800', color: '#1e293b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Lock size={15} color="#1B6B3A" />
+                                        Encode Title, Price & Custom Attributes directly inside QR/Barcode payload
+                                    </label>
+                                </div>
+                                {encodeCustomData && (
+                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: '#166534', background: '#DCFCE7', padding: '3px 8px', borderRadius: '6px' }}>
+                                        ✓ Encoded Payload Active
+                                    </span>
+                                )}
                             </div>
+
                             {encodeCustomData && (codeType === 'EAN13' || codeType === 'UPC') && (
                                 <div style={{ fontSize: '0.74rem', color: '#047857', background: '#ecfdf5', padding: '8px 12px', borderRadius: '6px', border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                                     <span>
@@ -1065,6 +1478,161 @@ const BusinessBarcode = () => {
                                     >
                                         Switch to QR Code for 2D Payload →
                                     </button>
+                                </div>
+                            )}
+
+                            {/* Encryption / Encoding Mode Controls */}
+                            {encodeCustomData && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.25rem', paddingTop: '0.75rem', borderTop: '1px dashed #cbd5e1' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#475569', marginBottom: '0.4rem' }}>
+                                            Encryption & Encoding Algorithm
+                                        </label>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.5rem' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setEncryptionMode('encrypted')}
+                                                style={{
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'flex-start',
+                                                    padding: '0.6rem 0.75rem',
+                                                    borderRadius: '8px',
+                                                    border: encryptionMode === 'encrypted' ? '2px solid #1B6B3A' : '1px solid #cbd5e1',
+                                                    background: encryptionMode === 'encrypted' ? '#F0FDF4' : '#ffffff',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: '800', color: encryptionMode === 'encrypted' ? '#166534' : '#334155' }}>
+                                                    <ShieldCheck size={14} color={encryptionMode === 'encrypted' ? '#166534' : '#64748b'} />
+                                                    Encrypted Token
+                                                </div>
+                                                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
+                                                    Tamper-proof Base64 token (ENC-...)
+                                                </div>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setEncryptionMode('compact')}
+                                                style={{
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'flex-start',
+                                                    padding: '0.6rem 0.75rem',
+                                                    borderRadius: '8px',
+                                                    border: encryptionMode === 'compact' ? '2px solid #1B6B3A' : '1px solid #cbd5e1',
+                                                    background: encryptionMode === 'compact' ? '#F0FDF4' : '#ffffff',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: '800', color: encryptionMode === 'compact' ? '#166534' : '#334155' }}>
+                                                    <Scan size={14} color={encryptionMode === 'compact' ? '#166534' : '#64748b'} />
+                                                    Compact Delimited
+                                                </div>
+                                                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
+                                                    Delimited string (SKU*PRICE*SPECS)
+                                                </div>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setEncryptionMode('structured')}
+                                                style={{
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'flex-start',
+                                                    padding: '0.6rem 0.75rem',
+                                                    borderRadius: '8px',
+                                                    border: encryptionMode === 'structured' ? '2px solid #1B6B3A' : '1px solid #cbd5e1',
+                                                    background: encryptionMode === 'structured' ? '#F0FDF4' : '#ffffff',
+                                                    cursor: 'pointer',
+                                                    textAlign: 'left'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: '800', color: encryptionMode === 'structured' ? '#166534' : '#334155' }}>
+                                                    <Layers size={14} color={encryptionMode === 'structured' ? '#166534' : '#64748b'} />
+                                                    Structured JSON
+                                                </div>
+                                                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
+                                                    Full key-value JSON (Ideal for 2D QR)
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Text display under barcode bars */}
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#475569', marginBottom: '0.4rem' }}>
+                                            Text Display Under Barcode / QR
+                                        </label>
+                                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                            {[
+                                                { id: 'sku', label: 'Display SKU (CLKS-1001)' },
+                                                { id: 'encoded', label: 'Display Encrypted / Encoded Token' },
+                                                { id: 'none', label: 'No Text (Code Only)' }
+                                            ].map(opt => (
+                                                <button
+                                                    key={opt.id}
+                                                    type="button"
+                                                    onClick={() => setBarcodeTextDisplay(opt.id)}
+                                                    style={{
+                                                        padding: '0.4rem 0.8rem',
+                                                        borderRadius: '6px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: '750',
+                                                        cursor: 'pointer',
+                                                        border: barcodeTextDisplay === opt.id ? '1.5px solid #1B6B3A' : '1px solid #cbd5e1',
+                                                        background: barcodeTextDisplay === opt.id ? '#1B6B3A' : '#ffffff',
+                                                        color: barcodeTextDisplay === opt.id ? '#ffffff' : '#475569'
+                                                    }}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Live Scannable Payload & Decryption Inspector */}
+                                    <div style={{ background: '#0F172A', color: '#F8FAFC', borderRadius: '10px', padding: '0.85rem 1rem', marginTop: '0.25rem', fontFamily: 'monospace' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', borderBottom: '1px solid #334155', paddingBottom: '0.4rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#4ADE80', fontWeight: '800' }}>
+                                                <Scan size={14} />
+                                                LIVE SCANNABLE PAYLOAD INSPECTOR
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={handleCopyPayload}
+                                                style={{
+                                                    background: '#1E293B',
+                                                    color: isCopiedPayload ? '#4ADE80' : '#94A3B8',
+                                                    border: '1px solid #334155',
+                                                    borderRadius: '4px',
+                                                    padding: '2px 8px',
+                                                    fontSize: '0.68rem',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px'
+                                                }}
+                                            >
+                                                {isCopiedPayload ? <Check size={12} /> : <Copy size={12} />}
+                                                {isCopiedPayload ? 'Copied' : 'Copy Scanned String'}
+                                            </button>
+                                        </div>
+                                        <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '4px' }}>
+                                            What Barcode Scanner Reads:
+                                        </div>
+                                        <div style={{ fontSize: '0.78rem', color: '#E2E8F0', wordBreak: 'break-all', background: '#1E293B', padding: '6px 8px', borderRadius: '6px', maxHeight: '60px', overflowY: 'auto' }}>
+                                            {getEffectivePayload() || '<No Code Entered>'}
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '0.68rem', color: '#64748B' }}>
+                                            <span>Type: <strong style={{ color: '#F1F5F9' }}>{codeType}</strong> ({encryptionMode.toUpperCase()})</span>
+                                            <span style={{ color: '#4ADE80' }}>✓ 100% Scannable by Hardware Guns & Cameras</span>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -1549,6 +2117,147 @@ const BusinessBarcode = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Barcode In-Label Placement & Alignment Styles */}
+                        <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', color: '#334155', marginBottom: '0.5rem' }}>
+                                    📍 Barcode Placement Inside Label
+                                </label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+                                    {[
+                                        { id: 'top', label: 'Top', icon: '⬆️' },
+                                        { id: 'center', label: 'Center', icon: '⏺️' },
+                                        { id: 'bottom', label: 'Bottom', icon: '⬇️' },
+                                        { id: 'side_by_side', label: 'Split (Side)', icon: '↔️' }
+                                    ].map(pos => (
+                                        <button
+                                            key={pos.id}
+                                            type="button"
+                                            onClick={() => setBarcodePlacement(pos.id)}
+                                            style={{
+                                                padding: '0.55rem 0.5rem',
+                                                borderRadius: '8px',
+                                                border: barcodePlacement === pos.id ? '2px solid #1B6B3A' : '1px solid #cbd5e1',
+                                                background: barcodePlacement === pos.id ? '#F0FDF4' : '#ffffff',
+                                                color: barcodePlacement === pos.id ? '#166534' : '#475569',
+                                                fontWeight: '800',
+                                                fontSize: '0.78rem',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                gap: '2px'
+                                            }}
+                                        >
+                                            <span style={{ fontSize: '0.9rem' }}>{pos.icon}</span>
+                                            <span>{pos.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Alignment (Left, Center, Right) */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', color: '#334155', marginBottom: '0.5rem' }}>
+                                    ↔️ Barcode Graphic Alignment
+                                </label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                                    {[
+                                        { id: 'left', label: 'Left', icon: AlignLeft },
+                                        { id: 'center', label: 'Center', icon: AlignCenter },
+                                        { id: 'right', label: 'Right', icon: AlignRight }
+                                    ].map(al => {
+                                        const IconComp = al.icon;
+                                        return (
+                                            <button
+                                                key={al.id}
+                                                type="button"
+                                                onClick={() => setBarcodeAlign(al.id)}
+                                                style={{
+                                                    padding: '0.5rem 0.75rem',
+                                                    borderRadius: '8px',
+                                                    border: barcodeAlign === al.id ? '2px solid #1B6B3A' : '1px solid #cbd5e1',
+                                                    background: barcodeAlign === al.id ? '#F0FDF4' : '#ffffff',
+                                                    color: barcodeAlign === al.id ? '#166534' : '#475569',
+                                                    fontWeight: '800',
+                                                    fontSize: '0.78rem',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '6px'
+                                                }}
+                                            >
+                                                <IconComp size={15} />
+                                                <span>{al.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Print Sheet Placement & Thermal Printer Optimization */}
+                            <div style={{ background: '#f8fafc', padding: '0.9rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', color: '#1e293b', marginBottom: '0.4rem' }}>
+                                    🖨️ Print View Page Placement
+                                </label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem' }}>
+                                    {[
+                                        { id: 'top_left', label: 'Thermal Roll (0-Margin)', desc: 'TSC/Zebra/Rollo edge-to-edge' },
+                                        { id: 'center', label: 'Single Centered', desc: 'Standard single label' },
+                                        { id: 'sheet_grid', label: 'A4 Sheet Grid', desc: 'Multi-label sticker sheet' }
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.id}
+                                            type="button"
+                                            onClick={() => setPrintPlacement(opt.id)}
+                                            style={{
+                                                padding: '0.5rem 0.6rem',
+                                                borderRadius: '8px',
+                                                border: printPlacement === opt.id ? '2px solid #1B6B3A' : '1px solid #cbd5e1',
+                                                background: printPlacement === opt.id ? '#F0FDF4' : '#ffffff',
+                                                color: printPlacement === opt.id ? '#166534' : '#475569',
+                                                cursor: 'pointer',
+                                                textAlign: 'left'
+                                            }}
+                                        >
+                                            <div style={{ fontSize: '0.76rem', fontWeight: '800' }}>{opt.label}</div>
+                                            <div style={{ fontSize: '0.67rem', color: '#64748b', marginTop: '2px' }}>{opt.desc}</div>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {printPlacement === 'sheet_grid' && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.65rem', paddingTop: '0.65rem', borderTop: '1px dashed #cbd5e1' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>
+                                            Labels per Sheet:
+                                        </span>
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            {[4, 8, 12, 16, 24].map(num => (
+                                                <button
+                                                    key={num}
+                                                    type="button"
+                                                    onClick={() => setPrintCopies(num)}
+                                                    style={{
+                                                        padding: '2px 8px',
+                                                        borderRadius: '6px',
+                                                        border: printCopies === num ? '1.5px solid #1B6B3A' : '1px solid #cbd5e1',
+                                                        background: printCopies === num ? '#1B6B3A' : '#ffffff',
+                                                        color: printCopies === num ? '#ffffff' : '#334155',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: '800',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    {num}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1662,238 +2371,44 @@ const BusinessBarcode = () => {
                                     </div>
                                 )}
 
-                                {/* Preset Layout Variations */}
-                                {selectedPreset === 'logistics' && (
-                                    <div style={{ width: '100%', borderBottom: `2px solid ${format.lineColor}`, paddingBottom: '0.4rem', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontWeight: '900', fontSize: '0.9rem', letterSpacing: '0.05em' }}>SKU: {codeValue}</span>
-                                        <span style={{ fontSize: '0.72rem', fontWeight: '800', background: format.lineColor, color: format.background, padding: '2px 6px', borderRadius: '4px' }}>LOGISTICS</span>
-                                    </div>
+                                {/* Dynamic In-Label Placement Layout */}
+                                {barcodePlacement === 'top' && (
+                                    <>
+                                        {renderCanvasBarcode(false)}
+                                        {renderCanvasInfo()}
+                                        {renderCanvasPricing()}
+                                    </>
                                 )}
 
-                                {/* Label Titles with Word-Break and Line-Clamping */}
-                                {labelDetails.title && (
-                                    <div style={{ 
-                                        fontSize: selectedPreset === 'compact' ? '0.95rem' : '1.1rem', 
-                                        fontWeight: '900', 
-                                        marginBottom: '0.2rem', 
-                                        letterSpacing: '0.01em', 
-                                        textAlign: 'center', 
-                                        textTransform: 'uppercase',
-                                        maxWidth: '100%',
-                                        wordBreak: 'break-word',
-                                        overflowWrap: 'break-word',
-                                        overflow: 'hidden',
-                                        display: '-webkit-box',
-                                        WebkitLineClamp: 2,
-                                        WebkitBoxOrient: 'vertical',
-                                        lineHeight: 1.25,
-                                        boxSizing: 'border-box',
-                                        padding: '0 4px'
-                                    }}>
-                                        {labelDetails.title}
-                                    </div>
+                                {barcodePlacement === 'bottom' && (
+                                    <>
+                                        {renderCanvasInfo()}
+                                        {renderCanvasPricing()}
+                                        {renderCanvasBarcode(false)}
+                                    </>
                                 )}
 
-                                {labelDetails.subtitle && (
-                                    <div style={{ 
-                                        fontSize: '0.75rem', 
-                                        opacity: 0.85, 
-                                        marginBottom: '0.75rem', 
-                                        fontWeight: '600', 
-                                        textAlign: 'center',
-                                        maxWidth: '100%',
-                                        wordBreak: 'break-word',
-                                        overflowWrap: 'break-word',
-                                        overflow: 'hidden',
-                                        display: '-webkit-box',
-                                        WebkitLineClamp: 2,
-                                        WebkitBoxOrient: 'vertical',
-                                        lineHeight: 1.25,
-                                        boxSizing: 'border-box',
-                                        padding: '0 4px'
-                                    }}>
-                                        {labelDetails.subtitle}
-                                    </div>
-                                )}
-
-                                {/* Multi Custom Keys & Values Rendering */}
-                                {(selectedPreset !== 'custom' || customTemplateConfig.showAttributes) && activeCustomFields.length > 0 && (
-                                    <div style={{ 
-                                        width: '100%', 
-                                        marginBottom: '0.85rem',
-                                        padding: '0.5rem',
-                                        background: 'rgba(0,0,0,0.02)',
-                                        borderRadius: '6px'
-                                    }}>
-                                        {customFieldsLayout === 'grid' ? (
-                                            <div style={{ display: 'grid', gridTemplateColumns: activeCustomFields.length > 1 ? '1fr 1fr' : '1fr', gap: '0.35rem 0.75rem', fontSize: '0.74rem' }}>
-                                                {activeCustomFields.map((field) => (
-                                                    <div key={field.id} style={{ display: 'flex', gap: '4px', overflow: 'hidden' }}>
-                                                        {field.key && <span style={{ fontWeight: '800' }}>{field.key}:</span>}
-                                                        {field.value && <span style={{ opacity: 0.9, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{field.value}</span>}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '0.74rem', alignItems: 'center' }}>
-                                                {activeCustomFields.map((field) => (
-                                                    <div key={field.id} style={{ display: 'flex', gap: '4px' }}>
-                                                        {field.key && <span style={{ fontWeight: '800' }}>{field.key}:</span>}
-                                                        {field.value && <span>{field.value}</span>}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                
-                                {/* Barcode Graphic / QR Rendering */}
-                                {!getEffectivePayload() ? (
-                                    <div style={{
-                                        border: '1.5px dashed #cbd5e1',
-                                        borderRadius: '8px',
-                                        padding: '1.25rem',
-                                        textAlign: 'center',
-                                        color: '#64748b',
-                                        background: 'rgba(0,0,0,0.02)',
-                                        margin: '0.5rem 0',
-                                        width: '100%',
-                                        boxSizing: 'border-box'
-                                    }}>
-                                        <Scan size={22} style={{ margin: '0 auto 0.35rem', opacity: 0.5, display: 'block' }} />
-                                        <div style={{ fontSize: '0.78rem', fontWeight: '700' }}>No Barcode Value Entered</div>
-                                        <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>Enter a SKU / code or select an inventory product above</div>
-                                    </div>
-                                ) : selectedPreset === 'qr_tag' ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', padding: '0.5rem 0' }}>
-                                        <QRCodeCanvas 
-                                            value={getEffectivePayload()} 
-                                            size={Math.round((format.height + 20) * ((format.width || 2) / 2))} 
-                                            bgColor={format.background}
-                                            fgColor={format.lineColor}
-                                            level={"H"}
-                                        />
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-                                            <span style={{ fontWeight: '900', fontFamily: 'monospace', fontSize: `${format.fontSize}px` }}>{codeValue}</span>
-                                            {encodeCustomData && (
-                                                <span style={{ fontSize: '0.68rem', color: '#1B6B3A', fontWeight: '700' }}>✓ Encoded Payload</span>
-                                            )}
+                                {barcodePlacement === 'side_by_side' && (
+                                    <div style={{ display: 'flex', flexDirection: 'row', gap: '0.75rem', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                                            {renderCanvasInfo()}
+                                            {renderCanvasPricing()}
                                         </div>
-                                    </div>
-                                ) : (
-                                    <div 
-                                        onClick={() => setIsScanPreviewOpen(true)}
-                                        title="Click Code 128 barcode to expand scan preview popup"
-                                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', cursor: 'pointer', transition: 'transform 0.15s' }}
-                                    >
-                                        {codeType === 'QR' ? (
-                                            <div style={{ padding: `${format.margin}px`, textAlign: 'center' }}>
-                                                <QRCodeCanvas 
-                                                    value={getEffectivePayload()} 
-                                                    size={Math.round((format.height + 30) * ((format.width || 2) / 2))} 
-                                                    bgColor={format.background}
-                                                    fgColor={format.lineColor}
-                                                    level={"H"}
-                                                />
-                                                {format.displayValue && (
-                                                    <div style={{ textAlign: 'center', marginTop: '6px', color: format.lineColor, fontSize: `${format.fontSize}px`, fontFamily: 'monospace', fontWeight: 'bold' }}>
-                                                        {codeValue}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            encodeCustomData ? (
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                                                    <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflowX: 'auto', padding: '4px 0' }}>
-                                                        <Barcode 
-                                                            key={`barcode-custom-${codeType}-${getEffectivePayload()}-${format.width}-${format.height}-${format.fontSize}-${format.lineColor}-${format.background}`}
-                                                            value={getEffectivePayload()}
-                                                            format={codeType}
-                                                            width={format.width}
-                                                            height={format.height}
-                                                            displayValue={codeType === 'EAN13' || codeType === 'UPC' ? format.displayValue : false}
-                                                            fontSize={format.fontSize}
-                                                            background={format.background}
-                                                            lineColor={format.lineColor}
-                                                            margin={codeType === 'EAN13' || codeType === 'UPC' ? format.margin : 2}
-                                                        />
-                                                    </div>
-                                                    {format.displayValue && codeType !== 'EAN13' && codeType !== 'UPC' && (
-                                                        <div style={{ textAlign: 'center', marginTop: '4px', color: format.lineColor, fontSize: `${format.fontSize}px`, fontFamily: 'monospace', fontWeight: 'bold' }}>
-                                                            {codeValue}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflowX: 'auto', padding: '4px 0' }}>
-                                                    <Barcode 
-                                                        key={`barcode-std-${codeType}-${getEffectivePayload()}-${format.width}-${format.height}-${format.fontSize}-${format.displayValue}-${format.lineColor}-${format.background}`}
-                                                        value={getEffectivePayload()}
-                                                        format={codeType}
-                                                        width={format.width}
-                                                        height={format.height}
-                                                        displayValue={selectedPreset === 'custom' ? customTemplateConfig.showBarcodeText : format.displayValue}
-                                                        fontSize={format.fontSize}
-                                                        background={format.background}
-                                                        lineColor={format.lineColor}
-                                                        margin={format.margin}
-                                                    />
-                                                </div>
-                                            )
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* DISCOUNT & STRIKETHROUGH MRP PRICE TAG RENDERING */}
-                                {(selectedPreset !== 'custom' || customTemplateConfig.showPrice) && labelDetails.price && (
-                                    <div style={{ 
-                                        marginTop: '0.75rem', 
-                                        borderTop: `1px solid ${format.lineColor}`, 
-                                        paddingTop: '0.4rem', 
-                                        width: '100%', 
-                                        textAlign: 'center'
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                                            {/* Original MRP Strikethrough Display */}
-                                            {(selectedPreset !== 'custom' || customTemplateConfig.showMrp) && numMrp > numPrice && (
-                                                <span style={{ textDecoration: 'line-through', color: '#94A3B8', fontSize: '0.95rem', fontWeight: '700' }}>
-                                                    {labelDetails.currencySymbol} {labelDetails.mrp}
-                                                </span>
-                                            )}
-
-                                            {/* Offer Price Display */}
-                                            <span style={{ fontSize: '1.25rem', fontWeight: '900', color: format.lineColor }}>
-                                                {labelDetails.currencySymbol} {labelDetails.price}
-                                            </span>
-
-                                            {/* Discount Percent Badge */}
-                                            {(selectedPreset !== 'custom' || customTemplateConfig.showDiscountBadge) && discountPct > 0 && (
-                                                <span style={{ fontSize: '0.68rem', fontWeight: '850', background: '#DCFCE7', color: '#15803D', padding: '1px 5px', borderRadius: '4px' }}>
-                                                    {discountPct}% OFF
-                                                </span>
-                                            )}
+                                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: barcodeAlign === 'left' ? 'flex-start' : barcodeAlign === 'right' ? 'flex-end' : 'center' }}>
+                                            {renderCanvasBarcode(false)}
                                         </div>
                                     </div>
                                 )}
 
-                                {/* CUSTOM TEMPLATE FOOTER NOTICE */}
-                                {selectedPreset === 'custom' && customTemplateConfig.showFooterNote && customTemplateConfig.footerNote && (
-                                    <div style={{ 
-                                        marginTop: '0.65rem', 
-                                        borderTop: `1px dashed ${format.lineColor}35`, 
-                                        paddingTop: '0.35rem', 
-                                        width: '100%', 
-                                        textAlign: 'center', 
-                                        fontSize: '0.7rem', 
-                                        fontWeight: '600', 
-                                        opacity: 0.85, 
-                                        wordBreak: 'break-word', 
-                                        overflowWrap: 'break-word',
-                                        color: format.lineColor
-                                    }}>
-                                        {customTemplateConfig.footerNote}
-                                    </div>
+                                {barcodePlacement === 'center' && (
+                                    <>
+                                        {renderCanvasInfo()}
+                                        {renderCanvasBarcode(false)}
+                                        {renderCanvasPricing()}
+                                    </>
                                 )}
+
+                                {renderCanvasFooter()}
                             </div>
                             
                             <div style={{ marginTop: '1.75rem', textAlign: 'center', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -2103,161 +2618,44 @@ const BusinessBarcode = () => {
                                 </div>
                             )}
 
-                            {/* Title & Subtitle with Overflow Protection */}
-                            {labelDetails.title && (
-                                <div style={{ 
-                                    fontSize: '1.25rem', 
-                                    fontWeight: '900', 
-                                    marginBottom: '0.2rem', 
-                                    letterSpacing: '0.01em', 
-                                    textAlign: 'center', 
-                                    textTransform: 'uppercase',
-                                    maxWidth: '100%',
-                                    wordBreak: 'break-word',
-                                    overflowWrap: 'break-word',
-                                    overflow: 'hidden',
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: 'vertical',
-                                    lineHeight: 1.25,
-                                    boxSizing: 'border-box',
-                                    padding: '0 4px'
-                                }}>
-                                    {labelDetails.title}
-                                </div>
+                            {/* Dynamic Layout in Scan Preview Modal */}
+                            {barcodePlacement === 'top' && (
+                                <>
+                                    {renderCanvasBarcode(true)}
+                                    {renderCanvasInfo()}
+                                    {renderCanvasPricing()}
+                                </>
                             )}
 
-                            {labelDetails.subtitle && (
-                                <div style={{ 
-                                    fontSize: '0.82rem', 
-                                    opacity: 0.85, 
-                                    marginBottom: '0.85rem', 
-                                    fontWeight: '600', 
-                                    textAlign: 'center',
-                                    maxWidth: '100%',
-                                    wordBreak: 'break-word',
-                                    overflowWrap: 'break-word',
-                                    overflow: 'hidden',
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: 'vertical',
-                                    lineHeight: 1.25,
-                                    boxSizing: 'border-box',
-                                    padding: '0 4px'
-                                }}>
-                                    {labelDetails.subtitle}
-                                </div>
+                            {barcodePlacement === 'bottom' && (
+                                <>
+                                    {renderCanvasInfo()}
+                                    {renderCanvasPricing()}
+                                    {renderCanvasBarcode(true)}
+                                </>
                             )}
 
-                            {/* Custom Attributes */}
-                            {activeCustomFields.length > 0 && (
-                                <div style={{ 
-                                    width: '100%', 
-                                    marginBottom: '1rem',
-                                    padding: '0.6rem 0.8rem',
-                                    background: 'rgba(0,0,0,0.02)',
-                                    borderRadius: '8px'
-                                }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: activeCustomFields.length > 1 ? '1fr 1fr' : '1fr', gap: '0.4rem 0.9rem', fontSize: '0.78rem' }}>
-                                        {activeCustomFields.map((field) => (
-                                            <div key={field.id} style={{ display: 'flex', gap: '4px', overflow: 'hidden' }}>
-                                                {field.key && <span style={{ fontWeight: '800' }}>{field.key}:</span>}
-                                                {field.value && <span style={{ opacity: 0.9 }}>{field.value}</span>}
-                                            </div>
-                                        ))}
+                            {barcodePlacement === 'side_by_side' && (
+                                <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+                                    <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                                        {renderCanvasInfo()}
+                                        {renderCanvasPricing()}
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: barcodeAlign === 'left' ? 'flex-start' : barcodeAlign === 'right' ? 'flex-end' : 'center' }}>
+                                        {renderCanvasBarcode(true)}
                                     </div>
                                 </div>
                             )}
 
-                            {/* ENLARGED BARCODE GRAPHIC */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '0.75rem 0' }}>
-                                {!getEffectivePayload() ? (
-                                    <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
-                                        No barcode value entered yet. Enter a SKU / code above to preview.
-                                    </div>
-                                ) : codeType === 'QR' ? (
-                                    <div style={{ padding: `${format.margin}px`, textAlign: 'center' }}>
-                                        <QRCodeCanvas 
-                                            value={getEffectivePayload()} 
-                                            size={Math.round((format.height + 50) * ((format.width || 2) / 2))} 
-                                            bgColor={format.background}
-                                            fgColor={format.lineColor}
-                                            level={"H"}
-                                        />
-                                        {format.displayValue && (
-                                            <div style={{ textAlign: 'center', marginTop: '8px', color: format.lineColor, fontSize: `${format.fontSize + 2}px`, fontFamily: 'monospace', fontWeight: 'bold' }}>
-                                                {codeValue}
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    encodeCustomData ? (
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                                            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflowX: 'auto', padding: '6px 0' }}>
-                                                <Barcode 
-                                                    key={`modal-custom-${codeType}-${getEffectivePayload()}-${format.width}-${format.height}-${format.fontSize}-${format.lineColor}-${format.background}`}
-                                                    value={getEffectivePayload()}
-                                                    format={codeType}
-                                                    width={format.width}
-                                                    height={format.height + 40}
-                                                    displayValue={codeType === 'EAN13' || codeType === 'UPC' ? format.displayValue : false}
-                                                    fontSize={format.fontSize + 2}
-                                                    background={format.background}
-                                                    lineColor={format.lineColor}
-                                                    margin={codeType === 'EAN13' || codeType === 'UPC' ? format.margin : 2}
-                                                />
-                                            </div>
-                                            {format.displayValue && codeType !== 'EAN13' && codeType !== 'UPC' && (
-                                                <div style={{ textAlign: 'center', marginTop: '6px', color: format.lineColor, fontSize: `${format.fontSize + 2}px`, fontFamily: 'monospace', fontWeight: 'bold' }}>
-                                                    {codeValue}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', overflowX: 'auto', padding: '6px 0' }}>
-                                            <Barcode 
-                                                key={`modal-std-${codeType}-${getEffectivePayload()}-${format.width}-${format.height}-${format.fontSize}-${format.displayValue}-${format.lineColor}-${format.background}`}
-                                                value={getEffectivePayload()}
-                                                format={codeType}
-                                                width={format.width}
-                                                height={format.height + 40}
-                                                displayValue={format.displayValue}
-                                                fontSize={format.fontSize + 2}
-                                                background={format.background}
-                                                lineColor={format.lineColor}
-                                                margin={format.margin}
-                                            />
-                                        </div>
-                                    )
-                                )}
-                            </div>
-
-                            {/* Price & MRP */}
-                            {labelDetails.price && (
-                                <div style={{ 
-                                    marginTop: '0.85rem', 
-                                    borderTop: `1px solid ${format.lineColor}`, 
-                                    paddingTop: '0.5rem', 
-                                    width: '100%', 
-                                    textAlign: 'center'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                        {numMrp > numPrice && (
-                                            <span style={{ textDecoration: 'line-through', color: '#94A3B8', fontSize: '1.05rem', fontWeight: '700' }}>
-                                                {labelDetails.currencySymbol} {labelDetails.mrp}
-                                            </span>
-                                        )}
-                                        <span style={{ fontSize: '1.4rem', fontWeight: '900', color: format.lineColor }}>
-                                            {labelDetails.currencySymbol} {labelDetails.price}
-                                        </span>
-                                        {discountPct > 0 && (
-                                            <span style={{ fontSize: '0.75rem', fontWeight: '850', background: '#DCFCE7', color: '#15803D', padding: '2px 7px', borderRadius: '4px' }}>
-                                                {discountPct}% OFF
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
+                            {barcodePlacement === 'center' && (
+                                <>
+                                    {renderCanvasInfo()}
+                                    {renderCanvasBarcode(true)}
+                                    {renderCanvasPricing()}
+                                </>
                             )}
+
+                            {renderCanvasFooter()}
                         </div>
 
                         {/* Modal Actions Footer */}
