@@ -232,10 +232,42 @@ const BusinessMarketing = () => {
         onSuccess: () => queryClient.invalidateQueries(['marketing-campaigns'])
     });
 
+    // 3. Custom Templates Queries & Mutations
+    const { data: dbTemplates = [] } = useQuery({
+        queryKey: ['marketing-templates'],
+        queryFn: marketingService.getTemplates,
+        refetchInterval: 10000
+    });
+
+    const createTemplateMutation = useMutation({
+        mutationFn: marketingService.createTemplate,
+        onSuccess: () => queryClient.invalidateQueries(['marketing-templates'])
+    });
+
+    const updateTemplateMutation = useMutation({
+        mutationFn: ({ id, data }) => marketingService.updateTemplate(id, data),
+        onSuccess: () => queryClient.invalidateQueries(['marketing-templates'])
+    });
+
+    const deleteTemplateMutation = useMutation({
+        mutationFn: marketingService.deleteTemplate,
+        onSuccess: () => queryClient.invalidateQueries(['marketing-templates'])
+    });
+
     const [activeTab, setActiveTab] = useState('campaigns'); // 'campaigns' | 'templates' | 'automation' | 'segments' | 'reports'
     const [selectedCampaign, setSelectedCampaign] = useState(null);
     const [isComposeOpen, setIsComposeOpen] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+    const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+    const [editingTemplate, setEditingTemplate] = useState(null);
+    const [templateFormData, setTemplateFormData] = useState({
+        title: '',
+        subject: '',
+        body: '',
+        type: 'Email',
+        label: 'Promotional'
+    });
+    const [templateFilter, setTemplateFilter] = useState('All'); // 'All' | 'Custom' | 'Premade'
     const [searchQuery, setSearchQuery] = useState('');
     const [typeFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
@@ -443,6 +475,75 @@ const BusinessMarketing = () => {
                 alert('Failed to delete campaign');
             }
         }
+    };
+
+    // ── Template List & Management Helpers ──
+    const allTemplates = [
+        ...(Array.isArray(dbTemplates) ? dbTemplates.map(t => ({ ...t, is_custom: true })) : []),
+        ...PREMADE_TEMPLATES.map(t => ({ ...t, is_custom: false }))
+    ];
+
+    const filteredTemplates = allTemplates.filter(t => {
+        if (templateFilter === 'Custom') return t.is_custom;
+        if (templateFilter === 'Premade') return !t.is_custom;
+        return true;
+    });
+
+    const handleSaveTemplate = async (e) => {
+        e.preventDefault();
+        const trimmedTitle = (templateFormData.title || '').trim();
+        const trimmedBody = (templateFormData.body || '').trim();
+        if (!trimmedTitle || !trimmedBody) {
+            alert('Please provide both a template title and message body.');
+            return;
+        }
+
+        try {
+            if (editingTemplate) {
+                await updateTemplateMutation.mutateAsync({ 
+                    id: editingTemplate.id, 
+                    data: { ...templateFormData, title: trimmedTitle, body: trimmedBody } 
+                });
+                alert(`Template "${trimmedTitle}" updated successfully!`);
+            } else {
+                await createTemplateMutation.mutateAsync({ 
+                    ...templateFormData, 
+                    title: trimmedTitle, 
+                    body: trimmedBody 
+                });
+                alert(`Custom template "${trimmedTitle}" created successfully!`);
+            }
+            setIsTemplateModalOpen(false);
+            setEditingTemplate(null);
+            setTemplateFormData({ title: '', subject: '', body: '', type: 'Email', label: 'Promotional' });
+        } catch (err) {
+            console.error('[Save Template Error]', err);
+            alert(err.response?.data?.message || err.message || 'Failed to save template. Please try again.');
+        }
+    };
+
+    const handleDeleteTemplate = async (id, title) => {
+        if (await customConfirm(`Are you sure you want to delete custom template "${title}"?`)) {
+            try {
+                await deleteTemplateMutation.mutateAsync(id);
+            } catch (err) {
+                alert('Failed to delete template');
+            }
+        }
+    };
+
+    const handleUseTemplate = (temp) => {
+        setFormData(prev => ({
+            ...prev,
+            campaign_name: `${temp.title} Campaign`.slice(0, 50),
+            campaign_type: temp.type || 'Email',
+            message_title: temp.subject || temp.title,
+            message_content: temp.body,
+            whatsapp_template: temp.type === 'WhatsApp' ? 'custom_whatsapp_v1' : '',
+            sms_template: temp.type === 'SMS' ? 'custom_sms_v1' : '',
+            email_template: temp.type === 'Email' ? 'custom_html_v1' : ''
+        }));
+        setIsComposeOpen(true);
     };
 
     // Derived Statistics
@@ -733,53 +834,160 @@ const BusinessMarketing = () => {
             {activeTab === 'templates' && (
                 <div>
                     <div style={{ background: 'white', padding: '2rem', borderRadius: '24px', border: '1px solid #E2E8F0', marginBottom: '2rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
                             <div>
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.25rem' }}>Verified Message Templates</h3>
-                                <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Choose from highly optimized templates ready for instant dispatch.</p>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.25rem' }}>Message Templates</h3>
+                                <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Choose from verified templates or create and reuse your own custom campaign templates.</p>
                             </div>
-                            <span style={{ fontSize: '0.8rem', fontWeight: '750', color: '#1B6B3A', background: '#E8F5EE', padding: '0.3rem 0.6rem', borderRadius: '8px' }}>
-                                DLT approved for Indian compliance
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                {/* Filter pills */}
+                                <div style={{ display: 'flex', background: '#F1F5F9', padding: '0.25rem', borderRadius: '10px' }}>
+                                    {[
+                                        { id: 'All', label: `All (${allTemplates.length})` },
+                                        { id: 'Custom', label: `⭐ Custom (${dbTemplates.length})` },
+                                        { id: 'Premade', label: `Verified (${PREMADE_TEMPLATES.length})` }
+                                    ].map(f => (
+                                        <button
+                                            key={f.id}
+                                            onClick={() => setTemplateFilter(f.id)}
+                                            style={{
+                                                border: 'none',
+                                                background: templateFilter === f.id ? '#FFFFFF' : 'transparent',
+                                                color: templateFilter === f.id ? '#064E3B' : '#64748B',
+                                                fontWeight: templateFilter === f.id ? '800' : '650',
+                                                fontSize: '0.78rem',
+                                                padding: '0.35rem 0.75rem',
+                                                borderRadius: '8px',
+                                                cursor: 'pointer',
+                                                boxShadow: templateFilter === f.id ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                                                transition: 'all 0.15s'
+                                            }}
+                                        >
+                                            {f.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <button 
+                                    onClick={() => {
+                                        setEditingTemplate(null);
+                                        setTemplateFormData({ title: '', subject: '', body: '', type: 'Email', label: 'Custom' });
+                                        setIsTemplateModalOpen(true);
+                                    }}
+                                    style={{ background: '#1B6B3A', border: 'none', color: 'white', padding: '0.55rem 1rem', borderRadius: '10px', fontSize: '0.82rem', fontWeight: '750', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 6px rgba(27,107,58,0.2)' }}
+                                >
+                                    <Plus size={16} /> Create Custom Template
+                                </button>
+                            </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem' }}>
-                            {PREMADE_TEMPLATES.map((temp) => (
-                                <div key={temp.id} style={{ background: '#FAFDFB', padding: '1.25rem', borderRadius: '16px', border: '1px solid #DCF2E4', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                                    <div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', background: temp.type === 'WhatsApp' ? '#1B6B3A' : temp.type === 'Email' ? '#3B82F6' : '#EA580C', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
-                                                {temp.type}
-                                            </span>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748B', background: '#F1F5F9', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
-                                                {temp.label}
-                                            </span>
-                                        </div>
-                                        <h5 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.5rem' }}>{temp.title}</h5>
-                                        <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.5', fontStyle: 'italic', background: 'white', padding: '0.75rem', borderRadius: '10px', border: '1px dashed #CBD5E1', marginBottom: '1rem' }}>
-                                            "{temp.body}"
-                                        </p>
-                                    </div>
-                                    <button 
-                                        onClick={() => {
-                                            setFormData({
-                                                ...formData,
-                                                campaign_name: `${temp.title} Campaign`,
-                                                campaign_type: temp.type,
-                                                message_content: temp.body,
-                                                whatsapp_template: temp.type === 'WhatsApp' ? 'verified_marketing_v1' : '',
-                                                sms_template: temp.type === 'SMS' ? 'dlts_sms_v1' : '',
-                                                email_template: temp.type === 'Email' ? 'html_newsletter_v1' : ''
-                                            });
-                                            setIsComposeOpen(true);
+                        {filteredTemplates.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '3rem 1rem', background: '#FAFDFB', borderRadius: '16px', border: '1px dashed #CBD5E1' }}>
+                                <FileText size={36} style={{ color: '#94A3B8', marginBottom: '0.75rem' }} />
+                                <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.35rem' }}>No Templates Found</h4>
+                                <p style={{ fontSize: '0.82rem', color: '#64748B', marginBottom: '1.25rem' }}>
+                                    {templateFilter === 'Custom' 
+                                        ? 'You have not created any custom templates yet. Click below to add your first template!' 
+                                        : 'No templates match the selected filter.'}
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        setEditingTemplate(null);
+                                        setTemplateFormData({ title: '', subject: '', body: '', type: 'Email', label: 'Custom' });
+                                        setIsTemplateModalOpen(true);
+                                    }}
+                                    style={{ background: '#1B6B3A', border: 'none', color: 'white', padding: '0.5rem 1.1rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: '750', cursor: 'pointer' }}
+                                >
+                                    <Plus size={14} style={{ display: 'inline', marginRight: '0.3rem' }} /> Add Custom Template
+                                </button>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem' }}>
+                                {filteredTemplates.map((temp) => (
+                                    <div 
+                                        key={temp.id} 
+                                        style={{ 
+                                            background: '#FAFDFB', 
+                                            padding: '1.25rem', 
+                                            borderRadius: '16px', 
+                                            border: temp.is_custom ? '1.5px solid #86EFAC' : '1px solid #DCF2E4', 
+                                            display: 'flex', 
+                                            flexDirection: 'column', 
+                                            justifyContent: 'space-between',
+                                            boxShadow: temp.is_custom ? '0 2px 8px rgba(34, 197, 94, 0.08)' : 'none'
                                         }}
-                                        style={{ width: '100%', background: 'white', border: '1px solid #1B6B3A', color: '#1B6B3A', padding: '0.5rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '750', cursor: 'pointer', transition: 'all 0.2s' }}
                                     >
-                                        Use This Template
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
+                                        <div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', background: temp.type === 'WhatsApp' ? '#1B6B3A' : temp.type === 'Email' ? '#3B82F6' : '#EA580C', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+                                                        {temp.type || 'Email'}
+                                                    </span>
+                                                    <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#64748B', background: '#F1F5F9', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                                                        {temp.label || 'General'}
+                                                    </span>
+                                                    {temp.is_custom && (
+                                                        <span style={{ fontSize: '0.68rem', fontWeight: '800', background: '#DCFCE7', color: '#15803D', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                                                            ⭐ Custom
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {temp.is_custom && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingTemplate(temp);
+                                                                setTemplateFormData({
+                                                                    title: temp.title,
+                                                                    subject: temp.subject || '',
+                                                                    body: temp.body,
+                                                                    type: temp.type || 'Email',
+                                                                    label: temp.label || 'Custom'
+                                                                });
+                                                                setIsTemplateModalOpen(true);
+                                                            }}
+                                                            style={{ border: 'none', background: '#F1F5F9', padding: '0.35rem', borderRadius: '6px', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center' }}
+                                                            title="Edit Template"
+                                                        >
+                                                            <Edit size={13} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteTemplate(temp.id, temp.title)}
+                                                            style={{ border: 'none', background: '#FEE2E2', padding: '0.35rem', borderRadius: '6px', cursor: 'pointer', color: '#DC2626', display: 'flex', alignItems: 'center' }}
+                                                            title="Delete Template"
+                                                        >
+                                                            <Trash2 size={13} />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <h5 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.3rem' }}>
+                                                {temp.title}
+                                            </h5>
+                                            {temp.subject && (
+                                                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#1B6B3A', marginBottom: '0.5rem' }}>
+                                                    Subject: {temp.subject}
+                                                </div>
+                                            )}
+                                            <p style={{ fontSize: '0.84rem', color: '#475569', lineHeight: '1.5', fontStyle: 'italic', background: 'white', padding: '0.75rem', borderRadius: '10px', border: '1px dashed #CBD5E1', marginBottom: '1rem', whiteSpace: 'pre-line' }}>
+                                                "{temp.body}"
+                                            </p>
+                                        </div>
+
+                                        <button 
+                                            onClick={() => handleUseTemplate(temp)}
+                                            style={{ width: '100%', background: 'white', border: '1.5px solid #1B6B3A', color: '#1B6B3A', padding: '0.5rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '800', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
+                                            onMouseOver={e => { e.currentTarget.style.background = '#1B6B3A'; e.currentTarget.style.color = 'white'; }}
+                                            onMouseOut={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#1B6B3A'; }}
+                                        >
+                                            <Sparkles size={13} /> Use This Template
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -1219,7 +1427,37 @@ const BusinessMarketing = () => {
 
                                 {/* SECTION 3: CONTENT */}
                                 <div style={{ background: '#FAFDFB', padding: '1.25rem', borderRadius: '16px', border: '1px solid #DCF2E4' }}>
-                                    <h4 style={{ fontSize: '0.8rem', fontWeight: '850', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>✉️ 3. Email Content</h4>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        <h4 style={{ fontSize: '0.8rem', fontWeight: '850', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>✉️ 3. Email Content</h4>
+                                        {allTemplates.length > 0 && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '750' }}>Fill from template:</span>
+                                                <select
+                                                    defaultValue=""
+                                                    onChange={(e) => {
+                                                        const selected = allTemplates.find(t => String(t.id) === String(e.target.value));
+                                                        if (selected) {
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                message_title: selected.subject || selected.title,
+                                                                message_content: selected.body,
+                                                                campaign_type: selected.type || prev.campaign_type
+                                                            }));
+                                                        }
+                                                        e.target.value = '';
+                                                    }}
+                                                    style={{ fontSize: '0.75rem', fontWeight: '700', padding: '0.25rem 0.5rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', cursor: 'pointer' }}
+                                                >
+                                                    <option value="" disabled>Select Template...</option>
+                                                    {allTemplates.map(t => (
+                                                        <option key={t.id} value={t.id}>
+                                                            {t.is_custom ? '⭐ ' : ''}{t.title} ({t.type || 'Email'})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         <div>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
@@ -1470,6 +1708,128 @@ const BusinessMarketing = () => {
                                 Close Details Panel
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* CREATE / EDIT CUSTOM TEMPLATE MODAL */}
+            {isTemplateModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(6px)' }}>
+                    <div style={{ background: 'white', width: '540px', maxHeight: '90vh', borderRadius: '24px', overflowY: 'auto', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Sparkles size={20} style={{ color: '#1B6B3A' }} />
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>
+                                    {editingTemplate ? 'Edit Custom Template' : 'Create Custom Template'}
+                                </h2>
+                            </div>
+                            <button 
+                                onClick={() => { setIsTemplateModalOpen(false); setEditingTemplate(null); }}
+                                style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveTemplate} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Template Title *</label>
+                                <input 
+                                    type="text"
+                                    required
+                                    maxLength={60}
+                                    value={templateFormData.title}
+                                    onChange={e => setTemplateFormData({ ...templateFormData, title: e.target.value })}
+                                    placeholder="e.g. VIP Seasonal Flash Offer"
+                                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }}
+                                />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Channel / Type</label>
+                                    <select
+                                        value={templateFormData.type}
+                                        onChange={e => setTemplateFormData({ ...templateFormData, type: e.target.value })}
+                                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
+                                    >
+                                        <option value="Email">Email</option>
+                                        <option value="WhatsApp">WhatsApp</option>
+                                        <option value="SMS">SMS</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Category Label</label>
+                                    <select
+                                        value={templateFormData.label}
+                                        onChange={e => setTemplateFormData({ ...templateFormData, label: e.target.value })}
+                                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
+                                    >
+                                        <option value="Promotional">Promotional</option>
+                                        <option value="Offer">Special Offer</option>
+                                        <option value="Festival">Festival</option>
+                                        <option value="Birthday">Birthday / Anniversary</option>
+                                        <option value="Engagement">Engagement / Follow-up</option>
+                                        <option value="Custom">Custom</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Email Subject Line</label>
+                                <input 
+                                    type="text"
+                                    maxLength={100}
+                                    value={templateFormData.subject}
+                                    onChange={e => setTemplateFormData({ ...templateFormData, subject: e.target.value })}
+                                    placeholder="e.g. Special Deal Awaits You at CLIKS!"
+                                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }}
+                                />
+                            </div>
+
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Message Content / Body *</label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                        <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>Insert tag:</span>
+                                        {['{name}', '{coupon}', '{company}'].map(tag => (
+                                            <button
+                                                key={tag}
+                                                type="button"
+                                                onClick={() => setTemplateFormData(prev => ({ ...prev, body: (prev.body || '') + tag }))}
+                                                style={{ border: 'none', background: '#E8F5EE', color: '#1B6B3A', fontSize: '0.68rem', fontWeight: '750', padding: '0.15rem 0.45rem', borderRadius: '4px', cursor: 'pointer' }}
+                                            >
+                                                +{tag}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <textarea 
+                                    required
+                                    rows={5}
+                                    value={templateFormData.body}
+                                    onChange={e => setTemplateFormData({ ...templateFormData, body: e.target.value })}
+                                    placeholder="Hi {name}, we are pleased to offer you special discounts this week..."
+                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontFamily: 'inherit', boxSizing: 'border-box', lineHeight: '1.5' }}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsTemplateModalOpen(false); setEditingTemplate(null); }}
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: '10px', border: '1px solid #CBD5E1', background: 'white', color: '#475569', fontWeight: '750', cursor: 'pointer' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    style={{ flex: 2, padding: '0.75rem', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 12px rgba(27,107,58,0.25)' }}
+                                >
+                                    {editingTemplate ? 'Update Template' : 'Save Custom Template'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
