@@ -101,6 +101,31 @@ const BADGE_OPTIONS = [
 const BusinessBarcode = () => {
     const { currency } = useCurrency();
     const [selectedPreset, setSelectedPreset] = useState('standard');
+    const [showCustomPreset, setShowCustomPreset] = useState(true);
+    const [customTemplateConfig, setCustomTemplateConfig] = useState({
+        borderStyle: 'solid', // 'solid', 'dashed', 'double', 'none'
+        borderWidth: 2,
+        borderRadius: 16,
+        borderColor: '#1B6B3A',
+        headerText: '',
+        headerAlign: 'center', // 'left', 'center', 'right'
+        footerNote: 'Thank you for shopping with us! Non-returnable once opened.',
+        showFooterNote: true,
+        showLogo: true,
+        showBadge: true,
+        showPrice: true,
+        showMrp: true,
+        showDiscountBadge: true,
+        showBarcodeText: true,
+        showAttributes: true,
+        highlightColor: '#166534',
+        accentBg: '#F0FDF4'
+    });
+
+    const updateCustomTemplateConfig = (key, val) => {
+        setCustomTemplateConfig(prev => ({ ...prev, [key]: val }));
+    };
+
     const [codeValue, setCodeValue] = useState('');
     const [codeType, setCodeType] = useState('CODE128'); // 'QR' as alternate
     const [encodeCustomData, setEncodeCustomData] = useState(false);
@@ -197,8 +222,8 @@ const BusinessBarcode = () => {
         const prod = stockProducts.find(p => String(p.id) === String(id));
         if (prod) {
             const skuVal = prod.barcode || prod.sku || prod.code || (prod.id ? `SKU-${prod.id}` : '');
-            const titleVal = prod.name || prod.title || prod.product_name || prod.item_name || '';
-            const subVal = prod.subtitle || prod.description || (prod.category || prod.unit ? `Category: ${prod.category || 'General'}${prod.unit ? ' | Unit: ' + prod.unit : ''}` : '');
+            const titleVal = (prod.name || prod.title || prod.product_name || prod.item_name || '').slice(0, 50);
+            const subVal = (prod.subtitle || prod.description || (prod.category || prod.unit ? `Category: ${prod.category || 'General'}${prod.unit ? ' | Unit: ' + prod.unit : ''}` : '')).slice(0, 60);
             const priceVal = (prod.selling_price ?? prod.price ?? prod.rate ?? prod.unit_price) != null && (prod.selling_price ?? prod.price ?? prod.rate ?? prod.unit_price) !== ''
                 ? String(prod.selling_price ?? prod.price ?? prod.rate ?? prod.unit_price)
                 : '';
@@ -424,7 +449,10 @@ const BusinessBarcode = () => {
     };
 
     const updateLabelDetails = (key, val) => {
-        setLabelDetails(prev => ({ ...prev, [key]: val }));
+        let sanitized = val;
+        if (key === 'title') sanitized = String(val || '').slice(0, 50);
+        if (key === 'subtitle') sanitized = String(val || '').slice(0, 60);
+        setLabelDetails(prev => ({ ...prev, [key]: sanitized }));
     };
 
     const addCustomField = (presetKey = '', presetValue = '') => {
@@ -630,15 +658,66 @@ const BusinessBarcode = () => {
 
             {/* Presets List Selector Bar ("Canvas Layout Selector") */}
             <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '1.5rem', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
                     <Layout size={18} color="#10b981" />
                     <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1e293b', margin: 0 }}>Select Canvas Label Preset Layout</h3>
-                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#10b981', background: '#ecfdf5', padding: '0.2rem 0.6rem', borderRadius: '20px', marginLeft: 'auto' }}>
-                        {CANVAS_PRESETS.length} Canvas Templates Available
-                    </span>
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        {!showCustomPreset ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowCustomPreset(true);
+                                    setSelectedPreset('custom');
+                                }}
+                                style={{
+                                    fontSize: '0.74rem',
+                                    fontWeight: '750',
+                                    color: '#166534',
+                                    background: '#DCFCE7',
+                                    border: '1px solid #86EFAC',
+                                    padding: '0.25rem 0.65rem',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}
+                                title="Restore Custom Template layout"
+                            >
+                                <Plus size={13} /> Add Custom Template
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowCustomPreset(false);
+                                    if (selectedPreset === 'custom') setSelectedPreset('standard');
+                                }}
+                                style={{
+                                    fontSize: '0.74rem',
+                                    fontWeight: '700',
+                                    color: '#DC2626',
+                                    background: '#FEE2E2',
+                                    border: '1px solid #FECACA',
+                                    padding: '0.25rem 0.65rem',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}
+                                title="Remove Custom Template from presets"
+                            >
+                                <X size={13} /> Remove Custom Template
+                            </button>
+                        )}
+                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#10b981', background: '#ecfdf5', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
+                            {CANVAS_PRESETS.filter(p => p.id !== 'custom' || showCustomPreset).length} Canvas Templates Available
+                        </span>
+                    </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
-                    {CANVAS_PRESETS.map((preset) => {
+                    {CANVAS_PRESETS.filter(p => p.id !== 'custom' || showCustomPreset).map((preset) => {
                         const IconComp = preset.icon;
                         const isSelected = selectedPreset === preset.id;
                         return (
@@ -672,6 +751,36 @@ const BusinessBarcode = () => {
                                     )}
                                 </div>
                                 <p style={{ margin: 0, fontSize: '0.73rem', color: '#64748b', lineHeight: '1.3' }}>{preset.desc}</p>
+                                {preset.id === 'custom' && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowCustomPreset(false);
+                                            if (selectedPreset === 'custom') setSelectedPreset('standard');
+                                        }}
+                                        title="Remove Custom Template preset"
+                                        style={{
+                                            position: 'absolute',
+                                            top: '8px',
+                                            right: '8px',
+                                            background: '#FEE2E2',
+                                            border: '1px solid #FCA5A5',
+                                            color: '#DC2626',
+                                            borderRadius: '6px',
+                                            padding: '2px 5px',
+                                            fontSize: '0.65rem',
+                                            fontWeight: '750',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '2px',
+                                            zIndex: 2
+                                        }}
+                                    >
+                                        <X size={10} /> Remove
+                                    </button>
+                                )}
                             </div>
                         );
                     })}
@@ -684,6 +793,199 @@ const BusinessBarcode = () => {
                 {/* Left Column: Settings & Data Inputs */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     
+                    {/* COMPLETELY CUSTOMIZABLE CUSTOM TEMPLATE STUDIO */}
+                    {selectedPreset === 'custom' && (
+                        <div style={{
+                            background: '#FAFDFB',
+                            padding: '1.5rem',
+                            borderRadius: '16px',
+                            border: '1.5px solid #86EFAC',
+                            boxShadow: '0 4px 14px rgba(22, 101, 52, 0.08)'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div style={{ width: '32px', height: '32px', background: '#DCFCE7', color: '#166534', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Palette size={18} />
+                                    </div>
+                                    <div>
+                                        <h3 style={{ fontWeight: '850', fontSize: '1rem', color: '#064E3B', margin: 0 }}>
+                                            🎨 Custom Template Studio (Full Customization)
+                                        </h3>
+                                        <p style={{ margin: 0, fontSize: '0.74rem', color: '#64748B' }}>
+                                            Configure store banner, frame styling, element visibility, and return policy
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowCustomPreset(false);
+                                        setSelectedPreset('standard');
+                                    }}
+                                    style={{
+                                        background: '#FEE2E2',
+                                        border: '1px solid #FECACA',
+                                        color: '#DC2626',
+                                        fontSize: '0.74rem',
+                                        fontWeight: '750',
+                                        padding: '0.35rem 0.75rem',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                    }}
+                                    title="Remove Custom Template preset layout"
+                                >
+                                    <Trash2 size={13} /> Remove Custom Template
+                                </button>
+                            </div>
+
+                            {/* 1. STORE HEADER BRANDING & BANNER */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#475569', margin: 0 }}>
+                                            Store Header Banner Text <span style={{ color: '#94A3B8', fontWeight: 'normal' }}>(Optional)</span>
+                                        </label>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '700', color: (customTemplateConfig.headerText || '').length >= 40 ? '#EA580C' : '#94A3B8' }}>
+                                            {(customTemplateConfig.headerText || '').length}/40
+                                        </span>
+                                    </div>
+                                    <input 
+                                        type="text"
+                                        maxLength={40}
+                                        placeholder="e.g. CLIKS ENTERPRISE SUPERMART"
+                                        value={customTemplateConfig.headerText}
+                                        onChange={e => updateCustomTemplateConfig('headerText', e.target.value.slice(0, 40))}
+                                        style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.84rem', fontWeight: '600', outline: 'none', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#475569', marginBottom: '0.35rem' }}>
+                                        Header Alignment
+                                    </label>
+                                    <select
+                                        value={customTemplateConfig.headerAlign}
+                                        onChange={e => updateCustomTemplateConfig('headerAlign', e.target.value)}
+                                        style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.84rem', fontWeight: '600', outline: 'none', background: 'white' }}
+                                    >
+                                        <option value="center">Center</option>
+                                        <option value="left">Left</option>
+                                        <option value="right">Right</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* 2. FRAME & BORDER STYLING */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.85rem', marginBottom: '1rem', background: '#F8FAFC', padding: '0.85rem', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.3rem' }}>Border Style</label>
+                                    <select
+                                        value={customTemplateConfig.borderStyle}
+                                        onChange={e => updateCustomTemplateConfig('borderStyle', e.target.value)}
+                                        style={{ width: '100%', padding: '0.45rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.78rem', fontWeight: '600' }}
+                                    >
+                                        <option value="solid">Solid Line</option>
+                                        <option value="dashed">Dashed Border</option>
+                                        <option value="double">Double Frame</option>
+                                        <option value="none">Borderless</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.3rem' }}>
+                                        Width <span>{customTemplateConfig.borderWidth}px</span>
+                                    </label>
+                                    <input 
+                                        type="range" min="1" max="6" step="1"
+                                        value={customTemplateConfig.borderWidth}
+                                        onChange={e => updateCustomTemplateConfig('borderWidth', Number(e.target.value))}
+                                        style={{ width: '100%', accentColor: '#166534' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.3rem' }}>
+                                        Radius <span>{customTemplateConfig.borderRadius}px</span>
+                                    </label>
+                                    <input 
+                                        type="range" min="0" max="28" step="2"
+                                        value={customTemplateConfig.borderRadius}
+                                        onChange={e => updateCustomTemplateConfig('borderRadius', Number(e.target.value))}
+                                        style={{ width: '100%', accentColor: '#166534' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', color: '#475569', marginBottom: '0.3rem' }}>Border Color</label>
+                                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                        <input 
+                                            type="color" 
+                                            value={customTemplateConfig.borderColor} 
+                                            onChange={e => updateCustomTemplateConfig('borderColor', e.target.value)} 
+                                            style={{ width: '32px', height: '28px', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: 0 }} 
+                                        />
+                                        <input 
+                                            type="text" 
+                                            value={customTemplateConfig.borderColor} 
+                                            onChange={e => updateCustomTemplateConfig('borderColor', e.target.value)} 
+                                            style={{ flex: 1, padding: '0.3rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1' }} 
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. ELEMENT TOGGLES */}
+                            <div style={{ marginBottom: '1rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                                    Toggle Label Elements
+                                </label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.6rem' }}>
+                                    {[
+                                        { key: 'showLogo', label: 'Store Logo' },
+                                        { key: 'showBadge', label: 'Quality Badge' },
+                                        { key: 'showAttributes', label: 'Attributes' },
+                                        { key: 'showPrice', label: 'Offer Price' },
+                                        { key: 'showMrp', label: 'Original MRP' },
+                                        { key: 'showDiscountBadge', label: 'Discount %' },
+                                        { key: 'showBarcodeText', label: 'SKU Text' },
+                                        { key: 'showFooterNote', label: 'Footer Notice' }
+                                    ].map(item => (
+                                        <label key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.76rem', fontWeight: '650', color: '#334155', cursor: 'pointer', background: 'white', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                                            <input 
+                                                type="checkbox"
+                                                checked={Boolean(customTemplateConfig[item.key])}
+                                                onChange={e => updateCustomTemplateConfig(item.key, e.target.checked)}
+                                                style={{ accentColor: '#166534', cursor: 'pointer' }}
+                                            />
+                                            {item.label}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 4. CUSTOM FOOTER POLICY NOTE */}
+                            {customTemplateConfig.showFooterNote && (
+                                <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#475569', margin: 0 }}>
+                                            Custom Footer Notice / Return Policy
+                                        </label>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: '700', color: (customTemplateConfig.footerNote || '').length >= 60 ? '#EA580C' : '#94A3B8' }}>
+                                            {(customTemplateConfig.footerNote || '').length}/60 chars
+                                        </span>
+                                    </div>
+                                    <input 
+                                        type="text"
+                                        maxLength={60}
+                                        placeholder="e.g. Thank you for shopping with us! Non-returnable once opened."
+                                        value={customTemplateConfig.footerNote}
+                                        onChange={e => updateCustomTemplateConfig('footerNote', e.target.value.slice(0, 60))}
+                                        style={{ width: '100%', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.84rem', fontWeight: '600', outline: 'none', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Data Input Card */}
                     <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
@@ -713,13 +1015,19 @@ const BusinessBarcode = () => {
                                 </select>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>
-                                    {codeType === 'EAN13' ? 'EAN-13 Product Barcode (13 Digits)' : codeType === 'UPC' ? 'UPC-A Barcode (12 Digits)' : 'Code Value (SKU / ID)'}
-                                </label>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', margin: 0 }}>
+                                        {codeType === 'EAN13' ? 'EAN-13 Product Barcode (13 Digits)' : codeType === 'UPC' ? 'UPC-A Barcode (12 Digits)' : 'Code Value (SKU / ID)'}
+                                    </label>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: '700', color: (codeValue || '').length >= 40 ? '#EA580C' : '#94A3B8' }}>
+                                        {(codeValue || '').length}/40
+                                    </span>
+                                </div>
                                 <input 
                                     type="text" 
+                                    maxLength={40}
                                     value={codeValue}
-                                    onChange={(e) => setCodeValue(e.target.value)}
+                                    onChange={(e) => setCodeValue(e.target.value.slice(0, 40))}
                                     placeholder={codeType === 'EAN13' ? "e.g. 8901234567890" : codeType === 'UPC' ? "e.g. 012345678905" : "Enter Product SKU/ID..."}
                                     style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600', fontSize: '0.88rem' }}
                                 />
@@ -773,10 +1081,18 @@ const BusinessBarcode = () => {
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
                             <div ref={productDropdownRef} style={{ position: 'relative' }}>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>Product Title / Name</label>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', margin: 0 }}>
+                                        Product Title / Name
+                                    </label>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: '700', color: (labelDetails.title || '').length >= 50 ? '#EA580C' : '#94A3B8' }}>
+                                        {(labelDetails.title || '').length}/50 chars
+                                    </span>
+                                </div>
                                 <div style={{ position: 'relative' }}>
                                     <input 
                                         type="text" 
+                                        maxLength={50}
                                         value={labelDetails.title}
                                         onClick={() => {
                                             setIsProductDropdownOpen(true);
@@ -787,7 +1103,7 @@ const BusinessBarcode = () => {
                                             if (stockProducts.length === 0) loadInventoryProducts();
                                         }}
                                         onChange={(e) => {
-                                            updateLabelDetails('title', e.target.value);
+                                            updateLabelDetails('title', e.target.value.slice(0, 50));
                                             setIsProductDropdownOpen(true);
                                             const val = e.target.value.toLowerCase().trim();
                                             const matched = stockProducts.find(p => (p.name || p.product_name || p.title || p.item_name || '').toLowerCase().trim() === val);
@@ -795,8 +1111,8 @@ const BusinessBarcode = () => {
                                                 handleSelectStockProduct(matched.id);
                                             }
                                         }}
-                                        placeholder="Enter or select product title..."
-                                        style={{ width: '100%', padding: '0.75rem', paddingRight: '2.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
+                                        placeholder="Enter or select product title (max 50 chars)..."
+                                        style={{ width: '100%', padding: '0.75rem', paddingRight: '2.5rem', borderRadius: '8px', border: (labelDetails.title || '').length >= 50 ? '1.5px solid #F59E0B' : '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
                                     />
                                     <div 
                                         onClick={() => {
@@ -891,13 +1207,19 @@ const BusinessBarcode = () => {
                                 )}
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>Description / Variation</label>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', margin: 0 }}>Description / Variation</label>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: '700', color: (labelDetails.subtitle || '').length >= 60 ? '#EA580C' : '#94A3B8' }}>
+                                        {(labelDetails.subtitle || '').length}/60 chars
+                                    </span>
+                                </div>
                                 <input 
                                     type="text" 
+                                    maxLength={60}
                                     value={labelDetails.subtitle}
-                                    onChange={(e) => updateLabelDetails('subtitle', e.target.value)}
-                                    placeholder="e.g., Size: L | Color: Navy"
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
+                                    onChange={(e) => updateLabelDetails('subtitle', e.target.value.slice(0, 60))}
+                                    placeholder="e.g., Size: L | Color: Navy (max 60 chars)"
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: (labelDetails.subtitle || '').length >= 60 ? '1.5px solid #F59E0B' : '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
                                 />
                             </div>
 
@@ -1120,15 +1442,17 @@ const BusinessBarcode = () => {
                                         <input 
                                             type="text" 
                                             placeholder="Key (e.g., Weight)" 
+                                            maxLength={25}
                                             value={field.key} 
-                                            onChange={(e) => updateCustomField(field.id, 'key', e.target.value)}
+                                            onChange={(e) => updateCustomField(field.id, 'key', e.target.value.slice(0, 25))}
                                             style={{ flex: '1', padding: '0.65rem', fontSize: '0.85rem', fontWeight: '600', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
                                         />
                                         <input 
                                             type="text" 
                                             placeholder="Value (e.g., 500g)" 
+                                            maxLength={40}
                                             value={field.value} 
-                                            onChange={(e) => updateCustomField(field.id, 'value', e.target.value)}
+                                            onChange={(e) => updateCustomField(field.id, 'value', e.target.value.slice(0, 40))}
                                             style={{ flex: '1.5', padding: '0.65rem', fontSize: '0.85rem', fontWeight: '600', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
                                         />
                                         <button 
@@ -1263,23 +1587,45 @@ const BusinessBarcode = () => {
                                 style={{ 
                                     padding: '1.75rem 1.5rem', 
                                     background: format.background, 
-                                    borderRadius: '16px', 
+                                    borderRadius: selectedPreset === 'custom' ? `${customTemplateConfig.borderRadius}px` : '16px', 
                                     boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: format.lineColor,
-                                    width: selectedPreset === 'jewelry' ? '280px' : `${Math.max(340, Math.min(640, 240 + ((format.width || 2) * 60)))}px`,
-                                    maxWidth: '100%',
-                                    overflowX: 'auto',
-                                    boxSizing: 'border-box',
-                                    border: `2px solid ${format.borderColor || '#e2e8f0'}`,
-                                    position: 'relative'
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    color: format.lineColor, 
+                                    width: selectedPreset === 'jewelry' ? '280px' : `${Math.max(340, Math.min(640, 240 + ((format.width || 2) * 60)))}px`, 
+                                    maxWidth: '100%', 
+                                    overflowX: 'auto', 
+                                    boxSizing: 'border-box', 
+                                    border: selectedPreset === 'custom' && customTemplateConfig.borderStyle !== 'none'
+                                        ? `${customTemplateConfig.borderWidth}px ${customTemplateConfig.borderStyle} ${customTemplateConfig.borderColor}`
+                                        : (selectedPreset === 'custom' && customTemplateConfig.borderStyle === 'none' ? 'none' : `2px solid ${format.borderColor || '#e2e8f0'}`), 
+                                    position: 'relative' 
                                 }}
                             >
+                                {/* CUSTOM STORE HEADER BANNER */}
+                                {selectedPreset === 'custom' && customTemplateConfig.headerText && (
+                                    <div style={{ 
+                                        width: '100%', 
+                                        textAlign: customTemplateConfig.headerAlign || 'center', 
+                                        fontSize: '0.82rem', 
+                                        fontWeight: '900', 
+                                        letterSpacing: '0.08em', 
+                                        textTransform: 'uppercase', 
+                                        borderBottom: `1.5px solid ${customTemplateConfig.borderColor || format.lineColor}30`, 
+                                        paddingBottom: '0.4rem', 
+                                        marginBottom: '0.65rem', 
+                                        color: customTemplateConfig.borderColor || '#166534',
+                                        wordBreak: 'break-word',
+                                        overflowWrap: 'break-word'
+                                    }}>
+                                        {customTemplateConfig.headerText}
+                                    </div>
+                                )}
+
                                 {/* LOGO DISPLAY */}
-                                {logoUrl && (
+                                {(selectedPreset !== 'custom' || customTemplateConfig.showLogo) && logoUrl && (
                                     <div style={{ marginBottom: '0.5rem', textAlign: 'center', position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <img src={logoUrl} alt="Store Logo" style={{ maxHeight: '36px', maxWidth: '120px', objectFit: 'contain' }} />
                                         <button
@@ -1310,7 +1656,7 @@ const BusinessBarcode = () => {
                                 )}
 
                                 {/* QUALITY BADGE DISPLAY */}
-                                {selectedBadge && selectedBadge !== 'none' && (
+                                {(selectedPreset !== 'custom' || customTemplateConfig.showBadge) && selectedBadge && selectedBadge !== 'none' && (
                                     <div style={{ position: 'absolute', top: '10px', right: '12px', fontSize: '0.65rem', fontWeight: '800', background: '#F0FDF4', color: '#166534', border: '1px solid #DCF2E4', padding: '2px 6px', borderRadius: '6px' }}>
                                         {BADGE_OPTIONS.find(b => b.id === selectedBadge)?.label}
                                     </div>
@@ -1324,21 +1670,54 @@ const BusinessBarcode = () => {
                                     </div>
                                 )}
 
-                                {/* Label Titles */}
+                                {/* Label Titles with Word-Break and Line-Clamping */}
                                 {labelDetails.title && (
-                                    <div style={{ fontSize: selectedPreset === 'compact' ? '1rem' : '1.15rem', fontWeight: '900', marginBottom: '0.15rem', letterSpacing: '0.01em', textAlign: 'center', textTransform: 'uppercase' }}>
+                                    <div style={{ 
+                                        fontSize: selectedPreset === 'compact' ? '0.95rem' : '1.1rem', 
+                                        fontWeight: '900', 
+                                        marginBottom: '0.2rem', 
+                                        letterSpacing: '0.01em', 
+                                        textAlign: 'center', 
+                                        textTransform: 'uppercase',
+                                        maxWidth: '100%',
+                                        wordBreak: 'break-word',
+                                        overflowWrap: 'break-word',
+                                        overflow: 'hidden',
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: 'vertical',
+                                        lineHeight: 1.25,
+                                        boxSizing: 'border-box',
+                                        padding: '0 4px'
+                                    }}>
                                         {labelDetails.title}
                                     </div>
                                 )}
 
                                 {labelDetails.subtitle && (
-                                    <div style={{ fontSize: '0.75rem', opacity: 0.85, marginBottom: '0.75rem', fontWeight: '600', textAlign: 'center' }}>
+                                    <div style={{ 
+                                        fontSize: '0.75rem', 
+                                        opacity: 0.85, 
+                                        marginBottom: '0.75rem', 
+                                        fontWeight: '600', 
+                                        textAlign: 'center',
+                                        maxWidth: '100%',
+                                        wordBreak: 'break-word',
+                                        overflowWrap: 'break-word',
+                                        overflow: 'hidden',
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: 'vertical',
+                                        lineHeight: 1.25,
+                                        boxSizing: 'border-box',
+                                        padding: '0 4px'
+                                    }}>
                                         {labelDetails.subtitle}
                                     </div>
                                 )}
 
                                 {/* Multi Custom Keys & Values Rendering */}
-                                {activeCustomFields.length > 0 && (
+                                {(selectedPreset !== 'custom' || customTemplateConfig.showAttributes) && activeCustomFields.length > 0 && (
                                     <div style={{ 
                                         width: '100%', 
                                         marginBottom: '0.85rem',
@@ -1453,7 +1832,7 @@ const BusinessBarcode = () => {
                                                         format={codeType}
                                                         width={format.width}
                                                         height={format.height}
-                                                        displayValue={format.displayValue}
+                                                        displayValue={selectedPreset === 'custom' ? customTemplateConfig.showBarcodeText : format.displayValue}
                                                         fontSize={format.fontSize}
                                                         background={format.background}
                                                         lineColor={format.lineColor}
@@ -1466,7 +1845,7 @@ const BusinessBarcode = () => {
                                 )}
 
                                 {/* DISCOUNT & STRIKETHROUGH MRP PRICE TAG RENDERING */}
-                                {labelDetails.price && (
+                                {(selectedPreset !== 'custom' || customTemplateConfig.showPrice) && labelDetails.price && (
                                     <div style={{ 
                                         marginTop: '0.75rem', 
                                         borderTop: `1px solid ${format.lineColor}`, 
@@ -1476,7 +1855,7 @@ const BusinessBarcode = () => {
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                                             {/* Original MRP Strikethrough Display */}
-                                            {numMrp > numPrice && (
+                                            {(selectedPreset !== 'custom' || customTemplateConfig.showMrp) && numMrp > numPrice && (
                                                 <span style={{ textDecoration: 'line-through', color: '#94A3B8', fontSize: '0.95rem', fontWeight: '700' }}>
                                                     {labelDetails.currencySymbol} {labelDetails.mrp}
                                                 </span>
@@ -1488,12 +1867,31 @@ const BusinessBarcode = () => {
                                             </span>
 
                                             {/* Discount Percent Badge */}
-                                            {discountPct > 0 && (
+                                            {(selectedPreset !== 'custom' || customTemplateConfig.showDiscountBadge) && discountPct > 0 && (
                                                 <span style={{ fontSize: '0.68rem', fontWeight: '850', background: '#DCFCE7', color: '#15803D', padding: '1px 5px', borderRadius: '4px' }}>
                                                     {discountPct}% OFF
                                                 </span>
                                             )}
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* CUSTOM TEMPLATE FOOTER NOTICE */}
+                                {selectedPreset === 'custom' && customTemplateConfig.showFooterNote && customTemplateConfig.footerNote && (
+                                    <div style={{ 
+                                        marginTop: '0.65rem', 
+                                        borderTop: `1px dashed ${format.lineColor}35`, 
+                                        paddingTop: '0.35rem', 
+                                        width: '100%', 
+                                        textAlign: 'center', 
+                                        fontSize: '0.7rem', 
+                                        fontWeight: '600', 
+                                        opacity: 0.85, 
+                                        wordBreak: 'break-word', 
+                                        overflowWrap: 'break-word',
+                                        color: format.lineColor
+                                    }}>
+                                        {customTemplateConfig.footerNote}
                                     </div>
                                 )}
                             </div>
@@ -1705,15 +2103,48 @@ const BusinessBarcode = () => {
                                 </div>
                             )}
 
-                            {/* Title & Subtitle */}
+                            {/* Title & Subtitle with Overflow Protection */}
                             {labelDetails.title && (
-                                <div style={{ fontSize: '1.25rem', fontWeight: '900', marginBottom: '0.2rem', letterSpacing: '0.01em', textAlign: 'center', textTransform: 'uppercase' }}>
+                                <div style={{ 
+                                    fontSize: '1.25rem', 
+                                    fontWeight: '900', 
+                                    marginBottom: '0.2rem', 
+                                    letterSpacing: '0.01em', 
+                                    textAlign: 'center', 
+                                    textTransform: 'uppercase',
+                                    maxWidth: '100%',
+                                    wordBreak: 'break-word',
+                                    overflowWrap: 'break-word',
+                                    overflow: 'hidden',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    lineHeight: 1.25,
+                                    boxSizing: 'border-box',
+                                    padding: '0 4px'
+                                }}>
                                     {labelDetails.title}
                                 </div>
                             )}
 
                             {labelDetails.subtitle && (
-                                <div style={{ fontSize: '0.82rem', opacity: 0.85, marginBottom: '0.85rem', fontWeight: '600', textAlign: 'center' }}>
+                                <div style={{ 
+                                    fontSize: '0.82rem', 
+                                    opacity: 0.85, 
+                                    marginBottom: '0.85rem', 
+                                    fontWeight: '600', 
+                                    textAlign: 'center',
+                                    maxWidth: '100%',
+                                    wordBreak: 'break-word',
+                                    overflowWrap: 'break-word',
+                                    overflow: 'hidden',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    lineHeight: 1.25,
+                                    boxSizing: 'border-box',
+                                    padding: '0 4px'
+                                }}>
                                     {labelDetails.subtitle}
                                 </div>
                             )}
