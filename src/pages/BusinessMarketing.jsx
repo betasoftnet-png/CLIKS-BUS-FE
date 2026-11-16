@@ -254,6 +254,38 @@ const BusinessMarketing = () => {
         onSuccess: () => queryClient.invalidateQueries(['marketing-templates'])
     });
 
+    // 4. Trigger Automations Queries & Mutations
+    const { data: automations = [] } = useQuery({
+        queryKey: ['marketing-automations'],
+        queryFn: marketingService.getAutomations,
+        refetchInterval: 10000
+    });
+
+    const createAutomationMutation = useMutation({
+        mutationFn: marketingService.createAutomation,
+        onSuccess: () => queryClient.invalidateQueries(['marketing-automations'])
+    });
+
+    const updateAutomationMutation = useMutation({
+        mutationFn: ({ id, data }) => marketingService.updateAutomation(id, data),
+        onSuccess: () => queryClient.invalidateQueries(['marketing-automations'])
+    });
+
+    const toggleAutomationMutation = useMutation({
+        mutationFn: marketingService.toggleAutomation,
+        onSuccess: () => queryClient.invalidateQueries(['marketing-automations'])
+    });
+
+    const triggerAutomationMutation = useMutation({
+        mutationFn: marketingService.triggerAutomation,
+        onSuccess: () => queryClient.invalidateQueries(['marketing-automations'])
+    });
+
+    const deleteAutomationMutation = useMutation({
+        mutationFn: marketingService.deleteAutomation,
+        onSuccess: () => queryClient.invalidateQueries(['marketing-automations'])
+    });
+
     const [activeTab, setActiveTab] = useState('campaigns'); // 'campaigns' | 'templates' | 'automation' | 'segments' | 'reports'
     const [selectedCampaign, setSelectedCampaign] = useState(null);
     const [isComposeOpen, setIsComposeOpen] = useState(false);
@@ -268,6 +300,18 @@ const BusinessMarketing = () => {
         label: 'Promotional'
     });
     const [templateFilter, setTemplateFilter] = useState('All'); // 'All' | 'Custom' | 'Premade'
+    const [isAutoModalOpen, setIsAutoModalOpen] = useState(false);
+    const [editingAutomation, setEditingAutomation] = useState(null);
+    const [autoFormData, setAutoFormData] = useState({
+        event_name: '',
+        trigger_event: 'customer_birthday',
+        channel: 'Email',
+        timing_delay: 'Instant (09:00 AM)',
+        scheduled_time: '09:00 AM',
+        subject: '',
+        message_body: '',
+        status: 'active'
+    });
     const [searchQuery, setSearchQuery] = useState('');
     const [typeFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
@@ -562,6 +606,76 @@ const BusinessMarketing = () => {
         setIsComposeOpen(true);
     };
 
+    // ── Automations Management Helpers ──
+    const handleSaveAutomation = async (e) => {
+        e.preventDefault();
+        const trimmedName = (autoFormData.event_name || '').trim();
+        if (!trimmedName) {
+            alert('Please provide an event name for this trigger automation.');
+            return;
+        }
+
+        try {
+            if (editingAutomation) {
+                await updateAutomationMutation.mutateAsync({
+                    id: editingAutomation.id,
+                    data: { ...autoFormData, event_name: trimmedName }
+                });
+                alert(`Automation "${trimmedName}" updated successfully!`);
+            } else {
+                await createAutomationMutation.mutateAsync({
+                    ...autoFormData,
+                    event_name: trimmedName
+                });
+                alert(`New automation "${trimmedName}" created successfully!`);
+            }
+            setIsAutoModalOpen(false);
+            setEditingAutomation(null);
+            setAutoFormData({
+                event_name: '',
+                trigger_event: 'customer_birthday',
+                channel: 'Email',
+                timing_delay: 'Instant (09:00 AM)',
+                scheduled_time: '09:00 AM',
+                subject: '',
+                message_body: '',
+                status: 'active'
+            });
+        } catch (err) {
+            console.error('[Save Automation Error]', err);
+            alert(err.response?.data?.message || err.message || 'Failed to save automation.');
+        }
+    };
+
+    const handleToggleAutomation = async (auto) => {
+        try {
+            await toggleAutomationMutation.mutateAsync(auto.id);
+        } catch (err) {
+            alert('Failed to update automation status.');
+        }
+    };
+
+    const handleRunAutomationNow = async (auto) => {
+        if (await customConfirm(`Execute trigger "${auto.event_name}" now for eligible customers?`)) {
+            try {
+                const res = await triggerAutomationMutation.mutateAsync(auto.id);
+                alert(res?.message || `Trigger "${auto.event_name}" executed successfully!`);
+            } catch (err) {
+                alert(err.response?.data?.message || 'Failed to execute trigger.');
+            }
+        }
+    };
+
+    const handleDeleteAutomation = async (id, name) => {
+        if (await customConfirm(`Are you sure you want to delete trigger automation "${name}"?`)) {
+            try {
+                await deleteAutomationMutation.mutateAsync(id);
+            } catch (err) {
+                alert('Failed to delete automation.');
+            }
+        }
+    };
+
     // Derived Statistics
     const totalSentCampaigns = campaigns.filter(c => c.campaign_status === 'Sent' || c.sent_count > 0).length;
     const totalRecipientsReached = campaigns.reduce((sum, c) => sum + (c.sent_count || c.total_recipients || 0), 0);
@@ -661,7 +775,7 @@ const BusinessMarketing = () => {
                 {[
                     { label: 'Total Reach', value: totalRecipientsReached.toLocaleString(), icon: Users, color: '#1B6B3A', bg: '#DCF2E4' },
                     { label: 'Avg. ROI', value: `${avgROI}%`, icon: TrendingUp, color: '#0D9488', bg: '#CCFBF1' },
-                    { label: 'Active Automations', value: campaigns.filter(c => c.automation_status === 'active').length, icon: Clock, color: '#3B82F6', bg: '#DBEAFE' },
+                    { label: 'Active Automations', value: automations.filter(a => (a.status || '').toLowerCase() === 'active').length, icon: Clock, color: '#3B82F6', bg: '#DBEAFE' },
                     { label: 'Conv. Rate', value: `${avgConversionRate}%`, icon: Target, color: '#8B5CF6', bg: '#EDE9FE' }
                 ].map((stat, idx) => (
                     <div 
@@ -1015,55 +1129,209 @@ const BusinessMarketing = () => {
             {activeTab === 'automation' && (
                 <div>
                     <div style={{ background: 'white', padding: '2rem', borderRadius: '24px', border: '1px solid #E2E8F0', marginBottom: '2rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                             <div>
-                                <h3 style={{ fontSize: '1.2rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.25rem' }}>Marketing & Engagement Automations</h3>
-                                <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Configure automated messages triggered by key customer life-cycle events.</p>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', marginBottom: '0.25rem' }}>Marketing & Engagement Automations</h3>
+                                <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Configure automated messages triggered by customer lifecycle events with live status and one-click dispatch.</p>
                             </div>
                             <button 
                                 onClick={() => {
-                                    setFormData({ ...formData, recurring_campaign: true, automation_status: 'active', auto_send_enabled: true });
-                                    setIsComposeOpen(true);
+                                    setEditingAutomation(null);
+                                    setAutoFormData({
+                                        event_name: '',
+                                        trigger_event: 'customer_birthday',
+                                        channel: 'Email',
+                                        timing_delay: 'Instant (09:00 AM)',
+                                        scheduled_time: '09:00 AM',
+                                        subject: '',
+                                        message_body: '',
+                                        status: 'active'
+                                    });
+                                    setIsAutoModalOpen(true);
                                 }}
-                                style={{ background: '#1B6B3A', border: 'none', color: 'white', padding: '0.6rem 1.2rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer' }}
+                                style={{ background: '#1B6B3A', border: 'none', color: 'white', padding: '0.6rem 1.2rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '750', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 6px rgba(27,107,58,0.2)' }}
                             >
-                                <Plus size={16} style={{ marginRight: '0.25rem', display: 'inline' }} /> Configure New Trigger
+                                <Plus size={16} /> Configure New Trigger
                             </button>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            {[
-                                { event: 'Birthday Wish', trigger: 'customer_birthday', channel: 'Email', delay: 'Instant (09:00 AM)', active: true, sent: 45, conversions: 12 },
-                                { event: 'Anniversary Wish', trigger: 'customer_anniversary', channel: 'Email', delay: 'Instant (10:00 AM)', active: true, sent: 12, conversions: 3 },
-                                { event: 'Payment Follow-up', trigger: 'invoice_due', channel: 'Email', delay: '2 Days after due date', active: true, sent: 340, conversions: 298 },
-                                { event: 'Abandoned Cart', trigger: 'cart_abandoned', channel: 'Email', delay: '4 Hours after abandonment', active: false, sent: 0, conversions: 0 }
-                            ].map((auto, idx) => (
-                                <div key={idx} style={{ padding: '1.5rem', borderRadius: '16px', border: '1px solid #F1F5F9', background: auto.active ? '#FAFDFB' : '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: auto.active ? '#DCF2E4' : '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: auto.active ? '#1B6B3A' : '#64748B' }}>
-                                            <Zap size={18} />
+                        {automations.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '3rem 1rem', background: '#FAFDFB', borderRadius: '16px', border: '1px dashed #CBD5E1' }}>
+                                <Zap size={36} style={{ color: '#94A3B8', marginBottom: '0.75rem' }} />
+                                <h4 style={{ fontSize: '1rem', fontWeight: '800', color: '#1E293B', marginBottom: '0.35rem' }}>No Automations Configured</h4>
+                                <p style={{ fontSize: '0.82rem', color: '#64748B', marginBottom: '1.25rem' }}>
+                                    Set up automated customer lifecycle messages for birthdays, payment reminders, and follow-ups.
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        setEditingAutomation(null);
+                                        setAutoFormData({
+                                            event_name: '',
+                                            trigger_event: 'customer_birthday',
+                                            channel: 'Email',
+                                            timing_delay: 'Instant (09:00 AM)',
+                                            scheduled_time: '09:00 AM',
+                                            subject: '',
+                                            message_body: '',
+                                            status: 'active'
+                                        });
+                                        setIsAutoModalOpen(true);
+                                    }}
+                                    style={{ background: '#1B6B3A', border: 'none', color: 'white', padding: '0.5rem 1.1rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: '750', cursor: 'pointer' }}
+                                >
+                                    <Plus size={14} style={{ display: 'inline', marginRight: '0.3rem' }} /> Configure First Trigger
+                                </button>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                {automations.map((auto) => {
+                                    const isActive = (auto.status || '').toLowerCase() === 'active';
+                                    return (
+                                        <div 
+                                            key={auto.id} 
+                                            style={{ 
+                                                padding: '1.35rem 1.5rem', 
+                                                borderRadius: '16px', 
+                                                border: isActive ? '1.5px solid #A7F3D0' : '1px solid #E2E8F0', 
+                                                background: isActive ? '#FAFDFB' : '#F8FAFC', 
+                                                display: 'flex', 
+                                                justifyContent: 'space-between', 
+                                                alignItems: 'center',
+                                                flexWrap: 'wrap',
+                                                gap: '1rem',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', gap: '1.1rem', alignItems: 'center' }}>
+                                                <div style={{ 
+                                                    width: '44px', height: '44px', borderRadius: '12px', 
+                                                    background: isActive ? '#DCF2E4' : '#E2E8F0', 
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                                    color: isActive ? '#1B6B3A' : '#64748B',
+                                                    flexShrink: 0 
+                                                }}>
+                                                    <Zap size={20} />
+                                                </div>
+                                                <div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem' }}>
+                                                        <h4 style={{ fontWeight: '800', color: '#1E293B', fontSize: '1rem', margin: 0 }}>
+                                                            {auto.event_name}
+                                                        </h4>
+                                                        <span style={{ 
+                                                            fontSize: '0.68rem', fontWeight: '800', 
+                                                            background: auto.channel === 'WhatsApp' ? '#1B6B3A' : auto.channel === 'Email' ? '#3B82F6' : '#EA580C', 
+                                                            color: 'white', padding: '0.15rem 0.45rem', borderRadius: '4px' 
+                                                        }}>
+                                                            {auto.channel || 'Email'}
+                                                        </span>
+                                                    </div>
+                                                    <p style={{ fontSize: '0.8rem', color: '#64748B', margin: 0 }}>
+                                                        Trigger: <strong style={{ color: '#1E293B' }}>{auto.trigger_event}</strong> • Timing: <strong style={{ color: '#1E293B' }}>{auto.timing_delay || auto.scheduled_time || 'Instant'}</strong>
+                                                        {auto.last_run_at && (
+                                                            <span style={{ marginLeft: '0.5rem', color: '#10B981', fontSize: '0.72rem', fontWeight: '600' }}>
+                                                                • Last Ran: {new Date(auto.last_run_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+                                                {/* Sent / Conversion Stats */}
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#1B6B3A' }}>
+                                                        Sent: {auto.sent_count || 0}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.74rem', color: '#64748B', fontWeight: '600' }}>
+                                                        Conversions: {auto.conversion_count || 0}
+                                                    </div>
+                                                </div>
+
+                                                {/* Active / Paused Toggle Button */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleToggleAutomation(auto)}
+                                                    style={{
+                                                        fontSize: '0.76rem',
+                                                        fontWeight: '800',
+                                                        color: isActive ? '#15803D' : '#DC2626',
+                                                        background: isActive ? '#DCFCE7' : '#FEE2E2',
+                                                        border: isActive ? '1px solid #86EFAC' : '1px solid #FCA5A5',
+                                                        padding: '0.35rem 0.75rem',
+                                                        borderRadius: '8px',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.4rem',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                    title={`Click to ${isActive ? 'pause' : 'activate'} this trigger automation`}
+                                                >
+                                                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: isActive ? '#16A34A' : '#DC2626', display: 'inline-block' }} />
+                                                    {isActive ? 'Active' : 'Paused'}
+                                                </button>
+
+                                                {/* Action Buttons: Run Trigger, Edit, Delete */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRunAutomationNow(auto)}
+                                                        style={{
+                                                            background: '#1B6B3A',
+                                                            border: 'none',
+                                                            color: 'white',
+                                                            padding: '0.4rem 0.75rem',
+                                                            borderRadius: '8px',
+                                                            fontSize: '0.76rem',
+                                                            fontWeight: '750',
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.35rem',
+                                                            boxShadow: '0 2px 4px rgba(27,107,58,0.15)'
+                                                        }}
+                                                        title="Trigger and execute this automated flow right now"
+                                                    >
+                                                        <Zap size={13} /> Run Trigger
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setEditingAutomation(auto);
+                                                            setAutoFormData({
+                                                                event_name: auto.event_name,
+                                                                trigger_event: auto.trigger_event || 'customer_birthday',
+                                                                channel: auto.channel || 'Email',
+                                                                timing_delay: auto.timing_delay || 'Instant (09:00 AM)',
+                                                                scheduled_time: auto.scheduled_time || '09:00 AM',
+                                                                subject: auto.subject || '',
+                                                                message_body: auto.message_body || '',
+                                                                status: auto.status || 'active'
+                                                            });
+                                                            setIsAutoModalOpen(true);
+                                                        }}
+                                                        style={{ border: 'none', background: '#F1F5F9', padding: '0.45rem', borderRadius: '8px', cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center' }}
+                                                        title="Edit Trigger Configuration"
+                                                    >
+                                                        <Edit size={14} />
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteAutomation(auto.id, auto.event_name)}
+                                                        style={{ border: 'none', background: '#FEE2E2', padding: '0.45rem', borderRadius: '8px', cursor: 'pointer', color: '#DC2626', display: 'flex', alignItems: 'center' }}
+                                                        title="Delete Trigger"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h4 style={{ fontWeight: '800', color: '#1E293B', marginBottom: '0.25rem' }}>{auto.event}</h4>
-                                            <p style={{ fontSize: '0.8rem', color: '#64748B' }}>
-                                                Trigger: <strong style={{ color: '#334155' }}>{auto.trigger}</strong> • Channel: <strong style={{ color: '#334155' }}>{auto.channel}</strong> • Timing: <strong style={{ color: '#334155' }}>{auto.delay}</strong>
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontSize: '0.85rem', fontWeight: '750', color: '#1B6B3A' }}>Sent: {auto.sent}</div>
-                                            <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Conversions: {auto.conversions}</div>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: auto.active ? '#1B6B3A' : '#EF4444', background: auto.active ? '#E8F5EE' : '#FEE2E2', padding: '0.25rem 0.5rem', borderRadius: '6px' }}>
-                                                {auto.active ? 'Active' : 'Paused'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -1903,6 +2171,157 @@ const BusinessMarketing = () => {
                                     style={{ flex: 2, padding: '0.75rem', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 12px rgba(27,107,58,0.25)' }}
                                 >
                                     {editingTemplate ? 'Update Template' : 'Save Custom Template'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* CONFIGURE TRIGGER AUTOMATION MODAL */}
+            {isAutoModalOpen && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(6, 78, 59, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(6px)' }}>
+                    <div style={{ background: 'white', width: '540px', maxHeight: '90vh', borderRadius: '24px', overflowY: 'auto', padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #F1F5F9', paddingBottom: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Zap size={20} style={{ color: '#1B6B3A' }} />
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '850', color: '#064E3B', margin: 0 }}>
+                                    {editingAutomation ? 'Edit Trigger Automation' : 'Configure New Trigger Automation'}
+                                </h2>
+                            </div>
+                            <button 
+                                onClick={() => { setIsAutoModalOpen(false); setEditingAutomation(null); }}
+                                style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveAutomation} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Automation Event Name *</label>
+                                <input 
+                                    type="text"
+                                    required
+                                    maxLength={60}
+                                    value={autoFormData.event_name}
+                                    onChange={e => setAutoFormData({ ...autoFormData, event_name: e.target.value })}
+                                    placeholder="e.g. Birthday Special Discount or Payment Follow-up"
+                                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }}
+                                />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Trigger Lifecycle Event</label>
+                                    <select
+                                        value={autoFormData.trigger_event}
+                                        onChange={e => setAutoFormData({ ...autoFormData, trigger_event: e.target.value })}
+                                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
+                                    >
+                                        <option value="customer_birthday">🎂 Customer Birthday</option>
+                                        <option value="customer_anniversary">🎉 Customer Anniversary</option>
+                                        <option value="invoice_due">📋 Invoice Due / Overdue</option>
+                                        <option value="cart_abandoned">🛒 Inactive Customer / Cart Win-back</option>
+                                        <option value="new_customer">👋 New Customer Registration</option>
+                                        <option value="loyalty_milestone">⭐ Loyalty Milestone Reached</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Dispatch Channel</label>
+                                    <select
+                                        value={autoFormData.channel}
+                                        onChange={e => setAutoFormData({ ...autoFormData, channel: e.target.value })}
+                                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
+                                    >
+                                        <option value="Email">Email</option>
+                                        <option value="WhatsApp">WhatsApp</option>
+                                        <option value="SMS">SMS</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Timing & Trigger Delay</label>
+                                    <select
+                                        value={autoFormData.timing_delay}
+                                        onChange={e => setAutoFormData({ ...autoFormData, timing_delay: e.target.value })}
+                                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
+                                    >
+                                        <option value="Instant (09:00 AM)">Instant (09:00 AM)</option>
+                                        <option value="Instant (10:00 AM)">Instant (10:00 AM)</option>
+                                        <option value="1 Day before due date">1 Day before due date</option>
+                                        <option value="2 Days after due date">2 Days after due date</option>
+                                        <option value="4 Hours after abandonment">4 Hours after abandonment</option>
+                                        <option value="Same Day (06:00 PM)">Evening (06:00 PM)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Status</label>
+                                    <select
+                                        value={autoFormData.status}
+                                        onChange={e => setAutoFormData({ ...autoFormData, status: e.target.value })}
+                                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', background: 'white', boxSizing: 'border-box' }}
+                                    >
+                                        <option value="active">Active (Auto-Running)</option>
+                                        <option value="paused">Paused (Manual Only)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem' }}>Subject Line (for Email)</label>
+                                <input 
+                                    type="text"
+                                    maxLength={100}
+                                    value={autoFormData.subject}
+                                    onChange={e => setAutoFormData({ ...autoFormData, subject: e.target.value })}
+                                    placeholder="e.g. A Special Gift on Your Birthday!"
+                                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontWeight: '600', boxSizing: 'border-box' }}
+                                />
+                            </div>
+
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748B' }}>Message Template Body *</label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                        <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: '600' }}>Insert tag:</span>
+                                        {['{name}', '{coupon}', '{company}'].map(tag => (
+                                            <button
+                                                key={tag}
+                                                type="button"
+                                                onClick={() => setAutoFormData(prev => ({ ...prev, message_body: (prev.message_body || '') + tag }))}
+                                                style={{ border: 'none', background: '#E8F5EE', color: '#1B6B3A', fontSize: '0.68rem', fontWeight: '750', padding: '0.15rem 0.45rem', borderRadius: '4px', cursor: 'pointer' }}
+                                            >
+                                                +{tag}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <textarea 
+                                    required
+                                    rows={4}
+                                    value={autoFormData.message_body}
+                                    onChange={e => setAutoFormData({ ...autoFormData, message_body: e.target.value })}
+                                    placeholder="Write your automated message content here..."
+                                    style={{ width: '100%', padding: '0.85rem', borderRadius: '10px', border: '1px solid #CBD5E1', outline: 'none', fontSize: '0.88rem', fontFamily: 'inherit', boxSizing: 'border-box', lineHeight: '1.5' }}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsAutoModalOpen(false); setEditingAutomation(null); }}
+                                    style={{ flex: 1, padding: '0.75rem', borderRadius: '10px', border: '1px solid #CBD5E1', background: 'white', color: '#475569', fontWeight: '750', cursor: 'pointer' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    style={{ flex: 2, padding: '0.75rem', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', color: 'white', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 12px rgba(27,107,58,0.25)' }}
+                                >
+                                    {editingAutomation ? 'Update Automation' : 'Save & Activate Trigger'}
                                 </button>
                             </div>
                         </form>

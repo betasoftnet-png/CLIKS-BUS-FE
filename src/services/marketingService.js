@@ -85,6 +85,66 @@ export const marketingService = {
             console.error('[Marketing Service] Delete Template Error:', error.message);
             throw error;
         }
+    },
+
+    getAutomations: async () => {
+        try {
+            const res = await apiClient.get('/marketing/automations');
+            return res.data || [];
+        } catch (error) {
+            console.error('[Marketing Service] Fetch Automations Error:', error.message);
+            return [];
+        }
+    },
+
+    createAutomation: async (data) => {
+        try {
+            const res = await apiClient.post('/marketing/automations', data);
+            return res.data;
+        } catch (error) {
+            console.error('[Marketing Service] Create Automation Error:', error.message);
+            throw error;
+        }
+    },
+
+    updateAutomation: async (id, data) => {
+        try {
+            const res = await apiClient.put(`/marketing/automations/${id}`, data);
+            return res.data;
+        } catch (error) {
+            console.error('[Marketing Service] Update Automation Error:', error.message);
+            throw error;
+        }
+    },
+
+    toggleAutomation: async (id) => {
+        try {
+            const res = await apiClient.patch(`/marketing/automations/${id}/toggle`);
+            return res.data;
+        } catch (error) {
+            console.error('[Marketing Service] Toggle Automation Error:', error.message);
+            throw error;
+        }
+    },
+
+    triggerAutomation: async (id) => {
+        try {
+            const res = await apiClient.post(`/marketing/automations/${id}/trigger`);
+            return res.data;
+        } catch (error) {
+            console.error('[Marketing Service] Trigger Automation Error:', error.message);
+            throw error;
+        }
+    },
+
+    deleteAutomation: async (id) => {
+        try {
+            const res = await apiClient.delete(`/marketing/automations/${id}`);
+            return res.data;
+        } catch (error) {
+            console.error('[Marketing Service] Delete Automation Error:', error.message);
+            throw error;
+        }
     }
 };
 
