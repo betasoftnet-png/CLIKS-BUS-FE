@@ -348,6 +348,52 @@ const BusinessMarketing = () => {
         }
     }, [formData.target_audience, customerData, selectedCustomCustomerIds]);
 
+    const resetFormData = () => {
+        setFormData({
+            campaign_name: '',
+            campaign_type: 'Email',
+            campaign_status: 'Draft',
+            target_audience: 'All Customers',
+            customer_segment: 'Retail Customers',
+            total_recipients: customerData.length > 0 ? customerData.length : 100,
+            location_filter: 'All Regions',
+            offer_type: 'discount',
+            coupon_code: '',
+            discount_percentage: 10,
+            offer_validity: '',
+            minimum_purchase: 500,
+            message_title: '',
+            message_content: '',
+            whatsapp_template: '',
+            sms_template: '',
+            email_template: '',
+            scheduled_date: '',
+            scheduled_time: '',
+            recurring_campaign: false,
+            recurrence_frequency: 'none',
+            trigger_event: 'none',
+            automation_status: 'inactive',
+            auto_send_enabled: false,
+            reward_points: 0,
+            referral_code: '',
+            referral_bonus: 0,
+            campaign_owner: 'Admin',
+            assigned_salesperson: 'Sales Team',
+        });
+        setSelectedCustomCustomerIds(customerData.map(c => c.id));
+    };
+
+    const handleCloseCompose = () => {
+        resetFormData();
+        setIsComposeOpen(false);
+    };
+
+    const handleTabChange = (tabId) => {
+        setActiveTab(tabId);
+        // Clean out any loaded templates or lingering draft state when moving across sections
+        resetFormData();
+    };
+
     const handleCreateCampaign = async (e) => {
         e.preventDefault();
         const trimmedName = (formData.campaign_name || '').trim();
@@ -424,37 +470,7 @@ const BusinessMarketing = () => {
             }
 
             // Reset Form
-            setFormData({
-                campaign_name: '',
-                campaign_type: 'Email',
-                campaign_status: 'Draft',
-                target_audience: 'All Customers',
-                customer_segment: 'Retail Customers',
-                total_recipients: customerData.length > 0 ? customerData.length : 100,
-                location_filter: 'All Regions',
-                offer_type: 'discount',
-                coupon_code: '',
-                discount_percentage: 10,
-                offer_validity: '',
-                minimum_purchase: 500,
-                message_title: '',
-                message_content: '',
-                whatsapp_template: '',
-                sms_template: '',
-                email_template: '',
-                scheduled_date: '',
-                scheduled_time: '',
-                recurring_campaign: false,
-                recurrence_frequency: 'none',
-                trigger_event: 'none',
-                automation_status: 'inactive',
-                auto_send_enabled: false,
-                reward_points: 0,
-                referral_code: '',
-                referral_bonus: 0,
-                campaign_owner: 'Admin',
-                assigned_salesperson: 'Sales Team',
-            });
+            resetFormData();
         } catch (err) {
             console.error('[Create Campaign Error]', err);
             alert(err.response?.data?.message || err.message || 'Failed to save campaign. Please try again.');
@@ -623,7 +639,10 @@ const BusinessMarketing = () => {
                     <p style={{ color: '#64748B', fontWeight: '500', fontSize: '0.88rem' }}>Draft and automate high-conversion Email newsletters, promotional codes, and automated follow-ups.</p>
                 </div>
                 <button 
-                    onClick={() => setIsComposeOpen(true)}
+                    onClick={() => {
+                        resetFormData();
+                        setIsComposeOpen(true);
+                    }}
                     style={{ 
                         display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.25rem', 
                         borderRadius: '10px', background: 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)', 
@@ -666,25 +685,25 @@ const BusinessMarketing = () => {
             {/* Navigation Tabs */}
             <div style={{ display: 'flex', gap: '0.75rem', borderBottom: '2px solid #E2E8F0', paddingBottom: '0.25rem', marginBottom: '1.25rem' }}>
                 <button 
-                    onClick={() => setActiveTab('campaigns')}
+                    onClick={() => handleTabChange('campaigns')}
                     style={{ padding: '0.5rem 1.25rem', background: 'none', border: 'none', color: activeTab === 'campaigns' ? '#1B6B3A' : '#64748B', fontWeight: '750', fontSize: '0.9rem', cursor: 'pointer', borderBottom: activeTab === 'campaigns' ? '3px solid #1B6B3A' : '3px solid transparent', transition: 'all 0.2s' }}
                 >
                     📢 All Campaigns
                 </button>
                 <button 
-                    onClick={() => setActiveTab('templates')}
+                    onClick={() => handleTabChange('templates')}
                     style={{ padding: '0.5rem 1.25rem', background: 'none', border: 'none', color: activeTab === 'templates' ? '#1B6B3A' : '#64748B', fontWeight: '750', fontSize: '0.9rem', cursor: 'pointer', borderBottom: activeTab === 'templates' ? '3px solid #1B6B3A' : '3px solid transparent', transition: 'all 0.2s' }}
                 >
                     💬 Message Templates
                 </button>
                 <button 
-                    onClick={() => setActiveTab('automation')}
+                    onClick={() => handleTabChange('automation')}
                     style={{ padding: '0.5rem 1.25rem', background: 'none', border: 'none', color: activeTab === 'automation' ? '#1B6B3A' : '#64748B', fontWeight: '750', fontSize: '0.9rem', cursor: 'pointer', borderBottom: activeTab === 'automation' ? '3px solid #1B6B3A' : '3px solid transparent', transition: 'all 0.2s' }}
                 >
                     ⚙️ Trigger Automations
                 </button>
                 <button 
-                    onClick={() => setActiveTab('reports')}
+                    onClick={() => handleTabChange('reports')}
                     style={{ padding: '0.5rem 1.25rem', background: 'none', border: 'none', color: activeTab === 'reports' ? '#1B6B3A' : '#64748B', fontWeight: '750', fontSize: '0.9rem', cursor: 'pointer', borderBottom: activeTab === 'reports' ? '3px solid #1B6B3A' : '3px solid transparent', transition: 'all 0.2s' }}
                 >
                     📊 Advanced ROI Reports
@@ -1132,7 +1151,7 @@ const BusinessMarketing = () => {
                                 <Sparkles size={18} style={{ color: '#1B6B3A' }} />
                                 <h2 style={{ fontSize: '1.35rem', fontWeight: '850', color: '#064E3B' }}>Compose Email Campaign</h2>
                             </div>
-                            <button onClick={() => setIsComposeOpen(false)} style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
+                            <button type="button" onClick={handleCloseCompose} style={{ border: 'none', background: '#F1F5F9', padding: '0.4rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={18} /></button>
                         </div>
 
                         <form onSubmit={handleCreateCampaign} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -1429,34 +1448,65 @@ const BusinessMarketing = () => {
                                 <div style={{ background: '#FAFDFB', padding: '1.25rem', borderRadius: '16px', border: '1px solid #DCF2E4' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                                         <h4 style={{ fontSize: '0.8rem', fontWeight: '850', color: '#1B6B3A', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>✉️ 3. Email Content</h4>
-                                        {allTemplates.length > 0 && (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '750' }}>Fill from template:</span>
-                                                <select
-                                                    defaultValue=""
-                                                    onChange={(e) => {
-                                                        const selected = allTemplates.find(t => String(t.id) === String(e.target.value));
-                                                        if (selected) {
-                                                            setFormData(prev => ({
-                                                                ...prev,
-                                                                message_title: selected.subject || selected.title,
-                                                                message_content: selected.body,
-                                                                campaign_type: selected.type || prev.campaign_type
-                                                            }));
-                                                        }
-                                                        e.target.value = '';
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                            {(formData.message_title || formData.message_content) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            message_title: '',
+                                                            message_content: '',
+                                                            campaign_name: (prev.campaign_name && prev.campaign_name.endsWith(' Campaign')) ? '' : prev.campaign_name
+                                                        }));
                                                     }}
-                                                    style={{ fontSize: '0.75rem', fontWeight: '700', padding: '0.25rem 0.5rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', cursor: 'pointer' }}
+                                                    style={{
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: '750',
+                                                        color: '#DC2626',
+                                                        background: '#FEE2E2',
+                                                        border: 'none',
+                                                        padding: '0.25rem 0.55rem',
+                                                        borderRadius: '6px',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.25rem'
+                                                    }}
+                                                    title="Reject and clear template content"
                                                 >
-                                                    <option value="" disabled>Select Template...</option>
-                                                    {allTemplates.map(t => (
-                                                        <option key={t.id} value={t.id}>
-                                                            {t.is_custom ? '⭐ ' : ''}{t.title} ({t.type || 'Email'})
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        )}
+                                                    <X size={12} /> Clear Content
+                                                </button>
+                                            )}
+                                            {allTemplates.length > 0 && (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: '750' }}>Fill from template:</span>
+                                                    <select
+                                                        defaultValue=""
+                                                        onChange={(e) => {
+                                                            const selected = allTemplates.find(t => String(t.id) === String(e.target.value));
+                                                            if (selected) {
+                                                                setFormData(prev => ({
+                                                                    ...prev,
+                                                                    message_title: selected.subject || selected.title,
+                                                                    message_content: selected.body,
+                                                                    campaign_type: selected.type || prev.campaign_type
+                                                                }));
+                                                            }
+                                                            e.target.value = '';
+                                                        }}
+                                                        style={{ fontSize: '0.75rem', fontWeight: '700', padding: '0.25rem 0.5rem', borderRadius: '6px', border: '1px solid #CBD5E1', outline: 'none', background: 'white', cursor: 'pointer' }}
+                                                    >
+                                                        <option value="" disabled>Select Template...</option>
+                                                        {allTemplates.map(t => (
+                                                            <option key={t.id} value={t.id}>
+                                                                {t.is_custom ? '⭐ ' : ''}{t.title} ({t.type || 'Email'})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         <div>
@@ -1496,42 +1546,68 @@ const BusinessMarketing = () => {
                                 </div>
                             </div>
 
-                            <button 
-                                type="submit"
-                                disabled={isLaunching}
-                                style={{ 
-                                    width: '100%', padding: '0.85rem', borderRadius: '10px', 
-                                    background: formData.campaign_status === 'Draft' 
-                                        ? 'linear-gradient(135deg, #475569 0%, #334155 100%)' 
-                                        : (formData.campaign_status === 'Scheduled' 
-                                            ? 'linear-gradient(135deg, #0D9488 0%, #065F46 100%)' 
-                                            : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)'), 
-                                    color: 'white', border: 'none', fontWeight: '800', fontSize: '0.95rem', 
-                                    cursor: isLaunching ? 'not-allowed' : 'pointer', 
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                                    boxShadow: formData.campaign_status === 'Draft' ? '0 6px 16px rgba(51, 65, 85, 0.2)' : '0 6px 16px rgba(27, 107, 58, 0.2)', 
-                                    marginTop: '0.5rem',
-                                    opacity: isLaunching ? 0.75 : 1
-                                }}
-                            >
-                                {isLaunching ? (
-                                    <>
-                                        <RefreshCw size={16} className="animate-spin" /> Dispatching Emails...
-                                    </>
-                                ) : formData.campaign_status === 'Draft' ? (
-                                    <>
-                                        <FileText size={16} /> Save Campaign as Draft
-                                    </>
-                                ) : formData.campaign_status === 'Scheduled' ? (
-                                    <>
-                                        <Clock size={16} /> Schedule Email Campaign
-                                    </>
-                                ) : (
-                                    <>
-                                        <Send size={16} /> Send & Execute Immediately
-                                    </>
-                                )}
-                            </button>
+                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    onClick={handleCloseCompose}
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.85rem',
+                                        borderRadius: '10px',
+                                        border: '1px solid #CBD5E1',
+                                        background: '#F8FAFC',
+                                        color: '#64748B',
+                                        fontWeight: '750',
+                                        fontSize: '0.88rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.4rem',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    onMouseOver={e => e.currentTarget.style.background = '#F1F5F9'}
+                                    onMouseOut={e => e.currentTarget.style.background = '#F8FAFC'}
+                                >
+                                    <X size={15} /> Discard & Exit
+                                </button>
+                                <button 
+                                    type="submit"
+                                    disabled={isLaunching}
+                                    style={{ 
+                                        flex: 2,
+                                        padding: '0.85rem', borderRadius: '10px', 
+                                        background: formData.campaign_status === 'Draft' 
+                                            ? 'linear-gradient(135deg, #475569 0%, #334155 100%)' 
+                                            : (formData.campaign_status === 'Scheduled' 
+                                                ? 'linear-gradient(135deg, #0D9488 0%, #065F46 100%)' 
+                                                : 'linear-gradient(135deg, #1B6B3A 0%, #064E3B 100%)'), 
+                                        color: 'white', border: 'none', fontWeight: '800', fontSize: '0.92rem', 
+                                        cursor: isLaunching ? 'not-allowed' : 'pointer', 
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                                        boxShadow: formData.campaign_status === 'Draft' ? '0 6px 16px rgba(51, 65, 85, 0.2)' : '0 6px 16px rgba(27, 107, 58, 0.2)', 
+                                        opacity: isLaunching ? 0.75 : 1
+                                    }}
+                                >
+                                    {isLaunching ? (
+                                        <>
+                                            <RefreshCw size={16} className="animate-spin" /> Dispatching Emails...
+                                        </>
+                                    ) : formData.campaign_status === 'Draft' ? (
+                                        <>
+                                            <FileText size={16} /> Save Campaign as Draft
+                                        </>
+                                    ) : formData.campaign_status === 'Scheduled' ? (
+                                        <>
+                                            <Clock size={16} /> Schedule Email Campaign
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send size={16} /> Send & Execute Immediately
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
