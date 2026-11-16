@@ -79,12 +79,41 @@ const sanitizeAccounts = (rawList) => {
     return rawList.map(acc => {
         if (!acc || !acc.email) return acc;
         const accEmail = acc.email.toLowerCase();
+        const emailPrefix = accEmail.split('@')[0];
+
+        // Check if this account's displayName or username was cross-contaminated by another account in the list
+        const isCrossContaminated = rawList.some(other => {
+            if (!other || !other.email) return false;
+            const otherEmail = other.email.toLowerCase();
+            if (otherEmail === accEmail) return false;
+            const otherPrefix = otherEmail.split('@')[0];
+            const accName = String(acc.displayName || acc.username || acc.name || '').toLowerCase().trim();
+            const otherUsername = String(other.username || '').toLowerCase().trim();
+            return (accName && accName === otherPrefix) || (otherUsername && accName === otherUsername);
+        });
+
         let bnxToken = acc.bnxToken || findBnxTokenForAccount(acc);
-        if (bnxToken) {
-            saveBnxTokenForAccount(bnxToken, [accEmail, acc.username, accEmail.split('@')[0]]);
+        if (bnxToken && bnxToken.includes('.')) {
+            try {
+                const dec = JSON.parse(atob(bnxToken.split('.')[1]));
+                if (dec.email && dec.email.toLowerCase() !== accEmail) {
+                    bnxToken = null;
+                }
+            } catch (e) {}
         }
+
+        if (bnxToken) {
+            saveBnxTokenForAccount(bnxToken, [accEmail, emailPrefix]);
+        }
+
+        const resolvedDisplayName = isCrossContaminated ? emailPrefix : (acc.displayName || acc.name || emailPrefix);
+        const resolvedUsername = isCrossContaminated ? emailPrefix : (acc.username || emailPrefix);
+
         return {
             ...acc,
+            displayName: resolvedDisplayName,
+            username: resolvedUsername,
+            name: resolvedDisplayName,
             email: accEmail,
             bnxToken: bnxToken || null
         };
@@ -112,22 +141,36 @@ export const AuthProvider = ({ children }) => {
             if (raw && raw.includes('.')) {
                 const payload = JSON.parse(atob(raw.split('.')[1]));
                 const uEmail = (payload.email || '').toLowerCase();
+                const fallbackName = uEmail ? uEmail.split('@')[0] : 'User';
+
                 let cachedAcc = null;
+                let isContaminated = false;
                 try {
                     const stored = JSON.parse(localStorage.getItem('cliks_multi_accounts') || '[]');
                     cachedAcc = stored.find(a => a.email && a.email.toLowerCase() === uEmail);
+                    if (cachedAcc) {
+                        isContaminated = stored.some(other => {
+                            if (!other || !other.email) return false;
+                            const otherEmail = other.email.toLowerCase();
+                            if (otherEmail === uEmail) return false;
+                            const otherPrefix = otherEmail.split('@')[0];
+                            const checkName = String(cachedAcc.displayName || cachedAcc.username || cachedAcc.name || '').toLowerCase().trim();
+                            return checkName === otherPrefix || (other.username && checkName === other.username.toLowerCase());
+                        });
+                    }
                 } catch (e) {}
 
-                const dName = cachedAcc?.displayName || payload.displayName || payload.display_name || null;
-                const fName = cachedAcc?.fullName || payload.fullName || payload.full_name || null;
-                const uName = dName || fName || cachedAcc?.name || payload.name || payload.username || (uEmail ? uEmail.split('@')[0] : 'User');
+                let dName = isContaminated ? null : (cachedAcc?.displayName || payload.displayName || payload.display_name || null);
+                let fName = isContaminated ? null : (cachedAcc?.fullName || payload.fullName || payload.full_name || null);
+                let uName = isContaminated ? fallbackName : (dName || fName || cachedAcc?.name || payload.name || payload.username || fallbackName);
+
                 const cachedPhoto = cachedAcc?.profilePhoto || cachedAcc?.profilePictureUrl || localStorage.getItem('profile_photo') || null;
                 return {
                     id: payload.id,
-                    username: payload.username || uName,
+                    username: uName,
                     name: uName,
-                    displayName: dName,
-                    fullName: fName,
+                    displayName: dName || uName,
+                    fullName: fName || uName,
                     email: payload.email,
                     profilePhoto: cachedPhoto,
                     profilePictureUrl: cachedPhoto,
@@ -278,6 +321,8 @@ export const AuthProvider = ({ children }) => {
         if (nextBnxToken) {
             localStorage.setItem('bnx_auth_token', nextBnxToken);
             saveBnxTokenForAccount(nextBnxToken, [targetEmail, freshTarget.username, targetEmail.split('@')[0]]);
+        } else {
+            localStorage.removeItem('bnx_auth_token');
         }
 
         if (freshTarget.profilePhoto) {
@@ -471,11 +516,23 @@ export const AuthProvider = ({ children }) => {
             try {
                 const userData = await profileService.getProfile();
                 const uEmail = (userData.email || '').toLowerCase();
+                const emailPrefix = uEmail ? uEmail.split('@')[0] : 'User';
 
-                // Look up BNX token from multi-account store or current localStorage
-                let validBnxToken = findBnxTokenForAccount(userData) || localStorage.getItem('bnx_auth_token') || null;
+                // Look up BNX token from multi-account store or current localStorage only if it matches this account's email
+                let validBnxToken = findBnxTokenForAccount(userData);
+                if (!validBnxToken) {
+                    const localToken = localStorage.getItem('bnx_auth_token');
+                    if (localToken && localToken.includes('.')) {
+                        try {
+                            const dec = JSON.parse(atob(localToken.split('.')[1]));
+                            if (dec.email && dec.email.toLowerCase() === uEmail) {
+                                validBnxToken = localToken;
+                            }
+                        } catch (e) {}
+                    }
+                }
                 if (validBnxToken) {
-                    saveBnxTokenForAccount(validBnxToken, [uEmail, userData.username, uEmail.split('@')[0]]);
+                    saveBnxTokenForAccount(validBnxToken, [uEmail, emailPrefix]);
                     localStorage.setItem('bnx_auth_token', validBnxToken);
                 }
 
@@ -488,16 +545,47 @@ export const AuthProvider = ({ children }) => {
                         });
                         const bnxJson = await bnxRes.json().catch(() => ({}));
                         if (bnxRes.ok && (bnxJson.success || bnxJson.data)) {
-                            bnxData = bnxJson.data || bnxJson;
+                            const fetched = bnxJson.data || bnxJson;
+                            // Only accept bnxData if email matches uEmail
+                            if (!fetched.email || fetched.email.toLowerCase() === uEmail) {
+                                bnxData = fetched;
+                            }
                         }
                     } catch (e) {
                         console.warn('[AuthContext] BNX profile fetch notice:', e.message);
                     }
                 }
 
-                const dName = bnxData?.displayName || bnxData?.display_name || userData.displayName || userData.display_name || null;
-                const fName = bnxData?.fullName || bnxData?.full_name || userData.fullName || userData.full_name || null;
-                const effectiveName = dName || fName || userData.name || userData.username || (uEmail ? uEmail.split('@')[0] : 'User');
+                // Load stored accounts to verify against cross-account contamination
+                let storedAccounts = [];
+                try {
+                    storedAccounts = JSON.parse(localStorage.getItem('cliks_multi_accounts') || '[]');
+                } catch (e) {}
+
+                const isOtherAccountName = (str) => {
+                    if (!str) return false;
+                    const lower = String(str).toLowerCase().trim();
+                    return storedAccounts.some(other => {
+                        if (!other || !other.email) return false;
+                        const oEmail = other.email.toLowerCase();
+                        if (oEmail === uEmail) return false;
+                        const oPrefix = oEmail.split('@')[0];
+                        const oUser = String(other.username || '').toLowerCase().trim();
+                        const oDisp = String(other.displayName || other.name || '').toLowerCase().trim();
+                        return lower === oPrefix || (oUser && lower === oUser) || (oDisp && lower === oDisp);
+                    });
+                };
+
+                let dName = bnxData?.displayName || bnxData?.display_name || userData.displayName || userData.display_name || null;
+                if (isOtherAccountName(dName)) dName = emailPrefix;
+
+                let fName = bnxData?.fullName || bnxData?.full_name || userData.fullName || userData.full_name || null;
+                if (isOtherAccountName(fName)) fName = null;
+
+                let uName = userData.username || bnxData?.username || null;
+                if (isOtherAccountName(uName)) uName = emailPrefix;
+
+                const effectiveName = dName || fName || uName || userData.name || emailPrefix;
 
                 // Resolve profile picture from BNX Mail profile: prepend https://api.bnxmail.com before /api
                 const rawPicUrl = bnxData?.profilePictureUrl || bnxData?.profile_picture_url || userData.profilePictureUrl || userData.profile_picture_url || null;
@@ -505,34 +593,37 @@ export const AuthProvider = ({ children }) => {
                 if (rawPicUrl) {
                     bnxProfilePic = rawPicUrl.startsWith('http') ? rawPicUrl : `https://api.bnxmail.com${rawPicUrl.startsWith('/') ? '' : '/'}${rawPicUrl}`;
                 } else if (bnxData?.profilePicture || bnxData?.profile_picture) {
-                    const uName = bnxData.username || userData.username || (uEmail ? uEmail.split('@')[0] : 'user');
-                    bnxProfilePic = `https://api.bnxmail.com/api/users/profile-picture/${encodeURIComponent(uName)}`;
+                    const picName = bnxData.username || uName || emailPrefix;
+                    bnxProfilePic = `https://api.bnxmail.com/api/users/profile-picture/${encodeURIComponent(picName)}`;
                 } else if (userData.avatar_url) {
                     bnxProfilePic = userData.avatar_url;
                 }
 
-                if (bnxProfilePic && !localStorage.getItem('profile_photo')) {
+                if (bnxProfilePic) {
                     localStorage.setItem('profile_photo', bnxProfilePic);
                 }
 
                 setUser(prev => {
+                    const isSameUser = prev && prev.email && prev.email.toLowerCase() === uEmail;
+                    const base = isSameUser ? prev : {};
                     const fullUser = {
-                        ...prev,
+                        ...base,
                         ...userData,
-                        displayName: dName,
-                        fullName: fName,
-                        username: userData.username || prev?.username || effectiveName,
+                        displayName: dName || effectiveName,
+                        fullName: fName || effectiveName,
+                        username: uName || effectiveName,
                         name: effectiveName,
-                        profilePhoto: bnxProfilePic || localStorage.getItem('profile_photo') || null,
+                        email: uEmail,
+                        profilePhoto: bnxProfilePic || (isSameUser ? (prev?.profilePhoto || localStorage.getItem('profile_photo')) : null) || null,
                         profilePictureUrl: bnxProfilePic || null
                     };
                     saveOrUpdateAccount({
                         id: fullUser.id,
                         email: fullUser.email,
-                        displayName: dName,
-                        fullName: fName,
-                        name: effectiveName,
-                        username: fullUser.username || effectiveName,
+                        displayName: fullUser.displayName,
+                        fullName: fullUser.fullName,
+                        name: fullUser.name,
+                        username: fullUser.username,
                         role: fullUser.role || 'business',
                         tier: fullUser.tier || 'Free Plan',
                         token: token,
@@ -540,8 +631,8 @@ export const AuthProvider = ({ children }) => {
                         is_sub_id: fullUser.is_sub_id,
                         branch_id: fullUser.branch_id,
                         branch_name: fullUser.branch_name,
-                        profilePhoto: bnxProfilePic || localStorage.getItem('profile_photo') || null,
-                        profilePictureUrl: bnxProfilePic || null
+                        profilePhoto: fullUser.profilePhoto,
+                        profilePictureUrl: fullUser.profilePictureUrl
                     });
                     return fullUser;
                 });

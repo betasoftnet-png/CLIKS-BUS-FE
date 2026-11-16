@@ -357,8 +357,15 @@ export function ProfileDropdown({
     const countryFlag = countryFlagObj ? countryFlagObj.flag : "🌐";
 
     const displayEmail = user?.email || "Guest";
-    // If the user has a display name, display that; otherwise display the full name of the logged in user
-    const displayName = (user?.displayName && String(user.displayName).trim())
+    const emailPrefix = user?.email ? user.email.split('@')[0] : "User";
+
+    const otherAccounts = (accounts || []).filter(acc => {
+        if (!acc || !acc.email) return false;
+        if (!user || !user.email) return true;
+        return acc.email.toLowerCase() !== user.email.toLowerCase();
+    });
+
+    const rawDisplayName = (user?.displayName && String(user.displayName).trim())
         ? String(user.displayName).trim()
         : (user?.display_name && String(user.display_name).trim())
             ? String(user.display_name).trim()
@@ -366,15 +373,20 @@ export function ProfileDropdown({
                 ? String(user.fullName).trim()
                 : (user?.full_name && String(user.full_name).trim())
                     ? String(user.full_name).trim()
-                    : user?.name || user?.username || (user?.email ? user.email.split('@')[0] : "User");
+                    : user?.name || user?.username || emailPrefix;
 
-    const firstLetter = (displayName || user?.name || user?.username || user?.email || 'U').trim().charAt(0).toUpperCase();
-
-    const otherAccounts = (accounts || []).filter(acc => {
-        if (!acc || !acc.email) return false;
-        if (!user || !user.email) return true;
-        return acc.email.toLowerCase() !== user.email.toLowerCase();
+    // Guard against cross-contamination: if candidate matches any other account's prefix, username, or display name, fall back to emailPrefix
+    const isStaleFromOther = otherAccounts.some(other => {
+        if (!other || !other.email) return false;
+        const otherPrefix = other.email.toLowerCase().split('@')[0];
+        const otherUser = String(other.username || '').toLowerCase().trim();
+        const otherDisp = String(other.displayName || other.name || '').toLowerCase().trim();
+        const candidate = rawDisplayName.toLowerCase().trim();
+        return candidate === otherPrefix || (otherUser && candidate === otherUser) || (otherDisp && candidate === otherDisp);
     });
+
+    const displayName = isStaleFromOther ? emailPrefix : rawDisplayName;
+    const firstLetter = (displayName || emailPrefix || 'U').trim().charAt(0).toUpperCase();
 
     const handleAddAccount = () => {
         const CLIENT_ID = 'cliks-business';
