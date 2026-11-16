@@ -516,10 +516,92 @@ const BusinessBarcode = () => {
         }
     };
 
-    const handlePrint = () => {
+    const preparePrintElement = async (targetNode) => {
+        if (!targetNode) return null;
+        const clone = targetNode.cloneNode(true);
+
+        // 1. Convert any <canvas> (e.g. QRCodeCanvas) to high-res PNG <img>
+        const origCanvases = targetNode.querySelectorAll('canvas');
+        const cloneCanvases = clone.querySelectorAll('canvas');
+        origCanvases.forEach((origCanvas, i) => {
+            const target = cloneCanvases[i];
+            if (target) {
+                const img = document.createElement('img');
+                img.src = origCanvas.toDataURL('image/png');
+                img.style.cssText = target.style.cssText;
+                img.style.display = 'block';
+                img.style.margin = '0 auto';
+                img.style.imageRendering = 'pixelated';
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                target.parentNode.replaceChild(img, target);
+            }
+        });
+
+        // 2. Convert any SVG barcode to a crisp 300-DPI PNG <img> so print drivers never bleed sub-pixel bars into a black block
+        const origSvgs = targetNode.querySelectorAll('.cliks-barcode-graphic-box svg');
+        const cloneSvgs = clone.querySelectorAll('.cliks-barcode-graphic-box svg');
+        
+        for (let i = 0; i < origSvgs.length; i++) {
+            const origSvg = origSvgs[i];
+            const targetSvg = cloneSvgs[i];
+            if (origSvg && targetSvg) {
+                try {
+                    const svgData = new XMLSerializer().serializeToString(origSvg);
+                    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                    const svgUrl = URL.createObjectURL(svgBlob);
+                    
+                    const img = new Image();
+                    await new Promise((resolve) => {
+                        img.onload = resolve;
+                        img.onerror = resolve;
+                        img.src = svgUrl;
+                    });
+
+                    const bbox = origSvg.getBoundingClientRect();
+                    const scale = 3; // 3x high-resolution for razor-sharp thermal & laser printing
+                    const canvas = document.createElement('canvas');
+                    const w = Math.max(180, Math.round(bbox.width || 300));
+                    const h = Math.max(50, Math.round(bbox.height || 90));
+                    canvas.width = w * scale;
+                    canvas.height = h * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.fillStyle = format.background || '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    URL.revokeObjectURL(svgUrl);
+
+                    const pngDataUrl = canvas.toDataURL('image/png');
+                    const printImg = document.createElement('img');
+                    printImg.src = pngDataUrl;
+                    printImg.style.width = `${w}px`;
+                    printImg.style.height = `${h}px`;
+                    printImg.style.display = 'block';
+                    printImg.style.margin = '0 auto';
+                    printImg.style.imageRendering = 'pixelated';
+                    printImg.style.objectFit = 'contain';
+
+                    targetSvg.parentNode.replaceChild(printImg, targetSvg);
+                } catch (err) {
+                    console.warn('[Barcode Print] SVG rasterize fallback:', err);
+                }
+            }
+        }
+
+        return clone;
+    };
+
+    const handlePrint = async () => {
         if (!barcodeRef.current) return;
+        const processedClone = await preparePrintElement(barcodeRef.current);
+        const elementHTML = (processedClone || barcodeRef.current).outerHTML;
+
         const printWindow = window.open('', '_blank');
-        const elementHTML = barcodeRef.current.outerHTML;
+        if (!printWindow) {
+            alert('Please allow popups to print barcode labels.');
+            return;
+        }
 
         let printStyles = '';
         let bodyContent = '';
@@ -536,6 +618,9 @@ const BusinessBarcode = () => {
                     font-family: 'Inter', system-ui, sans-serif; 
                 }
                 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                img { image-rendering: -webkit-optimize-contrast !important; image-rendering: crisp-edges !important; image-rendering: pixelated !important; }
+                svg { shape-rendering: crispEdges !important; image-rendering: pixelated !important; }
+                svg rect { shape-rendering: crispEdges !important; }
             `;
             bodyContent = elementHTML;
         } else if (printPlacement === 'sheet_grid') {
@@ -561,6 +646,9 @@ const BusinessBarcode = () => {
                     page-break-inside: avoid;
                 }
                 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                img { image-rendering: -webkit-optimize-contrast !important; image-rendering: crisp-edges !important; image-rendering: pixelated !important; }
+                svg { shape-rendering: crispEdges !important; image-rendering: pixelated !important; }
+                svg rect { shape-rendering: crispEdges !important; }
             `;
             bodyContent = `
                 <div class="label-sheet-grid">
@@ -568,18 +656,29 @@ const BusinessBarcode = () => {
                 </div>
             `;
         } else {
-            // Centered single page
+            // Centered single page with top alignment to prevent tall multi-field labels from clipping
             printStyles = `
+                @page { size: auto; margin: 10mm; }
                 body { 
                     display: flex; 
                     justify-content: center; 
-                    align-items: center; 
+                    align-items: flex-start; 
+                    padding: 20px 0;
                     min-height: 100vh; 
                     margin: 0;
                     background: #f8fafc;
                     font-family: 'Inter', system-ui, sans-serif; 
                 }
+                @media print {
+                    body {
+                        background: transparent !important;
+                        padding: 0 !important;
+                    }
+                }
                 * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                img { image-rendering: -webkit-optimize-contrast !important; image-rendering: crisp-edges !important; image-rendering: pixelated !important; }
+                svg { shape-rendering: crispEdges !important; image-rendering: pixelated !important; }
+                svg rect { shape-rendering: crispEdges !important; }
             `;
             bodyContent = elementHTML;
         }
@@ -650,22 +749,7 @@ const BusinessBarcode = () => {
     };
 
     const updateCustomField = (id, prop, val) => {
-        if (prop === 'key' && val && val.trim()) {
-            const cleanKey = val.trim().toLowerCase();
-            const exists = customFields.some(f => f.id !== id && f.key && f.key.trim().toLowerCase() === cleanKey);
-            if (exists) {
-                alert('This custom key has already been added.');
-                return;
-            }
-        }
-        setCustomFields(prev => {
-            if (prop === 'key' && val && val.trim()) {
-                const cleanKey = val.trim().toLowerCase();
-                const exists = prev.some(f => f.id !== id && f.key && f.key.trim().toLowerCase() === cleanKey);
-                if (exists) return prev;
-            }
-            return prev.map(f => f.id === id ? { ...f, [prop]: val } : f);
-        });
+        setCustomFields(prev => prev.map(f => f.id === id ? { ...f, [prop]: val } : f));
     };
 
     // Logo upload handler
@@ -880,6 +964,13 @@ const BusinessBarcode = () => {
                             height: ${bcHeight}px !important;
                             min-height: ${Math.min(60, bcHeight)}px !important;
                             max-height: ${bcHeight}px !important;
+                            shape-rendering: crispEdges !important;
+                            image-rendering: -webkit-optimize-contrast !important;
+                            image-rendering: crisp-edges !important;
+                            image-rendering: pixelated !important;
+                        }
+                        .cliks-barcode-graphic-box svg rect {
+                            shape-rendering: crispEdges !important;
                         }
                     `}</style>
                     <Barcode 
@@ -980,25 +1071,63 @@ const BusinessBarcode = () => {
                 <div style={{ 
                     width: '100%', 
                     marginBottom: '0.75rem',
-                    padding: '0.5rem',
+                    padding: activeCustomFields.length > 8 ? '0.4rem 0.6rem' : '0.5rem 0.75rem',
                     background: 'rgba(0,0,0,0.02)',
-                    borderRadius: '6px'
+                    borderRadius: '8px'
                 }}>
                     {customFieldsLayout === 'grid' ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: activeCustomFields.length > 1 ? '1fr 1fr' : '1fr', gap: '0.35rem 0.75rem', fontSize: '0.74rem' }}>
-                            {activeCustomFields.map((field) => (
-                                <div key={field.id} style={{ display: 'flex', gap: '4px', overflow: 'hidden' }}>
-                                    {field.key && <span style={{ fontWeight: '800' }}>{field.key}:</span>}
-                                    {field.value && <span style={{ opacity: 0.9, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{field.value}</span>}
-                                </div>
-                            ))}
+                        <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: activeCustomFields.length > 1 ? '1fr 1fr' : '1fr', 
+                            gap: activeCustomFields.length > 8 ? '0.25rem 0.75rem' : '0.35rem 0.75rem', 
+                            fontSize: activeCustomFields.length > 10 ? '0.70rem' : '0.74rem' 
+                        }}>
+                            {activeCustomFields.map((field) => {
+                                const keyLen = (field.key || '').length;
+                                const valLen = (field.value || '').length;
+                                const isLongField = (keyLen + valLen) > 20 || keyLen > 14 || valLen > 16;
+                                return (
+                                    <div 
+                                        key={field.id} 
+                                        style={{ 
+                                            display: 'flex', 
+                                            gap: '4px', 
+                                            gridColumn: isLongField ? '1 / -1' : 'auto',
+                                            wordBreak: 'break-word',
+                                            overflowWrap: 'anywhere',
+                                            lineHeight: 1.25,
+                                            padding: isLongField ? '1px 0' : 0
+                                        }}
+                                    >
+                                        {field.key && <span style={{ fontWeight: '800', flexShrink: 0 }}>{field.key}:</span>}
+                                        {field.value && <span style={{ opacity: 0.9, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{field.value}</span>}
+                                    </div>
+                                );
+                            })}
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '0.74rem', alignItems: barcodePlacement === 'side_by_side' ? 'flex-start' : 'center' }}>
+                        <div style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            gap: activeCustomFields.length > 8 ? '3px' : '4px', 
+                            fontSize: activeCustomFields.length > 10 ? '0.70rem' : '0.74rem' 
+                        }}>
                             {activeCustomFields.map((field) => (
-                                <div key={field.id} style={{ display: 'flex', gap: '4px' }}>
-                                    {field.key && <span style={{ fontWeight: '800' }}>{field.key}:</span>}
-                                    {field.value && <span>{field.value}</span>}
+                                <div 
+                                    key={field.id} 
+                                    style={{ 
+                                        display: 'flex', 
+                                        justifyContent: barcodePlacement === 'side_by_side' ? 'flex-start' : 'space-between', 
+                                        alignItems: 'flex-start',
+                                        gap: '6px', 
+                                        wordBreak: 'break-word', 
+                                        overflowWrap: 'anywhere', 
+                                        width: '100%', 
+                                        lineHeight: 1.25 
+                                    }}
+                                >
+                                    {field.key && <span style={{ fontWeight: '800', flexShrink: 0 }}>{field.key}:</span>}
+                                    {field.value && <span style={{ opacity: 0.9, textAlign: barcodePlacement === 'side_by_side' ? 'left' : 'right', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{field.value}</span>}
                                 </div>
                             ))}
                         </div>
@@ -2169,22 +2298,24 @@ const BusinessBarcode = () => {
                                         <input 
                                             type="text" 
                                             placeholder="Key (e.g., Weight)" 
-                                            maxLength={25}
+                                            maxLength={60}
                                             value={field.key} 
-                                            onChange={(e) => updateCustomField(field.id, 'key', e.target.value.slice(0, 25))}
-                                            style={{ flex: '1', padding: '0.65rem', fontSize: '0.85rem', fontWeight: '600', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                            onChange={(e) => updateCustomField(field.id, 'key', e.target.value.slice(0, 60))}
+                                            style={{ flex: '1', minWidth: '100px', padding: '0.65rem', fontSize: '0.85rem', fontWeight: '600', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                            title={field.key}
                                         />
                                         <input 
                                             type="text" 
-                                            placeholder="Value (e.g., 500g)" 
-                                            maxLength={40}
+                                            placeholder="Value (e.g., 500g, Certified Organic, Batch-2026-X)" 
+                                            maxLength={150}
                                             value={field.value} 
-                                            onChange={(e) => updateCustomField(field.id, 'value', e.target.value.slice(0, 40))}
-                                            style={{ flex: '1.5', padding: '0.65rem', fontSize: '0.85rem', fontWeight: '600', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                            onChange={(e) => updateCustomField(field.id, 'value', e.target.value.slice(0, 150))}
+                                            style={{ flex: '1.8', minWidth: '140px', padding: '0.65rem', fontSize: '0.85rem', fontWeight: '600', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                            title={field.value}
                                         />
                                         <button 
                                             onClick={() => removeCustomField(field.id)}
-                                            style={{ background: '#fef2f2', border: 'none', padding: '0.65rem', borderRadius: '8px', cursor: 'pointer', color: '#ef4444' }}
+                                            style={{ background: '#fef2f2', border: 'none', padding: '0.65rem', borderRadius: '8px', cursor: 'pointer', color: '#ef4444', flexShrink: 0 }}
                                             title="Delete Field"
                                         >
                                             <Trash2 size={16} />
