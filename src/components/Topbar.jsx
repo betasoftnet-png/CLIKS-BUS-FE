@@ -582,7 +582,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
     ];
 
     return (
-        <header className="topbar" style={{ paddingLeft: '1.5rem', paddingRight: '64px' }}>
+        <header className="topbar" style={{ paddingLeft: '1.5rem', paddingRight: '64px', position: 'relative' }}>
             {/* Left: Branding / App Switcher & Showroom Selector */}
             <div className="topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div
@@ -1336,7 +1336,7 @@ const Topbar = ({ onToggleSidebar, isSidebarOpen, activePanel, setActivePanel })
             <div 
                 className="topbar-toolbar-toggle-wrapper"
                 style={{
-                    position: 'fixed',
+                    position: 'absolute',
                     top: 0,
                     right: 0,
                     width: '64px',

@@ -9,7 +9,7 @@ export const authService = {
      */
     ssoLogin: async (bnxToken, appType = null) => {
         const res = await apiClient.post('/auth/sso', { bnxToken, appType });
-        return res.data || res;
+        return res?.data?.data || res?.data || res;
     },
 
     /**

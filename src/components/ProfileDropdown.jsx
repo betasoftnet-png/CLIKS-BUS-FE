@@ -1019,9 +1019,9 @@ export function ProfileDropdown({
                                                     return (
                                                         <div
                                                             key={acc.id || acc.email || idx}
-                                                            onClick={() => {
-                                                                switchAccount(acc);
+                                                            onClick={async () => {
                                                                 setOpen(false);
+                                                                await switchAccount(acc);
                                                             }}
                                                             style={{
                                                                 display: 'flex',

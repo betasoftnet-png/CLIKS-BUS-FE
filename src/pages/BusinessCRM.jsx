@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context';
 import { applyTableFilters } from '../utils/filterUtils';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
@@ -496,6 +497,7 @@ const BusinessCRM = () => {
     const [selectedProfileCustomer, setSelectedProfileCustomer] = useState(null);
     const [selectedParty, setSelectedParty] = useState(null);
     const [activeMenu, setActiveMenu] = useState(null);
+    const { user } = useAuth();
     const [editingCustomer, setEditingCustomer] = useState(null);
     const [activeTab, setActiveTab] = useState('list'); // 'list', 'reports'
     const [customers, setCustomers] = useState([]);
@@ -717,7 +719,11 @@ const BusinessCRM = () => {
     }, []);
 
     useEffect(() => {
+        setCustomers([]);
         loadCustomers(true);
+    }, [user?.id, user?.email, loadCustomers]);
+
+    useEffect(() => {
         const handleFocus = () => loadCustomers(false);
         window.addEventListener('focus', handleFocus);
         const timer = setInterval(() => loadCustomers(false), 30000);

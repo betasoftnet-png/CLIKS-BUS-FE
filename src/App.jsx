@@ -242,7 +242,7 @@ function AuthenticatedApp() {
     <ProtectedRoute>
       <ErrorBoundary>
         <MainLayout>
-          <div key={location.pathname} className="main-content-wrapper" style={{ height: '100%', width: '100%', minHeight: 0 }}>
+          <div key={`${user?.id || user?.email || 'guest'}-${location.pathname}`} className="main-content-wrapper" style={{ height: '100%', width: '100%', minHeight: 0 }}>
             <Suspense fallback={<PageLoader />}>
               <Routes location={location}>
                 {/* Root Redirect */}

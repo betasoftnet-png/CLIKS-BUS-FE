@@ -797,10 +797,14 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 1.5rem;
-    z-index: 35;
-    position: relative;
+    z-index: 1001;
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
     color: #FFFFFF !important;
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
 }
 
 .topbar-toolbar-toggle-wrapper {

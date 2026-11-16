@@ -200,7 +200,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     // Switch active account seamlessly with full context sync
-    const switchAccount = React.useCallback((targetAccount) => {
+    const switchAccount = React.useCallback(async (targetAccount) => {
         if (!targetAccount || !targetAccount.email) return;
         const targetEmail = targetAccount.email.toLowerCase();
 
@@ -215,32 +215,66 @@ export const AuthProvider = ({ children }) => {
         } catch (e) {}
 
         const freshTarget = storedAccounts.find(a => a.email && a.email.toLowerCase() === targetEmail) || targetAccount;
-        if (!freshTarget || !freshTarget.token) return;
+        if (!freshTarget) return;
+
+        // Retrieve BNX token for this account from multi-account store
+        const nextBnxToken = freshTarget.bnxToken || findBnxTokenForAccount(freshTarget) || null;
+        let nextBooksToken = freshTarget.token;
+
+        // If booksToken is missing or we have a valid BNX token, obtain a fresh backend access token
+        if (!nextBooksToken && nextBnxToken) {
+            try {
+                const ssoRes = await authService.ssoLogin(nextBnxToken, 'BUSINESS');
+                const tokenData = ssoRes?.data || ssoRes;
+                if (tokenData?.accessToken) {
+                    nextBooksToken = tokenData.accessToken;
+                }
+            } catch (err) {
+                console.warn('[switchAccount] Could not refresh session token:', err.message);
+                nextBooksToken = nextBnxToken;
+            }
+        }
+
+        if (!nextBooksToken && !nextBnxToken) return;
+        const activeToken = nextBooksToken || nextBnxToken;
+
+        // Clear query cache to prevent showing previous account's cached queries
+        try {
+            queryClient.clear();
+        } catch (e) {}
+
+        // Clear branch headers
+        try {
+            apiClient.setActiveBranchHeader(null);
+        } catch (e) {}
 
         // Clear tenant keys, preserve shortcuts, cliks_multi_accounts, and multi-account BNX tokens
+        const preservedKeys = new Set([
+            'cliks_dashboard_shortcuts',
+            'cliks_multi_accounts',
+            'cliks_bnx_tokens',
+            'cliks_dark_mode',
+            'cliks_language',
+            'cliks_currency',
+            'cliks_country'
+        ]);
+
         Object.keys(localStorage).forEach(key => {
-            if (key !== 'cliks_dashboard_shortcuts' &&
-                key !== 'cliks_multi_accounts' &&
-                key !== 'cliks_bnx_tokens' &&
-                !key.startsWith('bnx_token_') &&
-                !key.startsWith('bnx_auth_token_') &&
-                (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_'))) {
-                localStorage.removeItem(key);
+            if (!preservedKeys.has(key) && !key.startsWith('bnx_token_') && !key.startsWith('bnx_auth_token_')) {
+                if (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_') ||
+                    key === 'token' || key === 'authToken' || key === 'user' || key === 'access_token' ||
+                    key === 'business' || key === 'business_id' || key === 'active_business') {
+                    localStorage.removeItem(key);
+                }
             }
         });
         try {
             Object.keys(sessionStorage).forEach(key => {
-                if (key.startsWith('cliks_') || key.startsWith('books_') || key.startsWith('pos_')) {
-                    sessionStorage.removeItem(key);
-                }
+                sessionStorage.removeItem(key);
             });
         } catch (e) {}
 
-        const nextBooksToken = freshTarget.token;
-        // Retrieve BNX token for this account from multi-account store
-        const nextBnxToken = freshTarget.bnxToken || findBnxTokenForAccount(freshTarget) || null;
-
-        localStorage.setItem('books_auth_token', nextBooksToken);
+        localStorage.setItem('books_auth_token', activeToken);
         if (nextBnxToken) {
             localStorage.setItem('bnx_auth_token', nextBnxToken);
             saveBnxTokenForAccount(nextBnxToken, [targetEmail, freshTarget.username, targetEmail.split('@')[0]]);
@@ -255,7 +289,12 @@ export const AuthProvider = ({ children }) => {
         // Update timestamps in cliks_multi_accounts
         const updatedAccounts = storedAccounts.map(a => {
             if (a.email && a.email.toLowerCase() === targetEmail) {
-                return { ...a, lastActive: Date.now(), ...(nextBnxToken ? { bnxToken: nextBnxToken } : {}) };
+                return { 
+                    ...a, 
+                    token: activeToken,
+                    lastActive: Date.now(), 
+                    ...(nextBnxToken ? { bnxToken: nextBnxToken } : {}) 
+                };
             }
             return a;
         });
@@ -264,8 +303,8 @@ export const AuthProvider = ({ children }) => {
         } catch (e) {}
 
         // Reload page to guarantee clean context, fresh cache, and immediate token sync
-        window.location.href = '/dashboard';
-    }, []);
+        window.location.replace('/dashboard');
+    }, [queryClient]);
 
     // Sign out of all accounts
     const logoutAll = React.useCallback(() => {
