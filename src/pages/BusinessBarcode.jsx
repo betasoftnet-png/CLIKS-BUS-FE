@@ -98,12 +98,24 @@ const PRESET_ATTRIBUTE_PILLS = [
 
 const BADGE_OPTIONS = [
     { id: 'none', label: 'None' },
+    { id: 'custom', label: '✨ Custom Company Badge...' },
     { id: 'made_in_india', label: 'Made in India 🇮🇳' },
     { id: 'eco_friendly', label: 'Eco-Friendly 🌿' },
     { id: 'quality_checked', label: 'Quality Checked 🔒' },
     { id: 'organic', label: 'Organic 🍃' },
     { id: 'genuine', label: '100% Genuine ⭐' }
 ];
+
+const BADGE_THEMES = [
+    { id: 'green', label: 'Eco Green', color: '#166534', bg: '#F0FDF4', border: '#DCF2E4' },
+    { id: 'blue', label: 'Corporate Blue', color: '#1D4ED8', bg: '#EFF6FF', border: '#DBEAFE' },
+    { id: 'amber', label: 'Gold Amber', color: '#B45309', bg: '#FEF3C7', border: '#FDE68A' },
+    { id: 'purple', label: 'Royal Purple', color: '#6D28D9', bg: '#F5F3FF', border: '#EDE9FE' },
+    { id: 'red', label: 'Crimson Red', color: '#B91C1C', bg: '#FEF2F2', border: '#FEE2E2' },
+    { id: 'slate', label: 'Modern Slate', color: '#334155', bg: '#F1F5F9', border: '#E2E8F0' }
+];
+
+const BADGE_ICON_PRESETS = ['⭐', '🏆', '🔒', '✅', '🌿', '🇮🇳', '💎', '🔥', '🏷️', '🛡️', '👑', '💯', '✨', '⚡', '📦', '🎯'];
 
 const BusinessBarcode = () => {
     const { currency } = useCurrency();
@@ -175,6 +187,11 @@ const BusinessBarcode = () => {
     const [logoUrl, setLogoUrl] = useState('');
     const logoInputRef = useRef(null);
     const [selectedBadge, setSelectedBadge] = useState('none');
+    
+    // Custom Company-Specific Badge States
+    const [customBadgeText, setCustomBadgeText] = useState('Certified Quality');
+    const [customBadgeIcon, setCustomBadgeIcon] = useState('⭐');
+    const [customBadgeTheme, setCustomBadgeTheme] = useState('green');
 
     const handleRemoveLogo = () => {
         setLogoUrl('');
@@ -399,22 +416,44 @@ const BusinessBarcode = () => {
         // Must stay scannable by physical 1D laser scanners without overflowing
         if (encryptionMode === 'encrypted') {
             try {
-                // Generate a scannable encrypted token with base64 signature
+                // Generate a compact scannable encrypted token (8-char signature)
                 const tokenSeed = `${codeValue}:${labelDetails.price || '0'}:${labelDetails.mrp || '0'}`;
-                const b64 = btoa(unescape(encodeURIComponent(tokenSeed))).replace(/[^a-zA-Z0-9]/g, '').slice(0, 14).toUpperCase();
+                const b64 = btoa(unescape(encodeURIComponent(tokenSeed))).replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toUpperCase();
                 return `ENC-${b64}`;
             } catch (e) {
-                return `ENC-${codeValue.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase()}`;
+                return `ENC-${codeValue.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toUpperCase()}`;
             }
         } else if (encryptionMode === 'compact') {
-            const attrSnippet = validFields.map(f => f.value).filter(Boolean).slice(0, 2).join('*');
+            const attrSnippet = validFields.map(f => f.value).filter(Boolean).slice(0, 1).join('*');
             const compact = `${codeValue}*${labelDetails.price || '0'}${attrSnippet ? '*' + attrSnippet : ''}`;
-            return compact.slice(0, 42);
+            return compact.slice(0, 24);
         } else {
             // Structured key-value scannable format
             const shortStr = `SKU:${codeValue}|P:${labelDetails.price || '0'}`;
-            return shortStr.slice(0, 40);
+            return shortStr.slice(0, 24);
         }
+    };
+
+    const getEffectiveBadge = () => {
+        if (!selectedBadge || selectedBadge === 'none') return null;
+        if (selectedBadge === 'custom') {
+            const theme = BADGE_THEMES.find(t => t.id === customBadgeTheme) || BADGE_THEMES[0];
+            return {
+                text: customBadgeText || 'Company Badge',
+                icon: customBadgeIcon,
+                color: theme.color,
+                bg: theme.bg,
+                border: theme.border
+            };
+        }
+        const preset = BADGE_OPTIONS.find(b => b.id === selectedBadge);
+        return {
+            text: preset ? preset.label : selectedBadge,
+            icon: '',
+            color: '#166534',
+            bg: '#F0FDF4',
+            border: '#DCF2E4'
+        };
     };
 
     const handleCopyPayload = () => {
@@ -803,7 +842,13 @@ const BusinessBarcode = () => {
         }
 
         // Standard Barcodes (CODE128, EAN13, UPC, CODE39)
-        const bcHeight = isEnlarged ? format.height + 40 : format.height;
+        const bcHeight = isEnlarged ? Math.max(120, format.height + 40) : format.height;
+
+        // Auto-Fit Bar Width: Calculate optimal module width so total SVG width fits container without forcing browser to collapse height
+        const cleanPayloadStr = String(payload);
+        const approxModules = (cleanPayloadStr.length + 3) * 11 + 35;
+        const availableWidth = isEnlarged ? 440 : (selectedPreset === 'jewelry' ? 240 : 340);
+        const fitWidth = Math.max(1, Math.min(format.width, Number((availableWidth / approxModules).toFixed(2))));
 
         return (
             <div 
@@ -818,19 +863,30 @@ const BusinessBarcode = () => {
                     margin: '0.35rem 0'
                 }}
             >
-                <div style={{ 
-                    width: '100%', 
-                    display: 'flex', 
-                    justifyContent: barcodeAlign === 'left' ? 'flex-start' : barcodeAlign === 'right' ? 'flex-end' : 'center', 
-                    alignItems: 'center', 
-                    overflowX: 'auto', 
-                    padding: '4px 0' 
-                }}>
+                <div 
+                    className="cliks-barcode-graphic-box"
+                    style={{ 
+                        width: '100%', 
+                        display: 'flex', 
+                        justifyContent: barcodeAlign === 'left' ? 'flex-start' : barcodeAlign === 'right' ? 'flex-end' : 'center', 
+                        alignItems: 'center', 
+                        overflowX: 'auto', 
+                        padding: '4px 0',
+                        minHeight: `${bcHeight}px`
+                    }}
+                >
+                    <style>{`
+                        .cliks-barcode-graphic-box svg {
+                            height: ${bcHeight}px !important;
+                            min-height: ${Math.min(60, bcHeight)}px !important;
+                            max-height: ${bcHeight}px !important;
+                        }
+                    `}</style>
                     <Barcode 
-                        key={`barcode-${isEnlarged ? 'modal' : 'canvas'}-${codeType}-${payload}-${format.width}-${bcHeight}-${format.lineColor}-${format.background}`}
+                        key={`barcode-${isEnlarged ? 'modal' : 'canvas'}-${codeType}-${payload}-${fitWidth}-${bcHeight}-${format.lineColor}-${format.background}`}
                         value={payload}
                         format={codeType}
-                        width={format.width}
+                        width={fitWidth}
                         height={bcHeight}
                         displayValue={false}
                         fontSize={format.fontSize}
@@ -1900,7 +1956,110 @@ const BusinessBarcode = () => {
                                     </select>
                                 </div>
                             </div>
-                        </div>
+
+                            {/* CUSTOM COMPANY-SPECIFIC BADGE STUDIO */}
+                            {selectedBadge === 'custom' && (
+                                <div style={{ marginTop: '0.85rem', padding: '0.85rem', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '0.76rem', fontWeight: '800', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <Award size={14} color="#1B6B3A" />
+                                            Company Specific Badge Customizer
+                                        </span>
+                                        {/* Live Preview pill */}
+                                        {(() => {
+                                            const previewBadge = getEffectiveBadge();
+                                            if (!previewBadge) return null;
+                                            return (
+                                                <span style={{ fontSize: '0.7rem', fontWeight: '800', background: previewBadge.bg, color: previewBadge.color, border: `1px solid ${previewBadge.border}`, padding: '2px 8px', borderRadius: '6px' }}>
+                                                    {previewBadge.icon} {previewBadge.text}
+                                                </span>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    {/* Badge Label input */}
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                                            <label style={{ fontSize: '0.72rem', fontWeight: '750', color: '#475569', margin: 0 }}>
+                                                Badge Name / Company Slogan
+                                            </label>
+                                            <span style={{ fontSize: '0.68rem', fontWeight: '700', color: (customBadgeText || '').length >= 30 ? '#EA580C' : '#94A3B8' }}>
+                                                {(customBadgeText || '').length}/30 chars
+                                            </span>
+                                        </div>
+                                        <input 
+                                            type="text"
+                                            maxLength={30}
+                                            value={customBadgeText}
+                                            onChange={(e) => setCustomBadgeText(e.target.value.slice(0, 30))}
+                                            placeholder="e.g. ISO 9001:2015, Tested & Approved, Pure Silk"
+                                            style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.82rem', fontWeight: '600', outline: 'none', boxSizing: 'border-box' }}
+                                        />
+                                    </div>
+
+                                    {/* Icon / Emoji quick-picks */}
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#475569', marginBottom: '0.3rem' }}>
+                                            Badge Icon / Emoji
+                                        </label>
+                                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                            {BADGE_ICON_PRESETS.map((ic, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => setCustomBadgeIcon(ic)}
+                                                    style={{
+                                                        padding: '3px 6px',
+                                                        borderRadius: '6px',
+                                                        border: customBadgeIcon === ic ? '1.5px solid #1B6B3A' : '1px solid #E2E8F0',
+                                                        background: customBadgeIcon === ic ? '#DCFCE7' : '#FFFFFF',
+                                                        cursor: 'pointer',
+                                                        fontSize: '0.85rem'
+                                                    }}
+                                                >
+                                                    {ic}
+                                                </button>
+                                            ))}
+                                            <input 
+                                                type="text"
+                                                maxLength={4}
+                                                value={customBadgeIcon}
+                                                onChange={(e) => setCustomBadgeIcon(e.target.value.slice(0, 4))}
+                                                placeholder="Custom"
+                                                style={{ width: '56px', padding: '3px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.78rem', textAlign: 'center', fontWeight: '700' }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Badge Color Theme presets */}
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '750', color: '#475569', marginBottom: '0.3rem' }}>
+                                            Badge Color Theme
+                                        </label>
+                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                            {BADGE_THEMES.map(t => (
+                                                <button
+                                                    key={t.id}
+                                                    type="button"
+                                                    onClick={() => setCustomBadgeTheme(t.id)}
+                                                    style={{
+                                                        padding: '3px 8px',
+                                                        borderRadius: '6px',
+                                                        border: customBadgeTheme === t.id ? `2px solid ${t.color}` : '1px solid #E2E8F0',
+                                                        background: t.bg,
+                                                        color: t.color,
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: '800',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    {t.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                         {/* Multiple Custom Keys & Values Section */}
                         <div style={{ borderTop: '1px dashed #e2e8f0', marginTop: '1.5rem', paddingTop: '1.25rem' }}>
@@ -2064,15 +2223,47 @@ const BusinessBarcode = () => {
                             </div>
                             
                             <div>
-                                <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: '700', color: '#64748b', marginBottom: '0.5rem' }}>
-                                    Height (px) <span>{format.height}px</span>
-                                </label>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', margin: 0 }}>
+                                        Barcode Height <span>({format.height}px)</span>
+                                    </label>
+                                    <span style={{ fontSize: '0.68rem', color: '#166534', fontWeight: '750', background: '#DCFCE7', padding: '1px 6px', borderRadius: '4px' }}>
+                                        Height Locked
+                                    </span>
+                                </div>
                                 <input 
-                                    type="range" min="30" max="200" step="5" 
+                                    type="range" min="40" max="260" step="5" 
                                     value={format.height} 
                                     onChange={(e) => updateFormat('height', Number(e.target.value))} 
                                     style={{ width: '100%', accentColor: '#1B6B3A' }}
                                 />
+                                <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                                    {[
+                                        { l: 'Compact', h: 70 },
+                                        { l: 'Standard', h: 100 },
+                                        { l: 'Tall', h: 150 },
+                                        { l: 'Jumbo', h: 200 }
+                                    ].map(sz => (
+                                        <button
+                                            key={sz.l}
+                                            type="button"
+                                            onClick={() => updateFormat('height', sz.h)}
+                                            style={{
+                                                flex: 1,
+                                                padding: '2px 0',
+                                                borderRadius: '4px',
+                                                border: format.height === sz.h ? '1.5px solid #1B6B3A' : '1px solid #E2E8F0',
+                                                background: format.height === sz.h ? '#DCFCE7' : '#F8FAFC',
+                                                color: format.height === sz.h ? '#166534' : '#64748B',
+                                                fontSize: '0.67rem',
+                                                fontWeight: '750',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            {sz.l}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
                             <div>
@@ -2365,11 +2556,31 @@ const BusinessBarcode = () => {
                                 )}
 
                                 {/* QUALITY BADGE DISPLAY */}
-                                {(selectedPreset !== 'custom' || customTemplateConfig.showBadge) && selectedBadge && selectedBadge !== 'none' && (
-                                    <div style={{ position: 'absolute', top: '10px', right: '12px', fontSize: '0.65rem', fontWeight: '800', background: '#F0FDF4', color: '#166534', border: '1px solid #DCF2E4', padding: '2px 6px', borderRadius: '6px' }}>
-                                        {BADGE_OPTIONS.find(b => b.id === selectedBadge)?.label}
-                                    </div>
-                                )}
+                                {(selectedPreset !== 'custom' || customTemplateConfig.showBadge) && (() => {
+                                    const badge = getEffectiveBadge();
+                                    if (!badge) return null;
+                                    return (
+                                        <div style={{ 
+                                            position: 'absolute', 
+                                            top: '10px', 
+                                            right: '12px', 
+                                            fontSize: '0.66rem', 
+                                            fontWeight: '800', 
+                                            background: badge.bg, 
+                                            color: badge.color, 
+                                            border: `1px solid ${badge.border}`, 
+                                            padding: '2px 7px', 
+                                            borderRadius: '6px',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                                        }}>
+                                            {badge.icon && <span>{badge.icon}</span>}
+                                            <span>{badge.text}</span>
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* Dynamic In-Label Placement Layout */}
                                 {barcodePlacement === 'top' && (
@@ -2612,11 +2823,31 @@ const BusinessBarcode = () => {
                             )}
 
                             {/* Badge */}
-                            {selectedBadge && selectedBadge !== 'none' && (
-                                <div style={{ position: 'absolute', top: '12px', right: '14px', fontSize: '0.7rem', fontWeight: '800', background: '#F0FDF4', color: '#166534', border: '1px solid #DCF2E4', padding: '3px 8px', borderRadius: '6px' }}>
-                                    {BADGE_OPTIONS.find(b => b.id === selectedBadge)?.label}
-                                </div>
-                            )}
+                            {(() => {
+                                const badge = getEffectiveBadge();
+                                if (!badge) return null;
+                                return (
+                                    <div style={{ 
+                                        position: 'absolute', 
+                                        top: '12px', 
+                                        right: '14px', 
+                                        fontSize: '0.72rem', 
+                                        fontWeight: '800', 
+                                        background: badge.bg, 
+                                        color: badge.color, 
+                                        border: `1px solid ${badge.border}`, 
+                                        padding: '3px 9px', 
+                                        borderRadius: '6px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                                    }}>
+                                        {badge.icon && <span>{badge.icon}</span>}
+                                        <span>{badge.text}</span>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Dynamic Layout in Scan Preview Modal */}
                             {barcodePlacement === 'top' && (
@@ -2679,6 +2910,7 @@ const BusinessBarcode = () => {
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 };
