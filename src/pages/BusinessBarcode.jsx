@@ -117,6 +117,48 @@ const BADGE_THEMES = [
 
 const BADGE_ICON_PRESETS = ['⭐', '🏆', '🔒', '✅', '🌿', '🇮🇳', '💎', '🔥', '🏷️', '🛡️', '👑', '💯', '✨', '⚡', '📦', '🎯'];
 
+// Luminance & WCAG Contrast Helpers to prevent invisible white-on-white "blank bills"
+const hexToRgb = (hex) => {
+    if (!hex) return null;
+    let clean = String(hex).replace('#', '').trim();
+    if (clean.length === 3) {
+        clean = clean.split('').map(c => c + c).join('');
+    }
+    if (clean.length !== 6) return null;
+    const num = parseInt(clean, 16);
+    if (isNaN(num)) return null;
+    return {
+        r: (num >> 16) & 255,
+        g: (num >> 8) & 255,
+        b: num & 255
+    };
+};
+
+const getLuminance = (hex) => {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return 0.5;
+    const [r, g, b] = [rgb.r, rgb.g, rgb.b].map(v => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+const getContrastRatio = (color1, color2) => {
+    const lum1 = getLuminance(color1);
+    const lum2 = getLuminance(color2);
+    const lighter = Math.max(lum1, lum2);
+    const darker = Math.min(lum1, lum2);
+    return Number(((lighter + 0.05) / (darker + 0.05)).toFixed(2));
+};
+
+const SCANNABLE_COLOR_PRESETS = [
+    { label: 'Standard B&W', line: '#000000', bg: '#ffffff', tag: '100% Thermal Scannable' },
+    { label: 'Thermal Slate', line: '#0f172a', bg: '#f8fafc', tag: 'High Contrast' },
+    { label: 'Forest Eco', line: '#166534', bg: '#f0fdf4', tag: 'Green Brand' },
+    { label: 'Corporate Navy', line: '#1e3a8a', bg: '#eff6ff', tag: 'Retail Blue' }
+];
+
 const BusinessBarcode = () => {
     const { currency } = useCurrency();
     const [selectedPreset, setSelectedPreset] = useState('standard');
@@ -174,6 +216,19 @@ const BusinessBarcode = () => {
         borderColor: '#e2e8f0',
         displayValue: true
     });
+
+    // Contrast Guard to prevent invisible white-on-white text / blank bills
+    const contrastRatio = getContrastRatio(format.lineColor, format.background);
+    const isLowContrast = contrastRatio < 2.5;
+    const isLightBackground = getLuminance(format.background) > 0.5;
+
+    // Guaranteed high-contrast fallback for canvas rendering so white-on-white never creates blank bills
+    const effectiveLineColor = isLowContrast ? (isLightBackground ? '#0F172A' : '#FFFFFF') : format.lineColor;
+    const effectiveBarcodeColor = isLowContrast ? (isLightBackground ? '#000000' : '#FFFFFF') : format.lineColor;
+
+    const applyColorPreset = (line, bg) => {
+        setFormat(prev => ({ ...prev, lineColor: line, background: bg }));
+    };
 
     const [labelDetails, setLabelDetails] = useState({
         title: '',
@@ -899,14 +954,14 @@ const BusinessBarcode = () => {
                         value={payload} 
                         size={qrSize} 
                         bgColor={format.background}
-                        fgColor={format.lineColor}
+                        fgColor={effectiveBarcodeColor}
                         level={"H"}
                     />
                     {format.displayValue && displayLabelText && (
                         <div style={{ 
                             textAlign: barcodeAlign, 
                             marginTop: '6px', 
-                            color: format.lineColor, 
+                            color: effectiveLineColor, 
                             fontSize: `${isEnlarged ? format.fontSize + 2 : format.fontSize}px`, 
                             fontFamily: 'monospace', 
                             fontWeight: 'bold', 
@@ -974,7 +1029,7 @@ const BusinessBarcode = () => {
                         }
                     `}</style>
                     <Barcode 
-                        key={`barcode-${isEnlarged ? 'modal' : 'canvas'}-${codeType}-${payload}-${fitWidth}-${bcHeight}-${format.lineColor}-${format.background}`}
+                        key={`barcode-${isEnlarged ? 'modal' : 'canvas'}-${codeType}-${payload}-${fitWidth}-${bcHeight}-${effectiveBarcodeColor}-${format.background}`}
                         value={payload}
                         format={codeType}
                         width={fitWidth}
@@ -982,7 +1037,7 @@ const BusinessBarcode = () => {
                         displayValue={false}
                         fontSize={format.fontSize}
                         background={format.background}
-                        lineColor={format.lineColor}
+                        lineColor={effectiveBarcodeColor}
                         margin={codeType === 'EAN13' || codeType === 'UPC' ? format.margin : 2}
                     />
                 </div>
@@ -990,7 +1045,7 @@ const BusinessBarcode = () => {
                     <div style={{ 
                         textAlign: barcodeAlign, 
                         marginTop: '4px', 
-                        color: format.lineColor, 
+                        color: effectiveLineColor, 
                         fontSize: `${isEnlarged ? format.fontSize + 2 : format.fontSize}px`, 
                         fontFamily: 'monospace', 
                         fontWeight: 'bold', 
@@ -1013,14 +1068,14 @@ const BusinessBarcode = () => {
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: barcodePlacement === 'side_by_side' ? 'flex-start' : 'center' }}>
             {/* Logistics SKU Banner */}
             {selectedPreset === 'logistics' && (
-                <div style={{ width: '100%', borderBottom: `2px solid ${format.lineColor}`, paddingBottom: '0.4rem', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: '900', fontSize: '0.9rem', letterSpacing: '0.05em' }}>SKU: {codeValue}</span>
-                    <span style={{ fontSize: '0.72rem', fontWeight: '800', background: format.lineColor, color: format.background, padding: '2px 6px', borderRadius: '4px' }}>LOGISTICS</span>
+                <div style={{ width: '100%', borderBottom: `2px solid ${effectiveLineColor}`, paddingBottom: '0.4rem', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: '900', fontSize: '0.9rem', letterSpacing: '0.05em', color: effectiveLineColor }}>SKU: {codeValue || 'e.g., CLKS-1001-PROD'}</span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: '800', background: effectiveLineColor, color: format.background, padding: '2px 6px', borderRadius: '4px' }}>LOGISTICS</span>
                 </div>
             )}
 
             {/* Product Title */}
-            {labelDetails.title && (
+            {labelDetails.title ? (
                 <div style={{ 
                     fontSize: selectedPreset === 'compact' ? '0.95rem' : '1.1rem', 
                     fontWeight: '900', 
@@ -1037,14 +1092,29 @@ const BusinessBarcode = () => {
                     WebkitBoxOrient: 'vertical',
                     lineHeight: 1.25,
                     boxSizing: 'border-box',
-                    padding: '0 4px'
+                    padding: '0 4px',
+                    color: effectiveLineColor
                 }}>
                     {labelDetails.title}
+                </div>
+            ) : (
+                <div style={{ 
+                    fontSize: selectedPreset === 'compact' ? '0.88rem' : '1.05rem', 
+                    fontWeight: '800', 
+                    marginBottom: '0.2rem', 
+                    textAlign: barcodePlacement === 'side_by_side' ? 'left' : 'center', 
+                    color: effectiveLineColor,
+                    opacity: 0.45,
+                    fontStyle: 'italic',
+                    boxSizing: 'border-box',
+                    padding: '0 4px'
+                }}>
+                    e.g., Premium Cotton Shirt
                 </div>
             )}
 
             {/* Subtitle / Variation */}
-            {labelDetails.subtitle && (
+            {labelDetails.subtitle ? (
                 <div style={{ 
                     fontSize: '0.75rem', 
                     opacity: 0.85, 
@@ -1060,9 +1130,22 @@ const BusinessBarcode = () => {
                     WebkitBoxOrient: 'vertical',
                     lineHeight: 1.25,
                     boxSizing: 'border-box',
-                    padding: '0 4px'
+                    padding: '0 4px',
+                    color: effectiveLineColor
                 }}>
                     {labelDetails.subtitle}
+                </div>
+            ) : (
+                <div style={{ 
+                    fontSize: '0.72rem', 
+                    opacity: 0.45, 
+                    marginBottom: '0.65rem', 
+                    fontWeight: '600', 
+                    textAlign: barcodePlacement === 'side_by_side' ? 'left' : 'center',
+                    fontStyle: 'italic',
+                    color: effectiveLineColor
+                }}>
+                    e.g., Size: L | Color: Navy
                 </div>
             )}
 
@@ -1138,35 +1221,60 @@ const BusinessBarcode = () => {
     );
 
     const renderCanvasPricing = () => {
-        if ((selectedPreset === 'custom' && !customTemplateConfig.showPrice) || !labelDetails.price) return null;
+        if (selectedPreset === 'custom' && !customTemplateConfig.showPrice) return null;
 
+        if (labelDetails.price) {
+            return (
+                <div style={{ 
+                    marginTop: '0.65rem', 
+                    borderTop: `1px solid ${effectiveLineColor}`, 
+                    paddingTop: '0.4rem', 
+                    width: '100%', 
+                    textAlign: 'center'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: barcodePlacement === 'side_by_side' ? 'flex-start' : 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                        {/* Original MRP Strikethrough Display */}
+                        {(selectedPreset !== 'custom' || customTemplateConfig.showMrp) && numMrp > numPrice && (
+                            <span style={{ textDecoration: 'line-through', color: '#94A3B8', fontSize: '0.95rem', fontWeight: '700' }}>
+                                {labelDetails.currencySymbol} {labelDetails.mrp}
+                            </span>
+                        )}
+
+                        {/* Offer Price Display */}
+                        <span style={{ fontSize: '1.25rem', fontWeight: '900', color: effectiveLineColor }}>
+                            {labelDetails.currencySymbol} {labelDetails.price}
+                        </span>
+
+                        {/* Discount Percent Badge */}
+                        {(selectedPreset !== 'custom' || customTemplateConfig.showDiscountBadge) && discountPct > 0 && (
+                            <span style={{ fontSize: '0.68rem', fontWeight: '850', background: '#DCFCE7', color: '#15803D', padding: '1px 5px', borderRadius: '4px' }}>
+                                {discountPct}% OFF
+                            </span>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // On initial load when prices are not yet entered ("on the first itself"), display clearly marked example prices (e.g.)
         return (
             <div style={{ 
                 marginTop: '0.65rem', 
-                borderTop: `1px solid ${format.lineColor}`, 
+                borderTop: `1px dashed ${effectiveLineColor}35`, 
                 paddingTop: '0.4rem', 
                 width: '100%', 
                 textAlign: 'center'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: barcodePlacement === 'side_by_side' ? 'flex-start' : 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                    {/* Original MRP Strikethrough Display */}
-                    {(selectedPreset !== 'custom' || customTemplateConfig.showMrp) && numMrp > numPrice && (
-                        <span style={{ textDecoration: 'line-through', color: '#94A3B8', fontSize: '0.95rem', fontWeight: '700' }}>
-                            {labelDetails.currencySymbol} {labelDetails.mrp}
-                        </span>
-                    )}
-
-                    {/* Offer Price Display */}
-                    <span style={{ fontSize: '1.25rem', fontWeight: '900', color: format.lineColor }}>
-                        {labelDetails.currencySymbol} {labelDetails.price}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: barcodePlacement === 'side_by_side' ? 'flex-start' : 'center', gap: '0.6rem', flexWrap: 'wrap', opacity: 0.7 }}>
+                    <span style={{ textDecoration: 'line-through', color: '#94A3B8', fontSize: '0.88rem', fontWeight: '600' }}>
+                        e.g., {labelDetails.currencySymbol} 1299.00
                     </span>
-
-                    {/* Discount Percent Badge */}
-                    {(selectedPreset !== 'custom' || customTemplateConfig.showDiscountBadge) && discountPct > 0 && (
-                        <span style={{ fontSize: '0.68rem', fontWeight: '850', background: '#DCFCE7', color: '#15803D', padding: '1px 5px', borderRadius: '4px' }}>
-                            {discountPct}% OFF
-                        </span>
-                    )}
+                    <span style={{ fontSize: '1.15rem', fontWeight: '900', color: effectiveLineColor }}>
+                        e.g., {labelDetails.currencySymbol} 999.00
+                    </span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '850', background: '#DCFCE7', color: '#15803D', padding: '1px 5px', borderRadius: '4px' }}>
+                        23% OFF
+                    </span>
                 </div>
             </div>
         );
@@ -1178,7 +1286,7 @@ const BusinessBarcode = () => {
         return (
             <div style={{ 
                 marginTop: '0.65rem', 
-                borderTop: `1px dashed ${format.lineColor}35`, 
+                borderTop: `1px dashed ${effectiveLineColor}35`, 
                 paddingTop: '0.35rem', 
                 width: '100%', 
                 textAlign: 'center', 
@@ -1187,7 +1295,7 @@ const BusinessBarcode = () => {
                 opacity: 0.85, 
                 wordBreak: 'break-word', 
                 overflowWrap: 'break-word',
-                color: format.lineColor
+                color: effectiveLineColor
             }}>
                 {customTemplateConfig.footerNote}
             </div>
@@ -1865,8 +1973,20 @@ const BusinessBarcode = () => {
                                             }
                                         }}
                                         placeholder="Enter or select product title (max 50 chars)..."
-                                        style={{ width: '100%', padding: '0.75rem', paddingRight: '2.5rem', borderRadius: '8px', border: (labelDetails.title || '').length >= 50 ? '1.5px solid #F59E0B' : '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
+                                        style={{ width: '100%', padding: '0.75rem', paddingRight: '4.5rem', borderRadius: '8px', border: (labelDetails.title || '').length >= 50 ? '1.5px solid #F59E0B' : '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
                                     />
+                                    {labelDetails.title && (
+                                        <div 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                updateLabelDetails('title', '');
+                                            }}
+                                            style={{ position: 'absolute', right: '32px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
+                                            title="Clear title"
+                                        >
+                                            <X size={15} />
+                                        </div>
+                                    )}
                                     <div 
                                         onClick={() => {
                                             setIsProductDropdownOpen(prev => !prev);
@@ -1966,39 +2086,82 @@ const BusinessBarcode = () => {
                                         {(labelDetails.subtitle || '').length}/60 chars
                                     </span>
                                 </div>
-                                <input 
-                                    type="text" 
-                                    maxLength={60}
-                                    value={labelDetails.subtitle}
-                                    onChange={(e) => updateLabelDetails('subtitle', e.target.value.slice(0, 60))}
-                                    placeholder="e.g., Size: L | Color: Navy (max 60 chars)"
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: (labelDetails.subtitle || '').length >= 60 ? '1.5px solid #F59E0B' : '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
-                                />
+                                <div style={{ position: 'relative' }}>
+                                    <input 
+                                        type="text" 
+                                        maxLength={60}
+                                        value={labelDetails.subtitle}
+                                        onChange={(e) => updateLabelDetails('subtitle', e.target.value.slice(0, 60))}
+                                        placeholder="e.g., Size: L | Color: Navy (max 60 chars)"
+                                        style={{ width: '100%', padding: '0.75rem', paddingRight: labelDetails.subtitle ? '2rem' : '0.75rem', borderRadius: '8px', border: (labelDetails.subtitle || '').length >= 60 ? '1.5px solid #F59E0B' : '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontWeight: '600' }}
+                                    />
+                                    {labelDetails.subtitle && (
+                                        <div 
+                                            onClick={() => updateLabelDetails('subtitle', '')}
+                                            style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
+                                            title="Clear description"
+                                        >
+                                            <X size={15} />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* PRICE TAG & ORIGINAL MRP WITH SANITIZATION TO PREVENT ALPHANUMERIC MISMATCH */}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: '#F8FAFC', padding: '1rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#1B6B3A', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Offer Price ({labelDetails.currencySymbol})</label>
-                                    <input 
-                                        type="text" 
-                                        maxLength={13}
-                                        value={labelDetails.price}
-                                        onChange={(e) => updateLabelDetails('price', sanitizePrice(e.target.value))}
-                                        placeholder="e.g., 999.00"
-                                        style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', boxSizing: 'border-box', fontWeight: '800', fontSize: '0.95rem', color: '#1B6B3A' }}
-                                    />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                        <label style={{ fontSize: '0.78rem', fontWeight: '800', color: '#1B6B3A', margin: 0, textTransform: 'uppercase' }}>
+                                            Offer Price ({labelDetails.currencySymbol})
+                                        </label>
+                                        <span style={{ fontSize: '0.7rem', color: '#64748B', fontStyle: 'italic' }}>e.g., 999.00</span>
+                                    </div>
+                                    <div style={{ position: 'relative' }}>
+                                        <input 
+                                            type="text" 
+                                            maxLength={13}
+                                            value={labelDetails.price}
+                                            onChange={(e) => updateLabelDetails('price', sanitizePrice(e.target.value))}
+                                            placeholder="e.g., 999.00"
+                                            style={{ width: '100%', padding: '0.65rem', paddingRight: labelDetails.price ? '2rem' : '0.65rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', boxSizing: 'border-box', fontWeight: '800', fontSize: '0.95rem', color: '#1B6B3A' }}
+                                        />
+                                        {labelDetails.price && (
+                                            <div 
+                                                onClick={() => updateLabelDetails('price', '')}
+                                                style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
+                                                title="Clear offer price"
+                                            >
+                                                <X size={15} />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '800', color: '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase' }}>Original MRP ({labelDetails.currencySymbol})</label>
-                                    <input 
-                                        type="text" 
-                                        maxLength={13}
-                                        value={labelDetails.mrp}
-                                        onChange={(e) => updateLabelDetails('mrp', sanitizePrice(e.target.value))}
-                                        placeholder="e.g., 1299.00"
-                                        style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', boxSizing: 'border-box', fontWeight: '700', fontSize: '0.95rem', color: '#475569' }}
-                                    />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                        <label style={{ fontSize: '0.78rem', fontWeight: '800', color: '#64748B', margin: 0, textTransform: 'uppercase' }}>
+                                            Original MRP ({labelDetails.currencySymbol})
+                                        </label>
+                                        <span style={{ fontSize: '0.7rem', color: '#64748B', fontStyle: 'italic' }}>e.g., 1299.00</span>
+                                    </div>
+                                    <div style={{ position: 'relative' }}>
+                                        <input 
+                                            type="text" 
+                                            maxLength={13}
+                                            value={labelDetails.mrp}
+                                            onChange={(e) => updateLabelDetails('mrp', sanitizePrice(e.target.value))}
+                                            placeholder="e.g., 1299.00"
+                                            style={{ width: '100%', padding: '0.65rem', paddingRight: labelDetails.mrp ? '2rem' : '0.65rem', borderRadius: '8px', border: '1px solid #CBD5E1', outline: 'none', boxSizing: 'border-box', fontWeight: '700', fontSize: '0.95rem', color: '#475569' }}
+                                        />
+                                        {labelDetails.mrp && (
+                                            <div 
+                                                onClick={() => updateLabelDetails('mrp', '')}
+                                                style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center' }}
+                                                title="Clear MRP"
+                                            >
+                                                <X size={15} />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2438,6 +2601,76 @@ const BusinessBarcode = () => {
                                     <input type="text" value={format.background} onChange={(e) => updateFormat('background', e.target.value)} style={{ flex: 1, padding: '0.4rem', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.85rem', fontWeight: '600' }} />
                                 </div>
                             </div>
+
+                            {/* Scannable Quick Color Palettes */}
+                            <div style={{ gridColumn: '1 / -1', marginTop: '0.25rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#64748b' }}>Quick Scannable Themes:</span>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: '800', color: isLowContrast ? '#dc2626' : '#166534' }}>
+                                        Contrast: {contrastRatio}:1 ({isLowContrast ? '⚠️ Dangerously Low (Blank Bill)' : '✓ Scannable'})
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                    {SCANNABLE_COLOR_PRESETS.map((p, i) => (
+                                        <button
+                                            key={i}
+                                            type="button"
+                                            onClick={() => applyColorPreset(p.line, p.bg)}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '5px',
+                                                padding: '3px 8px',
+                                                borderRadius: '6px',
+                                                border: '1px solid #cbd5e1',
+                                                background: '#f8fafc',
+                                                fontSize: '0.72rem',
+                                                fontWeight: '700',
+                                                cursor: 'pointer',
+                                                color: '#334155'
+                                            }}
+                                        >
+                                            <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: p.line, border: '1px solid #cbd5e1' }} />
+                                            <span>{p.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Low Contrast / Blank Bill Warning Banner */}
+                            {isLowContrast && (
+                                <div style={{ gridColumn: '1 / -1', background: '#FEF2F2', border: '1.5px solid #FCA5A5', padding: '0.75rem 1rem', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+                                        <div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: '850', color: '#991B1B' }}>
+                                                Blank Bill Warning: Text & Barcode are white on white ({contrastRatio}:1)
+                                            </div>
+                                            <div style={{ fontSize: '0.72rem', color: '#B91C1C' }}>
+                                                Thermal printers cannot print white ink, and scanners will fail to read this label.
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => applyColorPreset('#000000', '#ffffff')}
+                                        style={{
+                                            background: '#DC2626',
+                                            color: 'white',
+                                            border: 'none',
+                                            padding: '6px 12px',
+                                            borderRadius: '8px',
+                                            fontSize: '0.76rem',
+                                            fontWeight: '800',
+                                            cursor: 'pointer',
+                                            whiteSpace: 'nowrap',
+                                            boxShadow: '0 2px 6px rgba(220, 38, 38, 0.25)'
+                                        }}
+                                    >
+                                        ⚡ Fix to Black on White
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Barcode In-Label Placement & Alignment Styles */}
@@ -2612,6 +2845,25 @@ const BusinessBarcode = () => {
                             minHeight: '340px',
                             background: 'repeating-conic-gradient(#f8fafc 0% 25%, transparent 0% 50%) 50% / 20px 20px' 
                         }}>
+                            {/* Low Contrast Guard Badge */}
+                            {isLowContrast && (
+                                <div style={{ 
+                                    marginBottom: '1rem', 
+                                    background: '#FEF2F2', 
+                                    border: '1px solid #FCA5A5', 
+                                    padding: '6px 14px', 
+                                    borderRadius: '8px', 
+                                    fontSize: '0.74rem', 
+                                    color: '#B91C1C', 
+                                    fontWeight: '750', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '6px' 
+                                }}>
+                                    <span>⚠️ Low Contrast Protected: Showing high-contrast preview to prevent blank bills.</span>
+                                </div>
+                            )}
+
                             {/* Dynamic Canvas Container matching selected preset */}
                             <div 
                                 ref={barcodeRef} 
@@ -2624,7 +2876,7 @@ const BusinessBarcode = () => {
                                     flexDirection: 'column', 
                                     alignItems: 'center', 
                                     justifyContent: 'center', 
-                                    color: format.lineColor, 
+                                    color: effectiveLineColor, 
                                     width: selectedPreset === 'jewelry' ? '280px' : `${Math.max(340, Math.min(640, 240 + ((format.width || 2) * 60)))}px`, 
                                     maxWidth: '100%', 
                                     overflowX: 'auto', 
@@ -2938,7 +3190,7 @@ const BusinessBarcode = () => {
                             flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            color: format.lineColor,
+                            color: effectiveLineColor,
                             width: '100%',
                             maxWidth: '440px',
                             boxSizing: 'border-box',
