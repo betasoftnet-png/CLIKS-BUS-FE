@@ -253,10 +253,10 @@ export default function Landing() {
             }
 
             if (!bnxToken) {
-                if (typeof code === 'string' && (code.startsWith('eyJ') || code.length > 10)) {
+                if (typeof code === 'string' && code.startsWith('eyJ')) {
                     bnxToken = code;
                 } else {
-                    bnxToken = `sso-session-token-${code}`;
+                    throw new Error('Failed to exchange authorization code for access token. Please try logging in again.');
                 }
             }
 

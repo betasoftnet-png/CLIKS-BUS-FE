@@ -8,15 +8,44 @@ import { caService } from '../services/caService';
 import { isFeatureAllowed, getPlanDuration, calculateDaysRemaining } from '../utils/subscriptionUtils';
 import { AuthContext } from './auth-context';
 
-// Safely extract email or sub identifier from JWT
-const getEmailFromToken = (tok) => {
+// Safely decode base64url JWT payload
+export const safeDecodeJwt = (tok) => {
     if (!tok || typeof tok !== 'string' || !tok.includes('.')) return null;
     try {
-        const payload = JSON.parse(atob(tok.split('.')[1]));
-        return (payload.email || payload.sub || '').toLowerCase();
+        const parts = tok.split('.');
+        if (parts.length < 2) return null;
+        let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4) {
+            b64 += '=';
+        }
+        const json = decodeURIComponent(
+            atob(b64)
+                .split('')
+                .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                .join('')
+        );
+        return JSON.parse(json);
     } catch (e) {
-        return null;
+        try {
+            let b64 = tok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            while (b64.length % 4) b64 += '=';
+            return JSON.parse(atob(b64));
+        } catch (err2) {
+            return null;
+        }
     }
+};
+
+// Safely extract email or sub identifier from JWT
+const getEmailFromToken = (tok) => {
+    const payload = safeDecodeJwt(tok);
+    if (!payload) return null;
+    const email = payload.email || 
+                  payload.user_email || 
+                  (typeof payload.sub === 'string' && payload.sub.includes('@') ? payload.sub : null) || 
+                  payload.user?.email || 
+                  payload.preferred_username;
+    return (email || '').toLowerCase().trim();
 };
 
 // Retrieve multi-account BNX tokens dictionary from localStorage
@@ -95,8 +124,8 @@ const sanitizeAccounts = (rawList) => {
         let bnxToken = acc.bnxToken || findBnxTokenForAccount(acc);
         if (bnxToken && bnxToken.includes('.')) {
             try {
-                const dec = JSON.parse(atob(bnxToken.split('.')[1]));
-                if (dec.email && dec.email.toLowerCase() !== accEmail) {
+                const dec = safeDecodeJwt(bnxToken);
+                if (dec && dec.email && dec.email.toLowerCase() !== accEmail) {
                     bnxToken = null;
                 }
             } catch (e) {}
@@ -139,8 +168,8 @@ export const AuthProvider = ({ children }) => {
         try {
             const raw = localStorage.getItem('books_auth_token') || localStorage.getItem('bnx_auth_token');
             if (raw && raw.includes('.')) {
-                const payload = JSON.parse(atob(raw.split('.')[1]));
-                const uEmail = (payload.email || '').toLowerCase();
+                const payload = safeDecodeJwt(raw);
+                const uEmail = (payload?.email || (typeof payload?.sub === 'string' && payload.sub.includes('@') ? payload.sub : '') || '').toLowerCase();
                 const fallbackName = uEmail ? uEmail.split('@')[0] : 'User';
 
                 let cachedAcc = null;
@@ -511,8 +540,9 @@ export const AuthProvider = ({ children }) => {
                     const localToken = localStorage.getItem('bnx_auth_token');
                     if (localToken && localToken.includes('.')) {
                         try {
-                            const dec = JSON.parse(atob(localToken.split('.')[1]));
-                            if (dec.email && dec.email.toLowerCase() === uEmail) {
+                            const dec = safeDecodeJwt(localToken);
+                            const decEmail = (dec?.email || (typeof dec?.sub === 'string' && dec.sub.includes('@') ? dec.sub : '')).toLowerCase();
+                            if (decEmail && decEmail === uEmail) {
                                 validBnxToken = localToken;
                             }
                         } catch (e) {}
@@ -782,30 +812,54 @@ export const AuthProvider = ({ children }) => {
 
     const ssoLogin = async (bnxToken, appType = null) => {
         let accessToken = bnxToken;
-        let newUser = {
-            id: 'sso-user',
-            name: 'Business User',
-            email: 'user@cliks.com',
-            role: 'business',
-            tier: 'Free Plan'
-        };
+        let newUser = null;
 
         try {
             const data = await authService.ssoLogin(bnxToken, appType);
             if (data?.accessToken) accessToken = data.accessToken;
             if (data?.user) newUser = data.user;
         } catch (err) {
-            try {
-                if (typeof bnxToken === 'string' && bnxToken.includes('.')) {
-                    const payloadBase64 = bnxToken.split('.')[1];
-                    const decoded = JSON.parse(atob(payloadBase64));
-                    if (decoded.email) {
-                        newUser.email = decoded.email;
-                        newUser.name = decoded.name || decoded.username || decoded.email.split('@')[0];
-                    }
-                    if (decoded.role) newUser.role = decoded.role;
+            console.warn('[SSO Notice] Backend SSO login error, trying token decode:', err.message);
+            // Fallback to local token decoding ONLY if it contains a verified email identity
+            const decoded = safeDecodeJwt(bnxToken);
+            if (decoded) {
+                const tokenEmail = (
+                    decoded.email || 
+                    decoded.user_email || 
+                    (typeof decoded.sub === 'string' && decoded.sub.includes('@') ? decoded.sub : null) || 
+                    decoded.user?.email || 
+                    decoded.preferred_username
+                );
+                if (tokenEmail && tokenEmail.includes('@')) {
+                    newUser = {
+                        id: decoded.id || decoded.sub || 'sso-user',
+                        name: decoded.name || decoded.username || tokenEmail.split('@')[0],
+                        email: tokenEmail.toLowerCase().trim(),
+                        role: decoded.role || (decoded.accountType === 'BUSINESS' ? 'business' : 'business'),
+                        tier: 'Free Plan'
+                    };
                 }
-            } catch (e) {}
+            }
+            if (!newUser) {
+                throw new Error(err?.response?.data?.message || err?.message || 'Authentication failed: Could not verify user identity.');
+            }
+        }
+
+        // CRITICAL CHECK: Reject or sanitize if email is invalid or user@cliks.com
+        if (!newUser || !newUser.email || newUser.email === 'user@cliks.com') {
+            const decoded = safeDecodeJwt(bnxToken);
+            const realEmail = decoded?.email || 
+                              decoded?.user_email || 
+                              (typeof decoded?.sub === 'string' && decoded?.sub.includes('@') ? decoded.sub : null);
+            if (realEmail && realEmail !== 'user@cliks.com') {
+                newUser = {
+                    ...(newUser || {}),
+                    email: realEmail.toLowerCase().trim(),
+                    name: decoded.name || decoded.username || realEmail.split('@')[0]
+                };
+            } else {
+                throw new Error('Authentication failed: Invalid user session.');
+            }
         }
 
         // Fetch profile from BNX Mail to resolve displayName and fullName
