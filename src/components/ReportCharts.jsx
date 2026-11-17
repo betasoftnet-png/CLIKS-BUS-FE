@@ -1,21 +1,79 @@
 import React, { useState } from 'react';
 import { useCurrency } from '../context';
-import { BarChart3, PieChart, TrendingUp } from 'lucide-react';
+import { BarChart3, PieChart, TrendingUp, Calendar, Layers } from 'lucide-react';
 
 /**
- * Helper to process sales data into monthly buckets or top items.
- * Strictly enforces that future timelines (dates > now) are excluded for sales reports.
+ * Format numbers according to Indian Financial System (Crore, Lakh, Thousand)
+ * Avoids unprofessional 'k' notations like 2000537k.
  */
-export const processSalesData = (reportData, isSales = true) => {
+export const formatIndianAxisNumber = (val) => {
+    if (val === null || val === undefined || isNaN(val) || val === 0) return '0';
+    const abs = Math.abs(Number(val));
+    const sign = val < 0 ? '-' : '';
+
+    if (abs >= 10000000) {
+        // Crore (>= 1,00,00,000)
+        const cr = abs / 10000000;
+        const formatted = cr >= 100 ? cr.toFixed(0) : (cr >= 10 ? cr.toFixed(1) : cr.toFixed(2));
+        const clean = formatted.replace(/\.00$/, '').replace(/(\.[1-9])0$/, '$1');
+        return `${sign}₹${clean} Crore`;
+    }
+    if (abs >= 100000) {
+        // Lakh (>= 1,00,000)
+        const lakh = abs / 100000;
+        const formatted = lakh >= 100 ? lakh.toFixed(0) : (lakh >= 10 ? lakh.toFixed(1) : lakh.toFixed(2));
+        const clean = formatted.replace(/\.00$/, '').replace(/(\.[1-9])0$/, '$1');
+        return `${sign}₹${clean} Lakh`;
+    }
+    if (abs >= 1000) {
+        // Thousands (formatted with comma, e.g. ₹50,000 - no 'k')
+        return `${sign}₹${Math.round(abs).toLocaleString('en-IN')}`;
+    }
+    return `${sign}₹${Math.round(abs)}`;
+};
+
+/**
+ * Helper to process sales data into monthly or daily buckets.
+ * Strictly excludes future timelines (> now) for sales data.
+ */
+export const processSalesData = (reportData, isSales = true, scope = 'monthly') => {
     const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonthIdx = now.getMonth(); // 0 to 11
 
     if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
-        // If sales, only show months up to current month (e.g. Jan-Nov)
         const visibleMonths = isSales ? allMonths.slice(0, currentMonthIdx + 1) : allMonths;
         return visibleMonths.map(m => ({ label: m, value: 0, count: 0 }));
+    }
+
+    // Daily breakdown for a filtered period/month
+    if (scope === 'daily') {
+        const dailyMap = {};
+        let hasDate = false;
+
+        reportData.forEach(item => {
+            const dateStr = item.date || item.purchase_date || item.created_at || item.invoice_date || item.bill_date;
+            const val = parseFloat(item.due_amount !== undefined ? item.due_amount : (item.paid_amount !== undefined ? item.paid_amount : ((item.inflow !== undefined || item.outflow !== undefined) ? (parseFloat(item.inflow || 0) + parseFloat(item.outflow || 0)) : (item.grand_total || item.total_sales || item.revenue || item.amount || item.total || item.total_amount || item.value || item.quantity || 0))));
+
+            if (dateStr) {
+                const d = new Date(dateStr);
+                if (!isNaN(d.getTime())) {
+                    if (isSales && d > now) return;
+                    const dayLabel = `${d.getDate()} ${allMonths[d.getMonth()]}`;
+                    if (!dailyMap[dayLabel]) {
+                        dailyMap[dayLabel] = { label: dayLabel, value: 0, count: 0, date: d };
+                    }
+                    dailyMap[dayLabel].value += val;
+                    dailyMap[dayLabel].count += 1;
+                    hasDate = true;
+                }
+            }
+        });
+
+        if (hasDate) {
+            return Object.values(dailyMap).sort((a, b) => a.date - b.date).slice(0, 15);
+        }
     }
 
     // Check if the dataset is strictly for a past year (e.g. 2025)
@@ -50,8 +108,7 @@ export const processSalesData = (reportData, isSales = true) => {
         if (dateStr) {
             const d = new Date(dateStr);
             if (!isNaN(d.getTime())) {
-                // STRICT CHECK: Future timelines cannot be included in sales reports
-                if (isSales && d > now) return;
+                if (isSales && d > now) return; // Strict future date exclusion
 
                 const monthName = allMonths[d.getMonth()];
                 if (monthlyMap[monthName]) {
@@ -80,9 +137,13 @@ export const processSalesData = (reportData, isSales = true) => {
 
 /**
  * Monthly Sales Bar Chart Component
+ * Preserves previous months' bars when a date filter is selected so they are never reduced to zero.
  */
 export const MonthlySalesBarChart = ({ 
-    reportData, 
+    reportData,
+    fullReportData,
+    startDate = '',
+    endDate = '',
     title = 'Monthly Sales Performance', 
     subtitle = 'Monthly compilation of metric records and trends', 
     isSales = true,
@@ -90,9 +151,30 @@ export const MonthlySalesBarChart = ({
 }) => {
     const { formatCurrency } = useCurrency();
     const [hoveredIdx, setHoveredIdx] = useState(null);
+    const [viewGranularity, setViewGranularity] = useState('fullYear'); // 'fullYear' | 'daily'
 
-    const chartData = processSalesData(reportData, isSales);
+    // Determine active filtered months
+    const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const selectedMonths = new Set();
+    if (startDate) {
+        const sD = new Date(startDate);
+        if (!isNaN(sD.getTime())) selectedMonths.add(allMonths[sD.getMonth()]);
+    }
+    if (endDate) {
+        const eD = new Date(endDate);
+        if (!isNaN(eD.getTime())) selectedMonths.add(allMonths[eD.getMonth()]);
+    }
+
+    const hasFilter = Boolean(startDate || endDate);
+
+    // If viewing fullYear trend, use fullReportData so previous months maintain their historical bars
+    const dataSource = (hasFilter && viewGranularity === 'fullYear' && fullReportData && Array.isArray(fullReportData))
+        ? fullReportData
+        : reportData;
+
+    const chartData = processSalesData(dataSource, isSales, viewGranularity === 'daily' ? 'daily' : 'monthly');
     const maxValue = Math.max(...chartData.map(d => d.value), 1000);
+
     const totalSales = Array.isArray(reportData) 
         ? reportData.reduce((sum, item) => {
             const dateStr = item.date || item.created_at || item.invoice_date;
@@ -101,9 +183,9 @@ export const MonthlySalesBarChart = ({
         }, 0) 
         : 0;
 
-    const svgWidth = 650;
+    const svgWidth = 700;
     const svgHeight = 220;
-    const padding = { top: 25, right: 20, bottom: 40, left: 55 };
+    const padding = { top: 25, right: 20, bottom: 40, left: 85 };
     const graphWidth = svgWidth - padding.left - padding.right;
     const graphHeight = svgHeight - padding.top - padding.bottom;
 
@@ -112,7 +194,43 @@ export const MonthlySalesBarChart = ({
 
     const chartBody = (
         <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
-            <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} style={{ width: '100%', height: 'auto', minWidth: '280px' }}>
+            {/* Context Notice & Granularity Switcher if Filter is Active */}
+            {hasFilter && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', padding: '0.35rem 0.65rem', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#475569', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#BE185D', display: 'inline-block' }} />
+                        <span>Filter Active: Showing annual context (previous months preserved)</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '3px' }}>
+                        <button
+                            type="button"
+                            onClick={() => setViewGranularity('fullYear')}
+                            style={{
+                                padding: '2px 8px', borderRadius: '6px', border: 'none',
+                                background: viewGranularity === 'fullYear' ? '#BE185D' : 'transparent',
+                                color: viewGranularity === 'fullYear' ? '#FFFFFF' : '#64748B',
+                                fontWeight: '800', fontSize: '0.68rem', cursor: 'pointer'
+                            }}
+                        >
+                            Full Year Trend
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewGranularity('daily')}
+                            style={{
+                                padding: '2px 8px', borderRadius: '6px', border: 'none',
+                                background: viewGranularity === 'daily' ? '#BE185D' : 'transparent',
+                                color: viewGranularity === 'daily' ? '#FFFFFF' : '#64748B',
+                                fontWeight: '800', fontSize: '0.68rem', cursor: 'pointer'
+                            }}
+                        >
+                            Daily Breakdown
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} style={{ width: '100%', height: 'auto', minWidth: '320px' }}>
                 <defs>
                     <linearGradient id="salesBarGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#EC4899" stopOpacity="0.95" />
@@ -122,17 +240,21 @@ export const MonthlySalesBarChart = ({
                         <stop offset="0%" stopColor="#F43F5E" stopOpacity="1" />
                         <stop offset="100%" stopColor="#E11D48" stopOpacity="0.9" />
                     </linearGradient>
+                    <linearGradient id="salesBarSelected" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#FB7185" stopOpacity="1" />
+                        <stop offset="100%" stopColor="#9F1239" stopOpacity="1" />
+                    </linearGradient>
                 </defs>
 
-                {/* Y Grid Lines */}
+                {/* Y Grid Lines with Professional Indian Number Formatting (No 'k'!) */}
                 {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
                     const y = padding.top + graphHeight * (1 - pct);
                     const val = maxValue * pct;
                     return (
                         <g key={i}>
                             <line x1={padding.left} y1={y} x2={svgWidth - padding.right} y2={y} stroke="#F1F5F9" strokeDasharray="4 4" strokeWidth="1" />
-                            <text x={padding.left - 8} y={y + 4} textAnchor="end" fontSize="10" fontWeight="600" fill="#94A3B8">
-                                {val >= 10000000 ? `${(val / 10000000).toFixed(1)}Cr` : (val >= 100000 ? `${(val / 100000).toFixed(0)}L` : (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val.toFixed(0)))}
+                            <text x={padding.left - 8} y={y + 4} textAnchor="end" fontSize="10" fontWeight="700" fill="#64748B">
+                                {formatIndianAxisNumber(val)}
                             </text>
                         </g>
                     );
@@ -144,6 +266,7 @@ export const MonthlySalesBarChart = ({
                     const x = padding.left + idx * stepX + (stepX - barWidth) / 2;
                     const y = padding.top + graphHeight - barH;
                     const isHovered = hoveredIdx === idx;
+                    const isSelected = selectedMonths.has(d.label);
 
                     return (
                         <g key={idx} onMouseEnter={() => setHoveredIdx(idx)} onMouseLeave={() => setHoveredIdx(null)} style={{ cursor: 'pointer' }}>
@@ -153,7 +276,9 @@ export const MonthlySalesBarChart = ({
                                 width={barWidth}
                                 height={Math.max(barH, 3)}
                                 rx={4}
-                                fill={isHovered ? 'url(#salesBarHover)' : 'url(#salesBarGradient)'}
+                                fill={isHovered ? 'url(#salesBarHover)' : (isSelected ? 'url(#salesBarSelected)' : 'url(#salesBarGradient)')}
+                                stroke={isSelected ? '#9F1239' : 'none'}
+                                strokeWidth={isSelected ? 1.5 : 0}
                                 style={{ transition: 'all 0.2s ease' }}
                             />
                             {/* X Axis Label */}
@@ -162,8 +287,8 @@ export const MonthlySalesBarChart = ({
                                 y={svgHeight - 12}
                                 textAnchor="middle"
                                 fontSize="10"
-                                fontWeight={isHovered ? '800' : '600'}
-                                fill={isHovered ? '#BE185D' : '#64748B'}
+                                fontWeight={isSelected || isHovered ? '850' : '600'}
+                                fill={isSelected ? '#9F1239' : (isHovered ? '#BE185D' : '#64748B')}
                             >
                                 {d.label}
                             </text>
@@ -172,15 +297,15 @@ export const MonthlySalesBarChart = ({
                             {isHovered && (
                                 <g>
                                     <rect 
-                                        x={Math.max(x + barWidth / 2 - 50, padding.left)} 
+                                        x={Math.max(x + barWidth / 2 - 60, padding.left)} 
                                         y={Math.max(y - 26, padding.top - 15)} 
-                                        width={100} 
+                                        width={120} 
                                         height={20} 
                                         rx={4} 
                                         fill="#0F172A" 
                                     />
                                     <text
-                                        x={Math.max(x + barWidth / 2, padding.left + 50)}
+                                        x={Math.max(x + barWidth / 2, padding.left + 60)}
                                         y={Math.max(y - 12, padding.top - 1)}
                                         textAnchor="middle"
                                         fontSize="9"
@@ -225,7 +350,10 @@ export const MonthlySalesBarChart = ({
  * Monthly Sales Line / Area Trend Chart Component
  */
 export const MonthlySalesLineChart = ({ 
-    reportData, 
+    reportData,
+    fullReportData,
+    startDate = '',
+    endDate = '',
     title = 'Sales Trend Analysis', 
     subtitle = 'Smooth line progression and turnover trajectory', 
     isSales = true,
@@ -234,7 +362,12 @@ export const MonthlySalesLineChart = ({
     const { formatCurrency } = useCurrency();
     const [hoveredIdx, setHoveredIdx] = useState(null);
 
-    const chartData = processSalesData(reportData, isSales);
+    const hasFilter = Boolean(startDate || endDate);
+    const dataSource = (hasFilter && fullReportData && Array.isArray(fullReportData))
+        ? fullReportData
+        : reportData;
+
+    const chartData = processSalesData(dataSource, isSales, 'monthly');
     const maxValue = Math.max(...chartData.map(d => d.value), 1000);
     const totalSales = Array.isArray(reportData) 
         ? reportData.reduce((sum, item) => {
@@ -244,9 +377,9 @@ export const MonthlySalesLineChart = ({
         }, 0) 
         : 0;
 
-    const svgWidth = 650;
+    const svgWidth = 700;
     const svgHeight = 220;
-    const padding = { top: 25, right: 25, bottom: 40, left: 55 };
+    const padding = { top: 25, right: 25, bottom: 40, left: 85 };
     const graphWidth = svgWidth - padding.left - padding.right;
     const graphHeight = svgHeight - padding.top - padding.bottom;
 
@@ -257,7 +390,6 @@ export const MonthlySalesLineChart = ({
         return { x, y, data: d, index: i };
     });
 
-    // Build SVG path strings
     let linePath = '';
     let areaPath = '';
 
@@ -271,7 +403,7 @@ export const MonthlySalesLineChart = ({
 
     const chartBody = (
         <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
-            <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} style={{ width: '100%', height: 'auto', minWidth: '280px' }}>
+            <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} style={{ width: '100%', height: 'auto', minWidth: '320px' }}>
                 <defs>
                     <linearGradient id="salesLineAreaGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#EC4899" stopOpacity="0.45" />
@@ -279,15 +411,15 @@ export const MonthlySalesLineChart = ({
                     </linearGradient>
                 </defs>
 
-                {/* Y Grid Lines */}
+                {/* Y Grid Lines with Professional Indian Number Formatting (No 'k'!) */}
                 {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
                     const y = padding.top + graphHeight * (1 - pct);
                     const val = maxValue * pct;
                     return (
                         <g key={i}>
                             <line x1={padding.left} y1={y} x2={svgWidth - padding.right} y2={y} stroke="#F1F5F9" strokeDasharray="4 4" strokeWidth="1" />
-                            <text x={padding.left - 8} y={y + 4} textAnchor="end" fontSize="10" fontWeight="600" fill="#94A3B8">
-                                {val >= 10000000 ? `${(val / 10000000).toFixed(1)}Cr` : (val >= 100000 ? `${(val / 100000).toFixed(0)}L` : (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val.toFixed(0)))}
+                            <text x={padding.left - 8} y={y + 4} textAnchor="end" fontSize="10" fontWeight="700" fill="#64748B">
+                                {formatIndianAxisNumber(val)}
                             </text>
                         </g>
                     );
@@ -308,7 +440,6 @@ export const MonthlySalesLineChart = ({
                     const isHovered = hoveredIdx === idx;
                     return (
                         <g key={idx} onMouseEnter={() => setHoveredIdx(idx)} onMouseLeave={() => setHoveredIdx(null)} style={{ cursor: 'pointer' }}>
-                            {/* Hover highlight halo */}
                             {isHovered && (
                                 <circle cx={p.x} cy={p.y} r={10} fill="#FCE7F3" opacity={0.8} />
                             )}
@@ -322,7 +453,6 @@ export const MonthlySalesLineChart = ({
                                 style={{ transition: 'all 0.2s ease' }}
                             />
 
-                            {/* X Axis Label */}
                             <text
                                 x={p.x}
                                 y={svgHeight - 12}
@@ -334,20 +464,18 @@ export const MonthlySalesLineChart = ({
                                 {p.data.label}
                             </text>
 
-                            {/* Tooltip on hover */}
                             {isHovered && (
                                 <g>
                                     <rect 
-                                        x={Math.max(p.x - 50, padding.left)} 
+                                        x={Math.max(p.x - 60, padding.left)} 
                                         y={Math.max(p.y - 30, padding.top - 18)} 
-                                        width={100} 
+                                        width={120} 
                                         height={22} 
                                         rx={5} 
                                         fill="#0F172A" 
-                                        boxShadow="0 2px 8px rgba(0,0,0,0.2)"
                                     />
                                     <text
-                                        x={Math.max(p.x, padding.left + 50)}
+                                        x={Math.max(p.x, padding.left + 60)}
                                         y={Math.max(p.y - 15, padding.top - 3)}
                                         textAnchor="middle"
                                         fontSize="9"
@@ -390,7 +518,6 @@ export const MonthlySalesLineChart = ({
 
 /**
  * Stock & Warehouse Pie / Donut Chart Component
- * Also supports Sales distribution by customer, item, or status.
  */
 export const StockPieChart = ({ 
     reportData, 
@@ -402,7 +529,6 @@ export const StockPieChart = ({
     const { formatCurrency } = useCurrency();
     const [hoveredIndex, setHoveredIndex] = useState(null);
 
-    // Determine types
     const isWarehouse = Array.isArray(reportData) && reportData.some(item => item.warehouse_name || item.warehouse_code || item.capacity_utilization !== undefined || (item.name && item.location && item.code && !item.sku && !item.selling_price));
     const isParty = Array.isArray(reportData) && reportData.some(item => item.outstanding_balance !== undefined || item.total_due !== undefined || item.total_spent !== undefined || (item.name && item.phone && !item.sku && !item.selling_price));
     const isTrialBalance = Array.isArray(reportData) && reportData.some(item => item.ledger && (item.debit !== undefined || item.credit !== undefined));
@@ -410,7 +536,6 @@ export const StockPieChart = ({
     const isBalanceSheet = reportData && !Array.isArray(reportData) && reportData.assets !== undefined && reportData.liabilities !== undefined;
     const isSalesData = isSales || (Array.isArray(reportData) && reportData.some(item => item.order_number || item.customer || item.grand_total));
 
-    // Process data into categorical slices
     const processPieData = () => {
         const colors = ['#EC4899', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#F43F5E', '#14B8A6'];
 
@@ -420,7 +545,6 @@ export const StockPieChart = ({
             ];
         }
 
-        // SALES REPORT: Group sales by Customer or Product
         if (isSalesData && Array.isArray(reportData)) {
             const customerMap = {};
             let totalSalesVal = 0;
@@ -428,7 +552,7 @@ export const StockPieChart = ({
 
             reportData.forEach(item => {
                 const dateStr = item.date || item.created_at || item.invoice_date;
-                if (dateStr && new Date(dateStr) > now) return; // Exclude future sales records
+                if (dateStr && new Date(dateStr) > now) return;
 
                 const cust = item.customer || item.client || item.buyer_name || item.product_name || item.name || 'Walk-in Customer';
                 const amt = parseFloat(item.grand_total || item.total_sales || item.revenue || item.total_amount || item.total || item.amount || 0);
@@ -478,7 +602,6 @@ export const StockPieChart = ({
             return list.length > 0 ? list : [{ label: 'No Assets', value: 1, displayVal: '₹0' }];
         }
 
-        // Warehouse capacity
         if (isWarehouse) {
             const totalStock = reportData.reduce((sum, w) => sum + (parseFloat(w.total_quantity || 0)), 0);
             return reportData.map((w, idx) => {
@@ -531,7 +654,6 @@ export const StockPieChart = ({
                 });
         }
 
-        // Generic category grouping
         const catMap = {};
         reportData.forEach(item => {
             const cat = item.category || item.product_name || item.name || item.stock_status || item.location || 'General';
@@ -576,7 +698,6 @@ export const StockPieChart = ({
 
     const chartBody = (
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
-            {/* SVG Donut Chart */}
             <div style={{ position: 'relative', width: `${size}px`, height: `${size}px`, flexShrink: 0 }}>
                 <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
                     {slices.map((slice, idx) => {
@@ -616,7 +737,6 @@ export const StockPieChart = ({
                     })}
                 </svg>
 
-                {/* Donut Center Summary */}
                 <div style={{
                     position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center', pointerEvents: 'none'
@@ -630,7 +750,6 @@ export const StockPieChart = ({
                 </div>
             </div>
 
-            {/* Chart Legend */}
             <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem' }}>
                 {slices.map((s, idx) => {
                     const pct = totalVal > 0 ? ((s.value / totalVal) * 100).toFixed(1) : (100 / slices.length).toFixed(1);
@@ -691,6 +810,9 @@ export const StockPieChart = ({
  */
 export const UniversalReportChart = ({
     reportData,
+    fullReportData,
+    startDate = '',
+    endDate = '',
     title = 'Report Analytics & Trends',
     subtitle = 'Comprehensive metric overview',
     defaultChartType = 'bar',
@@ -773,7 +895,10 @@ export const UniversalReportChart = ({
             {/* Dynamic Chart Body */}
             {chartType === 'bar' && (
                 <MonthlySalesBarChart 
-                    reportData={reportData} 
+                    reportData={reportData}
+                    fullReportData={fullReportData}
+                    startDate={startDate}
+                    endDate={endDate}
                     title={title} 
                     subtitle={subtitle} 
                     isSales={isSales} 
@@ -783,7 +908,10 @@ export const UniversalReportChart = ({
 
             {chartType === 'line' && (
                 <MonthlySalesLineChart 
-                    reportData={reportData} 
+                    reportData={reportData}
+                    fullReportData={fullReportData}
+                    startDate={startDate}
+                    endDate={endDate}
                     title={title} 
                     subtitle={subtitle} 
                     isSales={isSales} 

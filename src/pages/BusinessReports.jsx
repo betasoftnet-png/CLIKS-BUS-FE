@@ -1270,6 +1270,9 @@ const BusinessReports = () => {
                             <div style={{ height: '100%', minHeight: 0, overflowY: 'auto', display: (viewMode === 'graph' || viewMode === 'both') ? 'block' : 'none', paddingRight: '0.25rem' }}>
                                 <UniversalReportChart
                                     reportData={(selectedReport.id === 20 || selectedReport.id === 22 || selectedReport.id === 23) ? (reportDetails?.chartData || []) : reportDetails}
+                                    fullReportData={(selectedReport.id === 20 || selectedReport.id === 22 || selectedReport.id === 23) ? (rawReportDetails?.chartData || []) : rawReportDetails}
+                                    startDate={startDate}
+                                    endDate={endDate}
                                     selectedReport={selectedReport}
                                     isSales={selectedReport.category === 'sales'}
                                     defaultChartType={((['inventory', 'parties'].includes(selectedReport.category) && selectedReport.id !== 6) || [4, 5, 10, 11, 15, 16, 32, 38].includes(selectedReport.id)) ? 'pie' : 'bar'}
