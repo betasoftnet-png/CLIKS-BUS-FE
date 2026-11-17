@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { MonthlySalesBarChart, StockPieChart } from '../components/ReportCharts';
+import { UniversalReportChart, MonthlySalesBarChart, StockPieChart } from '../components/ReportCharts';
 import {
     reportsService,
     productsService,
@@ -836,6 +836,7 @@ const BusinessReports = () => {
 
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const todayStr = new Date().toISOString().split('T')[0];
 
     const handleSelectReport = (report) => {
         setSelectedReport(report);
@@ -845,8 +846,9 @@ const BusinessReports = () => {
 
     const getFilteredDetails = () => {
         if (!rawReportDetails) return null;
-        if (!startDate && !endDate) return rawReportDetails;
 
+        const isSales = selectedReport?.category === 'sales';
+        const now = new Date();
         const start = startDate ? new Date(startDate) : null;
         const end = endDate ? new Date(endDate) : null;
         if (start) start.setHours(0, 0, 0, 0);
@@ -859,6 +861,10 @@ const BusinessReports = () => {
                 if (!dateStr) return true;
                 const itemDate = new Date(dateStr);
                 if (isNaN(itemDate.getTime())) return true;
+
+                // STRICT: Exclude future dates for sales reports
+                if (isSales && itemDate > now) return false;
+
                 if (start && itemDate < start) return false;
                 if (end && itemDate > end) return false;
                 return true;
@@ -872,6 +878,7 @@ const BusinessReports = () => {
                 if (!dStr) return true;
                 const iD = new Date(dStr);
                 if (isNaN(iD.getTime())) return true;
+                if (isSales && iD > now) return false;
                 if (start && iD < start) return false;
                 if (end && iD > end) return false;
                 return true;
@@ -881,6 +888,7 @@ const BusinessReports = () => {
                 if (!dStr) return true;
                 const iD = new Date(dStr);
                 if (isNaN(iD.getTime())) return true;
+                if (isSales && iD > now) return false;
                 if (start && iD < start) return false;
                 if (end && iD > end) return false;
                 return true;
@@ -1192,7 +1200,11 @@ const BusinessReports = () => {
                                         <input
                                             type="date"
                                             value={startDate}
-                                            onChange={(e) => setStartDate(e.target.value)}
+                                            max={endDate && endDate < todayStr ? endDate : todayStr}
+                                            onChange={(e) => {
+                                                const v = e.target.value;
+                                                setStartDate(v > todayStr ? todayStr : v);
+                                            }}
                                             style={{ width: '100%', padding: '0.4rem 0.6rem', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
                                         />
                                     </div>
@@ -1201,7 +1213,12 @@ const BusinessReports = () => {
                                         <input
                                             type="date"
                                             value={endDate}
-                                            onChange={(e) => setEndDate(e.target.value)}
+                                            max={todayStr}
+                                            min={startDate || undefined}
+                                            onChange={(e) => {
+                                                const v = e.target.value;
+                                                setEndDate(v > todayStr ? todayStr : v);
+                                            }}
                                             style={{ width: '100%', padding: '0.4rem 0.6rem', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#0F172A', outline: 'none', background: 'white' }}
                                         />
                                     </div>
@@ -1251,19 +1268,14 @@ const BusinessReports = () => {
                         <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', marginBottom: '1.25rem', display: viewMode === 'both' ? 'grid' : 'block', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'stretch' }}>
                             {/* Left Column: Visual Graph (Visible in 'graph' or 'both' mode) */}
                             <div style={{ height: '100%', minHeight: 0, overflowY: 'auto', display: (viewMode === 'graph' || viewMode === 'both') ? 'block' : 'none', paddingRight: '0.25rem' }}>
-                                {((['inventory', 'parties'].includes(selectedReport.category) && selectedReport.id !== 6) || [4, 5, 10, 11, 15, 16, 32, 38].includes(selectedReport.id)) ? (
-                                    <StockPieChart 
-                                        reportData={reportDetails} 
-                                        title={selectedReport.id === 11 ? 'Business Asset Breakdown' : (selectedReport.id === 10 ? 'Profit & Loss Metrics' : (selectedReport.id === 15 ? 'Warehouse Capacity Utilization' : (selectedReport.id === 17 ? 'Top Suppliers by Total Orders' : (selectedReport.id === 18 ? 'Party Ledger Balances' : (selectedReport.id === 32 ? 'Trial Balance Summary' : (selectedReport.category === 'parties' ? `${selectedReport.title} Outstanding Balance Distribution` : `${selectedReport.title} Accordance & Stock Metrics`))))))}
-                                        subtitle={selectedReport.id === 11 ? 'Distribution of business assets across categories' : (selectedReport.id === 10 ? 'Revenue distribution across COGS, overheads, and net profit' : (selectedReport.id === 15 ? 'Storage distribution and capacity metrics across all warehouse locations' : (selectedReport.id === 17 ? 'Overview of supplier performance, fulfillment, and reliability' : (selectedReport.id === 18 ? 'Overview of pending balances across registered parties' : (selectedReport.id === 32 ? 'Debit and Credit distribution across ledger heads' : (selectedReport.category === 'parties' ? 'Overview of pending balances across registered parties' : 'Stock valuation distribution & warehouse placement'))))))}
-                                    />
-                                ) : (
-                                    <MonthlySalesBarChart 
-                                        reportData={(selectedReport.id === 20 || selectedReport.id === 22 || selectedReport.id === 23) ? (reportDetails?.chartData || []) : reportDetails} 
-                                        title={selectedReport.id === 12 ? 'GSTR-1 Outward Tax Liability' : (selectedReport.id === 19 ? 'Expense Category Audit' : (selectedReport.id === 20 ? 'Cash Flow Statement' : (selectedReport.id === 21 ? 'GSTR-2 Inward ITC Reconciliation' : (selectedReport.id === 22 ? 'GSTR-3B Tax Liability & Offset' : (selectedReport.id === 23 ? 'GSTR-9 Annual Return Summary' : (selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : (selectedReport.id === 41 ? 'TCS Receivable Audit' : (selectedReport.id === 42 ? 'TDS Receivable Matrix' : (selectedReport.id === 43 ? 'TDS Payable Ledger' : `${selectedReport.title} Monthly Trend`)))))))))))} 
-                                        subtitle={selectedReport.id === 12 ? 'Monthly distribution of outward sales tax liabilities' : (selectedReport.id === 19 ? 'Monthly distribution of business expenditures and overheads' : (selectedReport.id === 20 ? 'Monthly distribution of cash inflows, outflows, and net equilibrium' : (selectedReport.id === 21 ? 'Vendor-wise distribution of claimable Input Tax Credit (ITC)' : (selectedReport.id === 22 ? 'Monthly tax liability and input credit offsets' : (selectedReport.id === 23 ? 'Annual consolidated turnover and tax settlements' : (selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.id === 41 ? 'Counter-party distribution of TCS receivables from sales' : (selectedReport.id === 42 ? 'Client-wise distribution of TDS receivables' : (selectedReport.id === 43 ? 'Supplier-wise distribution of TDS payables' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : 'Monthly sales trends and turnover metrics')))))))))))))))}
-                                    />
-                                )}
+                                <UniversalReportChart
+                                    reportData={(selectedReport.id === 20 || selectedReport.id === 22 || selectedReport.id === 23) ? (reportDetails?.chartData || []) : reportDetails}
+                                    selectedReport={selectedReport}
+                                    isSales={selectedReport.category === 'sales'}
+                                    defaultChartType={((['inventory', 'parties'].includes(selectedReport.category) && selectedReport.id !== 6) || [4, 5, 10, 11, 15, 16, 32, 38].includes(selectedReport.id)) ? 'pie' : 'bar'}
+                                    title={selectedReport.id === 11 ? 'Business Asset Breakdown' : (selectedReport.id === 10 ? 'Profit & Loss Metrics' : (selectedReport.id === 15 ? 'Warehouse Capacity Utilization' : (selectedReport.id === 17 ? 'Top Suppliers by Total Orders' : (selectedReport.id === 18 ? 'Party Ledger Balances' : (selectedReport.id === 32 ? 'Trial Balance Summary' : (selectedReport.id === 12 ? 'GSTR-1 Outward Tax Liability' : (selectedReport.id === 19 ? 'Expense Category Audit' : (selectedReport.id === 20 ? 'Cash Flow Statement' : (selectedReport.id === 21 ? 'GSTR-2 Inward ITC Reconciliation' : (selectedReport.id === 22 ? 'GSTR-3B Tax Liability & Offset' : (selectedReport.id === 23 ? 'GSTR-9 Annual Return Summary' : (selectedReport.id === 34 ? 'HSN/SAC Value Distribution' : (selectedReport.id === 39 ? 'GST Taxable Distribution' : (selectedReport.id === 40 ? 'Form 27EQ TCS Collection' : (selectedReport.id === 41 ? 'TCS Receivable Audit' : (selectedReport.id === 42 ? 'TDS Receivable Matrix' : (selectedReport.id === 43 ? 'TDS Payable Ledger' : (selectedReport.category === 'parties' ? `${selectedReport.title} Outstanding Balance Distribution` : (selectedReport.category === 'inventory' ? `${selectedReport.title} Accordance & Stock Metrics` : `${selectedReport.title} Performance Trends`)))))))))))))))))))}
+                                    subtitle={selectedReport.id === 11 ? 'Distribution of business assets across categories' : (selectedReport.id === 10 ? 'Revenue distribution across COGS, overheads, and net profit' : (selectedReport.id === 15 ? 'Storage distribution and capacity metrics across all warehouse locations' : (selectedReport.id === 17 ? 'Overview of supplier performance, fulfillment, and reliability' : (selectedReport.id === 18 ? 'Overview of pending balances across registered parties' : (selectedReport.id === 32 ? 'Debit and Credit distribution across ledger heads' : (selectedReport.id === 12 ? 'Monthly distribution of outward sales tax liabilities' : (selectedReport.id === 19 ? 'Monthly distribution of business expenditures and overheads' : (selectedReport.id === 20 ? 'Monthly distribution of cash inflows, outflows, and net equilibrium' : (selectedReport.id === 21 ? 'Vendor-wise distribution of claimable Input Tax Credit (ITC)' : (selectedReport.id === 22 ? 'Monthly tax liability and input credit offsets' : (selectedReport.id === 23 ? 'Annual consolidated turnover and tax settlements' : (selectedReport.id === 27 ? 'Monthly audit of pending vendor dues and liabilities' : (selectedReport.id === 28 ? 'Monthly audit of cash inflows and outflows' : (selectedReport.id === 29 ? 'Monthly breakdown of all recorded transactions' : (selectedReport.id === 34 ? 'Distribution of taxable amounts across HSN/SAC codes' : (selectedReport.id === 39 ? 'Distribution of taxable base amounts across GST slabs' : (selectedReport.id === 40 ? 'Quarterly distribution of TCS volume and base turnover' : (selectedReport.id === 41 ? 'Counter-party distribution of TCS receivables from sales' : (selectedReport.id === 42 ? 'Client-wise distribution of TDS receivables' : (selectedReport.id === 43 ? 'Supplier-wise distribution of TDS payables' : (selectedReport.category === 'purchase' ? 'Monthly audit of procurement and payout metrics' : (selectedReport.category === 'parties' ? 'Overview of pending balances across registered parties' : (selectedReport.category === 'inventory' ? 'Stock valuation distribution & warehouse placement' : 'Monthly sales trends and turnover metrics')))))))))))))))))))))))}
+                                />
                             </div>
 
                             {/* Right Column: Tabular View Table (Visible in 'table' or 'both' mode) */}
