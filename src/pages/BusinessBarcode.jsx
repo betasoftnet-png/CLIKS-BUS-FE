@@ -1733,6 +1733,40 @@ const BusinessBarcode = () => {
                                         Encoded: <strong style={{ color: '#1B6B3A' }}>{getSanitizedBarcodeValue(codeValue, codeType)}</strong>
                                     </div>
                                 )}
+
+                                {/* Code Value Text Visibility Toggle (Placed Directly With Code Value) */}
+                                <div style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'space-between', 
+                                    marginTop: '0.6rem', 
+                                    padding: '0.5rem 0.75rem', 
+                                    background: format.displayValue ? '#F0FDF4' : '#F8FAFC', 
+                                    borderRadius: '8px', 
+                                    border: `1px solid ${format.displayValue ? '#BBF7D0' : '#E2E8F0'}`,
+                                    transition: 'all 0.2s ease'
+                                }}>
+                                    <label htmlFor="displayValTop" style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={format.displayValue} 
+                                            onChange={(e) => updateFormat('displayValue', e.target.checked)} 
+                                            id="displayValTop"
+                                            style={{ width: '16px', height: '16px', accentColor: '#1B6B3A', cursor: 'pointer' }}
+                                        />
+                                        <span>Show code value text on label</span>
+                                    </label>
+                                    <span style={{ 
+                                        fontSize: '0.72rem', 
+                                        fontWeight: '800', 
+                                        color: format.displayValue ? '#166534' : '#64748B', 
+                                        background: format.displayValue ? '#DCFCE7' : '#E2E8F0', 
+                                        padding: '2px 8px', 
+                                        borderRadius: '12px' 
+                                    }}>
+                                        {format.displayValue ? 'Visible' : 'Hidden'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -2907,63 +2941,72 @@ const BusinessBarcode = () => {
                                     </div>
                                 )}
 
-                                {/* LOGO DISPLAY */}
-                                {(selectedPreset !== 'custom' || customTemplateConfig.showLogo) && logoUrl && (
-                                    <div style={{ marginBottom: '0.5rem', textAlign: 'center', position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <img src={logoUrl} alt="Store Logo" style={{ maxHeight: '36px', maxWidth: '120px', objectFit: 'contain' }} />
-                                        <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); handleRemoveLogo(); }}
-                                            title="Remove logo"
-                                            style={{ 
-                                                position: 'absolute', 
-                                                top: '-6px', 
-                                                right: '-14px', 
-                                                width: '18px', 
-                                                height: '18px', 
-                                                borderRadius: '50%', 
-                                                background: '#ef4444', 
-                                                color: '#ffffff', 
-                                                border: 'none', 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                justifyContent: 'center', 
-                                                cursor: 'pointer',
-                                                padding: 0,
-                                                boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                                            }}
-                                        >
-                                            <X size={11} />
-                                        </button>
+                                {/* TOP BRANDING & BADGE HEADER ROW (NATURAL FLOW, NO OVERLAY) */}
+                                {((selectedPreset !== 'custom' || customTemplateConfig.showLogo) && logoUrl || (selectedPreset !== 'custom' || customTemplateConfig.showBadge) && getEffectiveBadge()) && (
+                                    <div style={{ 
+                                        width: '100%', 
+                                        display: 'flex', 
+                                        justifyContent: (selectedPreset !== 'custom' || customTemplateConfig.showLogo) && logoUrl ? 'space-between' : 'flex-end', 
+                                        alignItems: 'center', 
+                                        marginBottom: '0.65rem',
+                                        gap: '0.5rem',
+                                        flexWrap: 'wrap'
+                                    }}>
+                                        {(selectedPreset !== 'custom' || customTemplateConfig.showLogo) && logoUrl ? (
+                                            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                                <img src={logoUrl} alt="Store Logo" style={{ maxHeight: '36px', maxWidth: '120px', objectFit: 'contain' }} />
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); handleRemoveLogo(); }}
+                                                    title="Remove logo"
+                                                    style={{ 
+                                                        position: 'absolute', 
+                                                        top: '-6px', 
+                                                        right: '-14px', 
+                                                        width: '18px', 
+                                                        height: '18px', 
+                                                        borderRadius: '50%', 
+                                                        background: '#ef4444', 
+                                                        color: '#ffffff', 
+                                                        border: 'none', 
+                                                        display: 'flex', 
+                                                        alignItems: 'center', 
+                                                        justifyContent: 'center', 
+                                                        cursor: 'pointer',
+                                                        padding: 0,
+                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                                                    }}
+                                                >
+                                                    <X size={11} />
+                                                </button>
+                                            </div>
+                                        ) : <div />}
+
+                                        {(selectedPreset !== 'custom' || customTemplateConfig.showBadge) && (() => {
+                                            const badge = getEffectiveBadge();
+                                            if (!badge) return null;
+                                            return (
+                                                <div style={{ 
+                                                    fontSize: '0.66rem', 
+                                                    fontWeight: '800', 
+                                                    background: badge.bg, 
+                                                    color: badge.color, 
+                                                    border: `1px solid ${badge.border}`, 
+                                                    padding: '2px 7px', 
+                                                    borderRadius: '6px',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px',
+                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    {badge.icon && <span>{badge.icon}</span>}
+                                                    <span>{badge.text}</span>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 )}
-
-                                {/* QUALITY BADGE DISPLAY */}
-                                {(selectedPreset !== 'custom' || customTemplateConfig.showBadge) && (() => {
-                                    const badge = getEffectiveBadge();
-                                    if (!badge) return null;
-                                    return (
-                                        <div style={{ 
-                                            position: 'absolute', 
-                                            top: '10px', 
-                                            right: '12px', 
-                                            fontSize: '0.66rem', 
-                                            fontWeight: '800', 
-                                            background: badge.bg, 
-                                            color: badge.color, 
-                                            border: `1px solid ${badge.border}`, 
-                                            padding: '2px 7px', 
-                                            borderRadius: '6px',
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                            boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-                                        }}>
-                                            {badge.icon && <span>{badge.icon}</span>}
-                                            <span>{badge.text}</span>
-                                        </div>
-                                    );
-                                })()}
 
                                 {/* Dynamic In-Label Placement Layout */}
                                 {barcodePlacement === 'top' && (
@@ -3198,39 +3241,48 @@ const BusinessBarcode = () => {
                             position: 'relative',
                             marginBottom: '1.75rem'
                         }}>
-                            {/* Store Logo */}
-                            {logoUrl && (
-                                <div style={{ marginBottom: '0.5rem', textAlign: 'center' }}>
-                                    <img src={logoUrl} alt="Store Logo" style={{ maxHeight: '42px', maxWidth: '140px', objectFit: 'contain' }} />
+                            {/* TOP BRANDING & BADGE HEADER ROW (NATURAL FLOW, NO OVERLAY) */}
+                            {((selectedPreset !== 'custom' || customTemplateConfig.showLogo) && logoUrl || (selectedPreset !== 'custom' || customTemplateConfig.showBadge) && getEffectiveBadge()) && (
+                                <div style={{ 
+                                    width: '100%', 
+                                    display: 'flex', 
+                                    justifyContent: logoUrl ? 'space-between' : 'flex-end', 
+                                    alignItems: 'center', 
+                                    marginBottom: '0.75rem',
+                                    gap: '0.5rem',
+                                    flexWrap: 'wrap'
+                                }}>
+                                    {logoUrl ? (
+                                        <div style={{ textAlign: 'left' }}>
+                                            <img src={logoUrl} alt="Store Logo" style={{ maxHeight: '42px', maxWidth: '140px', objectFit: 'contain' }} />
+                                        </div>
+                                    ) : <div />}
+
+                                    {(() => {
+                                        const badge = getEffectiveBadge();
+                                        if (!badge) return null;
+                                        return (
+                                            <div style={{ 
+                                                fontSize: '0.72rem', 
+                                                fontWeight: '800', 
+                                                background: badge.bg, 
+                                                color: badge.color, 
+                                                border: `1px solid ${badge.border}`, 
+                                                padding: '3px 9px', 
+                                                borderRadius: '6px',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
+                                                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                                whiteSpace: 'nowrap'
+                                            }}>
+                                                {badge.icon && <span>{badge.icon}</span>}
+                                                <span>{badge.text}</span>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             )}
-
-                            {/* Badge */}
-                            {(() => {
-                                const badge = getEffectiveBadge();
-                                if (!badge) return null;
-                                return (
-                                    <div style={{ 
-                                        position: 'absolute', 
-                                        top: '12px', 
-                                        right: '14px', 
-                                        fontSize: '0.72rem', 
-                                        fontWeight: '800', 
-                                        background: badge.bg, 
-                                        color: badge.color, 
-                                        border: `1px solid ${badge.border}`, 
-                                        padding: '3px 9px', 
-                                        borderRadius: '6px',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                                    }}>
-                                        {badge.icon && <span>{badge.icon}</span>}
-                                        <span>{badge.text}</span>
-                                    </div>
-                                );
-                            })()}
 
                             {/* Dynamic Layout in Scan Preview Modal */}
                             {barcodePlacement === 'top' && (
