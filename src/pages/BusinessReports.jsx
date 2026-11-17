@@ -160,11 +160,166 @@ const BusinessReports = () => {
                     const suppliers = suppRes?.data || suppRes || [];
                     return [...customers, ...suppliers];
                 }
-                if ([7, 9].includes(id)) {
+                // Customer Statements (ID 7) - Detailed Customer Transaction History & Balances
+                if (id === 7) {
+                    const [custRes, invoicesRes, salesRes] = await Promise.all([
+                        crmService.getCustomers().catch(() => []),
+                        reportsService.getInvoices().catch(() => []),
+                        reportsService.getSales().catch(() => [])
+                    ]);
+                    const customers = custRes?.data || custRes || [];
+                    const rawInvoices = Array.isArray(invoicesRes) ? invoicesRes : (invoicesRes?.data || []);
+                    const rawSales = Array.isArray(salesRes) ? salesRes : (salesRes?.data || []);
+
+                    const transactions = [];
+
+                    // 1. All invoices
+                    rawInvoices.forEach(inv => {
+                        const cname = inv.customer || inv.customer_name || 'Walk-in Customer';
+                        const total = parseFloat(inv.grand_total || inv.total_amount || inv.total || 0);
+                        const paid = parseFloat(inv.paid_amount !== undefined ? inv.paid_amount : (inv.status === 'paid' ? total : 0));
+                        const due = parseFloat(inv.due_amount !== undefined ? inv.due_amount : Math.max(total - paid, 0));
+                        transactions.push({
+                            id: `inv-${inv.id}`,
+                            date: inv.invoice_date || inv.date || inv.created_at,
+                            customer: cname,
+                            name: cname,
+                            ref_no: inv.invoice_number || `INV-${inv.id}`,
+                            type: 'Sales Invoice',
+                            total,
+                            paid,
+                            balance: due,
+                            outstanding_balance: due,
+                            status: inv.status || (due <= 0 ? 'Paid' : (paid > 0 ? 'Partial' : 'Unpaid'))
+                        });
+                    });
+
+                    // 2. POS sales
+                    const existingRefs = new Set(transactions.map(t => t.ref_no));
+                    rawSales.forEach(s => {
+                        const ref = s.order_number || s.invoice_number || `POS-${s.id}`;
+                        if (!existingRefs.has(ref)) {
+                            const cname = s.customer || s.customer_name || 'Walk-in Customer';
+                            const total = parseFloat(s.grand_total || s.total_sales || s.total || 0);
+                            const paid = parseFloat(s.paid_amount !== undefined ? s.paid_amount : total);
+                            const due = parseFloat(s.due_amount !== undefined ? s.due_amount : Math.max(total - paid, 0));
+                            transactions.push({
+                                id: `pos-${s.id}`,
+                                date: s.date || s.created_at,
+                                customer: cname,
+                                name: cname,
+                                ref_no: ref,
+                                type: 'POS Bill',
+                                total,
+                                paid,
+                                balance: due,
+                                outstanding_balance: due,
+                                status: due <= 0 ? 'Paid' : 'Unpaid'
+                            });
+                        }
+                    });
+
+                    // 3. Opening balances from customers with no transactions yet
+                    customers.forEach(c => {
+                        const bal = parseFloat(c.outstanding_balance || 0);
+                        const cname = c.name || c.customer_name || 'Customer';
+                        const hasTx = transactions.some(t => t.customer?.toLowerCase().trim() === cname.toLowerCase().trim());
+                        if (bal !== 0 && !hasTx) {
+                            transactions.push({
+                                id: `cust-open-${c.id}`,
+                                date: c.created_at || new Date().toISOString(),
+                                customer: cname,
+                                name: cname,
+                                ref_no: `OPN-${c.id}`,
+                                type: 'Opening Balance',
+                                total: bal,
+                                paid: 0,
+                                balance: bal,
+                                outstanding_balance: bal,
+                                status: bal > 0 ? 'Due' : 'Credit'
+                            });
+                        }
+                    });
+
+                    return transactions.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+                }
+
+                // Supplier Statements (ID 8) - Detailed Supplier Transaction History & Credit
+                if (id === 8) {
+                    const [suppRes, purchasesRes] = await Promise.all([
+                        suppliersService.getSuppliers().catch(() => []),
+                        purchasesService.getPurchases().catch(() => [])
+                    ]);
+                    const suppliers = suppRes?.data || suppRes || [];
+                    const purchases = Array.isArray(purchasesRes) ? purchasesRes : (purchasesRes?.data || []);
+
+                    const transactions = [];
+
+                    purchases.forEach(p => {
+                        const sname = p.supplier_name || p.supplier || p.vendor_name || 'Generic Cash Supplier';
+                        const total = parseFloat(p.grand_total || p.total_amount || p.total || 0);
+                        const paid = parseFloat(p.paid_amount !== undefined ? p.paid_amount : (p.status === 'completed' || p.status === 'paid' ? total : 0));
+                        const due = parseFloat(p.due_amount !== undefined ? p.due_amount : Math.max(total - paid, 0));
+                        transactions.push({
+                            id: `pur-${p.id}`,
+                            date: p.bill_date || p.date || p.purchase_date || p.created_at,
+                            supplier: sname,
+                            name: sname,
+                            ref_no: p.purchase_number || p.bill_no || `PB-${p.id}`,
+                            type: 'Purchase Bill',
+                            total,
+                            paid,
+                            balance: due,
+                            outstanding_balance: due,
+                            status: p.status || (due <= 0 ? 'Paid' : 'Pending')
+                        });
+                    });
+
+                    suppliers.forEach(s => {
+                        const bal = parseFloat(s.outstanding_balance || 0);
+                        const sname = s.name || s.company || s.supplier_name || 'Supplier';
+                        const hasTx = transactions.some(t => t.supplier?.toLowerCase().trim() === sname.toLowerCase().trim());
+                        if (bal !== 0 && !hasTx) {
+                            transactions.push({
+                                id: `supp-open-${s.id}`,
+                                date: s.created_at || new Date().toISOString(),
+                                supplier: sname,
+                                name: sname,
+                                ref_no: `OPN-${s.id}`,
+                                type: 'Opening Ledger Due',
+                                total: Math.abs(bal),
+                                paid: bal < 0 ? Math.abs(bal) : 0,
+                                balance: bal,
+                                outstanding_balance: bal,
+                                status: bal < 0 ? 'Advance' : 'Due'
+                            });
+                        }
+                    });
+
+                    if (transactions.length === 0 && suppliers.length > 0) {
+                        return suppliers.map(s => ({
+                            ...s,
+                            date: s.created_at || new Date().toISOString(),
+                            supplier: s.name || s.company,
+                            name: s.name || s.company,
+                            ref_no: `SUPP-${s.id}`,
+                            type: 'Supplier Account',
+                            total: Math.abs(parseFloat(s.outstanding_balance || 0)),
+                            paid: (s.outstanding_balance || 0) < 0 ? Math.abs(s.outstanding_balance) : 0,
+                            balance: parseFloat(s.outstanding_balance || 0),
+                            outstanding_balance: parseFloat(s.outstanding_balance || 0),
+                            status: (s.outstanding_balance || 0) < 0 ? 'Advance' : ((s.outstanding_balance || 0) > 0 ? 'Due' : 'Settled')
+                        }));
+                    }
+
+                    return transactions.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+                }
+
+                if (id === 9) {
                     const cust = await crmService.getCustomers();
                     return cust?.data || cust || [];
                 }
-                if (id === 8 || id === 17) {
+                if (id === 17) {
                     const supp = await suppliersService.getSuppliers();
                     return supp?.data || supp || [];
                 }
@@ -1500,13 +1655,61 @@ const BusinessReports = () => {
                                         </table>
                                     )}
 
-                                    {/* CRM Customers / Ledgers */}
-                                    {[7, 18].includes(selectedReport.id) && (
+                                    {/* CRM Customer Statements (ID 7) - Detailed Customer Transaction History & Balances */}
+                                    {selectedReport.id === 7 && (
                                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                             <thead style={{ background: '#F8FAFC' }}>
                                                 <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
-                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>{selectedReport.id === 18 ? 'Party Name' : 'Customer Name'}</th>
-                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Contact Phone</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Customer</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Invoice / Ref No</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Type</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Billed Amount</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Paid</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Balance Due</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                        <td style={{ padding: '0.6rem 1rem', color: '#64748B', fontSize: '0.8rem', fontWeight: '600' }}>
+                                                            {row.date ? new Date(row.date).toLocaleDateString('en-IN') : '—'}
+                                                        </td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#0F172A', fontSize: '0.85rem' }}>
+                                                            {row.customer || row.name || 'Walk-in Customer'}
+                                                        </td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#2563EB', fontSize: '0.8rem' }}>
+                                                            {row.ref_no || row.invoice_number || '—'}
+                                                        </td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontSize: '0.75rem', color: '#475569', fontWeight: '600' }}>
+                                                            <span style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px' }}>{row.type || 'Invoice'}</span>
+                                                        </td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#0F172A', textAlign: 'right', fontSize: '0.85rem' }}>
+                                                            {formatCurrency(row.total || row.grand_total || 0)}
+                                                        </td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#16A34A', textAlign: 'right', fontSize: '0.85rem' }}>
+                                                            {formatCurrency(row.paid || row.paid_amount || 0)}
+                                                        </td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: (row.balance || row.outstanding_balance || 0) > 0 ? '#EF4444' : '#10B981', textAlign: 'right', fontSize: '0.85rem' }}>
+                                                            {formatCurrency(row.balance !== undefined ? row.balance : (row.outstanding_balance || 0))}
+                                                        </td>
+                                                    </tr>
+                                                )) : (
+                                                    <tr>
+                                                        <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No customer transaction history found.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    )}
+
+                                    {/* Consolidated Party Ledgers (ID 18) */}
+                                    {selectedReport.id === 18 && (
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead style={{ background: '#F8FAFC' }}>
+                                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Party Name</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Contact Info</th>
                                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Outstanding Balance</th>
                                                 </tr>
                                             </thead>
@@ -1514,41 +1717,63 @@ const BusinessReports = () => {
                                                 {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name || row.company_name || row.supplier_name || row.first_name}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.phone || 'N/A'}</td>
+                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.phone || row.email || 'N/A'}</td>
                                                         <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>{formatCurrency(row.outstanding_balance)}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
-                                                        <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No customer statements found.</td>
+                                                        <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No party ledgers found.</td>
                                                     </tr>
                                                 )}
                                             </tbody>
                                         </table>
                                     )}
 
-                                    {/* Suppliers Module */}
-                                    {/* Suppliers Module (Excluding Scorecard) */}
+                                    {/* Suppliers Statements (ID 8) - Detailed Supplier Transaction History */}
                                     {selectedReport.id === 8 && (
                                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                             <thead style={{ background: '#F8FAFC' }}>
                                                 <tr style={{ textAlign: 'left', borderBottom: '1px solid #E2E8F0' }}>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Date</th>
                                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Supplier</th>
-                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Contact Info</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Bill / Ref No</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase' }}>Type</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Bill Amount</th>
+                                                    <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Paid</th>
                                                     <th style={{ padding: '0.6rem 1rem', fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', textAlign: 'right' }}>Pending Credit</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {reportDetails?.length > 0 ? reportDetails.map((row, idx) => (
-                                                    <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#0F172A', fontSize: '0.85rem' }}>{row.name || row.company_name}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '600', color: '#64748B', fontSize: '0.85rem' }}>{row.email || row.phone || 'N/A'}</td>
-                                                        <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: (row.outstanding_balance || 0) < 0 ? '#10B981' : '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>
-                                                            {(row.outstanding_balance || 0) < 0 ? `${formatCurrency(Math.abs(row.outstanding_balance))} (Adv)` : formatCurrency(row.outstanding_balance || 0)}
-                                                        </td>
-                                                    </tr>
-                                                )) : (
+                                                {reportDetails?.length > 0 ? reportDetails.map((row, idx) => {
+                                                    const bal = parseFloat(row.balance !== undefined ? row.balance : (row.outstanding_balance || 0));
+                                                    return (
+                                                        <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                                                            <td style={{ padding: '0.6rem 1rem', color: '#64748B', fontSize: '0.8rem', fontWeight: '600' }}>
+                                                                {row.date ? new Date(row.date).toLocaleDateString('en-IN') : '—'}
+                                                            </td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '750', color: '#0F172A', fontSize: '0.85rem' }}>
+                                                                {row.supplier || row.name || row.company_name || 'Generic Supplier'}
+                                                            </td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#059669', fontSize: '0.8rem' }}>
+                                                                {row.ref_no || row.purchase_number || '—'}
+                                                            </td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontSize: '0.75rem', color: '#475569', fontWeight: '600' }}>
+                                                                <span style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px' }}>{row.type || 'Bill'}</span>
+                                                            </td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '800', color: '#0F172A', textAlign: 'right', fontSize: '0.85rem' }}>
+                                                                {formatCurrency(row.total || row.grand_total || 0)}
+                                                            </td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '700', color: '#16A34A', textAlign: 'right', fontSize: '0.85rem' }}>
+                                                                {formatCurrency(row.paid || row.paid_amount || 0)}
+                                                            </td>
+                                                            <td style={{ padding: '0.6rem 1rem', fontWeight: '850', color: bal < 0 ? '#10B981' : '#EF4444', textAlign: 'right', fontSize: '0.85rem' }}>
+                                                                {bal < 0 ? `${formatCurrency(Math.abs(bal))} (Adv)` : formatCurrency(bal)}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                }) : (
                                                     <tr>
-                                                        <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No suppliers located.</td>
+                                                        <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: '#64748B', fontWeight: '600' }}>No supplier statements found.</td>
                                                     </tr>
                                                 )}
                                             </tbody>

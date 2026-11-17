@@ -4,10 +4,10 @@ import { BarChart3, PieChart, TrendingUp, Calendar, Layers } from 'lucide-react'
 
 /**
  * Format numbers according to Indian Financial System (Crore, Lakh, Thousand)
- * Avoids unprofessional 'k' notations like 2000537k.
+ * Avoids unprofessional 'k' notations like 2000537k, and eliminates leading zeros.
  */
 export const formatIndianAxisNumber = (val) => {
-    if (val === null || val === undefined || isNaN(val) || val === 0) return '0';
+    if (val === null || val === undefined || isNaN(val) || Math.abs(val) < 0.001) return '₹0';
     const abs = Math.abs(Number(val));
     const sign = val < 0 ? '-' : '';
 
@@ -15,14 +15,14 @@ export const formatIndianAxisNumber = (val) => {
         // Crore (>= 1,00,00,000)
         const cr = abs / 10000000;
         const formatted = cr >= 100 ? cr.toFixed(0) : (cr >= 10 ? cr.toFixed(1) : cr.toFixed(2));
-        const clean = formatted.replace(/\.00$/, '').replace(/(\.[1-9])0$/, '$1');
+        const clean = String(formatted).replace(/\.00$/, '').replace(/(\.[1-9])0$/, '$1');
         return `${sign}₹${clean} Crore`;
     }
     if (abs >= 100000) {
         // Lakh (>= 1,00,000)
         const lakh = abs / 100000;
         const formatted = lakh >= 100 ? lakh.toFixed(0) : (lakh >= 10 ? lakh.toFixed(1) : lakh.toFixed(2));
-        const clean = formatted.replace(/\.00$/, '').replace(/(\.[1-9])0$/, '$1');
+        const clean = String(formatted).replace(/\.00$/, '').replace(/(\.[1-9])0$/, '$1');
         return `${sign}₹${clean} Lakh`;
     }
     if (abs >= 1000) {
@@ -34,9 +34,10 @@ export const formatIndianAxisNumber = (val) => {
 
 /**
  * Helper to process sales data into monthly or daily buckets.
- * Strictly excludes future timelines (> now) for sales data.
+ * Strictly respects user date boundaries (e.g. July to August only shows July and August).
+ * Excludes future timelines (> now) for sales data.
  */
-export const processSalesData = (reportData, isSales = true, scope = 'monthly') => {
+export const processSalesData = (reportData, isSales = true, scope = 'range', startDate = '', endDate = '') => {
     const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -47,11 +48,60 @@ export const processSalesData = (reportData, isSales = true, scope = 'monthly') 
         return visibleMonths.map(m => ({ label: m, value: 0, count: 0 }));
     }
 
-    // Daily breakdown for a filtered period/month
-    if (scope === 'daily') {
-        const dailyMap = {};
-        let hasDate = false;
+    // 1. If explicit date boundary range is set by user, restrict X-axis ONLY to those months/days
+    if (startDate || endDate) {
+        const sD = startDate ? new Date(startDate) : new Date(currentYear, 0, 1);
+        const eD = endDate ? new Date(endDate) : now;
+        if (sD) sD.setHours(0, 0, 0, 0);
+        if (eD) eD.setHours(23, 59, 59, 999);
 
+        const isSameMonth = sD.getFullYear() === eD.getFullYear() && sD.getMonth() === eD.getMonth();
+        const diffDays = Math.ceil((eD.getTime() - sD.getTime()) / (1000 * 60 * 60 * 24));
+
+        // If range is within 35 days or same month, render daily breakdown for optimal precision
+        if (isSameMonth || diffDays <= 35 || scope === 'daily') {
+            const dailyMap = {};
+            let hasDate = false;
+
+            reportData.forEach(item => {
+                const dateStr = item.date || item.purchase_date || item.created_at || item.invoice_date || item.bill_date;
+                const val = parseFloat(item.due_amount !== undefined ? item.due_amount : (item.paid_amount !== undefined ? item.paid_amount : ((item.inflow !== undefined || item.outflow !== undefined) ? (parseFloat(item.inflow || 0) + parseFloat(item.outflow || 0)) : (item.grand_total || item.total_sales || item.revenue || item.amount || item.total || item.total_amount || item.value || item.quantity || 0))));
+
+                if (dateStr) {
+                    const d = new Date(dateStr);
+                    if (!isNaN(d.getTime())) {
+                        if (isSales && d > now) return;
+                        if (d < sD || d > eD) return;
+                        const dayLabel = `${d.getDate()} ${allMonths[d.getMonth()]}`;
+                        if (!dailyMap[dayLabel]) {
+                            dailyMap[dayLabel] = { label: dayLabel, value: 0, count: 0, date: d };
+                        }
+                        dailyMap[dayLabel].value += val;
+                        dailyMap[dayLabel].count += 1;
+                        hasDate = true;
+                    }
+                }
+            });
+
+            if (hasDate) {
+                return Object.values(dailyMap).sort((a, b) => a.date - b.date);
+            }
+        }
+
+        // Multi-month range: Collect only the exact months within the user's bounding range
+        const rangeMonths = [];
+        const cur = new Date(sD.getFullYear(), sD.getMonth(), 1);
+        const endMonthLimit = new Date(eD.getFullYear(), eD.getMonth(), 1);
+
+        while (cur <= endMonthLimit && rangeMonths.length < 12) {
+            rangeMonths.push(allMonths[cur.getMonth()]);
+            cur.setMonth(cur.getMonth() + 1);
+        }
+
+        const monthlyMap = {};
+        rangeMonths.forEach(m => { monthlyMap[m] = { label: m, value: 0, count: 0 }; });
+
+        let hasValidDate = false;
         reportData.forEach(item => {
             const dateStr = item.date || item.purchase_date || item.created_at || item.invoice_date || item.bill_date;
             const val = parseFloat(item.due_amount !== undefined ? item.due_amount : (item.paid_amount !== undefined ? item.paid_amount : ((item.inflow !== undefined || item.outflow !== undefined) ? (parseFloat(item.inflow || 0) + parseFloat(item.outflow || 0)) : (item.grand_total || item.total_sales || item.revenue || item.amount || item.total || item.total_amount || item.value || item.quantity || 0))));
@@ -60,23 +110,23 @@ export const processSalesData = (reportData, isSales = true, scope = 'monthly') 
                 const d = new Date(dateStr);
                 if (!isNaN(d.getTime())) {
                     if (isSales && d > now) return;
-                    const dayLabel = `${d.getDate()} ${allMonths[d.getMonth()]}`;
-                    if (!dailyMap[dayLabel]) {
-                        dailyMap[dayLabel] = { label: dayLabel, value: 0, count: 0, date: d };
+                    if (d < sD || d > eD) return;
+                    const monthName = allMonths[d.getMonth()];
+                    if (monthlyMap[monthName] !== undefined) {
+                        monthlyMap[monthName].value += val;
+                        monthlyMap[monthName].count += 1;
+                        hasValidDate = true;
                     }
-                    dailyMap[dayLabel].value += val;
-                    dailyMap[dayLabel].count += 1;
-                    hasDate = true;
                 }
             }
         });
 
-        if (hasDate) {
-            return Object.values(dailyMap).sort((a, b) => a.date - b.date).slice(0, 15);
+        if (hasValidDate) {
+            return Object.values(monthlyMap);
         }
     }
 
-    // Check if the dataset is strictly for a past year (e.g. 2025)
+    // 2. Unfiltered / Default Timeline
     let isPastYearOnly = false;
     const detectedYears = new Set();
 
@@ -92,7 +142,6 @@ export const processSalesData = (reportData, isSales = true, scope = 'monthly') 
         isPastYearOnly = true;
     }
 
-    // For sales in the current year, do not include future months (e.g. December when currently in November)
     const visibleMonths = (isSales && !isPastYearOnly)
         ? allMonths.slice(0, currentMonthIdx + 1)
         : allMonths;
@@ -108,8 +157,7 @@ export const processSalesData = (reportData, isSales = true, scope = 'monthly') 
         if (dateStr) {
             const d = new Date(dateStr);
             if (!isNaN(d.getTime())) {
-                if (isSales && d > now) return; // Strict future date exclusion
-
+                if (isSales && d > now) return;
                 const monthName = allMonths[d.getMonth()];
                 if (monthlyMap[monthName]) {
                     monthlyMap[monthName].value += val;
@@ -151,7 +199,8 @@ export const MonthlySalesBarChart = ({
 }) => {
     const { formatCurrency } = useCurrency();
     const [hoveredIdx, setHoveredIdx] = useState(null);
-    const [viewGranularity, setViewGranularity] = useState('fullYear'); // 'fullYear' | 'daily'
+    const hasFilter = Boolean(startDate || endDate);
+    const [viewGranularity, setViewGranularity] = useState('range'); // 'range' | 'fullYear'
 
     // Determine active filtered months
     const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -165,14 +214,10 @@ export const MonthlySalesBarChart = ({
         if (!isNaN(eD.getTime())) selectedMonths.add(allMonths[eD.getMonth()]);
     }
 
-    const hasFilter = Boolean(startDate || endDate);
+    const chartData = (hasFilter && viewGranularity === 'fullYear' && fullReportData && Array.isArray(fullReportData))
+        ? processSalesData(fullReportData, isSales, 'range', '', '')
+        : processSalesData(reportData, isSales, 'range', startDate, endDate);
 
-    // If viewing fullYear trend, use fullReportData so previous months maintain their historical bars
-    const dataSource = (hasFilter && viewGranularity === 'fullYear' && fullReportData && Array.isArray(fullReportData))
-        ? fullReportData
-        : reportData;
-
-    const chartData = processSalesData(dataSource, isSales, viewGranularity === 'daily' ? 'daily' : 'monthly');
     const maxValue = Math.max(...chartData.map(d => d.value), 1000);
 
     const totalSales = Array.isArray(reportData) 
@@ -199,9 +244,21 @@ export const MonthlySalesBarChart = ({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', padding: '0.35rem 0.65rem', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#475569', display: 'flex', alignItems: 'center', gap: '5px' }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#BE185D', display: 'inline-block' }} />
-                        <span>Filter Active: Showing annual context (previous months preserved)</span>
+                        <span>Filter Active: Showing {viewGranularity === 'range' ? 'selected bounding range' : 'full annual trend'}</span>
                     </div>
                     <div style={{ display: 'flex', gap: '3px' }}>
+                        <button
+                            type="button"
+                            onClick={() => setViewGranularity('range')}
+                            style={{
+                                padding: '2px 8px', borderRadius: '6px', border: 'none',
+                                background: viewGranularity === 'range' ? '#BE185D' : 'transparent',
+                                color: viewGranularity === 'range' ? '#FFFFFF' : '#64748B',
+                                fontWeight: '800', fontSize: '0.68rem', cursor: 'pointer'
+                            }}
+                        >
+                            Bounded Range
+                        </button>
                         <button
                             type="button"
                             onClick={() => setViewGranularity('fullYear')}
@@ -212,19 +269,7 @@ export const MonthlySalesBarChart = ({
                                 fontWeight: '800', fontSize: '0.68rem', cursor: 'pointer'
                             }}
                         >
-                            Full Year Trend
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setViewGranularity('daily')}
-                            style={{
-                                padding: '2px 8px', borderRadius: '6px', border: 'none',
-                                background: viewGranularity === 'daily' ? '#BE185D' : 'transparent',
-                                color: viewGranularity === 'daily' ? '#FFFFFF' : '#64748B',
-                                fontWeight: '800', fontSize: '0.68rem', cursor: 'pointer'
-                            }}
-                        >
-                            Daily Breakdown
+                            Full Year
                         </button>
                     </div>
                 </div>
@@ -361,13 +406,13 @@ export const MonthlySalesLineChart = ({
 }) => {
     const { formatCurrency } = useCurrency();
     const [hoveredIdx, setHoveredIdx] = useState(null);
-
     const hasFilter = Boolean(startDate || endDate);
-    const dataSource = (hasFilter && fullReportData && Array.isArray(fullReportData))
-        ? fullReportData
-        : reportData;
+    const [viewGranularity, setViewGranularity] = useState('range'); // 'range' | 'fullYear'
 
-    const chartData = processSalesData(dataSource, isSales, 'monthly');
+    const chartData = (hasFilter && viewGranularity === 'fullYear' && fullReportData && Array.isArray(fullReportData))
+        ? processSalesData(fullReportData, isSales, 'range', '', '')
+        : processSalesData(reportData, isSales, 'range', startDate, endDate);
+
     const maxValue = Math.max(...chartData.map(d => d.value), 1000);
     const totalSales = Array.isArray(reportData) 
         ? reportData.reduce((sum, item) => {
@@ -403,6 +448,40 @@ export const MonthlySalesLineChart = ({
 
     const chartBody = (
         <div style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
+            {hasFilter && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', padding: '0.35rem 0.65rem', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#475569', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#BE185D', display: 'inline-block' }} />
+                        <span>Filter Active: Showing {viewGranularity === 'range' ? 'selected bounding range' : 'full annual trend'}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '3px' }}>
+                        <button
+                            type="button"
+                            onClick={() => setViewGranularity('range')}
+                            style={{
+                                padding: '2px 8px', borderRadius: '6px', border: 'none',
+                                background: viewGranularity === 'range' ? '#BE185D' : 'transparent',
+                                color: viewGranularity === 'range' ? '#FFFFFF' : '#64748B',
+                                fontWeight: '800', fontSize: '0.68rem', cursor: 'pointer'
+                            }}
+                        >
+                            Bounded Range
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewGranularity('fullYear')}
+                            style={{
+                                padding: '2px 8px', borderRadius: '6px', border: 'none',
+                                background: viewGranularity === 'fullYear' ? '#BE185D' : 'transparent',
+                                color: viewGranularity === 'fullYear' ? '#FFFFFF' : '#64748B',
+                                fontWeight: '800', fontSize: '0.68rem', cursor: 'pointer'
+                            }}
+                        >
+                            Full Year
+                        </button>
+                    </div>
+                </div>
+            )}
             <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} style={{ width: '100%', height: 'auto', minWidth: '320px' }}>
                 <defs>
                     <linearGradient id="salesLineAreaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -521,6 +600,7 @@ export const MonthlySalesLineChart = ({
  */
 export const StockPieChart = ({ 
     reportData, 
+    selectedReport = null,
     title = 'Distribution & Share Breakdown', 
     subtitle = 'Proportional valuation and contributor metrics', 
     isSales = false,
@@ -530,7 +610,7 @@ export const StockPieChart = ({
     const [hoveredIndex, setHoveredIndex] = useState(null);
 
     const isWarehouse = Array.isArray(reportData) && reportData.some(item => item.warehouse_name || item.warehouse_code || item.capacity_utilization !== undefined || (item.name && item.location && item.code && !item.sku && !item.selling_price));
-    const isParty = Array.isArray(reportData) && reportData.some(item => item.outstanding_balance !== undefined || item.total_due !== undefined || item.total_spent !== undefined || (item.name && item.phone && !item.sku && !item.selling_price));
+    const isParty = (selectedReport && selectedReport.category === 'parties') || (Array.isArray(reportData) && reportData.some(item => item.outstanding_balance !== undefined || item.total_due !== undefined || item.balance !== undefined || item.pending_credit !== undefined || item.total_spent !== undefined || (item.name && (item.phone || item.email || item.company_name || item.customer || item.supplier) && !item.sku && !item.selling_price)));
     const isTrialBalance = Array.isArray(reportData) && reportData.some(item => item.ledger && (item.debit !== undefined || item.credit !== undefined));
     const isProfitLoss = reportData && !Array.isArray(reportData) && reportData.gross_revenue !== undefined;
     const isBalanceSheet = reportData && !Array.isArray(reportData) && reportData.assets !== undefined && reportData.liabilities !== undefined;
@@ -543,6 +623,31 @@ export const StockPieChart = ({
             return [
                 { label: 'Active', value: 1, count: 0, color: '#10B981', displayVal: 'No Data' }
             ];
+        }
+
+        if (isParty) {
+            const totalBal = reportData.reduce((sum, p) => sum + Math.abs(parseFloat(p.outstanding_balance !== undefined ? p.outstanding_balance : (p.balance !== undefined ? p.balance : (p.total_due || p.pending_credit || 0)))), 0);
+            const filtered = reportData.filter(p => Math.abs(parseFloat(p.outstanding_balance !== undefined ? p.outstanding_balance : (p.balance !== undefined ? p.balance : (p.total_due || p.pending_credit || 0)))) > 0);
+            
+            if (filtered.length === 0) {
+                return [{ label: 'All Dues Settled', value: 1, displayVal: '₹0.00 Outstanding', color: '#10B981' }];
+            }
+
+            return filtered
+                .sort((a, b) => Math.abs(parseFloat(b.outstanding_balance !== undefined ? b.outstanding_balance : (b.balance !== undefined ? b.balance : (b.total_due || b.pending_credit || 0)))) - Math.abs(parseFloat(a.outstanding_balance !== undefined ? a.outstanding_balance : (a.balance !== undefined ? a.balance : (a.total_due || a.pending_credit || 0)))))
+                .slice(0, 8)
+                .map((p, idx) => {
+                    const rawBal = parseFloat(p.outstanding_balance !== undefined ? p.outstanding_balance : (p.balance !== undefined ? p.balance : (p.total_due || p.pending_credit || 0)));
+                    const bal = Math.abs(rawBal);
+                    const pct = totalBal > 0 ? ((bal / totalBal) * 100).toFixed(1) : 0;
+                    const partyName = p.customer || p.supplier || p.name || p.company_name || `Party ${idx + 1}`;
+                    return {
+                        label: partyName,
+                        value: bal,
+                        displayVal: `${pct}% (₹${bal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${rawBal < 0 ? ' Adv' : ''})`,
+                        color: rawBal < 0 ? '#10B981' : colors[idx % colors.length]
+                    };
+                });
         }
 
         if (isSalesData && Array.isArray(reportData)) {
@@ -630,30 +735,6 @@ export const StockPieChart = ({
             return list.length > 0 ? list : [{ label: 'Empty Ledger', value: 1, displayVal: '₹0' }];
         }
 
-        if (isParty) {
-            const totalBal = reportData.reduce((sum, p) => sum + Math.abs(parseFloat(p.outstanding_balance || p.total_due || 0)), 0);
-            const filtered = reportData.filter(p => Math.abs(parseFloat(p.outstanding_balance || p.total_due || 0)) > 0);
-            
-            if (filtered.length === 0) {
-                return [{ label: 'Fully Settled', value: 1, displayVal: '₹0.00 Outstanding', color: '#10B981' }];
-            }
-
-            return filtered
-                .sort((a, b) => Math.abs(parseFloat(b.outstanding_balance || b.total_due || 0)) - Math.abs(parseFloat(a.outstanding_balance || a.total_due || 0)))
-                .slice(0, 8)
-                .map((p, idx) => {
-                    const rawBal = parseFloat(p.outstanding_balance || p.total_due || 0);
-                    const bal = Math.abs(rawBal);
-                    const pct = totalBal > 0 ? ((bal / totalBal) * 100).toFixed(1) : 0;
-                    return {
-                        label: p.name || p.company_name || `Party ${idx + 1}`,
-                        value: bal,
-                        displayVal: `${pct}% (₹${bal.toFixed(2)}${rawBal < 0 ? ' Adv' : ''})`,
-                        color: rawBal < 0 ? '#10B981' : colors[idx % colors.length]
-                    };
-                });
-        }
-
         const catMap = {};
         reportData.forEach(item => {
             const cat = item.category || item.product_name || item.name || item.stock_status || item.location || 'General';
@@ -700,41 +781,59 @@ export const StockPieChart = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', width: `${size}px`, height: `${size}px`, flexShrink: 0 }}>
                 <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-                    {slices.map((slice, idx) => {
-                        const pct = totalVal > 0 ? slice.value / totalVal : 1 / slices.length;
-                        const angle = pct * 360;
-                        const startAngle = cumulativeAngle;
-                        const endAngle = cumulativeAngle + angle;
-                        cumulativeAngle += angle;
+                    {slices.length === 1 ? (
+                        <circle
+                            cx={center}
+                            cy={center}
+                            r={radius}
+                            fill="none"
+                            stroke={slices[0].color}
+                            strokeWidth={hoveredIndex === 0 ? strokeWidth + 4 : strokeWidth}
+                            onMouseEnter={() => setHoveredIndex(0)}
+                            onMouseLeave={() => setHoveredIndex(null)}
+                            style={{
+                                transition: 'all 0.25s ease',
+                                cursor: 'pointer',
+                                opacity: 1
+                            }}
+                        />
+                    ) : (
+                        slices.map((slice, idx) => {
+                            const pct = totalVal > 0 ? slice.value / totalVal : 1 / slices.length;
+                            const angle = pct * 360;
+                            const startAngle = cumulativeAngle;
+                            const endAngle = cumulativeAngle + angle;
+                            cumulativeAngle += angle;
 
-                        const start = getCoordinatesForAngle(startAngle);
-                        const end = getCoordinatesForAngle(endAngle);
-                        const largeArcFlag = angle > 180 ? 1 : 0;
+                            const start = getCoordinatesForAngle(startAngle);
+                            const end = getCoordinatesForAngle(endAngle);
+                            const largeArcFlag = angle > 180 ? 1 : 0;
 
-                        const pathData = [
-                            `M ${start.x} ${start.y}`,
-                            `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`
-                        ].join(' ');
+                            const pathData = [
+                                `M ${start.x} ${start.y}`,
+                                `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`
+                            ].join(' ');
 
-                        const isHovered = hoveredIndex === idx;
+                            const isHovered = hoveredIndex === idx;
 
-                        return (
-                            <path
-                                key={idx}
-                                d={pathData}
-                                fill="none"
-                                stroke={slice.color}
-                                strokeWidth={isHovered ? strokeWidth + 4 : strokeWidth}
-                                onMouseEnter={() => setHoveredIndex(idx)}
-                                onMouseLeave={() => setHoveredIndex(null)}
-                                style={{
-                                    transition: 'all 0.25s ease',
-                                    cursor: 'pointer',
-                                    opacity: hoveredIndex === null || isHovered ? 1 : 0.6
-                                }}
-                            />
-                        );
-                    })}
+                            return (
+                                <path
+                                    key={idx}
+                                    d={pathData}
+                                    fill="none"
+                                    stroke={slice.color}
+                                    strokeWidth={isHovered ? strokeWidth + 4 : strokeWidth}
+                                    onMouseEnter={() => setHoveredIndex(idx)}
+                                    onMouseLeave={() => setHoveredIndex(null)}
+                                    style={{
+                                        transition: 'all 0.25s ease',
+                                        cursor: 'pointer',
+                                        opacity: hoveredIndex === null || isHovered ? 1 : 0.6
+                                    }}
+                                />
+                            );
+                        })
+                    )}
                 </svg>
 
                 <div style={{
@@ -742,10 +841,10 @@ export const StockPieChart = ({
                     alignItems: 'center', justifyContent: 'center', pointerEvents: 'none'
                 }}>
                     <span style={{ fontSize: '0.62rem', fontWeight: '800', color: '#64748B', textTransform: 'uppercase' }}>
-                        {isSalesData ? 'Contributors' : (isWarehouse ? 'Warehouses' : (isParty ? 'Parties' : 'Segments'))}
+                        {selectedReport?.id === 8 ? 'Suppliers' : (selectedReport?.id === 7 ? 'Customers' : (isParty ? 'Parties' : (isSalesData ? 'Contributors' : (isWarehouse ? 'Warehouses' : 'Segments'))))}
                     </span>
                     <span style={{ fontSize: '0.95rem', fontWeight: '900', color: '#0F172A' }}>
-                        {hoveredIndex !== null ? slices[hoveredIndex].label.slice(0, 10) : slices.length}
+                        {hoveredIndex !== null ? slices[hoveredIndex].label.slice(0, 10) : (reportData?.length || slices.length)}
                     </span>
                 </div>
             </div>
@@ -813,6 +912,7 @@ export const UniversalReportChart = ({
     fullReportData,
     startDate = '',
     endDate = '',
+    selectedReport = null,
     title = 'Report Analytics & Trends',
     subtitle = 'Comprehensive metric overview',
     defaultChartType = 'bar',
@@ -922,6 +1022,7 @@ export const UniversalReportChart = ({
             {chartType === 'pie' && (
                 <StockPieChart 
                     reportData={reportData} 
+                    selectedReport={selectedReport}
                     title={title} 
                     subtitle={subtitle} 
                     isSales={isSales} 
