@@ -147,6 +147,15 @@ export const processSalesData = (reportData, isSales = true, scope = 'range', st
         return visibleMonths.map(m => ({ label: m, value: 0, count: 0 }));
     }
 
+    // Special: Multi-year Sales Forecasting Data across Calendar Years
+    if (reportData.some(item => item.calendar_year || (item.year && item.growth_rate))) {
+        return reportData.map(item => ({
+            label: String(item.calendar_year || item.year || item.name),
+            value: parseFloat(item.total_sales || item.sales || item.value || 0),
+            count: 1
+        }));
+    }
+
     // 1. If explicit date boundary range is set by user, restrict X-axis ONLY to those months/days
     if (startDate || endDate) {
         const sD = startDate ? new Date(startDate) : new Date(currentYear, 0, 1);
