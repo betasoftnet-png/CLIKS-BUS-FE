@@ -157,7 +157,13 @@ const BusinessDashboard = () => {
     // States for custom interactive SVGs
     const [hoveredSalesPoint, setHoveredSalesPoint] = useState(null);
     const [hoveredDonutSegment, setHoveredDonutSegment] = useState(null);
-    const [dashboardPeriod, setDashboardPeriod] = useState('financial_year'); // 'today' | 'this_week' | 'this_month' | 'financial_year' | 'all_time'
+    const [dashboardPeriod, setDashboardPeriod] = useState('financial_year'); // 'today' | 'this_month' | 'financial_year' | 'all_time' | 'custom'
+
+    // Custom Calendar Date Range states
+    const todayStr = new Date().toISOString().split('T')[0];
+    const firstDayOfMonthStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    const [customFromDate, setCustomFromDate] = useState(firstDayOfMonthStr);
+    const [customToDate, setCustomToDate] = useState(todayStr);
 
     // Modal states for Top Products and Expense Distribution drill-downs
     const [isTopProductsModalOpen, setIsTopProductsModalOpen] = useState(false);
@@ -183,11 +189,8 @@ const BusinessDashboard = () => {
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    const validSaved = parsed.filter(id => validIds.includes(id));
-                    // Keep valid saved choices and automatically include any newly available master shortcuts
-                    const missing = validIds.filter(id => !parsed.includes(id));
-                    return [...validSaved, ...missing];
+                if (Array.isArray(parsed)) {
+                    return parsed.filter(id => validIds.includes(id));
                 }
             } catch(e) {}
         }
@@ -216,7 +219,7 @@ const BusinessDashboard = () => {
                     });
                     DEFAULT_DASHBOARD_FEATURES.forEach(defaultItem => {
                         if (!merged.some(m => m.id === defaultItem.id)) {
-                            merged.push(defaultItem);
+                            merged.push({ ...defaultItem, enabled: false });
                         }
                     });
                     return merged;
@@ -244,15 +247,12 @@ const BusinessDashboard = () => {
                                userSettingsData?.data?.dashboardShortcuts ?? 
                                userSettingsData?.dashboardShortcuts;
         const validIds = MASTER_SHORTCUTS.map(s => s.id);
-        if (Array.isArray(cloudShortcuts) && cloudShortcuts.length > 0) {
+        if (Array.isArray(cloudShortcuts)) {
             const filtered = cloudShortcuts.filter(id => validIds.includes(id));
-            // Keep saved and automatically merge newly added shortcuts so all options stay synced
-            const missing = validIds.filter(id => !cloudShortcuts.includes(id));
-            const merged = [...filtered, ...missing];
-            setSelectedShortcuts(merged);
-            setModalSelectedShortcuts(merged);
+            setSelectedShortcuts(filtered);
+            setModalSelectedShortcuts(filtered);
             try {
-                localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(merged));
+                localStorage.setItem('cliks_dashboard_shortcuts', JSON.stringify(filtered));
             } catch (e) {}
         }
 
@@ -273,7 +273,7 @@ const BusinessDashboard = () => {
             });
             DEFAULT_DASHBOARD_FEATURES.forEach(defaultItem => {
                 if (!merged.some(m => m.id === defaultItem.id)) {
-                    merged.push(defaultItem);
+                    merged.push({ ...defaultItem, enabled: false });
                 }
             });
             setDashboardFeatures(merged);
@@ -375,8 +375,13 @@ const BusinessDashboard = () => {
 
     // Analytics Queries
     const { data: dashboardSummary } = useQuery({
-        queryKey: ['dashboardSummary', activeBranchId, dashboardPeriod],
-        queryFn: () => reportsService.getDashboardSummary({ branch_id: activeBranchId, period: dashboardPeriod }),
+        queryKey: ['dashboardSummary', activeBranchId, dashboardPeriod, customFromDate, customToDate],
+        queryFn: () => reportsService.getDashboardSummary({
+            branch_id: activeBranchId,
+            period: dashboardPeriod,
+            from_date: dashboardPeriod === 'custom' ? customFromDate : undefined,
+            to_date: dashboardPeriod === 'custom' ? customToDate : undefined
+        }),
         retry: false
     });
 
@@ -451,21 +456,23 @@ const BusinessDashboard = () => {
 
     const periodLabelMap = {
         today: 'Today',
-        this_week: 'This Week',
         this_month: 'This Month',
         financial_year: dashboardSummary?.fy_label || 'FY 2026-27',
-        all_time: 'All Time'
+        all_time: 'All Time',
+        custom: customFromDate && customToDate ? `${customFromDate} to ${customToDate}` : 'Custom'
     };
     const periodKeyMap = {
         today: 'today',
-        this_week: 'thisWeek',
         this_month: 'thisMonth',
         financial_year: 'financialYear',
-        all_time: 'allTime'
+        all_time: 'allTime',
+        custom: 'custom'
     };
-    const currentPeriodBadge = dashboardPeriod === 'financial_year' && dashboardSummary?.fy_label
-        ? dashboardSummary.fy_label
-        : (t ? t(periodKeyMap[dashboardPeriod] || 'financialYear', periodLabelMap[dashboardPeriod] || 'FY 2026-27') : (periodLabelMap[dashboardPeriod] || 'FY 2026-27'));
+    const currentPeriodBadge = dashboardPeriod === 'custom'
+        ? (customFromDate && customToDate ? `${customFromDate} to ${customToDate}` : 'Custom Range')
+        : dashboardPeriod === 'financial_year' && dashboardSummary?.fy_label
+            ? dashboardSummary.fy_label
+            : (t ? t(periodKeyMap[dashboardPeriod] || 'financialYear', periodLabelMap[dashboardPeriod] || 'FY 2026-27') : (periodLabelMap[dashboardPeriod] || 'FY 2026-27'));
 
     const DONUT_COLORS = ['#1B6B3A', '#10B981', '#059669', '#34D399', '#6EE7B7', '#A7F3D0'];
 
@@ -622,31 +629,89 @@ const BusinessDashboard = () => {
                     }}>
                         {[
                             { id: 'today', label: 'Today', key: 'today' },
-                            { id: 'this_week', label: 'This Week', key: 'thisWeek' },
                             { id: 'this_month', label: 'This Month', key: 'thisMonth' },
                             { id: 'financial_year', label: dashboardSummary?.fy_label || 'FY 2026-27', key: 'financialYear' },
-                            { id: 'all_time', label: 'All Time', key: 'allTime' }
-                        ].map(p => (
-                            <button
-                                key={p.id}
-                                onClick={() => setDashboardPeriod(p.id)}
-                                style={{
-                                    padding: '0.45rem 0.85rem',
-                                    borderRadius: '10px',
-                                    border: 'none',
-                                    fontWeight: '800',
-                                    fontSize: '0.78rem',
-                                    cursor: 'pointer',
-                                    background: dashboardPeriod === p.id ? '#1B6B3A' : 'transparent',
-                                    color: dashboardPeriod === p.id ? 'white' : '#64748B',
-                                    boxShadow: dashboardPeriod === p.id ? '0 2px 4px rgba(27, 107, 58, 0.2)' : 'none',
-                                    transition: 'all 0.15s ease'
-                                }}
-                            >
-                                {p.id === 'financial_year' && dashboardSummary?.fy_label ? dashboardSummary.fy_label : (t ? t(p.key, p.label) : p.label)}
-                            </button>
-                        ))}
+                            { id: 'all_time', label: 'All Time', key: 'allTime' },
+                            { id: 'custom', label: 'Calendar', key: 'calendar', icon: Calendar }
+                        ].map(p => {
+                            const isSelected = dashboardPeriod === p.id;
+                            const IconComponent = p.icon;
+                            return (
+                                <button
+                                    key={p.id}
+                                    onClick={() => setDashboardPeriod(p.id)}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        padding: '0.45rem 0.85rem',
+                                        borderRadius: '10px',
+                                        border: 'none',
+                                        fontWeight: '800',
+                                        fontSize: '0.78rem',
+                                        cursor: 'pointer',
+                                        background: isSelected ? '#1B6B3A' : 'transparent',
+                                        color: isSelected ? 'white' : '#64748B',
+                                        boxShadow: isSelected ? '0 2px 4px rgba(27, 107, 58, 0.2)' : 'none',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                >
+                                    {IconComponent && <IconComponent size={13} color={isSelected ? 'white' : '#64748B'} />}
+                                    {p.id === 'financial_year' && dashboardSummary?.fy_label ? dashboardSummary.fy_label : (t ? t(p.key, p.label) : p.label)}
+                                </button>
+                            );
+                        })}
                     </div>
+
+                    {dashboardPeriod === 'custom' && (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: '#FFFFFF',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            border: '1.5px solid #1B6B3A',
+                            boxShadow: '0 2px 8px rgba(27, 107, 58, 0.12)'
+                        }}>
+                            <Calendar size={13} color="#1B6B3A" />
+                            <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>From:</span>
+                            <input
+                                type="date"
+                                value={customFromDate}
+                                max={customToDate || todayStr}
+                                onChange={(e) => setCustomFromDate(e.target.value)}
+                                style={{
+                                    border: '1px solid #CBD5E1',
+                                    borderRadius: '6px',
+                                    padding: '2px 6px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '700',
+                                    color: '#0F172A',
+                                    outline: 'none',
+                                    cursor: 'pointer'
+                                }}
+                            />
+                            <span style={{ fontSize: '0.75rem', fontWeight: '750', color: '#475569' }}>To:</span>
+                            <input
+                                type="date"
+                                value={customToDate}
+                                min={customFromDate || undefined}
+                                max={todayStr}
+                                onChange={(e) => setCustomToDate(e.target.value)}
+                                style={{
+                                    border: '1px solid #CBD5E1',
+                                    borderRadius: '6px',
+                                    padding: '2px 6px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '700',
+                                    color: '#0F172A',
+                                    outline: 'none',
+                                    cursor: 'pointer'
+                                }}
+                            />
+                        </div>
+                    )}
 
                     <button
                         onClick={handleOpenDashboardCustomise}
@@ -727,13 +792,17 @@ const BusinessDashboard = () => {
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.78rem', fontWeight: '750', color: '#64748B', flexWrap: 'wrap' }}>
                                                     <span>{t ? t('today', 'Today') : 'Today'}: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.today?.sales || 0)}</strong></span>
                                                     <span style={{ color: '#CBD5E1' }}>•</span>
-                                                    <span>{t ? t('thisWeek', 'This Week') : 'This Week'}: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.this_week?.sales || 0)}</strong></span>
-                                                    <span style={{ color: '#CBD5E1' }}>•</span>
                                                     <span>{t ? t('thisMonth', 'This Month') : 'This Month'}: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.this_month?.sales || 0)}</strong></span>
                                                     <span style={{ color: '#CBD5E1' }}>•</span>
                                                     <span>{dashboardSummary?.fy_label || (t ? t('currentFy', 'Current FY') : 'Current FY')}: <strong style={{ color: '#064E3B' }}>{formatCurrency(dashboardSummary?.breakdown?.financial_year?.sales || 0)}</strong></span>
                                                     <span style={{ color: '#CBD5E1' }}>•</span>
                                                     <span>{t ? t('allTime', 'All-Time') : 'All-Time'}: <strong style={{ color: '#0F172A' }}>{formatCurrency(dashboardSummary?.breakdown?.all_time?.sales || 0)}</strong></span>
+                                                    {dashboardPeriod === 'custom' && (
+                                                        <>
+                                                            <span style={{ color: '#CBD5E1' }}>•</span>
+                                                            <span>Custom: <strong style={{ color: '#1B6B3A' }}>{formatCurrency(dashboardSummary?.breakdown?.custom?.sales || 0)}</strong></span>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
