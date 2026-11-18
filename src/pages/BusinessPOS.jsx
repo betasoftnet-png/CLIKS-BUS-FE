@@ -6727,9 +6727,50 @@ const BusinessPOS = () => {
                         {/* Dynamic Page Print CSS Rule for Target Printer Size */}
                         <style dangerouslySetInnerHTML={{ __html: `
                             @media print {
-                                @page { size: ${activePrinterConfig.widthMm} 200mm; margin: 0; }
-                                body { margin: 0 !important; padding: 0 !important; }
-                                #printable-pos-receipt { width: ${activePrinterConfig.widthMm} !important; max-width: ${activePrinterConfig.widthMm} !important; margin: 0 auto !important; }
+                                @page { size: auto; margin: 0; }
+                                html, body { 
+                                    margin: 0 !important; 
+                                    padding: 0 !important; 
+                                    background: #FFFFFF !important;
+                                    width: 100% !important;
+                                    display: block !important;
+                                }
+                                .pos-receipt-modal-overlay {
+                                    position: static !important;
+                                    display: block !important;
+                                    padding: 0 !important;
+                                    margin: 0 !important;
+                                    background: transparent !important;
+                                    width: 100% !important;
+                                }
+                                .pos-receipt-modal-content {
+                                    position: static !important;
+                                    display: block !important;
+                                    width: 100% !important;
+                                    max-width: 100% !important;
+                                    box-shadow: none !important;
+                                    border: none !important;
+                                    margin: 0 auto !important;
+                                    padding: 0 !important;
+                                    background: transparent !important;
+                                    transform: none !important;
+                                }
+                                #printable-pos-receipt { 
+                                    position: absolute !important;
+                                    left: 0 !important;
+                                    right: 0 !important;
+                                    top: 0 !important;
+                                    margin-left: auto !important;
+                                    margin-right: auto !important;
+                                    margin-top: 0 !important;
+                                    margin-bottom: 0 !important;
+                                    width: ${activePrinterConfig.widthMm} !important; 
+                                    max-width: ${activePrinterConfig.widthMm} !important; 
+                                    box-shadow: none !important;
+                                    border: none !important;
+                                    background: #FFFFFF !important;
+                                    color: #000000 !important;
+                                }
                             }
                         ` }} />
 

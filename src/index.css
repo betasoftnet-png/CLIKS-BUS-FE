@@ -1159,15 +1159,19 @@ html, body, .sidebar, .topbar, .main-content-area, .card, .stat-card {
     visibility: visible;
   }
 
-  /* Position receipt at the very top-left of the physical page */
+  /* Center receipt horizontally on the physical page / print sheet */
   #printable-pos-receipt,
   #thermal-receipt-pane {
-    position: absolute;
-    left: 0;
-    top: 0;
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
     width: 80mm; /* Default 3-inch POS thermal printer roll */
     max-width: 100%;
-    margin: 0;
     padding: 8px;
     background: #ffffff !important;
     color: #000000 !important;
@@ -1182,6 +1186,10 @@ html, body, .sidebar, .topbar, .main-content-area, .card, .stat-card {
   #thermal-receipt-pane.printer-size-2inch {
     width: 58mm !important;
     max-width: 58mm !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
     padding: 4px !important;
     font-size: 11px !important;
   }
@@ -1191,6 +1199,10 @@ html, body, .sidebar, .topbar, .main-content-area, .card, .stat-card {
   #thermal-receipt-pane.printer-size-3inch {
     width: 80mm !important;
     max-width: 80mm !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
     padding: 8px !important;
     font-size: 12px !important;
   }
@@ -1200,6 +1212,10 @@ html, body, .sidebar, .topbar, .main-content-area, .card, .stat-card {
   #thermal-receipt-pane.printer-size-4inch {
     width: 100mm !important;
     max-width: 100mm !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
     padding: 10px !important;
     font-size: 13px !important;
   }
@@ -1215,19 +1231,21 @@ html, body, .sidebar, .topbar, .main-content-area, .card, .stat-card {
     color: #000000 !important;
   }
 
-  /* Reset POS Modal centering for print to ensure top-left alignment */
+  /* Center POS Modal for print */
   .pos-receipt-modal-overlay {
-    align-items: flex-start !important;
-    justify-content: flex-start !important;
+    align-items: center !important;
+    justify-content: center !important;
     padding: 0 !important;
     background: transparent !important;
+    width: 100% !important;
   }
   
   .pos-receipt-modal-content {
     transform: none !important;
     position: static !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     box-shadow: none !important;
+    width: 100% !important;
   }
 
   /* Hide print/action buttons during printing */
